@@ -204,16 +204,14 @@ def format_currency_compact(num: float) -> str:
 
 # --- Sidebar Inputs ---
 st.sidebar.title("⚖️ Configuration")
-st.sidebar.header("Salary Details (Monthly SAR)")
+
+st.sidebar.header("Current Job")
 current_salary = st.sidebar.number_input(
-    "Current Job Monthly Salary", min_value=0, value=30000, step=1000
-)
-startup_salary = st.sidebar.number_input(
-    "Startup Opportunity Monthly Salary", min_value=0, value=15000, step=1000
+    "Monthly Salary (SAR)", min_value=0, value=30000, step=1000, key="current_salary"
 )
 current_job_salary_growth_rate = (
     st.sidebar.slider(
-        "Current Job Annual Salary Growth Rate (%)",
+        "Annual Salary Growth Rate (%)",
         0.0,
         10.0,
         4.0,
@@ -223,12 +221,16 @@ current_job_salary_growth_rate = (
     / 100
 )
 
-st.sidebar.header("Investment & Equity")
-investment_frequency = st.sidebar.radio(
-    "Surplus Investment Frequency",
-    ["Monthly", "Annually"],
-    help="Choose whether you would invest the salary surplus every month or as a lump sum at the end of each year.",
+st.sidebar.header("Startup Opportunity")
+startup_salary = st.sidebar.number_input(
+    "Monthly Salary (SAR)", min_value=0, value=15000, step=1000, key="startup_salary"
 )
+equity_pct = st.sidebar.slider("Total Equity Grant (%)", 0.5, 25.0, 1.0, 0.1) / 100
+total_vesting_years = st.sidebar.slider("Total Vesting Period (Years)", 1, 10, 4, 1)
+cliff_years = st.sidebar.slider("Vesting Cliff Period (Years)", 0, 5, 1, 1)
+
+
+st.sidebar.header("Investment Assumptions")
 annual_roi = (
     st.sidebar.slider(
         "Assumed Annual ROI on Investments (%)",
@@ -236,15 +238,16 @@ annual_roi = (
         20.0,
         8.0,
         0.5,
-        help="This is also used as the discount rate for the NPV calculation.",
+        help="The return you assume you could get by investing the salary surplus. This is also used as the discount rate for NPV.",
     )
     / 100
 )
-equity_pct = st.sidebar.slider("Your Total Equity (%)", 0.0, 10.0, 1.0, 0.1) / 100
+investment_frequency = st.sidebar.radio(
+    "Surplus Investment Frequency",
+    ["Monthly", "Annually"],
+    help="How often would you invest the salary surplus?",
+)
 
-st.sidebar.header("Vesting Schedule")
-cliff_years = st.sidebar.slider("Cliff Period (Years)", 0, 5, 1, 1)
-total_vesting_years = st.sidebar.slider("Total Vesting Period (Years)", 1, 10, 4, 1)
 
 # --- Main Page Display ---
 st.title("Startup Offer vs. Current Job: Financial Comparison")
@@ -339,7 +342,6 @@ else:
             "Select a hypothetical future valuation for the startup to simulate your potential financial outcome."
         )
 
-        # --- IMPROVED SLIDER ---
         valuation_in_millions = st.slider(
             "Hypothetical Future Company Valuation (Millions SAR)",
             min_value=1,
@@ -364,7 +366,6 @@ else:
             f"#### Outcome at End of Year {total_vesting_years} (at {target_valuation:,.0f} SAR Valuation)"
         )
 
-        # --- Metrics Display with Compact Formatting ---
         col1, col2, col3, col4, col5 = st.columns(5)
         col1.metric("Your Equity Value", format_currency_compact(final_equity_value))
         col2.metric("Opportunity Cost", format_currency_compact(final_opportunity_cost))
