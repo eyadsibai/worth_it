@@ -31,15 +31,6 @@ def create_monthly_data_grid(
     """
     Creates a DataFrame with one row per month, calculating the monthly salary
     surplus which forms the basis of our cash flows.
-
-    Args:
-        total_vesting_years: The total number of years in the vesting period.
-        current_job_monthly_salary: The monthly salary from the current job.
-        startup_monthly_salary: The proposed monthly salary from the startup.
-        current_job_salary_growth_rate: The assumed annual growth rate of the current job's salary.
-
-    Returns:
-        A pandas DataFrame indexed by month with calculated salary details.
     """
     total_months = total_vesting_years * 12
     df = pd.DataFrame(index=pd.RangeIndex(total_months, name="MonthIndex"))
@@ -60,14 +51,6 @@ def calculate_annual_opportunity_cost(
 ) -> pd.DataFrame:
     """
     Calculates the future value (opportunity cost) of the forgone surplus for each year.
-
-    Args:
-        monthly_df: The DataFrame of monthly salary data.
-        annual_roi: The assumed annual return on investment.
-        investment_frequency: How often the surplus is invested ('Monthly' or 'Annually').
-
-    Returns:
-        A pandas DataFrame indexed by year with opportunity cost calculations.
     """
     results_df = pd.DataFrame(
         index=pd.RangeIndex(1, monthly_df["Year"].max() + 1, name="Year")
@@ -110,15 +93,6 @@ def calculate_annual_breakeven(
 ) -> pd.DataFrame:
     """
     Calculates the vested equity percentage and breakeven valuation for each year.
-
-    Args:
-        results_df: The DataFrame of annual results.
-        equity_pct: The total equity percentage offered.
-        cliff_years: The number of years for the vesting cliff.
-        total_vesting_years: The total number of years for vesting.
-
-    Returns:
-        The results_df DataFrame with added breakeven calculation columns.
     """
     results_df["Vested Equity (%)"] = np.where(
         results_df.index >= cliff_years,
@@ -137,13 +111,6 @@ def calculate_annual_breakeven(
 def calculate_irr(monthly_surpluses: pd.Series, final_equity_value: float) -> float:
     """
     Calculates the annualized Internal Rate of Return (IRR) based on monthly cash flows.
-
-    Args:
-        monthly_surpluses: A pandas Series of monthly salary surpluses (the 'investment').
-        final_equity_value: The final value of the equity at the end of the period.
-
-    Returns:
-        The annualized IRR as a percentage, or NaN if not calculable.
     """
     cash_flows = -monthly_surpluses.copy()
     if cash_flows.empty:
@@ -165,14 +132,6 @@ def calculate_npv(
 ) -> float:
     """
     Calculates the Net Present Value of the investment.
-
-    Args:
-        monthly_surpluses: A pandas Series of monthly salary surpluses.
-        annual_roi: The discount rate (assumed annual ROI).
-        final_equity_value: The final value of the equity at the end of the period.
-
-    Returns:
-        The NPV of the cash flows, or NaN if not calculable.
     """
     monthly_roi = annual_to_monthly_roi(annual_roi)
     if monthly_roi is None or pd.isna(monthly_roi):
@@ -181,7 +140,6 @@ def calculate_npv(
     cash_flows = -monthly_surpluses.copy()
     cash_flows.iloc[-1] += final_equity_value
 
-    # npf.npv assumes the first cash flow is at t=1, which matches our monthly series.
     return npf.npv(monthly_roi, cash_flows)
 
 
@@ -197,9 +155,6 @@ def analyze_job_offer(
 ) -> Tuple[pd.DataFrame, pd.Series]:
     """
     Main controller function to orchestrate the financial analysis.
-
-    Returns:
-        A tuple containing the final results DataFrame and the series of monthly surpluses.
     """
     monthly_df = create_monthly_data_grid(
         total_vesting_years,
@@ -227,6 +182,27 @@ def analyze_job_offer(
 # --- STREAMLIT UI ---
 # =============================================================================
 
+
+# --- UI Helper Functions ---
+def format_currency_compact(num: float) -> str:
+    """Formats a currency value into a compact SAR string with K/M abbreviations."""
+    if pd.isna(num):
+        return "N/A"
+
+    sign = ""
+    if num < 0:
+        sign = "-"
+        num = abs(num)
+
+    if num < 1_000:
+        return f"{sign}{num:,.0f} SAR"
+    elif num < 1_000_000:
+        return f"{sign}{num / 1_000:.1f}K SAR"
+    else:
+        return f"{sign}{num / 1_000_000:.2f}M SAR"
+
+
+# --- Sidebar Inputs ---
 st.sidebar.title("⚖️ Configuration")
 st.sidebar.header("Salary Details (Monthly SAR)")
 current_salary = st.sidebar.number_input(
@@ -264,12 +240,13 @@ annual_roi = (
     )
     / 100
 )
-equity_pct = st.sidebar.slider("Your Total Equity (%)", 0.0, 20.0, 1.0, 0.1) / 100
+equity_pct = st.sidebar.slider("Your Total Equity (%)", 0.0, 10.0, 1.0, 0.1) / 100
 
 st.sidebar.header("Vesting Schedule")
 cliff_years = st.sidebar.slider("Cliff Period (Years)", 0, 5, 1, 1)
 total_vesting_years = st.sidebar.slider("Total Vesting Period (Years)", 1, 10, 4, 1)
 
+# --- Main Page Display ---
 st.title("Startup Offer vs. Current Job: Financial Comparison")
 st.markdown(
     """
@@ -362,46 +339,50 @@ else:
             "Select a hypothetical future valuation for the startup to simulate your potential financial outcome."
         )
 
-        target_valuation = st.slider(
-            "Hypothetical Future Company Valuation (SAR)",
-            min_value=1_000_000,
-            max_value=1_000_000_000,
-            value=25_000_000,
-            step=1_000_000,
-            format="%d SAR",
+        # --- IMPROVED SLIDER ---
+        valuation_in_millions = st.slider(
+            "Hypothetical Future Company Valuation (Millions SAR)",
+            min_value=1,
+            max_value=1000,
+            value=25,
+            step=1,
+            format="%dM SAR",
         )
+        target_valuation = valuation_in_millions * 1_000_000
 
+        # --- Calculations for Metrics ---
         final_vested_equity_pct = results_df["Vested Equity (%)"].iloc[-1] / 100
         final_equity_value = target_valuation * final_vested_equity_pct
         final_opportunity_cost = results_df["Opportunity Cost (Invested Surplus)"].iloc[
             -1
         ]
         net_outcome = final_equity_value - final_opportunity_cost
-
         irr_value = calculate_irr(monthly_surpluses, final_equity_value)
         npv_value = calculate_npv(monthly_surpluses, annual_roi, final_equity_value)
 
         st.markdown(
             f"#### Outcome at End of Year {total_vesting_years} (at {target_valuation:,.0f} SAR Valuation)"
         )
-        # --- CORRECTED: Using 5 columns to display all metrics ---
+
+        # --- Metrics Display with Compact Formatting ---
         col1, col2, col3, col4, col5 = st.columns(5)
-        col1.metric("Your Equity Value", f"{final_equity_value:,.0f} SAR")
-        col2.metric("Opportunity Cost", f"{final_opportunity_cost:,.0f} SAR")
+        col1.metric("Your Equity Value", format_currency_compact(final_equity_value))
+        col2.metric("Opportunity Cost", format_currency_compact(final_opportunity_cost))
         col3.metric(
             "Net Outcome (Future)",
-            f"{net_outcome:,.0f} SAR",
+            format_currency_compact(net_outcome),
             delta=f"{net_outcome:,.0f} SAR",
         )
         col4.metric(
             "Net Present Value (NPV)",
-            f"{npv_value:,.0f} SAR",
+            format_currency_compact(npv_value),
             help="The net gain/loss in today's money. Positive is good.",
         )
         col5.metric(
             "Annualized IRR", f"{irr_value:.2f}%" if pd.notna(irr_value) else "N/A"
         )
 
+        # --- Final Chart ---
         sim_df = results_df_display.copy()
         sim_df["Equity Value at Target"] = (
             sim_df["Vested Equity (%)"] / 100
