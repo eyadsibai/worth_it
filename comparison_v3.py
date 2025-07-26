@@ -264,7 +264,7 @@ annual_roi = (
     )
     / 100
 )
-equity_pct = st.sidebar.slider("Your Total Equity (%)", 0.0, 10.0, 1.0, 0.1) / 100
+equity_pct = st.sidebar.slider("Your Total Equity (%)", 0.0, 20.0, 1.0, 0.1) / 100
 
 st.sidebar.header("Vesting Schedule")
 cliff_years = st.sidebar.slider("Cliff Period (Years)", 0, 5, 1, 1)
@@ -384,20 +384,22 @@ else:
         st.markdown(
             f"#### Outcome at End of Year {total_vesting_years} (at {target_valuation:,.0f} SAR Valuation)"
         )
-        col1, col2, col3, col4 = st.columns(4)
+        # --- CORRECTED: Using 5 columns to display all metrics ---
+        col1, col2, col3, col4, col5 = st.columns(5)
         col1.metric("Your Equity Value", f"{final_equity_value:,.0f} SAR")
-        col2.metric(
+        col2.metric("Opportunity Cost", f"{final_opportunity_cost:,.0f} SAR")
+        col3.metric(
+            "Net Outcome (Future)",
+            f"{net_outcome:,.0f} SAR",
+            delta=f"{net_outcome:,.0f} SAR",
+        )
+        col4.metric(
             "Net Present Value (NPV)",
             f"{npv_value:,.0f} SAR",
             help="The net gain/loss in today's money. Positive is good.",
         )
-        col3.metric(
+        col5.metric(
             "Annualized IRR", f"{irr_value:.2f}%" if pd.notna(irr_value) else "N/A"
-        )
-        col4.metric(
-            "Net Outcome (Future Value)",
-            f"{net_outcome:,.0f} SAR",
-            delta=f"{net_outcome:,.0f} SAR",
         )
 
         sim_df = results_df_display.copy()
