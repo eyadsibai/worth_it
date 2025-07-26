@@ -209,7 +209,6 @@ st.sidebar.header("Current Job")
 current_salary = st.sidebar.number_input(
     "Monthly Salary (SAR)", min_value=0, value=30000, step=1000, key="current_salary"
 )
-# --- BUG FIX: Added the division by 100 back to this slider ---
 current_job_salary_growth_rate = (
     st.sidebar.slider(
         "Annual Salary Growth Rate (%)",
@@ -254,7 +253,6 @@ cliff_years = st.sidebar.slider("Vesting Cliff Period (Years)", 0, 5, 1, 1)
 st.title("Startup Offer vs. Current Job: Financial Comparison")
 
 # Check if startup salary is always higher, making calculations unnecessary
-# Use a small epsilon to handle floating point comparisons
 is_startup_salary_higher = (
     startup_salary
     - (current_salary * (1 + current_job_salary_growth_rate) ** total_vesting_years)
@@ -297,18 +295,23 @@ else:
 
         st.subheader("Breakeven Analysis by Year")
         display_df = results_df_display.copy()
-        for col in [
-            "Principal Forgone",
-            "Investment Returns",
-            "Opportunity Cost (Invested Surplus)",
-        ]:
-            display_df[col] = display_df[col].map("{:,.0f} SAR".format)
+
+        # --- UPDATED: Apply compact formatting to the table ---
+        for col in ["Principal Forgone", "Opportunity Cost (Invested Surplus)"]:
+            display_df[col] = display_df[col].apply(format_currency_compact)
+
         display_df["Vested Equity (%)"] = display_df["Vested Equity (%)"].map(
             "{:.1f}%".format
         )
+
         display_df["Breakeven Valuation (SAR)"] = display_df[
             "Breakeven Valuation (SAR)"
-        ].apply(lambda x: f"{x:,.0f} SAR" if x != float("inf") else "N/A (in cliff)")
+        ].apply(
+            lambda x: (
+                format_currency_compact(x) if x != float("inf") else "N/A (in cliff)"
+            )
+        )
+
         st.dataframe(
             display_df.drop(columns=["Investment Returns"]), use_container_width=True
         )
@@ -427,3 +430,4 @@ else:
         st.info("Please adjust the sidebar inputs to perform a comparison.")
 
 st.markdown("---")
+st.markdown("Made with ❤️ by Eyad Sibai (https://linkedin.com/in/eyadsibai)")
