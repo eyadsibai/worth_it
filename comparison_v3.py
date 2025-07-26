@@ -209,17 +209,33 @@ st.sidebar.header("Current Job")
 current_salary = st.sidebar.number_input(
     "Monthly Salary (SAR)", min_value=0, value=30000, step=1000, key="current_salary"
 )
-current_job_salary_growth_rate = (
+current_job_salary_growth_rate = st.sidebar.slider(
+    "Annual Salary Growth Rate (%)",
+    0.0,
+    10.0,
+    4.0,
+    0.1,
+    help="Assumed annual percentage increase in your current job's salary.",
+)
+
+st.sidebar.markdown("##### Surplus Investment Assumptions")
+annual_roi = (
     st.sidebar.slider(
-        "Annual Salary Growth Rate (%)",
+        "Assumed Annual ROI (%)",
         0.0,
-        10.0,
-        4.0,
-        0.1,
-        help="Assumed annual percentage increase in your current job's salary.",
+        20.0,
+        8.0,
+        0.5,
+        help="The return you'd get by investing the salary surplus. This is also the discount rate for NPV.",
     )
     / 100
 )
+investment_frequency = st.sidebar.radio(
+    "Investment Frequency",
+    ["Monthly", "Annually"],
+    help="How often you would invest the salary surplus.",
+)
+
 
 st.sidebar.header("Startup Opportunity")
 startup_salary = st.sidebar.number_input(
@@ -230,45 +246,37 @@ total_vesting_years = st.sidebar.slider("Total Vesting Period (Years)", 1, 10, 4
 cliff_years = st.sidebar.slider("Vesting Cliff Period (Years)", 0, 5, 1, 1)
 
 
-st.sidebar.header("Investment Assumptions")
-annual_roi = (
-    st.sidebar.slider(
-        "Assumed Annual ROI on Investments (%)",
-        0.0,
-        20.0,
-        8.0,
-        0.5,
-        help="The return you assume you could get by investing the salary surplus. This is also used as the discount rate for NPV.",
-    )
-    / 100
-)
-investment_frequency = st.sidebar.radio(
-    "Surplus Investment Frequency",
-    ["Monthly", "Annually"],
-    help="How often would you invest the salary surplus?",
-)
-
-
 # --- Main Page Display ---
 st.title("Startup Offer vs. Current Job: Financial Comparison")
-st.markdown(
-    """
-This tool helps analyze the financial trade-offs between staying at a stable job and accepting a startup offer with equity.
-- **Opportunity Cost**: The future value of the salary surplus you give up, assuming it was invested elsewhere.
-- **Breakeven Valuation**: The startup valuation needed for your vested equity to equal your opportunity cost.
-- **Net Present Value (NPV)**: The value of all cash flows (forgone salary vs. equity payout) in today's money. A positive NPV is favorable.
-- **Internal Rate of Return (IRR)**: The annualized rate of return on your "investment" (the forgone salary).
-"""
-)
-st.markdown("---")
 
-if (
-    current_salary * (1 + current_job_salary_growth_rate) ** total_vesting_years
-) <= startup_salary:
-    st.warning(
-        "Startup salary is consistently higher than the projected salary for your current job. There is no investment opportunity cost to analyze."
+# Check if startup salary is always higher, making calculations unnecessary
+# Use a small epsilon to handle floating point comparisons
+is_startup_salary_higher = (
+    startup_salary
+    - (current_salary * (1 + current_job_salary_growth_rate) ** total_vesting_years)
+) > 1e-9
+
+if is_startup_salary_higher:
+    st.balloons()
+    st.success(
+        "Congratulations! 🎉 The startup salary is higher than your projected current salary."
     )
+    st.info(
+        "Since you aren't sacrificing any salary, there's no financial opportunity cost to analyze. The decision is a clear financial win."
+    )
+
 else:
+    st.markdown(
+        """
+    This tool helps analyze the financial trade-offs between staying at a stable job and accepting a startup offer with equity.
+    - **Opportunity Cost**: The future value of the salary surplus you give up, assuming it was invested elsewhere.
+    - **Breakeven Valuation**: The startup valuation needed for your vested equity to equal your opportunity cost.
+    - **Net Present Value (NPV)**: The value of all cash flows (forgone salary vs. equity payout) in today's money. A positive NPV is favorable.
+    - **Internal Rate of Return (IRR)**: The annualized rate of return on your "investment" (the forgone salary).
+    """
+    )
+    st.markdown("---")
+
     results_df, monthly_surpluses = analyze_job_offer(
         current_salary,
         startup_salary,
