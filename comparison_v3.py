@@ -209,13 +209,17 @@ st.sidebar.header("Current Job")
 current_salary = st.sidebar.number_input(
     "Monthly Salary (SAR)", min_value=0, value=30000, step=1000, key="current_salary"
 )
-current_job_salary_growth_rate = st.sidebar.slider(
-    "Annual Salary Growth Rate (%)",
-    0.0,
-    10.0,
-    4.0,
-    0.1,
-    help="Assumed annual percentage increase in your current job's salary.",
+# --- BUG FIX: Added the division by 100 back to this slider ---
+current_job_salary_growth_rate = (
+    st.sidebar.slider(
+        "Annual Salary Growth Rate (%)",
+        0.0,
+        10.0,
+        4.0,
+        0.1,
+        help="Assumed annual percentage increase in your current job's salary.",
+    )
+    / 100
 )
 
 st.sidebar.markdown("##### Surplus Investment Assumptions")
