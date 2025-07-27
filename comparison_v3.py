@@ -94,7 +94,7 @@ startup_salary = st.sidebar.number_input(
 
 comp_type = st.sidebar.radio(
     label="Compensation Type",
-    options=[CompensationType.RSU, CompensationType.STOCK_OPTIONS],
+    options=list(CompensationType),
     help="RSUs are grants of shares. Stock Options are the right to buy shares at a"
     " fixed price.",
 )
