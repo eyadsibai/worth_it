@@ -219,13 +219,19 @@ else:  # Stock Options
     )
 
 total_vesting_years = st.sidebar.slider("Total Vesting Period (Years)", 1, 10, 4, 1)
-cliff_years = st.sidebar.slider("Vesting Cliff Period (Years)", 0, 5, 1, 1)
+cliff_years = st.sidebar.slider(
+    "Vesting Cliff Period (Years)",
+    0,
+    5,
+    1,
+    1,
+    help="The initial period before any compensation vests. For a standard 1-year cliff, set this to 1. At the 1-year mark, the first year's worth of compensation becomes vested. Set to 0 for no cliff.",
+)
 
 
 # --- Main Page Display ---
 st.title("Startup Offer vs. Current Job: Financial Comparison")
 
-# --- NEW: How-to-use guide ---
 with st.expander("👋 New to this tool? Click here for a guide!"):
     st.markdown(
         """
@@ -252,7 +258,6 @@ with st.expander("👋 New to this tool? Click here for a guide!"):
     """
     )
 
-# --- Main Logic and Display ---
 is_startup_salary_higher = (
     startup_salary
     - (current_salary * (1 + current_job_salary_growth_rate) ** total_vesting_years)
@@ -282,9 +287,10 @@ else:
     principal_col_label = "Principal Forgone" if total_surplus >= 0 else "Salary Gain"
     results_df.rename(columns={"Principal Change": principal_col_label}, inplace=True)
 
+    # --- CLIFF CALCULATION BUG FIX: Changed > to >= ---
     if comp_type == "Equity (RSUs)":
         results_df["Vested Comp (%)"] = np.where(
-            results_df.index > cliff_years,
+            results_df.index >= cliff_years,
             (equity_pct * (results_df.index / total_vesting_years) * 100),
             0,
         )
@@ -299,7 +305,7 @@ else:
         payout_label = "Your Equity Value"
     else:  # Stock Options
         results_df["Vested Comp (%)"] = np.where(
-            results_df.index > cliff_years,
+            results_df.index >= cliff_years,
             ((results_df.index / total_vesting_years) * 100),
             0,
         )
@@ -332,7 +338,6 @@ else:
         f"Outcome at End of Year {total_vesting_years} (at {exit_scenario_text})"
     )
 
-    # --- Metrics with NEW Tooltips ---
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric(
         payout_label,
