@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import numpy as np
 import numpy_financial as npf
 import pandas as pd
@@ -13,7 +11,9 @@ st.set_page_config(
 
 
 # =============================================================================
-# --- CALCULATION ENGINE ---
+# --- CALCULATION ENGINE (REMAINS LARGELY THE SAME) ---
+# The core engine for calculating salary surplus and opportunity cost doesn't change.
+# Breakeven calculations will be handled in the UI based on compensation type.
 # =============================================================================
 
 
@@ -56,8 +56,8 @@ def calculate_annual_opportunity_cost(
         index=pd.RangeIndex(1, monthly_df["Year"].max() + 1, name="Year")
     )
     annual_surplus = monthly_df.groupby("Year")["MonthlySurplus"].sum()
-    results_df["Annual Surplus Forgone"] = annual_surplus
-    results_df["Principal Forgone"] = annual_surplus.cumsum()
+    # This value can be negative if startup pays more. We'll handle the label in the UI.
+    results_df["Principal Change"] = annual_surplus.cumsum()
 
     opportunity_costs = []
     monthly_roi = annual_to_monthly_roi(annual_roi)
@@ -77,45 +77,19 @@ def calculate_annual_opportunity_cost(
         opportunity_costs.append(fv)
 
     results_df["Opportunity Cost (Invested Surplus)"] = opportunity_costs
-    results_df["Investment Returns"] = (
-        results_df["Opportunity Cost (Invested Surplus)"]
-        - results_df["Principal Forgone"]
-    )
+    results_df["Investment Returns"] = results_df[
+        "Opportunity Cost (Invested Surplus)"
+    ] - results_df["Principal Change"].clip(lower=0)
 
     return results_df
 
 
-def calculate_annual_breakeven(
-    results_df: pd.DataFrame,
-    equity_pct: float,
-    cliff_years: int,
-    total_vesting_years: int,
-) -> pd.DataFrame:
-    """
-    Calculates the vested equity percentage and breakeven valuation for each year.
-    """
-    results_df["Vested Equity (%)"] = np.where(
-        results_df.index >= cliff_years,
-        equity_pct * (results_df.index / total_vesting_years) * 100,
-        0,
-    )
-    vested_equity_decimal = results_df["Vested Equity (%)"] / 100
-    results_df["Breakeven Valuation (SAR)"] = (
-        results_df["Opportunity Cost (Invested Surplus)"]
-        .divide(vested_equity_decimal)
-        .fillna(np.inf)
-    )
-    return results_df
-
-
-def calculate_irr(monthly_surpluses: pd.Series, final_equity_value: float) -> float:
+def calculate_irr(monthly_surpluses: pd.Series, final_payout_value: float) -> float:
     """
     Calculates the annualized Internal Rate of Return (IRR) based on monthly cash flows.
     """
     cash_flows = -monthly_surpluses.copy()
-    if cash_flows.empty:
-        return np.nan
-    cash_flows.iloc[-1] += final_equity_value
+    cash_flows.iloc[-1] += final_payout_value
 
     if cash_flows.iloc[-1] <= 0 or -cash_flows.iloc[:-1].sum() <= 0:
         return np.nan
@@ -128,7 +102,7 @@ def calculate_irr(monthly_surpluses: pd.Series, final_equity_value: float) -> fl
 
 
 def calculate_npv(
-    monthly_surpluses: pd.Series, annual_roi: float, final_equity_value: float
+    monthly_surpluses: pd.Series, annual_roi: float, final_payout_value: float
 ) -> float:
     """
     Calculates the Net Present Value of the investment.
@@ -138,44 +112,9 @@ def calculate_npv(
         return np.nan
 
     cash_flows = -monthly_surpluses.copy()
-    cash_flows.iloc[-1] += final_equity_value
+    cash_flows.iloc[-1] += final_payout_value
 
     return npf.npv(monthly_roi, cash_flows)
-
-
-def analyze_job_offer(
-    current_job_monthly_salary: float,
-    startup_monthly_salary: float,
-    current_job_salary_growth_rate: float,
-    annual_roi: float,
-    equity_pct: float,
-    cliff_years: int,
-    total_vesting_years: int,
-    investment_frequency: str,
-) -> Tuple[pd.DataFrame, pd.Series]:
-    """
-    Main controller function to orchestrate the financial analysis.
-    """
-    monthly_df = create_monthly_data_grid(
-        total_vesting_years,
-        current_job_monthly_salary,
-        startup_monthly_salary,
-        current_job_salary_growth_rate,
-    )
-    results_df = calculate_annual_opportunity_cost(
-        monthly_df, annual_roi, investment_frequency
-    )
-    results_df = calculate_annual_breakeven(
-        results_df, equity_pct, cliff_years, total_vesting_years
-    )
-    final_cols = [
-        "Principal Forgone",
-        "Investment Returns",
-        "Opportunity Cost (Invested Surplus)",
-        "Vested Equity (%)",
-        "Breakeven Valuation (SAR)",
-    ]
-    return results_df[final_cols], monthly_df["MonthlySurplus"]
 
 
 # =============================================================================
@@ -184,22 +123,19 @@ def analyze_job_offer(
 
 
 # --- UI Helper Functions ---
-def format_currency_compact(num: float) -> str:
-    """Formats a currency value into a compact SAR string with K/M abbreviations."""
+def format_currency_compact(num: float, add_sar=True) -> str:
+    """Formats a currency value into a compact string with K/M abbreviations."""
     if pd.isna(num):
         return "N/A"
-
-    sign = ""
-    if num < 0:
-        sign = "-"
-        num = abs(num)
+    sign = "-" if num < 0 else ""
+    num = abs(num)
+    unit = " SAR" if add_sar else ""
 
     if num < 1_000:
-        return f"{sign}{num:,.0f} SAR"
-    elif num < 1_000_000:
-        return f"{sign}{num / 1_000:.1f}K SAR"
-    else:
-        return f"{sign}{num / 1_000_000:.2f}M SAR"
+        return f"{sign}{num:,.0f}{unit}"
+    if num < 1_000_000:
+        return f"{sign}{num / 1_000:.1f}K{unit}"
+    return f"{sign}{num / 1_000_000:.2f}M{unit}"
 
 
 # --- Sidebar Inputs ---
@@ -245,21 +181,50 @@ st.sidebar.header("Startup Opportunity")
 startup_salary = st.sidebar.number_input(
     "Monthly Salary (SAR)", min_value=0, value=15000, step=1000, key="startup_salary"
 )
-equity_pct = st.sidebar.slider("Total Equity Grant (%)", 0.5, 25.0, 1.0, 0.1) / 100
+
+comp_type = st.sidebar.radio(
+    "Compensation Type",
+    ["Equity (RSUs)", "Stock Options"],
+    help="RSUs are grants of shares. Stock Options are the right to buy shares at a fixed price.",
+)
+
+# --- Dynamic Inputs Based on Compensation Type ---
+if comp_type == "Equity (RSUs)":
+    equity_pct = st.sidebar.slider("Total Equity Grant (%)", 0.5, 25.0, 1.0, 0.1) / 100
+    st.sidebar.markdown("##### Exit Scenario")
+    valuation_in_millions = st.sidebar.slider(
+        "Hypothetical Future Valuation (Millions SAR)",
+        min_value=1,
+        max_value=1000,
+        value=25,
+        step=1,
+        format="%dM SAR",
+        help="Your best guess for the startup's total valuation at the end of your vesting period.",
+    )
+    target_exit_value = valuation_in_millions * 1_000_000
+else:  # Stock Options
+    num_options = st.sidebar.number_input(
+        "Number of Stock Options", min_value=0, value=20000, step=1000
+    )
+    strike_price = st.sidebar.number_input(
+        "Strike Price (SAR per share)",
+        min_value=0.00,
+        value=1.50,
+        step=0.25,
+        format="%.2f",
+    )
+    st.sidebar.markdown("##### Exit Scenario")
+    target_exit_value = st.sidebar.number_input(
+        "Hypothetical Price per Share at Exit (SAR)",
+        min_value=0.00,
+        value=10.00,
+        step=0.50,
+        format="%.2f",
+    )
+
 total_vesting_years = st.sidebar.slider("Total Vesting Period (Years)", 1, 10, 4, 1)
 cliff_years = st.sidebar.slider("Vesting Cliff Period (Years)", 0, 5, 1, 1)
 
-st.sidebar.markdown("##### Exit Scenario")
-valuation_in_millions = st.sidebar.slider(
-    "Hypothetical Future Valuation (Millions SAR)",
-    min_value=1,
-    max_value=1000,
-    value=25,
-    step=1,
-    format="%dM SAR",
-    help="Your best guess for the startup's valuation at the end of your vesting period.",
-)
-target_valuation = valuation_in_millions * 1_000_000
 
 # --- Main Page Display ---
 st.title("Startup Offer vs. Current Job: Financial Comparison")
@@ -269,162 +234,177 @@ is_startup_salary_higher = (
     - (current_salary * (1 + current_job_salary_growth_rate) ** total_vesting_years)
 ) > 1e-9
 
-if is_startup_salary_higher:
+if is_startup_salary_higher and comp_type == "Equity (RSUs)":
     st.balloons()
-    st.success(
-        "Congratulations! 🎉 The startup salary is higher than your projected current salary."
-    )
+    st.success("Congratulations! 🎉 The startup salary is higher and you get equity.")
     st.info(
         "Since you aren't sacrificing any salary, there's no financial opportunity cost to analyze. The decision is a clear financial win."
     )
 else:
     st.markdown(
         """
-    This tool helps analyze the financial trade-offs between staying at a stable job and accepting a startup offer with equity.
+    This tool helps analyze the financial trade-offs between staying at a stable job and accepting a startup offer.
     All inputs can be configured in the sidebar. The results below will update automatically.
     """
     )
     st.divider()
 
-    results_df, monthly_surpluses = analyze_job_offer(
+    # --- Run Core Analysis ---
+    monthly_df = create_monthly_data_grid(
+        total_vesting_years,
         current_salary,
         startup_salary,
         current_job_salary_growth_rate,
-        annual_roi,
-        equity_pct,
-        cliff_years,
-        total_vesting_years,
-        investment_frequency,
+    )
+    results_df = calculate_annual_opportunity_cost(
+        monthly_df, annual_roi, investment_frequency
+    )
+    results_df["Year"] = results_df.index
+
+    # --- BUG FIX & DYNAMIC LABELS ---
+    total_surplus = monthly_df["MonthlySurplus"].sum()
+    principal_col_label = "Principal Forgone" if total_surplus >= 0 else "Salary Gain"
+    results_df.rename(columns={"Principal Change": principal_col_label}, inplace=True)
+
+    # --- Handle Compensation-Specific Logic ---
+    if comp_type == "Equity (RSUs)":
+        results_df["Vested Comp (%)"] = np.where(
+            results_df.index > cliff_years,
+            (equity_pct * (results_df.index / total_vesting_years) * 100),
+            0,
+        )
+        final_vested_comp_pct = results_df["Vested Comp (%)"].iloc[-1] / 100
+        final_payout_value = target_exit_value * final_vested_comp_pct
+
+        # Breakeven Valuation
+        results_df["Breakeven Value"] = (
+            results_df["Opportunity Cost (Invested Surplus)"]
+            .divide(results_df["Vested Comp (%)"] / 100)
+            .fillna(np.inf)
+        )
+        breakeven_label = "Breakeven Valuation (SAR)"
+        payout_label = "Your Equity Value"
+    else:  # Stock Options
+        results_df["Vested Comp (%)"] = np.where(
+            results_df.index > cliff_years,
+            ((results_df.index / total_vesting_years) * 100),
+            0,
+        )
+        vested_options_series = (results_df["Vested Comp (%)"] / 100) * num_options
+        final_vested_options = vested_options_series.iloc[-1]
+        final_payout_value = (
+            max(0, target_exit_value - strike_price) * final_vested_options
+        )
+
+        # Breakeven Price per Share
+        results_df["Breakeven Value"] = (
+            results_df["Opportunity Cost (Invested Surplus)"]
+            .divide(vested_options_series)
+            .fillna(np.inf)
+        ) + strike_price
+        breakeven_label = "Breakeven Price/Share (SAR)"
+        payout_label = "Your Options Value"
+
+    # --- Calculate Final Metrics ---
+    final_opportunity_cost = results_df["Opportunity Cost (Invested Surplus)"].iloc[-1]
+    net_outcome = final_payout_value - final_opportunity_cost
+    irr_value = calculate_irr(monthly_df["MonthlySurplus"], final_payout_value)
+    npv_value = calculate_npv(
+        monthly_df["MonthlySurplus"], annual_roi, final_payout_value
     )
 
-    if not results_df.empty:
-        # --- Calculations for Metrics ---
-        final_vested_equity_pct = results_df["Vested Equity (%)"].iloc[-1] / 100
-        final_equity_value = target_valuation * final_vested_equity_pct
-        final_opportunity_cost = results_df["Opportunity Cost (Invested Surplus)"].iloc[
-            -1
-        ]
-        net_outcome = final_equity_value - final_opportunity_cost
-        irr_value = calculate_irr(monthly_surpluses, final_equity_value)
-        npv_value = calculate_npv(monthly_surpluses, annual_roi, final_equity_value)
+    # --- Display Key Metrics ---
+    exit_scenario_text = (
+        f"{format_currency_compact(target_exit_value)} Valuation"
+        if comp_type == "Equity (RSUs)"
+        else f"{format_currency_compact(target_exit_value)}/Share"
+    )
+    st.subheader(
+        f"Outcome at End of Year {total_vesting_years} (at {exit_scenario_text})"
+    )
+    col1, col2, col3, col4, col5 = st.columns(5)
+    col1.metric(payout_label, format_currency_compact(final_payout_value))
+    col2.metric("Opportunity Cost", format_currency_compact(final_opportunity_cost))
+    col3.metric(
+        "Net Outcome (Future)",
+        format_currency_compact(net_outcome),
+        delta=f"{net_outcome:,.0f} SAR",
+    )
+    col4.metric(
+        "Net Present Value (NPV)",
+        format_currency_compact(npv_value),
+        help="The total value of the offer in today's money. Positive is favorable.",
+    )
+    col5.metric(
+        "Annualized IRR",
+        f"{irr_value:.2f}%" if pd.notna(irr_value) else "N/A",
+        help="The effective annual return rate on your sacrificed salary.",
+    )
 
-        # --- Display Key Metrics ---
-        st.subheader(
-            f"Outcome at End of Year {total_vesting_years} (at {target_valuation:,.0f} SAR Valuation)"
+    # --- Expander for Detailed Analysis ---
+    with st.expander("Show Detailed Yearly Breakdown & Charts"):
+        display_df = results_df.copy()
+        display_df[principal_col_label] = display_df[principal_col_label].apply(
+            format_currency_compact
         )
-        col1, col2, col3, col4, col5 = st.columns(5)
-        col1.metric("Your Equity Value", format_currency_compact(final_equity_value))
-        col2.metric("Opportunity Cost", format_currency_compact(final_opportunity_cost))
-        col3.metric(
-            "Net Outcome (Future)",
-            format_currency_compact(net_outcome),
-            delta=f"{net_outcome:,.0f} SAR",
+        display_df["Opportunity Cost (Invested Surplus)"] = display_df[
+            "Opportunity Cost (Invested Surplus)"
+        ].apply(format_currency_compact)
+        display_df["Vested Comp (%)"] = display_df["Vested Comp (%)"].map(
+            "{:.1f}%".format
         )
-        col4.metric(
-            "Net Present Value (NPV)",
-            format_currency_compact(npv_value),
-            help="The total value of the offer in today's money. A positive value is financially favorable.",
-        )
-        col5.metric(
-            "Annualized IRR",
-            f"{irr_value:.2f}%" if pd.notna(irr_value) else "N/A",
-            help="The effective annual return rate on your sacrificed salary.",
-        )
-
-        # --- Expander for Detailed Analysis ---
-        with st.expander("Show Detailed Yearly Breakdown & Charts"):
-            results_df_display = results_df.reset_index()
-
-            st.subheader("Breakeven Analysis by Year")
-            display_df = results_df_display.copy()
-            for col in ["Principal Forgone", "Opportunity Cost (Invested Surplus)"]:
-                display_df[col] = display_df[col].apply(format_currency_compact)
-            display_df["Vested Equity (%)"] = display_df["Vested Equity (%)"].map(
-                "{:.1f}%".format
+        display_df[breakeven_label] = display_df["Breakeven Value"].apply(
+            lambda x: (
+                format_currency_compact(x, add_sar=(comp_type == "Equity (RSUs)"))
+                if x != float("inf")
+                else "N/A (in cliff)"
             )
-            display_df["Breakeven Valuation (SAR)"] = display_df[
-                "Breakeven Valuation (SAR)"
-            ].apply(
-                lambda x: (
-                    format_currency_compact(x)
-                    if x != float("inf")
-                    else "N/A (in cliff)"
-                )
-            )
-            st.dataframe(
-                display_df.drop(columns=["Investment Returns"]),
-                use_container_width=True,
-            )
-
-            st.subheader("📈 Visualizations")
-            c1, c2 = st.columns(2)
-            with c1:
-                fig1 = px.bar(
-                    results_df_display,
-                    x="Year",
-                    y=["Principal Forgone", "Investment Returns"],
-                    title="<b>Opportunity Cost Breakdown</b>",
-                    labels={"value": "Amount (SAR)", "variable": "Component"},
-                    barmode="stack",
-                )
-                fig1.update_layout(
-                    xaxis=dict(tickmode="linear"),
-                    yaxis_tickformat=",.0f",
-                    legend_title_text="",
-                )
-                fig1.update_traces(hovertemplate="Year %{x}<br><b>%{y:,.0f} SAR</b>")
-                st.plotly_chart(fig1, use_container_width=True)
-            with c2:
-                breakeven_data = results_df_display[
-                    results_df_display["Breakeven Valuation (SAR)"] != float("inf")
-                ].copy()
-                if not breakeven_data.empty:
-                    breakeven_data["Valuation (Millions SAR)"] = (
-                        breakeven_data["Breakeven Valuation (SAR)"] / 1e6
-                    )
-                    fig2 = px.line(
-                        breakeven_data,
-                        x="Year",
-                        y="Valuation (Millions SAR)",
-                        title="<b>Required Breakeven Company Valuation</b>",
-                        labels={"Valuation (Millions SAR)": "Valuation (Millions SAR)"},
-                        markers=True,
-                    )
-                    fig2.update_layout(
-                        xaxis=dict(tickmode="linear"), yaxis_tickformat=",.1f"
-                    )
-                    fig2.update_traces(
-                        hovertemplate="Year %{x}<br><b>%{y:,.2f}M SAR</b>"
-                    )
-                    st.plotly_chart(fig2, use_container_width=True)
-
-            sim_df = results_df_display.copy()
-            sim_df["Equity Value at Target"] = (
-                sim_df["Vested Equity (%)"] / 100
-            ) * target_valuation
-            sim_df_melted = sim_df.melt(
-                id_vars=["Year"],
-                value_vars=[
+        )
+        st.dataframe(
+            display_df[
+                [
+                    principal_col_label,
                     "Opportunity Cost (Invested Surplus)",
-                    "Equity Value at Target",
-                ],
-                var_name="Category",
-                value_name="Value (SAR)",
-            )
-            fig3 = px.bar(
-                sim_df_melted,
+                    "Vested Comp (%)",
+                    breakeven_label,
+                ]
+            ].rename(columns={"Vested Comp (%)": "Vested (%)"}),
+            use_container_width=True,
+        )
+
+        # Visualizations
+        c1, c2 = st.columns(2)
+        with c1:
+            fig1 = px.bar(
+                results_df,
                 x="Year",
-                y="Value (SAR)",
-                color="Category",
-                barmode="group",
-                title=f"<b>Opportunity Cost vs. Equity Value (at {target_valuation:,.0f} SAR Valuation)</b>",
-                color_discrete_map={
-                    "Opportunity Cost (Invested Surplus)": "#FFC425",
-                    "Equity Value at Target": "#34A853",
-                },
+                y=[principal_col_label, "Investment Returns"],
+                title="<b>Salary Change & Investment Returns</b>",
+                barmode="stack",
             )
-            fig3.update_traces(hovertemplate="Year %{x}<br><b>%{y:,.0f} SAR</b>")
-            st.plotly_chart(fig3, use_container_width=True)
+            st.plotly_chart(fig1, use_container_width=True)
+        with c2:
+            breakeven_data = results_df[results_df["Breakeven Value"] != float("inf")]
+            if not breakeven_data.empty:
+                y_axis_label = (
+                    "Valuation (Millions SAR)"
+                    if comp_type == "Equity (RSUs)"
+                    else "Price per Share (SAR)"
+                )
+                y_values = (
+                    breakeven_data["Breakeven Value"] / 1e6
+                    if comp_type == "Equity (RSUs)"
+                    else breakeven_data["Breakeven Value"]
+                )
+                fig2 = px.line(
+                    breakeven_data,
+                    x="Year",
+                    y=y_values,
+                    title=f"<b>Required {breakeven_label.split('(')[0]}</b>",
+                    labels={"y": y_axis_label},
+                    markers=True,
+                )
+                st.plotly_chart(fig2, use_container_width=True)
 
 st.divider()
 st.caption(
