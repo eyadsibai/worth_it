@@ -11,9 +11,7 @@ st.set_page_config(
 
 
 # =============================================================================
-# --- CALCULATION ENGINE (REMAINS LARGELY THE SAME) ---
-# The core engine for calculating salary surplus and opportunity cost doesn't change.
-# Breakeven calculations will be handled in the UI based on compensation type.
+# --- CALCULATION ENGINE ---
 # =============================================================================
 
 
@@ -56,7 +54,6 @@ def calculate_annual_opportunity_cost(
         index=pd.RangeIndex(1, monthly_df["Year"].max() + 1, name="Year")
     )
     annual_surplus = monthly_df.groupby("Year")["MonthlySurplus"].sum()
-    # This value can be negative if startup pays more. We'll handle the label in the UI.
     results_df["Principal Change"] = annual_surplus.cumsum()
 
     opportunity_costs = []
@@ -188,7 +185,6 @@ comp_type = st.sidebar.radio(
     help="RSUs are grants of shares. Stock Options are the right to buy shares at a fixed price.",
 )
 
-# --- Dynamic Inputs Based on Compensation Type ---
 if comp_type == "Equity (RSUs)":
     equity_pct = st.sidebar.slider("Total Equity Grant (%)", 0.5, 25.0, 1.0, 0.1) / 100
     st.sidebar.markdown("##### Exit Scenario")
@@ -229,6 +225,34 @@ cliff_years = st.sidebar.slider("Vesting Cliff Period (Years)", 0, 5, 1, 1)
 # --- Main Page Display ---
 st.title("Startup Offer vs. Current Job: Financial Comparison")
 
+# --- NEW: How-to-use guide ---
+with st.expander("👋 New to this tool? Click here for a guide!"):
+    st.markdown(
+        """
+        This tool helps you compare a startup job offer against your current job by quantifying the financial trade-offs. Here’s how to use it:
+
+        #### **Step 1: Configure Your Scenarios**
+        Use the **sidebar on the left** to input all the details of your situation.
+        - **Current Job**: Enter your current monthly salary and its expected annual growth rate.
+        - **Startup Opportunity**: Enter the new salary and details about your compensation. Choose between:
+            - **Equity (RSUs)**: You are granted a percentage of the company.
+            - **Stock Options**: You get the right to buy a number of shares at a fixed "strike price".
+        - **Exit Scenario**: This is your best guess about the startup's success. For RSUs, estimate the company's future **Valuation**. For Options, estimate the future **Price per Share**.
+
+        #### **Step 2: Analyze the Key Outcomes**
+        The tool calculates five key metrics to help your decision:
+        1.  **Your Payout Value**: The estimated cash value of your RSUs or Options at the hypothetical exit.
+        2.  **Opportunity Cost**: The money you *could have earned* by staying at your current job and investing the salary difference. This is the benchmark your startup payout needs to beat.
+        3.  **Net Outcome**: The simple difference between your Payout and the Opportunity Cost. Positive is good!
+        4.  **Net Present Value (NPV)**: A core financial metric that calculates the total value of the startup offer in **today's money**. A positive NPV means the offer is financially favorable compared to your assumed investment ROI.
+        5.  **Annualized IRR**: The effective annual rate of return on your "investment" (the salary you gave up). A higher IRR is better.
+
+        #### **Step 3: Explore the Details**
+        Below the key outcomes, you can see a yearly breakdown of the numbers and charts that visualize the comparison over time.
+    """
+    )
+
+# --- Main Logic and Display ---
 is_startup_salary_higher = (
     startup_salary
     - (current_salary * (1 + current_job_salary_growth_rate) ** total_vesting_years)
@@ -241,15 +265,8 @@ if is_startup_salary_higher and comp_type == "Equity (RSUs)":
         "Since you aren't sacrificing any salary, there's no financial opportunity cost to analyze. The decision is a clear financial win."
     )
 else:
-    st.markdown(
-        """
-    This tool helps analyze the financial trade-offs between staying at a stable job and accepting a startup offer.
-    All inputs can be configured in the sidebar. The results below will update automatically.
-    """
-    )
     st.divider()
 
-    # --- Run Core Analysis ---
     monthly_df = create_monthly_data_grid(
         total_vesting_years,
         current_salary,
@@ -261,12 +278,10 @@ else:
     )
     results_df["Year"] = results_df.index
 
-    # --- BUG FIX & DYNAMIC LABELS ---
     total_surplus = monthly_df["MonthlySurplus"].sum()
     principal_col_label = "Principal Forgone" if total_surplus >= 0 else "Salary Gain"
     results_df.rename(columns={"Principal Change": principal_col_label}, inplace=True)
 
-    # --- Handle Compensation-Specific Logic ---
     if comp_type == "Equity (RSUs)":
         results_df["Vested Comp (%)"] = np.where(
             results_df.index > cliff_years,
@@ -275,8 +290,6 @@ else:
         )
         final_vested_comp_pct = results_df["Vested Comp (%)"].iloc[-1] / 100
         final_payout_value = target_exit_value * final_vested_comp_pct
-
-        # Breakeven Valuation
         results_df["Breakeven Value"] = (
             results_df["Opportunity Cost (Invested Surplus)"]
             .divide(results_df["Vested Comp (%)"] / 100)
@@ -295,8 +308,6 @@ else:
         final_payout_value = (
             max(0, target_exit_value - strike_price) * final_vested_options
         )
-
-        # Breakeven Price per Share
         results_df["Breakeven Value"] = (
             results_df["Opportunity Cost (Invested Surplus)"]
             .divide(vested_options_series)
@@ -305,7 +316,6 @@ else:
         breakeven_label = "Breakeven Price/Share (SAR)"
         payout_label = "Your Options Value"
 
-    # --- Calculate Final Metrics ---
     final_opportunity_cost = results_df["Opportunity Cost (Invested Surplus)"].iloc[-1]
     net_outcome = final_payout_value - final_opportunity_cost
     irr_value = calculate_irr(monthly_df["MonthlySurplus"], final_payout_value)
@@ -313,7 +323,6 @@ else:
         monthly_df["MonthlySurplus"], annual_roi, final_payout_value
     )
 
-    # --- Display Key Metrics ---
     exit_scenario_text = (
         f"{format_currency_compact(target_exit_value)} Valuation"
         if comp_type == "Equity (RSUs)"
@@ -322,26 +331,36 @@ else:
     st.subheader(
         f"Outcome at End of Year {total_vesting_years} (at {exit_scenario_text})"
     )
+
+    # --- Metrics with NEW Tooltips ---
     col1, col2, col3, col4, col5 = st.columns(5)
-    col1.metric(payout_label, format_currency_compact(final_payout_value))
-    col2.metric("Opportunity Cost", format_currency_compact(final_opportunity_cost))
+    col1.metric(
+        payout_label,
+        format_currency_compact(final_payout_value),
+        help=f"The estimated cash value of your vested {comp_type} at the hypothetical exit scenario.",
+    )
+    col2.metric(
+        "Opportunity Cost",
+        format_currency_compact(final_opportunity_cost),
+        help="The estimated future value of the salary surplus you gave up, assuming it was invested. This is the financial benchmark the startup offer needs to beat.",
+    )
     col3.metric(
         "Net Outcome (Future)",
         format_currency_compact(net_outcome),
         delta=f"{net_outcome:,.0f} SAR",
+        help="The simple difference between your final payout and the opportunity cost (in future money).",
     )
     col4.metric(
         "Net Present Value (NPV)",
         format_currency_compact(npv_value),
-        help="The total value of the offer in today's money. Positive is favorable.",
+        help="The total value of the offer in today's money, discounted by your assumed ROI. A positive NPV means the offer is financially favorable.",
     )
     col5.metric(
         "Annualized IRR",
         f"{irr_value:.2f}%" if pd.notna(irr_value) else "N/A",
-        help="The effective annual return rate on your sacrificed salary.",
+        help="The effective annual rate of return on your sacrificed salary. Compare this to your assumed ROI.",
     )
 
-    # --- Expander for Detailed Analysis ---
     with st.expander("Show Detailed Yearly Breakdown & Charts"):
         display_df = results_df.copy()
         display_df[principal_col_label] = display_df[principal_col_label].apply(
@@ -372,7 +391,6 @@ else:
             use_container_width=True,
         )
 
-        # Visualizations
         c1, c2 = st.columns(2)
         with c1:
             fig1 = px.bar(
@@ -411,4 +429,4 @@ st.caption(
     "Disclaimer: This tool is for informational purposes only and does not constitute financial advice. Results are based on the assumptions provided."
 )
 st.markdown("---")
-st.markdown("Made with ❤️ by Eyad Sibai (https://linkedin.com/in/eyadsibai)")
+st.caption("Made with ❤️ by Eyad Sibai (https://linkedin.com/in/eyadsibai)")
