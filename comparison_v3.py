@@ -2,9 +2,11 @@
 Streamlit app for comparing a startup job offer against your current job.
 """
 
+from enum import Enum
+
 import numpy as np
 import pandas as pd
-import plotly.express as px
+import plotly.express as px  # type: ignore
 import streamlit as st
 
 from calculations import (
@@ -14,18 +16,18 @@ from calculations import (
     create_monthly_data_grid,
 )
 
-# --- Page Configuration ---
 st.set_page_config(
     layout="wide", page_title="Job Offer Financial Comparison", page_icon="⚖️"
 )
 
 
-# =============================================================================
-# --- STREAMLIT UI ---
-# =============================================================================
+class CompensationType(str, Enum):
+    """Enum for different types of compensation."""
+
+    RSU = "Equity (RSUs)"
+    STOCK_OPTIONS = "Stock Options"
 
 
-# --- UI Helper Functions ---
 def format_currency_compact(num: float, add_sar=True) -> str:
     """Formats a currency value into a compact string with K/M abbreviations."""
     if pd.isna(num):
@@ -50,11 +52,11 @@ current_salary = st.sidebar.number_input(
 )
 current_job_salary_growth_rate = (
     st.sidebar.slider(
-        "Annual Salary Growth Rate (%)",
-        0.0,
-        10.0,
-        3.0,
-        0.5,
+        label="Annual Salary Growth Rate (%)",
+        min_value=0.0,
+        max_value=10.0,
+        value=3.0,
+        step=0.5,
         help="Assumed annual percentage increase in your current job's salary.",
     )
     / 100
@@ -63,18 +65,19 @@ current_job_salary_growth_rate = (
 st.sidebar.markdown("##### Surplus Investment Assumptions")
 annual_roi = (
     st.sidebar.slider(
-        "Assumed Annual ROI (%)",
-        0.0,
-        20.0,
-        5.4,
-        0.1,
-        help="The return you'd get by investing the salary surplus. This is also the discount rate for NPV.",
+        label="Assumed Annual ROI (%)",
+        min_value=0.0,
+        max_value=20.0,
+        value=5.4,
+        step=0.1,
+        help="The return you'd get by investing the salary surplus. This is also the"
+        " discount rate for NPV.",
     )
     / 100
 )
 investment_frequency = st.sidebar.radio(
-    "Investment Frequency",
-    ["Monthly", "Annually"],
+    label="Investment Frequency",
+    options=["Monthly", "Annually"],
     help="How often you would invest the salary surplus.",
 )
 
@@ -82,34 +85,40 @@ st.sidebar.divider()
 
 st.sidebar.header("Startup Opportunity")
 startup_salary = st.sidebar.number_input(
-    "Monthly Salary (SAR)", min_value=0, value=20_000, step=1000, key="startup_salary"
+    label="Monthly Salary (SAR)",
+    min_value=0,
+    value=20_000,
+    step=1000,
+    key="startup_salary",
 )
 
 comp_type = st.sidebar.radio(
-    "Compensation Type",
-    ["Equity (RSUs)", "Stock Options"],
-    help="RSUs are grants of shares. Stock Options are the right to buy shares at a fixed price.",
+    label="Compensation Type",
+    options=[CompensationType.RSU, CompensationType.STOCK_OPTIONS],
+    help="RSUs are grants of shares. Stock Options are the right to buy shares at a"
+    " fixed price.",
 )
 
-if comp_type == "Equity (RSUs)":
+if comp_type == CompensationType.RSU:
     equity_pct = st.sidebar.slider("Total Equity Grant (%)", 0.5, 25.0, 5.0, 0.1) / 100
     st.sidebar.markdown("##### Exit Scenario")
     valuation_in_millions = st.sidebar.slider(
-        "Hypothetical Future Valuation (Millions SAR)",
+        label="Hypothetical Future Valuation (Millions SAR)",
         min_value=1,
         max_value=1000,
         value=25,
         step=1,
         format="%dM SAR",
-        help="Your best guess for the startup's total valuation at the end of your vesting period.",
+        help="Your best guess for the startup's total valuation at the end of your"
+        " vesting period.",
     )
-    target_exit_value = valuation_in_millions * 1_000_000
+    target_exit_value: float = valuation_in_millions * 1_000_000
 else:  # Stock Options
     num_options = st.sidebar.number_input(
-        "Number of Stock Options", min_value=0, value=20000, step=1000
+        label="Number of Stock Options", min_value=0, value=20000, step=1000
     )
     strike_price = st.sidebar.number_input(
-        "Strike Price (SAR per share)",
+        label="Strike Price (SAR per share)",
         min_value=0.00,
         value=1.50,
         step=0.25,
@@ -117,25 +126,27 @@ else:  # Stock Options
     )
     st.sidebar.markdown("##### Exit Scenario")
     target_exit_value = st.sidebar.number_input(
-        "Hypothetical Price per Share at Exit (SAR)",
+        label="Hypothetical Price per Share at Exit (SAR)",
         min_value=0.00,
         value=10.00,
         step=0.50,
         format="%.2f",
     )
 
-total_vesting_years = st.sidebar.slider("Total Vesting Period (Years)", 1, 10, 5, 1)
+total_vesting_years = st.sidebar.slider(
+    label="Total Vesting Period (Years)", min_value=1, max_value=10, value=5, step=1
+)
 cliff_years = st.sidebar.slider(
-    "Vesting Cliff Period (Years)",
-    0,
-    5,
-    1,
-    1,
-    help="The initial period before any compensation vests. For a standard 1-year cliff, set this to 1. At the 1-year mark, the first year's worth of compensation becomes vested. Set to 0 for no cliff.",
+    label="Vesting Cliff Period (Years)",
+    min_value=0,
+    max_value=5,
+    value=1,
+    step=1,
+    help="The initial period before any compensation vests. For a standard 1-year cliff"
+    ", set this to 1. At the 1-year mark, the first year's worth of compensation becomes"
+    " vested. Set to 0 for no cliff.",
 )
 
-
-# --- Main Page Display ---
 st.title("Startup Offer vs. Current Job: Financial Comparison")
 
 with st.expander("👋 New to this tool? Click here for a guide!"):
@@ -169,11 +180,12 @@ is_startup_salary_higher = (
     - (current_salary * (1 + current_job_salary_growth_rate) ** total_vesting_years)
 ) > 1e-9
 
-if is_startup_salary_higher and comp_type == "Equity (RSUs)":
+if is_startup_salary_higher and comp_type == CompensationType.RSU:
     st.balloons()
     st.success("Congratulations! 🎉 The startup salary is higher and you get equity.")
     st.info(
-        "Since you aren't sacrificing any salary, there's no financial opportunity cost to analyze. The decision is a clear financial win."
+        "Since you aren't sacrificing any salary, there's no financial opportunity cost"
+        " to analyze. The decision is a clear financial win."
     )
 else:
     st.divider()
@@ -193,8 +205,7 @@ else:
     principal_col_label = "Principal Forgone" if total_surplus >= 0 else "Salary Gain"
     results_df = results_df.rename(columns={"Principal Change": principal_col_label})
 
-    # --- CLIFF CALCULATION BUG FIX: Changed > to >= ---
-    if comp_type == "Equity (RSUs)":
+    if comp_type == CompensationType.RSU:
         results_df["Vested Comp (%)"] = np.where(
             results_df.index >= cliff_years,
             (equity_pct * (results_df.index / total_vesting_years) * 100),
@@ -237,7 +248,7 @@ else:
 
     exit_scenario_text = (
         f"{format_currency_compact(target_exit_value)} Valuation"
-        if comp_type == "Equity (RSUs)"
+        if comp_type == CompensationType.RSU
         else f"{format_currency_compact(target_exit_value)}/Share"
     )
     st.subheader(
@@ -248,44 +259,49 @@ else:
     col1.metric(
         payout_label,
         format_currency_compact(final_payout_value),
-        help=f"The estimated cash value of your vested {comp_type} at the hypothetical exit scenario.",
+        help=f"The estimated cash value of your vested {comp_type} at the hypothetical"
+        f" exit scenario.",
     )
     col2.metric(
         "Opportunity Cost",
         format_currency_compact(final_opportunity_cost),
-        help="The estimated future value of the salary surplus you gave up, assuming it was invested. This is the financial benchmark the startup offer needs to beat.",
+        help="The estimated future value of the salary surplus you gave up, assuming it"
+        " was invested. This is the financial benchmark the startup offer needs to beat.",
     )
     col3.metric(
         "Net Outcome (Future)",
         format_currency_compact(net_outcome),
         delta=f"{net_outcome:,.0f} SAR",
-        help="The simple difference between your final payout and the opportunity cost (in future money).",
+        help="The simple difference between your final payout and the opportunity cost"
+        " (in future money).",
     )
     col4.metric(
         "Net Present Value (NPV)",
         format_currency_compact(npv_value),
-        help="The total value of the offer in today's money, discounted by your assumed ROI. A positive NPV means the offer is financially favorable.",
+        help="The total value of the offer in today's money, discounted by your assumed"
+        " ROI. A positive NPV means the offer is financially favorable.",
     )
     col5.metric(
         "Annualized IRR",
         f"{irr_value:.2f}%" if pd.notna(irr_value) else "N/A",
-        help="The effective annual rate of return on your sacrificed salary. Compare this to your assumed ROI.",
+        help="The effective annual rate of return on your sacrificed salary."
+        " Compare this to your assumed ROI.",
     )
 
     with st.expander("Show Detailed Yearly Breakdown & Charts"):
         display_df = results_df.copy()
-        display_df[principal_col_label] = display_df[principal_col_label].apply(
+        display_df[principal_col_label] = display_df[principal_col_label].map(
             format_currency_compact
         )
         display_df["Opportunity Cost (Invested Surplus)"] = display_df[
             "Opportunity Cost (Invested Surplus)"
-        ].apply(format_currency_compact)
+        ].map(format_currency_compact)
         display_df["Vested Comp (%)"] = display_df["Vested Comp (%)"].map(
             lambda x: f"{x:.1f}%"
         )
-        display_df[breakeven_label] = display_df["Breakeven Value"].apply(
+        display_df[breakeven_label] = display_df["Breakeven Value"].map(
             lambda x: (
-                format_currency_compact(x, add_sar=(comp_type == "Equity (RSUs)"))
+                format_currency_compact(x, add_sar=comp_type == CompensationType.RSU)
                 if x != float("inf")
                 else "N/A (in cliff)"
             )
@@ -315,16 +331,13 @@ else:
         with c2:
             breakeven_data = results_df[results_df["Breakeven Value"] != float("inf")]
             if not breakeven_data.empty:
-                y_axis_label = (
-                    "Valuation (Millions SAR)"
-                    if comp_type == "Equity (RSUs)"
-                    else "Price per Share (SAR)"
-                )
-                y_values = (
-                    breakeven_data["Breakeven Value"] / 1e6
-                    if comp_type == "Equity (RSUs)"
-                    else breakeven_data["Breakeven Value"]
-                )
+                if comp_type == CompensationType.RSU:
+                    y_axis_label = "Valuation (Millions SAR)"
+                    y_values = breakeven_data["Breakeven Value"] / 1e6
+                else:
+                    y_axis_label = "Price per Share (SAR)"
+                    y_values = breakeven_data["Breakeven Value"]
+
                 fig2 = px.line(
                     breakeven_data,
                     x="Year",
@@ -337,7 +350,8 @@ else:
 
 st.divider()
 st.caption(
-    "Disclaimer: This tool is for informational purposes only and does not constitute financial advice. Results are based on the assumptions provided."
+    "Disclaimer: This tool is for informational purposes only and does not constitute"
+    " financial advice. Results are based on the assumptions provided."
 )
 st.markdown("---")
 st.caption("Made with ❤️ by Eyad Sibai (https://linkedin.com/in/eyadsibai)")
