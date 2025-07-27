@@ -140,15 +140,15 @@ st.sidebar.title("⚖️ Configuration")
 
 st.sidebar.header("Current Job")
 current_salary = st.sidebar.number_input(
-    "Monthly Salary (SAR)", min_value=0, value=30000, step=1000, key="current_salary"
+    "Monthly Salary (SAR)", min_value=0, value=30_000, step=1000, key="current_salary"
 )
 current_job_salary_growth_rate = (
     st.sidebar.slider(
         "Annual Salary Growth Rate (%)",
         0.0,
         10.0,
-        4.0,
-        0.1,
+        3.0,
+        0.5,
         help="Assumed annual percentage increase in your current job's salary.",
     )
     / 100
@@ -160,8 +160,8 @@ annual_roi = (
         "Assumed Annual ROI (%)",
         0.0,
         20.0,
-        8.0,
-        0.5,
+        5.4,
+        0.1,
         help="The return you'd get by investing the salary surplus. This is also the discount rate for NPV.",
     )
     / 100
@@ -176,7 +176,7 @@ st.sidebar.divider()
 
 st.sidebar.header("Startup Opportunity")
 startup_salary = st.sidebar.number_input(
-    "Monthly Salary (SAR)", min_value=0, value=15000, step=1000, key="startup_salary"
+    "Monthly Salary (SAR)", min_value=0, value=20_000, step=1000, key="startup_salary"
 )
 
 comp_type = st.sidebar.radio(
@@ -186,7 +186,7 @@ comp_type = st.sidebar.radio(
 )
 
 if comp_type == "Equity (RSUs)":
-    equity_pct = st.sidebar.slider("Total Equity Grant (%)", 0.5, 25.0, 1.0, 0.1) / 100
+    equity_pct = st.sidebar.slider("Total Equity Grant (%)", 0.5, 25.0, 5.0, 0.1) / 100
     st.sidebar.markdown("##### Exit Scenario")
     valuation_in_millions = st.sidebar.slider(
         "Hypothetical Future Valuation (Millions SAR)",
@@ -218,7 +218,7 @@ else:  # Stock Options
         format="%.2f",
     )
 
-total_vesting_years = st.sidebar.slider("Total Vesting Period (Years)", 1, 10, 4, 1)
+total_vesting_years = st.sidebar.slider("Total Vesting Period (Years)", 1, 10, 5, 1)
 cliff_years = st.sidebar.slider(
     "Vesting Cliff Period (Years)",
     0,
@@ -423,7 +423,7 @@ else:
                     breakeven_data,
                     x="Year",
                     y=y_values,
-                    title=f"<b>Required {breakeven_label.split('(')[0]}</b>",
+                    title=f"<b>Required {breakeven_label.split('(', maxsplit=1)[0]}</b>",
                     labels={"y": y_axis_label},
                     markers=True,
                 )
