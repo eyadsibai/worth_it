@@ -239,6 +239,7 @@ investment_frequency = st.sidebar.radio(
     help="How often you would invest the salary surplus.",
 )
 
+st.sidebar.divider()
 
 st.sidebar.header("Startup Opportunity")
 startup_salary = st.sidebar.number_input(
@@ -248,11 +249,21 @@ equity_pct = st.sidebar.slider("Total Equity Grant (%)", 0.5, 25.0, 1.0, 0.1) / 
 total_vesting_years = st.sidebar.slider("Total Vesting Period (Years)", 1, 10, 4, 1)
 cliff_years = st.sidebar.slider("Vesting Cliff Period (Years)", 0, 5, 1, 1)
 
+st.sidebar.markdown("##### Exit Scenario")
+valuation_in_millions = st.sidebar.slider(
+    "Hypothetical Future Valuation (Millions SAR)",
+    min_value=1,
+    max_value=1000,
+    value=25,
+    step=1,
+    format="%dM SAR",
+    help="Your best guess for the startup's valuation at the end of your vesting period.",
+)
+target_valuation = valuation_in_millions * 1_000_000
 
 # --- Main Page Display ---
 st.title("Startup Offer vs. Current Job: Financial Comparison")
 
-# Check if startup salary is always higher, making calculations unnecessary
 is_startup_salary_higher = (
     startup_salary
     - (current_salary * (1 + current_job_salary_growth_rate) ** total_vesting_years)
@@ -266,18 +277,14 @@ if is_startup_salary_higher:
     st.info(
         "Since you aren't sacrificing any salary, there's no financial opportunity cost to analyze. The decision is a clear financial win."
     )
-
 else:
     st.markdown(
         """
     This tool helps analyze the financial trade-offs between staying at a stable job and accepting a startup offer with equity.
-    - **Opportunity Cost**: The future value of the salary surplus you give up, assuming it was invested elsewhere.
-    - **Breakeven Valuation**: The startup valuation needed for your vested equity to equal your opportunity cost.
-    - **Net Present Value (NPV)**: The value of all cash flows (forgone salary vs. equity payout) in today's money. A positive NPV is favorable.
-    - **Internal Rate of Return (IRR)**: The annualized rate of return on your "investment" (the forgone salary).
+    All inputs can be configured in the sidebar. The results below will update automatically.
     """
     )
-    st.markdown("---")
+    st.divider()
 
     results_df, monthly_surpluses = analyze_job_offer(
         current_salary,
@@ -291,82 +298,6 @@ else:
     )
 
     if not results_df.empty:
-        results_df_display = results_df.reset_index()
-
-        st.subheader("Breakeven Analysis by Year")
-        display_df = results_df_display.copy()
-
-        # --- UPDATED: Apply compact formatting to the table ---
-        for col in ["Principal Forgone", "Opportunity Cost (Invested Surplus)"]:
-            display_df[col] = display_df[col].apply(format_currency_compact)
-
-        display_df["Vested Equity (%)"] = display_df["Vested Equity (%)"].map(
-            "{:.1f}%".format
-        )
-
-        display_df["Breakeven Valuation (SAR)"] = display_df[
-            "Breakeven Valuation (SAR)"
-        ].apply(
-            lambda x: (
-                format_currency_compact(x) if x != float("inf") else "N/A (in cliff)"
-            )
-        )
-
-        st.dataframe(
-            display_df.drop(columns=["Investment Returns"]), use_container_width=True
-        )
-
-        st.subheader("📈 Visualizations")
-        col1, col2 = st.columns(2)
-        with col1:
-            fig1 = px.bar(
-                results_df_display,
-                x="Year",
-                y=["Principal Forgone", "Investment Returns"],
-                title="<b>Opportunity Cost Breakdown</b>",
-                labels={"value": "Amount (SAR)", "variable": "Component"},
-                barmode="stack",
-            )
-            fig1.update_layout(
-                xaxis=dict(tickmode="linear"),
-                yaxis_tickformat=",.0f",
-                legend_title_text="",
-            )
-            st.plotly_chart(fig1, use_container_width=True)
-        with col2:
-            breakeven_data = results_df_display[
-                results_df_display["Breakeven Valuation (SAR)"] != float("inf")
-            ].copy()
-            breakeven_data["Valuation (Millions SAR)"] = (
-                breakeven_data["Breakeven Valuation (SAR)"] / 1e6
-            )
-            fig2 = px.line(
-                breakeven_data,
-                x="Year",
-                y="Valuation (Millions SAR)",
-                title="<b>Required Breakeven Company Valuation</b>",
-                labels={"Valuation (Millions SAR)": "Valuation (Millions SAR)"},
-                markers=True,
-            )
-            fig2.update_layout(xaxis=dict(tickmode="linear"), yaxis_tickformat=",.1f")
-            st.plotly_chart(fig2, use_container_width=True)
-
-        st.markdown("---")
-        st.subheader("Scenario & Return Simulation")
-        st.markdown(
-            "Select a hypothetical future valuation for the startup to simulate your potential financial outcome."
-        )
-
-        valuation_in_millions = st.slider(
-            "Hypothetical Future Company Valuation (Millions SAR)",
-            min_value=1,
-            max_value=1000,
-            value=25,
-            step=1,
-            format="%dM SAR",
-        )
-        target_valuation = valuation_in_millions * 1_000_000
-
         # --- Calculations for Metrics ---
         final_vested_equity_pct = results_df["Vested Equity (%)"].iloc[-1] / 100
         final_equity_value = target_valuation * final_vested_equity_pct
@@ -377,10 +308,10 @@ else:
         irr_value = calculate_irr(monthly_surpluses, final_equity_value)
         npv_value = calculate_npv(monthly_surpluses, annual_roi, final_equity_value)
 
-        st.markdown(
-            f"#### Outcome at End of Year {total_vesting_years} (at {target_valuation:,.0f} SAR Valuation)"
+        # --- Display Key Metrics ---
+        st.subheader(
+            f"Outcome at End of Year {total_vesting_years} (at {target_valuation:,.0f} SAR Valuation)"
         )
-
         col1, col2, col3, col4, col5 = st.columns(5)
         col1.metric("Your Equity Value", format_currency_compact(final_equity_value))
         col2.metric("Opportunity Cost", format_currency_compact(final_opportunity_cost))
@@ -392,42 +323,112 @@ else:
         col4.metric(
             "Net Present Value (NPV)",
             format_currency_compact(npv_value),
-            help="The net gain/loss in today's money. Positive is good.",
+            help="The total value of the offer in today's money. A positive value is financially favorable.",
         )
         col5.metric(
-            "Annualized IRR", f"{irr_value:.2f}%" if pd.notna(irr_value) else "N/A"
+            "Annualized IRR",
+            f"{irr_value:.2f}%" if pd.notna(irr_value) else "N/A",
+            help="The effective annual return rate on your sacrificed salary.",
         )
 
-        # --- Final Chart ---
-        sim_df = results_df_display.copy()
-        sim_df["Equity Value at Target"] = (
-            sim_df["Vested Equity (%)"] / 100
-        ) * target_valuation
-        sim_df_melted = sim_df.melt(
-            id_vars=["Year"],
-            value_vars=[
-                "Opportunity Cost (Invested Surplus)",
-                "Equity Value at Target",
-            ],
-            var_name="Category",
-            value_name="Value (SAR)",
-        )
-        fig3 = px.bar(
-            sim_df_melted,
-            x="Year",
-            y="Value (SAR)",
-            color="Category",
-            barmode="group",
-            title=f"<b>Opportunity Cost vs. Equity Value (at {target_valuation:,.0f} SAR Valuation)</b>",
-            color_discrete_map={
-                "Opportunity Cost (Invested Surplus)": "#FFC425",
-                "Equity Value at Target": "#34A853",
-            },
-        )
-        st.plotly_chart(fig3, use_container_width=True)
+        # --- Expander for Detailed Analysis ---
+        with st.expander("Show Detailed Yearly Breakdown & Charts"):
+            results_df_display = results_df.reset_index()
 
-    else:
-        st.info("Please adjust the sidebar inputs to perform a comparison.")
+            st.subheader("Breakeven Analysis by Year")
+            display_df = results_df_display.copy()
+            for col in ["Principal Forgone", "Opportunity Cost (Invested Surplus)"]:
+                display_df[col] = display_df[col].apply(format_currency_compact)
+            display_df["Vested Equity (%)"] = display_df["Vested Equity (%)"].map(
+                "{:.1f}%".format
+            )
+            display_df["Breakeven Valuation (SAR)"] = display_df[
+                "Breakeven Valuation (SAR)"
+            ].apply(
+                lambda x: (
+                    format_currency_compact(x)
+                    if x != float("inf")
+                    else "N/A (in cliff)"
+                )
+            )
+            st.dataframe(
+                display_df.drop(columns=["Investment Returns"]),
+                use_container_width=True,
+            )
 
+            st.subheader("📈 Visualizations")
+            c1, c2 = st.columns(2)
+            with c1:
+                fig1 = px.bar(
+                    results_df_display,
+                    x="Year",
+                    y=["Principal Forgone", "Investment Returns"],
+                    title="<b>Opportunity Cost Breakdown</b>",
+                    labels={"value": "Amount (SAR)", "variable": "Component"},
+                    barmode="stack",
+                )
+                fig1.update_layout(
+                    xaxis=dict(tickmode="linear"),
+                    yaxis_tickformat=",.0f",
+                    legend_title_text="",
+                )
+                fig1.update_traces(hovertemplate="Year %{x}<br><b>%{y:,.0f} SAR</b>")
+                st.plotly_chart(fig1, use_container_width=True)
+            with c2:
+                breakeven_data = results_df_display[
+                    results_df_display["Breakeven Valuation (SAR)"] != float("inf")
+                ].copy()
+                if not breakeven_data.empty:
+                    breakeven_data["Valuation (Millions SAR)"] = (
+                        breakeven_data["Breakeven Valuation (SAR)"] / 1e6
+                    )
+                    fig2 = px.line(
+                        breakeven_data,
+                        x="Year",
+                        y="Valuation (Millions SAR)",
+                        title="<b>Required Breakeven Company Valuation</b>",
+                        labels={"Valuation (Millions SAR)": "Valuation (Millions SAR)"},
+                        markers=True,
+                    )
+                    fig2.update_layout(
+                        xaxis=dict(tickmode="linear"), yaxis_tickformat=",.1f"
+                    )
+                    fig2.update_traces(
+                        hovertemplate="Year %{x}<br><b>%{y:,.2f}M SAR</b>"
+                    )
+                    st.plotly_chart(fig2, use_container_width=True)
+
+            sim_df = results_df_display.copy()
+            sim_df["Equity Value at Target"] = (
+                sim_df["Vested Equity (%)"] / 100
+            ) * target_valuation
+            sim_df_melted = sim_df.melt(
+                id_vars=["Year"],
+                value_vars=[
+                    "Opportunity Cost (Invested Surplus)",
+                    "Equity Value at Target",
+                ],
+                var_name="Category",
+                value_name="Value (SAR)",
+            )
+            fig3 = px.bar(
+                sim_df_melted,
+                x="Year",
+                y="Value (SAR)",
+                color="Category",
+                barmode="group",
+                title=f"<b>Opportunity Cost vs. Equity Value (at {target_valuation:,.0f} SAR Valuation)</b>",
+                color_discrete_map={
+                    "Opportunity Cost (Invested Surplus)": "#FFC425",
+                    "Equity Value at Target": "#34A853",
+                },
+            )
+            fig3.update_traces(hovertemplate="Year %{x}<br><b>%{y:,.0f} SAR</b>")
+            st.plotly_chart(fig3, use_container_width=True)
+
+st.divider()
+st.caption(
+    "Disclaimer: This tool is for informational purposes only and does not constitute financial advice. Results are based on the assumptions provided."
+)
 st.markdown("---")
 st.markdown("Made with ❤️ by Eyad Sibai (https://linkedin.com/in/eyadsibai)")
