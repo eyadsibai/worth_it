@@ -113,6 +113,50 @@ if comp_type == CompensationType.RSU:
         " vesting period.",
     )
     target_exit_value: float = valuation_in_millions * 1_000_000
+
+    # --- Dilution Inputs ---
+    st.sidebar.markdown("---")
+    st.sidebar.header("Future Fundraising & Dilution")
+    simulate_dilution = st.sidebar.checkbox("Simulate Future Dilution", value=True)
+    dilution_rounds = []
+    if simulate_dilution:
+        st.sidebar.info(
+            "Model the dilutive effect of future funding rounds on your equity."
+        )
+        # Define the series names
+        series_names = ["Series A", "Series B", "Series C", "Series D"]
+        for i, series_name in enumerate(series_names):
+            with st.sidebar.expander(f"{series_name} Round Details"):
+                round_enabled = st.checkbox(
+                    f"Enable {series_name} Round",
+                    value=i == 0,
+                    key=f"enable_{series_name}",
+                )
+                if round_enabled:
+                    round_year = st.number_input(
+                        f"{series_name} Year",
+                        min_value=1,
+                        max_value=10,
+                        value=i + 2,
+                        step=1,
+                        key=f"year_{series_name}",
+                    )
+                    round_dilution = (
+                        st.slider(
+                            f"{series_name} Dilution (%)",
+                            min_value=0.0,
+                            max_value=50.0,
+                            value=20.0,
+                            step=0.5,
+                            key=f"dilution_{series_name}",
+                        )
+                        / 100
+                    )
+                    dilution_rounds.append(
+                        {"year": round_year, "dilution": round_dilution}
+                    )
+
+
 else:  # Stock Options
     num_options = st.sidebar.number_input(
         label="Number of Stock Options", min_value=0, value=20000, step=1000
@@ -158,13 +202,13 @@ with st.expander("👋 New to this tool? Click here for a guide!"):
         Use the **sidebar on the left** to input all the details of your situation.
         - **Current Job**: Enter your current monthly salary and its expected annual growth rate.
         - **Startup Opportunity**: Enter the new salary and details about your compensation. Choose between:
-            - **Equity (RSUs)**: You are granted a percentage of the company.
+            - **Equity (RSUs)**: You are granted a percentage of the company. You can also model the impact of future dilution from fundraising.
             - **Stock Options**: You get the right to buy a number of shares at a fixed "strike price".
         - **Exit Scenario**: This is your best guess about the startup's success. For RSUs, estimate the company's future **Valuation**. For Options, estimate the future **Price per Share**.
 
         #### **Step 2: Analyze the Key Outcomes**
         The tool calculates five key metrics to help your decision:
-        1.  **Your Payout Value**: The estimated cash value of your RSUs or Options at the hypothetical exit.
+        1.  **Your Payout Value**: The estimated cash value of your RSUs or Options at the hypothetical exit. For RSUs, this now accounts for potential dilution.
         2.  **Opportunity Cost**: The money you *could have earned* by staying at your current job and investing the salary difference. This is the benchmark your startup payout needs to beat.
         3.  **Net Outcome**: The simple difference between your Payout and the Opportunity Cost. Positive is good!
         4.  **Net Present Value (NPV)**: A core financial metric that calculates the total value of the startup offer in **today's money**. A positive NPV means the offer is financially favorable compared to your assumed investment ROI.
@@ -206,20 +250,44 @@ else:
     results_df = results_df.rename(columns={"Principal Change": principal_col_label})
 
     if comp_type == CompensationType.RSU:
+        # Dilution Calculation
+        total_dilution = 0
+        diluted_equity_pct = equity_pct
+        if simulate_dilution and dilution_rounds:
+            # Sort rounds by year to apply dilution chronologically
+            dilution_rounds.sort(key=lambda r: r["year"])
+            # Calculate cumulative dilution factor
+            cumulative_dilution_factor = 1.0
+            for r in dilution_rounds:
+                # We only consider rounds that happen before or at the exit year
+                if r["year"] <= total_vesting_years:
+                    cumulative_dilution_factor *= 1 - r["dilution"]
+            diluted_equity_pct = equity_pct * cumulative_dilution_factor
+            total_dilution = 1 - cumulative_dilution_factor
+
         results_df["Vested Comp (%)"] = np.where(
             results_df.index >= cliff_years,
-            (equity_pct * (results_df.index / total_vesting_years) * 100),
+            (diluted_equity_pct * (results_df.index / total_vesting_years) * 100),
             0,
         )
         final_vested_comp_pct = results_df["Vested Comp (%)"].iloc[-1] / 100
         final_payout_value = target_exit_value * final_vested_comp_pct
+
+        # Calculate breakeven based on diluted equity
+        breakeven_vesting_pct = np.where(
+            results_df.index >= cliff_years,
+            (equity_pct * (results_df.index / total_vesting_years)),
+            0,
+        )
+
         results_df["Breakeven Value"] = (
             results_df["Opportunity Cost (Invested Surplus)"]
-            .divide(results_df["Vested Comp (%)"] / 100)
+            .divide(breakeven_vesting_pct)
             .fillna(np.inf)
         )
         breakeven_label = "Breakeven Valuation (SAR)"
-        payout_label = "Your Equity Value"
+        payout_label = "Your Equity Value (Post-Dilution)"
+
     else:  # Stock Options
         results_df["Vested Comp (%)"] = np.where(
             results_df.index >= cliff_years,
@@ -255,12 +323,23 @@ else:
         f"Outcome at End of Year {total_vesting_years} (at {exit_scenario_text})"
     )
 
+    # Display dilution info if applicable
+    if comp_type == CompensationType.RSU and simulate_dilution:
+        dilution_col1, dilution_col2, dilution_col3 = st.columns(3)
+        dilution_col1.metric("Initial Equity Grant", f"{equity_pct:.2%}")
+        dilution_col2.metric("Total Dilution", f"{total_dilution:.2%}")
+        dilution_col3.metric(
+            "Final Diluted Equity",
+            f"{diluted_equity_pct:.2%}",
+            delta=f"{-total_dilution:.2%}",
+        )
+
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric(
         payout_label,
         format_currency_compact(final_payout_value),
         help=f"The estimated cash value of your vested {comp_type} at the hypothetical"
-        f" exit scenario.",
+        f" exit scenario, accounting for any simulated dilution.",
     )
     col2.metric(
         "Opportunity Cost",
@@ -296,9 +375,17 @@ else:
         display_df["Opportunity Cost (Invested Surplus)"] = display_df[
             "Opportunity Cost (Invested Surplus)"
         ].map(format_currency_compact)
-        display_df["Vested Comp (%)"] = display_df["Vested Comp (%)"].map(
-            lambda x: f"{x:.1f}%"
+
+        # Adjust the Vested Comp display label based on compensation type
+        vested_comp_label = (
+            "Vested Equity (%)"
+            if comp_type == CompensationType.RSU
+            else "Vested Options (%)"
         )
+        display_df[vested_comp_label] = results_df["Vested Comp (%)"].map(
+            lambda x: f"{x:.2f}%"
+        )
+
         display_df[breakeven_label] = display_df["Breakeven Value"].map(
             lambda x: (
                 format_currency_compact(x, add_sar=comp_type == CompensationType.RSU)
@@ -311,10 +398,10 @@ else:
                 [
                     principal_col_label,
                     "Opportunity Cost (Invested Surplus)",
-                    "Vested Comp (%)",
+                    vested_comp_label,
                     breakeven_label,
                 ]
-            ].rename(columns={"Vested Comp (%)": "Vested (%)"}),
+            ],
             use_container_width=True,
         )
 
