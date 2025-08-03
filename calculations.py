@@ -28,6 +28,9 @@ def create_monthly_data_grid(
     Creates a DataFrame with one row per month, calculating the monthly salary
     surplus which forms the basis of our cash flows.
     """
+    if simulation_end_year is None:
+        simulation_end_year = 0  # Prevents TypeError if slider returns None
+
     total_months = simulation_end_year * 12
     df = pd.DataFrame(index=pd.RangeIndex(total_months, name="MonthIndex"))
     df["Year"] = df.index // 12 + 1
@@ -90,6 +93,8 @@ def calculate_dilution_from_valuation(
     if pre_money_valuation <= 0 or amount_raised < 0:
         return 0.0
     post_money_valuation = pre_money_valuation + amount_raised
+    if post_money_valuation == 0:
+        return 0.0
     return amount_raised / post_money_valuation
 
 
@@ -168,11 +173,14 @@ def calculate_startup_scenario(
             results_df["Vested Equity (%)"] / 100
         ) * yearly_diluted_equity_pct
 
-        results_df["Breakeven Value"] = (
+        # FIX: Calculate breakeven and handle division by zero correctly for this column only
+        breakeven_value_series = (
             results_df["Opportunity Cost (Invested Surplus)"]
             .divide(breakeven_vesting_pct)
             .replace([np.inf, -np.inf], 0)
         )
+        results_df["Breakeven Value"] = breakeven_value_series.replace(0, np.inf)
+
         results_df["Vested Equity (%)"] = (
             (results_df["Vested Equity (%)"] / 100) * yearly_diluted_equity_pct * 100
         )
@@ -198,12 +206,16 @@ def calculate_startup_scenario(
             * vested_options_series.iloc[-1]
         )
 
+        # FIX: Calculate breakeven and handle division by zero correctly for this column only
         breakeven_price = (
             results_df["Opportunity Cost (Invested Surplus)"]
             .divide(vested_options_series)
             .replace([np.inf, -np.inf], 0)
         )
-        results_df["Breakeven Value"] = breakeven_price + strike_price
+        # A breakeven of exactly the strike price means 0 profit, so it should be inf
+        results_df["Breakeven Value"] = (breakeven_price + strike_price).replace(
+            strike_price, np.inf
+        )
 
         output.update(
             {
@@ -212,7 +224,7 @@ def calculate_startup_scenario(
             }
         )
 
-    results_df.replace(0, np.inf, inplace=True)
+    # FIX: The incorrect global replace(0, np.inf) has been removed from here.
 
     output.update(
         {
@@ -237,15 +249,18 @@ def calculate_irr(monthly_surpluses: pd.Series, final_payout_value: float) -> fl
 
     cash_flows.iloc[-1] += final_payout_value
 
+    # IRR requires both positive and negative cash flows to find a root
     if not (any(cash_flows > 0) and any(cash_flows < 0)):
         return np.nan
 
     try:
         monthly_irr = npf.irr(cash_flows)
+        # npf.irr returns nan on failure, which is the desired behavior
         if pd.isna(monthly_irr):
             return np.nan
         return ((1 + monthly_irr) ** 12 - 1) * 100
     except (ValueError, TypeError):
+        # Catches any other unexpected errors from the calculation
         return np.nan
 
 
@@ -256,7 +271,7 @@ def calculate_npv(
     Calculates the Net Present Value of the investment.
     """
     monthly_roi = annual_to_monthly_roi(annual_roi)
-    if pd.isna(monthly_roi):
+    if pd.isna(monthly_roi) or monthly_roi <= -1:
         return np.nan
 
     cash_flows = -monthly_surpluses.copy()
@@ -266,6 +281,7 @@ def calculate_npv(
     cash_flows.iloc[-1] += final_payout_value
 
     try:
+        # npf.npv requires the rate and a series of values
         return npf.npv(monthly_roi, cash_flows)
     except (ValueError, TypeError):
         return np.nan
