@@ -112,6 +112,17 @@ cliff_years = st.sidebar.slider(
     help="The initial period before any compensation vests. For a standard 1-year cliff, set this to 1. At the 1-year mark, the first year's worth of compensation becomes vested. Set to 0 for no cliff.",
 )
 
+# New feature: Simulation End Year
+simulation_end_year = st.sidebar.slider(
+    label="Simulation End Year",
+    min_value=total_vesting_years,
+    max_value=20,
+    value=total_vesting_years,
+    step=1,
+    help="Simulate your financial journey up to this year.",
+)
+
+
 # --- Compensation-Specific Inputs ---
 rsu_params = {}
 options_params = {}
@@ -160,7 +171,7 @@ if comp_type == CompensationType.RSU:
                     round_year = st.number_input(
                         f"Year of {series_name}",
                         min_value=1,
-                        max_value=10,
+                        max_value=20,
                         value=i + 2,
                         step=1,
                         key=f"year_{series_name}",
@@ -231,7 +242,7 @@ with st.expander("👋 New to this tool? Click here for a guide!"):
 
 # --- Core Logic Execution ---
 monthly_df = calculations.create_monthly_data_grid(
-    total_vesting_years=total_vesting_years,
+    simulation_end_year=simulation_end_year,
     current_job_monthly_salary=current_salary,
     startup_monthly_salary=startup_salary,
     current_job_salary_growth_rate=current_job_salary_growth_rate,
@@ -250,6 +261,7 @@ startup_params = {
     "cliff_years": cliff_years,
     "rsu_params": rsu_params,
     "options_params": options_params,
+    "simulation_end_year": simulation_end_year,
 }
 
 # Calculate the startup scenario outcomes
@@ -280,7 +292,8 @@ if comp_type == CompensationType.RSU:
 else:
     exit_scenario_text = f"{format_currency_compact(options_params['target_exit_price_per_share'])}/Share"
 
-st.subheader(f"Outcome at End of Year {total_vesting_years} (at {exit_scenario_text})")
+st.subheader(f"Outcome at End of Year {simulation_end_year} (at {exit_scenario_text})")
+
 
 # Display dilution summary if applicable
 if comp_type == CompensationType.RSU and rsu_params.get("simulate_dilution"):

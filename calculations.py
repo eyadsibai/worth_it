@@ -19,7 +19,7 @@ def annual_to_monthly_roi(annual_roi: float) -> float:
 
 
 def create_monthly_data_grid(
-    total_vesting_years: int,
+    simulation_end_year: int,
     current_job_monthly_salary: float,
     startup_monthly_salary: float,
     current_job_salary_growth_rate: float,
@@ -28,7 +28,7 @@ def create_monthly_data_grid(
     Creates a DataFrame with one row per month, calculating the monthly salary
     surplus which forms the basis of our cash flows.
     """
-    total_months = total_vesting_years * 12
+    total_months = simulation_end_year * 12
     df = pd.DataFrame(index=pd.RangeIndex(total_months, name="MonthIndex"))
     df["Year"] = df.index // 12 + 1
 
@@ -98,18 +98,18 @@ def calculate_dilution_from_valuation(
 def _calculate_dilution(
     initial_equity_pct: float,
     dilution_rounds: List[Dict[str, Any]],
-    total_vesting_years: int,
+    simulation_end_year: int,
 ) -> Dict[str, float]:
     """
-    Calculates the cumulative dilution factor over the vesting period.
+    Calculates the cumulative dilution factor over the simulation period.
     """
     cumulative_dilution_factor = 1.0
     if dilution_rounds:
         # Sort rounds by year to apply them chronologically
         dilution_rounds.sort(key=lambda r: r["year"])
         for r in dilution_rounds:
-            # Only consider rounds within the vesting period
-            if r["year"] <= total_vesting_years:
+            # Only consider rounds within the simulation period
+            if r["year"] <= simulation_end_year:
                 cumulative_dilution_factor *= 1 - r.get("dilution", 0)
 
     diluted_equity_pct = initial_equity_pct * cumulative_dilution_factor
@@ -138,16 +138,18 @@ def calculate_startup_scenario(
     comp_type = startup_params["comp_type"]
     total_vesting_years = startup_params["total_vesting_years"]
     cliff_years = startup_params["cliff_years"]
+    simulation_end_year = startup_params["simulation_end_year"]
 
     results_df = opportunity_cost_df.copy()
 
-    # Calculate vested percentage over time, respecting the cliff
-    # Note: Vesting is linear after the cliff. At the cliff year, you get that year's worth.
-    results_df["Vested Comp (%)"] = np.where(
-        results_df.index >= cliff_years,
-        (results_df.index / total_vesting_years) * 100,
+    # Calculate vested percentage over time, respecting the cliff and vesting period
+    years = results_df.index
+    vested_comp_pct = np.where(
+        years >= cliff_years,
+        np.clip((years / total_vesting_years) * 100, 0, 100),
         0,
     )
+    results_df["Vested Comp (%)"] = vested_comp_pct
 
     output = {}
 
@@ -160,7 +162,7 @@ def calculate_startup_scenario(
         # Calculate dilution if simulated
         if rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
             dilution_results = _calculate_dilution(
-                initial_equity_pct, rsu_params["dilution_rounds"], total_vesting_years
+                initial_equity_pct, rsu_params["dilution_rounds"], simulation_end_year
             )
             diluted_equity_pct = dilution_results["diluted_equity_pct"]
             total_dilution = dilution_results["total_dilution"]
