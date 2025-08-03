@@ -123,7 +123,12 @@ if comp_type == CompensationType.RSU:
         st.sidebar.info(
             "Model the dilutive effect of future funding rounds on your equity."
         )
-        # Define the series names
+        dilution_method = st.sidebar.radio(
+            "Dilution Calculation Method",
+            ("By Percentage", "By Valuation"),
+            help="Choose how to model dilution: either by a direct percentage or based on fundraising valuations.",
+        )
+
         series_names = ["Series A", "Series B", "Series C", "Series D"]
         for i, series_name in enumerate(series_names):
             with st.sidebar.expander(f"{series_name} Round Details"):
@@ -134,24 +139,55 @@ if comp_type == CompensationType.RSU:
                 )
                 if round_enabled:
                     round_year = st.number_input(
-                        f"{series_name} Year",
+                        f"Year of {series_name}",
                         min_value=1,
                         max_value=10,
                         value=i + 2,
                         step=1,
                         key=f"year_{series_name}",
                     )
-                    round_dilution = (
-                        st.slider(
-                            f"{series_name} Dilution (%)",
-                            min_value=0.0,
-                            max_value=50.0,
-                            value=20.0,
-                            step=0.5,
-                            key=f"dilution_{series_name}",
+                    round_dilution = 0.0
+
+                    if dilution_method == "By Percentage":
+                        round_dilution = (
+                            st.slider(
+                                f"{series_name} Dilution (%)",
+                                min_value=0.0,
+                                max_value=50.0,
+                                value=20.0,
+                                step=0.5,
+                                key=f"dilution_{series_name}",
+                            )
+                            / 100
                         )
-                        / 100
-                    )
+                    else:  # By Valuation
+                        pre_money_M = st.number_input(
+                            "Pre-Money Valuation (M SAR)",
+                            min_value=0.0,
+                            value=float(10 * (i + 1)),
+                            step=1.0,
+                            key=f"premoney_{series_name}",
+                            help="The startup's valuation *before* this investment.",
+                        )
+                        raised_M = st.number_input(
+                            "Amount Raised (M SAR)",
+                            min_value=0.0,
+                            value=float(5 * (i + 1)),
+                            step=1.0,
+                            key=f"raised_{series_name}",
+                            help="The amount of new capital invested in this round.",
+                        )
+
+                        pre_money_val = pre_money_M * 1_000_000
+                        amount_raised = raised_M * 1_000_000
+                        post_money_val = pre_money_val + amount_raised
+
+                        if post_money_val > 0:
+                            round_dilution = amount_raised / post_money_val
+                        st.metric(
+                            f"{series_name} Implied Dilution", f"{round_dilution:.2%}"
+                        )
+
                     dilution_rounds.append(
                         {"year": round_year, "dilution": round_dilution}
                     )
@@ -204,6 +240,9 @@ with st.expander("👋 New to this tool? Click here for a guide!"):
         - **Startup Opportunity**: Enter the new salary and details about your compensation. Choose between:
             - **Equity (RSUs)**: You are granted a percentage of the company. You can also model the impact of future dilution from fundraising.
             - **Stock Options**: You get the right to buy a number of shares at a fixed "strike price".
+        - **Future Fundraising & Dilution**: If you have RSUs, you can model the impact of future funding rounds. Choose your calculation method:
+            - **By Percentage**: Enter the dilution percentage directly.
+            - **By Valuation**: Enter the pre-money valuation and amount raised to have dilution calculated automatically.
         - **Exit Scenario**: This is your best guess about the startup's success. For RSUs, estimate the company's future **Valuation**. For Options, estimate the future **Price per Share**.
 
         #### **Step 2: Analyze the Key Outcomes**
@@ -254,12 +293,9 @@ else:
         total_dilution = 0
         diluted_equity_pct = equity_pct
         if simulate_dilution and dilution_rounds:
-            # Sort rounds by year to apply dilution chronologically
             dilution_rounds.sort(key=lambda r: r["year"])
-            # Calculate cumulative dilution factor
             cumulative_dilution_factor = 1.0
             for r in dilution_rounds:
-                # We only consider rounds that happen before or at the exit year
                 if r["year"] <= total_vesting_years:
                     cumulative_dilution_factor *= 1 - r["dilution"]
             diluted_equity_pct = equity_pct * cumulative_dilution_factor
@@ -273,7 +309,6 @@ else:
         final_vested_comp_pct = results_df["Vested Comp (%)"].iloc[-1] / 100
         final_payout_value = target_exit_value * final_vested_comp_pct
 
-        # Calculate breakeven based on diluted equity
         breakeven_vesting_pct = np.where(
             results_df.index >= cliff_years,
             (equity_pct * (results_df.index / total_vesting_years)),
@@ -323,7 +358,6 @@ else:
         f"Outcome at End of Year {total_vesting_years} (at {exit_scenario_text})"
     )
 
-    # Display dilution info if applicable
     if comp_type == CompensationType.RSU and simulate_dilution:
         dilution_col1, dilution_col2, dilution_col3 = st.columns(3)
         dilution_col1.metric("Initial Equity Grant", f"{equity_pct:.2%}")
@@ -376,9 +410,8 @@ else:
             "Opportunity Cost (Invested Surplus)"
         ].map(format_currency_compact)
 
-        # Adjust the Vested Comp display label based on compensation type
         vested_comp_label = (
-            "Vested Equity (%)"
+            "Vested Equity (Post-Dilution)"
             if comp_type == CompensationType.RSU
             else "Vested Options (%)"
         )
@@ -401,7 +434,7 @@ else:
                     vested_comp_label,
                     breakeven_label,
                 ]
-            ],
+            ].rename(columns={vested_comp_label: "Vested Comp"}),
             use_container_width=True,
         )
 
@@ -429,7 +462,7 @@ else:
                     breakeven_data,
                     x="Year",
                     y=y_values,
-                    title=f"<b>Required {breakeven_label.split('(', maxsplit=1)[0]}</b>",
+                    title=f"<b>Required {breakeven_label.split('(', maxsplit=1)[0]} to Break Even</b>",
                     labels={"y": y_axis_label},
                     markers=True,
                 )
