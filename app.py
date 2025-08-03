@@ -19,8 +19,8 @@ st.set_page_config(
 )
 
 
-class CompensationType(str, Enum):
-    """Enum for different types of compensation."""
+class EquityType(str, Enum):
+    """Enum for different types of equity."""
 
     RSU = "Equity (RSUs)"
     STOCK_OPTIONS = "Stock Options"
@@ -92,12 +92,12 @@ startup_salary = st.sidebar.number_input(
     key="startup_salary",
 )
 
-comp_type_str = st.sidebar.radio(
-    label="Compensation Type",
-    options=[e.value for e in CompensationType],
+equity_type_str = st.sidebar.radio(
+    label="Equity Type",
+    options=[e.value for e in EquityType],
     help="RSUs are grants of shares. Stock Options are the right to buy shares at a fixed price.",
 )
-comp_type = CompensationType(comp_type_str)
+equity_type = EquityType(equity_type_str)
 
 
 total_vesting_years = st.sidebar.slider(
@@ -109,7 +109,7 @@ cliff_years = st.sidebar.slider(
     max_value=5,
     value=1,
     step=1,
-    help="The initial period before any compensation vests. For a standard 1-year cliff, set this to 1. At the 1-year mark, the first year's worth of compensation becomes vested. Set to 0 for no cliff.",
+    help="The initial period before any equity vests. For a standard 1-year cliff, set this to 1. At the 1-year mark, the first year's worth of equity becomes vested. Set to 0 for no cliff.",
 )
 
 # New feature: Simulation End Year
@@ -123,12 +123,12 @@ simulation_end_year = st.sidebar.slider(
 )
 
 
-# --- Compensation-Specific Inputs ---
+# --- Equity-Specific Inputs ---
 rsu_params = {}
 options_params = {}
 dilution_rounds = []
 
-if comp_type == CompensationType.RSU:
+if equity_type == EquityType.RSU:
     rsu_params["equity_pct"] = (
         st.sidebar.slider("Total Equity Grant (%)", 0.5, 25.0, 5.0, 0.1) / 100
     )
@@ -256,7 +256,7 @@ opportunity_cost_df = calculations.calculate_annual_opportunity_cost(
 
 # Combine startup parameters into a single dictionary
 startup_params = {
-    "comp_type": comp_type,
+    "equity_type": equity_type,
     "total_vesting_years": total_vesting_years,
     "cliff_years": cliff_years,
     "rsu_params": rsu_params,
@@ -271,7 +271,7 @@ final_payout_value = results["final_payout_value"]
 final_opportunity_cost = results["final_opportunity_cost"]
 payout_label = results["payout_label"]
 breakeven_label = results["breakeven_label"]
-total_dilution = results.get("total_dilution")  # Use .get for optional values
+total_dilution = results.get("total_dilution")
 diluted_equity_pct = results.get("diluted_equity_pct")
 
 # Calculate financial metrics
@@ -285,7 +285,7 @@ npv_value = calculations.calculate_npv(
 st.divider()
 
 # Define exit scenario text for the subheader
-if comp_type == CompensationType.RSU:
+if equity_type == EquityType.RSU:
     exit_scenario_text = (
         f"{format_currency_compact(rsu_params['target_exit_valuation'])} Valuation"
     )
@@ -296,7 +296,7 @@ st.subheader(f"Outcome at End of Year {simulation_end_year} (at {exit_scenario_t
 
 
 # Display dilution summary if applicable
-if comp_type == CompensationType.RSU and rsu_params.get("simulate_dilution"):
+if equity_type == EquityType.RSU and rsu_params.get("simulate_dilution"):
     col1, col2, col3 = st.columns(3)
     col1.metric("Initial Equity Grant", f"{rsu_params['equity_pct']:.2%}")
     col2.metric("Total Dilution", f"{total_dilution:.2%}")
@@ -336,34 +336,32 @@ with st.expander("Show Detailed Yearly Breakdown & Charts"):
         "Opportunity Cost (Invested Surplus)"
     ].map(format_currency_compact)
 
-    # *** CHANGE: Reverted to show Vested Percentage ***
-    vested_comp_label = (
+    vested_equity_label = (
         "Vested Equity (Post-Dilution)"
-        if comp_type == CompensationType.RSU
+        if equity_type == EquityType.RSU
         else "Vested Options (%)"
     )
-    # The column from calculations is "Vested Comp (%)"
-    display_df[vested_comp_label] = results_df["Vested Comp (%)"].map(
+
+    display_df[vested_equity_label] = results_df["Vested Equity (%)"].map(
         lambda x: f"{x:.2f}%"
     )
 
     display_df[breakeven_label] = display_df["Breakeven Value"].map(
-        lambda x: format_currency_compact(
-            x, add_sar=(comp_type == CompensationType.RSU)
-        )
+        lambda x: format_currency_compact(x, add_sar=(equity_type == EquityType.RSU))
     )
+    # Sort the dataframe by year for correct display
+    display_df.sort_index(inplace=True)
 
-    # Ensure the original 'Vested Comp (%)' column is dropped if it's not the one being displayed
     columns_to_display = [
         principal_col_label,
         "Opportunity Cost (Invested Surplus)",
-        vested_comp_label,
+        vested_equity_label,
         breakeven_label,
     ]
 
     st.dataframe(
         display_df[columns_to_display].rename(
-            columns={vested_comp_label: "Vested Comp"}
+            columns={vested_equity_label: "Vested Equity"}
         ),
         use_container_width=True,
     )
@@ -384,7 +382,7 @@ with st.expander("Show Detailed Yearly Breakdown & Charts"):
             results_df["Breakeven Value"] != float("inf")
         ].copy()
         if not breakeven_data.empty:
-            if comp_type == CompensationType.RSU:
+            if equity_type == EquityType.RSU:
                 y_axis_label = "Valuation (Millions SAR)"
                 breakeven_data["y_values"] = breakeven_data["Breakeven Value"] / 1e6
             else:

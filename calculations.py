@@ -1,12 +1,12 @@
 """
 Core calculation functions for financial analysis.
 
-This module provides functions to calculate opportunity costs, startup compensation
+This module provides functions to calculate opportunity costs, startup equity
 scenarios (RSUs and Stock Options), dilution, IRR, and NPV. It is designed to be
 independent of the Streamlit UI.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import numpy as np
 import numpy_financial as npf
@@ -87,45 +87,17 @@ def calculate_dilution_from_valuation(
     pre_money_valuation: float, amount_raised: float
 ) -> float:
     """Calculates the dilution percentage from a fundraising round."""
-    if pre_money_valuation < 0 or amount_raised < 0:
+    if pre_money_valuation <= 0 or amount_raised < 0:
         return 0.0
     post_money_valuation = pre_money_valuation + amount_raised
-    if post_money_valuation == 0:
-        return 0.0
     return amount_raised / post_money_valuation
-
-
-def _calculate_dilution(
-    initial_equity_pct: float,
-    dilution_rounds: List[Dict[str, Any]],
-    simulation_end_year: int,
-) -> Dict[str, float]:
-    """
-    Calculates the cumulative dilution factor over the simulation period.
-    """
-    cumulative_dilution_factor = 1.0
-    if dilution_rounds:
-        # Sort rounds by year to apply them chronologically
-        dilution_rounds.sort(key=lambda r: r["year"])
-        for r in dilution_rounds:
-            # Only consider rounds within the simulation period
-            if r["year"] <= simulation_end_year:
-                cumulative_dilution_factor *= 1 - r.get("dilution", 0)
-
-    diluted_equity_pct = initial_equity_pct * cumulative_dilution_factor
-    total_dilution = 1 - cumulative_dilution_factor
-
-    return {
-        "diluted_equity_pct": diluted_equity_pct,
-        "total_dilution": total_dilution,
-    }
 
 
 def calculate_startup_scenario(
     opportunity_cost_df: pd.DataFrame, startup_params: Dict[str, Any]
 ) -> Dict[str, Any]:
     """
-    Calculates the financial outcomes for a given startup compensation package.
+    Calculates the financial outcomes for a given startup equity package.
     This function handles both RSU and Stock Option scenarios.
 
     Args:
@@ -135,58 +107,74 @@ def calculate_startup_scenario(
     Returns:
         A dictionary containing the results DataFrame and key financial metrics.
     """
-    comp_type = startup_params["comp_type"]
+    equity_type = startup_params["equity_type"]
     total_vesting_years = startup_params["total_vesting_years"]
     cliff_years = startup_params["cliff_years"]
-    simulation_end_year = startup_params["simulation_end_year"]
 
     results_df = opportunity_cost_df.copy()
 
-    # Calculate vested percentage over time, respecting the cliff and vesting period
+    # Calculate vested percentage over time, respecting the cliff and capping at 100%
     years = results_df.index
-    vested_comp_pct = np.where(
+    vested_equity_pct = np.where(
         years >= cliff_years,
         np.clip((years / total_vesting_years) * 100, 0, 100),
         0,
     )
-    results_df["Vested Comp (%)"] = vested_comp_pct
+    results_df["Vested Equity (%)"] = vested_equity_pct
 
     output = {}
 
-    if comp_type.value == "Equity (RSUs)":
+    if equity_type.value == "Equity (RSUs)":
         rsu_params = startup_params["rsu_params"]
         initial_equity_pct = rsu_params["equity_pct"]
         diluted_equity_pct = initial_equity_pct
         total_dilution = 0.0
 
-        # Calculate dilution if simulated
         if rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
-            dilution_results = _calculate_dilution(
-                initial_equity_pct, rsu_params["dilution_rounds"], simulation_end_year
+            sorted_rounds = sorted(
+                rsu_params["dilution_rounds"], key=lambda r: r["year"]
             )
-            diluted_equity_pct = dilution_results["diluted_equity_pct"]
-            total_dilution = dilution_results["total_dilution"]
+            yearly_dilution_factors = []
+            for year in results_df.index:
+                cumulative_dilution_factor = 1.0
+                for r in sorted_rounds:
+                    if r["year"] <= year:
+                        cumulative_dilution_factor *= 1 - r.get("dilution", 0)
+                yearly_dilution_factors.append(cumulative_dilution_factor)
 
-        # The final vested percentage is based on the DILUTED equity
-        final_vested_comp_pct = (
-            results_df["Vested Comp (%)"].iloc[-1] / 100
-        ) * diluted_equity_pct
-        final_payout_value = rsu_params["target_exit_valuation"] * final_vested_comp_pct
+            results_df["CumulativeDilution"] = yearly_dilution_factors
+            total_dilution = 1 - results_df["CumulativeDilution"].iloc[-1]
+            diluted_equity_pct = (
+                initial_equity_pct * results_df["CumulativeDilution"].iloc[-1]
+            )
+        else:
+            results_df["CumulativeDilution"] = 1.0
+            total_dilution = 0.0
+            diluted_equity_pct = initial_equity_pct
 
-        # Breakeven calculation MUST use the diluted equity percentage for each year.
+        final_vested_equity_pct = (
+            results_df["Vested Equity (%)"].iloc[-1] / 100
+        ) * initial_equity_pct
+        final_payout_value = (
+            rsu_params["target_exit_valuation"]
+            * final_vested_equity_pct
+            * results_df["CumulativeDilution"].iloc[-1]
+        )
+
+        yearly_diluted_equity_pct = (
+            initial_equity_pct * results_df["CumulativeDilution"]
+        )
         breakeven_vesting_pct = (
-            results_df["Vested Comp (%)"] / 100
-        ) * diluted_equity_pct
+            results_df["Vested Equity (%)"] / 100
+        ) * yearly_diluted_equity_pct
 
         results_df["Breakeven Value"] = (
             results_df["Opportunity Cost (Invested Surplus)"]
             .divide(breakeven_vesting_pct)
-            .replace(np.inf, 0)
+            .replace([np.inf, -np.inf], 0)
         )
-
-        # *** CHANGE: For RSUs, the "Vested Comp (%)" in the table should reflect the post-dilution reality ***
-        results_df["Vested Comp (%)"] = (
-            (results_df["Vested Comp (%)"] / 100) * diluted_equity_pct * 100
+        results_df["Vested Equity (%)"] = (
+            (results_df["Vested Equity (%)"] / 100) * yearly_diluted_equity_pct * 100
         )
 
         output.update(
@@ -203,18 +191,17 @@ def calculate_startup_scenario(
         num_options = options_params["num_options"]
         strike_price = options_params["strike_price"]
 
-        vested_options_series = (results_df["Vested Comp (%)"] / 100) * num_options
+        vested_options_series = (results_df["Vested Equity (%)"] / 100) * num_options
 
         final_payout_value = (
             max(0, options_params["target_exit_price_per_share"] - strike_price)
             * vested_options_series.iloc[-1]
         )
 
-        # Breakeven price is the cost per option plus the strike price
         breakeven_price = (
             results_df["Opportunity Cost (Invested Surplus)"]
             .divide(vested_options_series)
-            .replace(np.inf, 0)
+            .replace([np.inf, -np.inf], 0)
         )
         results_df["Breakeven Value"] = breakeven_price + strike_price
 
@@ -225,7 +212,6 @@ def calculate_startup_scenario(
             }
         )
 
-    # Fill infinite values from division by zero (e.g., during cliff) with np.inf for clarity in UI
     results_df.replace(0, np.inf, inplace=True)
 
     output.update(
@@ -251,7 +237,6 @@ def calculate_irr(monthly_surpluses: pd.Series, final_payout_value: float) -> fl
 
     cash_flows.iloc[-1] += final_payout_value
 
-    # IRR requires at least one positive and one negative cash flow
     if not (any(cash_flows > 0) and any(cash_flows < 0)):
         return np.nan
 
@@ -281,7 +266,6 @@ def calculate_npv(
     cash_flows.iloc[-1] += final_payout_value
 
     try:
-        # npv function requires the rate and a series of values
         return npf.npv(monthly_roi, cash_flows)
     except (ValueError, TypeError):
         return np.nan
