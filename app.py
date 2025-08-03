@@ -44,10 +44,28 @@ def format_currency_compact(num: float, add_sar=True) -> str:
 # --- Sidebar Inputs ---
 st.sidebar.title("⚖️ Configuration")
 
+# --- Global Settings ---
+st.sidebar.header("⚙️ Global Settings")
+simulation_end_year = st.sidebar.slider(
+    label="Simulation End Year",
+    min_value=1,
+    max_value=20,
+    value=5,
+    step=1,
+    help="Set the total duration for this financial comparison. The analysis will project outcomes up to the end of this year.",
+)
+st.sidebar.divider()
+
+
 # --- Current Job Inputs ---
-st.sidebar.header("Current Job")
+st.sidebar.header("Scenario 1: Current Job")
 current_salary = st.sidebar.number_input(
-    "Monthly Salary (SAR)", min_value=0, value=30_000, step=1000, key="current_salary"
+    "Monthly Salary (SAR)",
+    min_value=0,
+    value=30_000,
+    step=1000,
+    key="current_salary",
+    help="Your gross monthly salary in your current role, before any deductions.",
 )
 current_job_salary_growth_rate = (
     st.sidebar.slider(
@@ -61,8 +79,7 @@ current_job_salary_growth_rate = (
     / 100
 )
 
-# --- Investment Inputs ---
-st.sidebar.markdown("##### Surplus Investment Assumptions")
+st.sidebar.subheader("Salary Surplus Investment")
 annual_roi = (
     st.sidebar.slider(
         label="Assumed Annual ROI (%)",
@@ -70,26 +87,26 @@ annual_roi = (
         max_value=20.0,
         value=5.4,
         step=0.1,
-        help="The return you'd get by investing the salary surplus. This is also the discount rate for NPV.",
+        help="The estimated annual return (ROI) you'll get by investing the salary surplus (the difference between your current and startup salary). This also acts as the discount rate for NPV.",
     )
     / 100
 )
 investment_frequency = st.sidebar.radio(
     label="Investment Frequency",
     options=["Monthly", "Annually"],
-    help="How often you would invest the salary surplus.",
+    help="How often would you invest this salary surplus?",
 )
-
 st.sidebar.divider()
 
 # --- Startup Job Inputs ---
-st.sidebar.header("Startup Opportunity")
+st.sidebar.header("Scenario 2: Startup Offer")
 startup_salary = st.sidebar.number_input(
     label="Monthly Salary (SAR)",
     min_value=0,
     value=20_000,
     step=1000,
     key="startup_salary",
+    help="The gross monthly salary offered by the startup.",
 )
 
 equity_type_str = st.sidebar.radio(
@@ -100,8 +117,14 @@ equity_type_str = st.sidebar.radio(
 equity_type = EquityType(equity_type_str)
 
 
+st.sidebar.subheader("Vesting Terms")
 total_vesting_years = st.sidebar.slider(
-    label="Total Vesting Period (Years)", min_value=1, max_value=10, value=5, step=1
+    label="Total Vesting Period (Years)",
+    min_value=1,
+    max_value=10,
+    value=5,
+    step=1,
+    help="The total number of years required for all your granted equity to become fully yours.",
 )
 cliff_years = st.sidebar.slider(
     label="Vesting Cliff Period (Years)",
@@ -112,16 +135,6 @@ cliff_years = st.sidebar.slider(
     help="The initial period before any equity vests. For a standard 1-year cliff, set this to 1. At the 1-year mark, the first year's worth of equity becomes vested. Set to 0 for no cliff.",
 )
 
-# New feature: Simulation End Year
-simulation_end_year = st.sidebar.slider(
-    label="Simulation End Year",
-    min_value=total_vesting_years,
-    max_value=20,
-    value=total_vesting_years,
-    step=1,
-    help="Simulate your financial journey up to this year.",
-)
-
 
 # --- Equity-Specific Inputs ---
 rsu_params = {}
@@ -129,26 +142,35 @@ options_params = {}
 dilution_rounds = []
 
 if equity_type == EquityType.RSU:
+    st.sidebar.subheader("Grant Details")
     rsu_params["equity_pct"] = (
-        st.sidebar.slider("Total Equity Grant (%)", 0.5, 25.0, 5.0, 0.1) / 100
+        st.sidebar.slider(
+            "Total Equity Grant (%)",
+            0.5,
+            25.0,
+            5.0,
+            0.1,
+            help="The total percentage of the company's equity offered to you as a grant.",
+        )
+        / 100
     )
-    st.sidebar.markdown("##### Exit Scenario")
+    st.sidebar.subheader("Hypothetical Exit Scenario")
     valuation_in_millions = st.sidebar.slider(
-        label="Hypothetical Future Valuation (Millions SAR)",
+        label="Future Valuation (Millions SAR)",
         min_value=1,
         max_value=1000,
         value=25,
         step=1,
         format="%dM SAR",
-        help="Your best guess for the startup's total valuation at the end of your vesting period.",
+        help="Your best guess for the startup's total valuation at the time you might sell your shares.",
     )
     rsu_params["target_exit_valuation"] = valuation_in_millions * 1_000_000
 
-    # --- Dilution Inputs ---
-    st.sidebar.markdown("---")
-    st.sidebar.header("Future Fundraising & Dilution")
+    st.sidebar.subheader("Future Fundraising & Dilution")
     rsu_params["simulate_dilution"] = st.sidebar.checkbox(
-        "Simulate Future Dilution", value=True
+        "Simulate Future Dilution",
+        value=True,
+        help="Check this to model how future fundraising rounds might reduce your ownership percentage.",
     )
     if rsu_params["simulate_dilution"]:
         st.sidebar.info(
@@ -159,7 +181,6 @@ if equity_type == EquityType.RSU:
             ("By Percentage", "By Valuation"),
             help="Choose how to model dilution: either by a direct percentage or based on fundraising valuations.",
         )
-
         series_names = ["Series A", "Series B", "Series C", "Series D"]
         for i, series_name in enumerate(series_names):
             with st.sidebar.expander(f"{series_name} Round Details"):
@@ -188,7 +209,7 @@ if equity_type == EquityType.RSU:
                             )
                             / 100
                         )
-                    else:  # By Valuation
+                    else:
                         pre_money_M = st.number_input(
                             "Pre-Money Valuation (M SAR)",
                             0.0,
@@ -215,21 +236,35 @@ if equity_type == EquityType.RSU:
         rsu_params["dilution_rounds"] = dilution_rounds
 
 else:  # Stock Options
+    st.sidebar.subheader("Grant Details")
     options_params["num_options"] = st.sidebar.number_input(
-        "Number of Stock Options", 0, 20000, 1000
+        "Number of Stock Options",
+        min_value=0,
+        value=1000,
+        step=500,
+        help="The total number of individual stock options granted in your offer.",
     )
     options_params["strike_price"] = st.sidebar.number_input(
-        "Strike Price (SAR per share)", 0.00, 1.50, 0.25, "%.2f"
+        "Strike Price (SAR per share)",
+        min_value=0.00,
+        value=0.25,
+        step=0.05,
+        format="%.2f",
+        help="The fixed price per share you will pay to exercise (buy) your vested options.",
     )
-    st.sidebar.markdown("##### Exit Scenario")
+    st.sidebar.subheader("Hypothetical Exit Scenario")
     options_params["target_exit_price_per_share"] = st.sidebar.number_input(
-        "Hypothetical Price per Share at Exit (SAR)", 0.00, 10.00, 0.50, "%.2f"
+        "Price per Share at Exit (SAR)",
+        min_value=0.00,
+        value=0.50,
+        step=0.25,
+        format="%.2f",
+        help="Your best guess for the price of a single share when you eventually sell.",
     )
+
 
 # --- Main App UI ---
 st.title("Startup Offer vs. Current Job: Financial Comparison")
-
-# --- Introduction Expander ---
 with st.expander("👋 New to this tool? Click here for a guide!"):
     st.markdown(
         """
@@ -247,14 +282,11 @@ monthly_df = calculations.create_monthly_data_grid(
     startup_monthly_salary=startup_salary,
     current_job_salary_growth_rate=current_job_salary_growth_rate,
 )
-
 opportunity_cost_df = calculations.calculate_annual_opportunity_cost(
     monthly_df=monthly_df,
     annual_roi=annual_roi,
     investment_frequency=investment_frequency,
 )
-
-# Combine startup parameters into a single dictionary
 startup_params = {
     "equity_type": equity_type,
     "total_vesting_years": total_vesting_years,
@@ -263,8 +295,6 @@ startup_params = {
     "options_params": options_params,
     "simulation_end_year": simulation_end_year,
 }
-
-# Calculate the startup scenario outcomes
 results = calculations.calculate_startup_scenario(opportunity_cost_df, startup_params)
 results_df = results["results_df"]
 final_payout_value = results["final_payout_value"]
@@ -273,8 +303,6 @@ payout_label = results["payout_label"]
 breakeven_label = results["breakeven_label"]
 total_dilution = results.get("total_dilution")
 diluted_equity_pct = results.get("diluted_equity_pct")
-
-# Calculate financial metrics
 net_outcome = final_payout_value - final_opportunity_cost
 irr_value = calculations.calculate_irr(monthly_df["MonthlySurplus"], final_payout_value)
 npv_value = calculations.calculate_npv(
@@ -284,126 +312,156 @@ npv_value = calculations.calculate_npv(
 # --- Display Results ---
 st.divider()
 
-# Define exit scenario text for the subheader
+# --- REVISED: Celebration Feature ---
+# If total salary from startup is higher than total projected salary from current job,
+# then the monthly surplus will be negative. This is a clear win on salary alone.
+total_salary_surplus = monthly_df["MonthlySurplus"].sum()
+is_clear_win = total_salary_surplus < 0
+
+if is_clear_win:
+    st.balloons()
+    st.success(
+        "🎉 ### Clear Decision! \n"
+        "Factoring in salary growth, the startup offer provides a higher total salary over the simulation period. This makes it a clear win, even before considering equity."
+    )
+
 if equity_type == EquityType.RSU:
     exit_scenario_text = (
         f"{format_currency_compact(rsu_params['target_exit_valuation'])} Valuation"
     )
 else:
     exit_scenario_text = f"{format_currency_compact(options_params['target_exit_price_per_share'])}/Share"
-
 st.subheader(f"Outcome at End of Year {simulation_end_year} (at {exit_scenario_text})")
 
-
-# Display dilution summary if applicable
 if equity_type == EquityType.RSU and rsu_params.get("simulate_dilution"):
     col1, col2, col3 = st.columns(3)
-    col1.metric("Initial Equity Grant", f"{rsu_params['equity_pct']:.2%}")
-    col2.metric("Total Dilution", f"{total_dilution:.2%}")
+    col1.metric(
+        "Initial Equity Grant",
+        f"{rsu_params['equity_pct']:.2%}",
+        help="The percentage of the company you were initially offered.",
+    )
+    col2.metric(
+        "Total Dilution",
+        f"{total_dilution:.2%}",
+        help="The total reduction in your ownership stake due to all simulated fundraising rounds.",
+    )
     col3.metric(
         "Final Diluted Equity",
         f"{diluted_equity_pct:.2%}",
         delta=f"{-total_dilution:.2%}",
+        help="Your final ownership percentage after all dilution has been applied.",
     )
 
-# Display key metric cards
 col1, col2, col3, col4, col5 = st.columns(5)
-col1.metric(payout_label, format_currency_compact(final_payout_value))
-col2.metric("Opportunity Cost", format_currency_compact(final_opportunity_cost))
+col1.metric(
+    payout_label,
+    format_currency_compact(final_payout_value),
+    help="The estimated cash value of your vested equity (or options) at the hypothetical exit, after accounting for any dilution.",
+)
+col2.metric(
+    "Opportunity Cost",
+    format_currency_compact(final_opportunity_cost),
+    help="The total value you would have had if you'd stayed at your current job and invested the salary surplus. This is what you're 'giving up' to take the startup job.",
+)
 col3.metric(
     "Net Outcome (Future)",
     format_currency_compact(net_outcome),
     delta=f"{net_outcome:,.0f} SAR",
+    help="The final difference between your startup equity payout and the opportunity cost. A positive value means the startup offer was financially better in the long run.",
 )
-col4.metric("Net Present Value (NPV)", format_currency_compact(npv_value))
-col5.metric("Annualized IRR", f"{irr_value:.2f}%" if pd.notna(irr_value) else "N/A")
+col4.metric(
+    "Net Present Value (NPV)",
+    format_currency_compact(npv_value),
+    help="The 'Net Outcome' translated into today's money. It accounts for the time value of money, showing the total value created by the decision in present terms. A positive NPV is a strong positive signal.",
+)
+col5.metric(
+    "Annualized IRR",
+    f"{irr_value:.2f}%" if pd.notna(irr_value) else "N/A",
+    help="The effective annual interest rate your 'investment' (the opportunity cost) would yield. A higher IRR indicates a more profitable decision.",
+)
 
 
-# --- Detailed Breakdown and Charts ---
-with st.expander("Show Detailed Yearly Breakdown & Charts"):
-    display_df = results_df.copy()
-    principal_col_label = (
-        "Principal Forgone"
-        if monthly_df["MonthlySurplus"].sum() >= 0
-        else "Salary Gain"
-    )
-
-    # Format columns for display
-    display_df[principal_col_label] = display_df[principal_col_label].map(
-        format_currency_compact
-    )
-    display_df["Opportunity Cost (Invested Surplus)"] = display_df[
-        "Opportunity Cost (Invested Surplus)"
-    ].map(format_currency_compact)
-
-    vested_equity_label = (
-        "Vested Equity (Post-Dilution)"
-        if equity_type == EquityType.RSU
-        else "Vested Options (%)"
-    )
-
-    display_df[vested_equity_label] = results_df["Vested Equity (%)"].map(
-        lambda x: f"{x:.2f}%"
-    )
-
-    display_df[breakeven_label] = display_df["Breakeven Value"].map(
-        lambda x: format_currency_compact(x, add_sar=(equity_type == EquityType.RSU))
-    )
-    # Sort the dataframe by year for correct display
-    display_df.sort_index(inplace=True)
-
-    columns_to_display = [
-        principal_col_label,
-        "Opportunity Cost (Invested Surplus)",
-        vested_equity_label,
-        breakeven_label,
-    ]
-
-    st.dataframe(
-        display_df[columns_to_display].rename(
-            columns={vested_equity_label: "Vested Equity"}
-        ),
-        use_container_width=True,
-    )
-
-    # Plot charts
-    c1, c2 = st.columns(2)
-    with c1:
-        fig1 = px.bar(
-            results_df,
-            x="Year",
-            y=[principal_col_label, "Investment Returns"],
-            title="<b>Salary Change & Investment Returns</b>",
-            barmode="stack",
+# --- Detailed Breakdown Section ---
+if not is_clear_win:
+    with st.expander("Show Detailed Yearly Breakdown & Charts"):
+        display_df = results_df.copy()
+        principal_col_label = (
+            "Principal Forgone"
+            if monthly_df["MonthlySurplus"].sum() >= 0
+            else "Salary Gain"
         )
-        st.plotly_chart(fig1, use_container_width=True)
-    with c2:
-        breakeven_data = results_df[
-            results_df["Breakeven Value"] != float("inf")
-        ].copy()
-        if not breakeven_data.empty:
-            if equity_type == EquityType.RSU:
-                y_axis_label = "Valuation (Millions SAR)"
-                breakeven_data["y_values"] = breakeven_data["Breakeven Value"] / 1e6
-            else:
-                y_axis_label = "Price per Share (SAR)"
-                breakeven_data["y_values"] = breakeven_data["Breakeven Value"]
-
-            fig2 = px.line(
-                breakeven_data,
-                x="Year",
-                y="y_values",
-                title=f"<b>Required {breakeven_label.split('(')[0]} to Break Even</b>",
-                labels={"y_values": y_axis_label},
-                markers=True,
+        display_df[principal_col_label] = display_df[principal_col_label].map(
+            format_currency_compact
+        )
+        display_df["Opportunity Cost (Invested Surplus)"] = display_df[
+            "Opportunity Cost (Invested Surplus)"
+        ].map(format_currency_compact)
+        vested_equity_label = (
+            "Vested Equity (Post-Dilution)"
+            if equity_type == EquityType.RSU
+            else "Vested Options (%)"
+        )
+        display_df[vested_equity_label] = results_df["Vested Equity (%)"].map(
+            lambda x: f"{x:.2f}%"
+        )
+        display_df[breakeven_label] = display_df["Breakeven Value"].map(
+            lambda x: format_currency_compact(
+                x, add_sar=(equity_type == EquityType.RSU)
             )
-            st.plotly_chart(fig2, use_container_width=True)
+        )
+        display_df.sort_index(inplace=True)
+        columns_to_display = [
+            principal_col_label,
+            "Opportunity Cost (Invested Surplus)",
+            vested_equity_label,
+            breakeven_label,
+        ]
+        st.dataframe(
+            display_df[columns_to_display].rename(
+                columns={vested_equity_label: "Vested Equity"}
+            ),
+            use_container_width=True,
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            fig1 = px.bar(
+                results_df,
+                x="Year",
+                y=[principal_col_label, "Investment Returns"],
+                title="<b>Salary Change & Investment Returns</b>",
+                barmode="stack",
+            )
+            st.plotly_chart(fig1, use_container_width=True)
+        with c2:
+            breakeven_data = results_df[
+                results_df["Breakeven Value"] != float("inf")
+            ].copy()
+            if not breakeven_data.empty:
+                if equity_type == EquityType.RSU:
+                    y_axis_label = "Valuation (Millions SAR)"
+                    breakeven_data["y_values"] = breakeven_data["Breakeven Value"] / 1e6
+                else:
+                    y_axis_label = "Price per Share (SAR)"
+                    breakeven_data["y_values"] = breakeven_data["Breakeven Value"]
+                fig2 = px.line(
+                    breakeven_data,
+                    x="Year",
+                    y="y_values",
+                    title=f"<b>Required {breakeven_label.split('(')[0]} to Break Even</b>",
+                    labels={"y_values": y_axis_label},
+                    markers=True,
+                )
+                st.plotly_chart(fig2, use_container_width=True)
+else:
+    st.info(
+        "ℹ️ The detailed breakdown is hidden as the higher total salary makes this a clear choice."
+    )
+
 
 # --- Footer ---
 st.divider()
 st.caption(
     "Disclaimer: This tool is for informational purposes only and does not constitute financial advice."
 )
-
 st.markdown("---")
 st.caption("Made with ❤️ by Eyad Sibai (https://linkedin.com/in/eyadsibai)")
