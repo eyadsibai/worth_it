@@ -60,7 +60,7 @@ async def calculate(input_data: CalculationInput):
             investment_frequency=input_data.investment_frequency,
         )
 
-        # 3. Prepare startup parameters, converting string equity_type back to enum
+        # 3. Prepare startup parameters
         startup_params = {
             "equity_type": calculations.EquityType(input_data.equity_type),
             "total_vesting_years": input_data.total_vesting_years,
@@ -78,14 +78,8 @@ async def calculate(input_data: CalculationInput):
 
         return results
     except Exception as e:
-        # If any error occurs during calculation, return a 400 status code with a clear error message.
+        # If any error occurs, return a clear error message to the frontend
         raise HTTPException(
             status_code=400,
             detail=f"An error occurred during calculation: {e}"
         )
-
-if __name__ == "__main__":
-    import uvicorn
-
-    # This makes the server accessible on your local network, not just on your machine.
-    uvicorn.run(app, host="0.0.0.0", port=8000)
