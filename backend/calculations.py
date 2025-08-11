@@ -6,12 +6,19 @@ scenarios (RSUs and Stock Options), dilution, IRR, and NPV. It is designed to be
 independent of the Streamlit UI.
 """
 
+from enum import Enum
 from typing import Any, Dict
 
 import numpy as np
 import numpy_financial as npf
 import pandas as pd
 
+
+class EquityType(str, Enum):
+    """Enum for different types of equity."""
+
+    RSU = "Equity (RSUs)"
+    STOCK_OPTIONS = "Stock Options"
 
 def annual_to_monthly_roi(annual_roi: float) -> float:
     """Converts an annual Return on Investment (ROI) to its monthly equivalent."""
