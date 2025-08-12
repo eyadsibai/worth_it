@@ -269,7 +269,8 @@ st.sidebar.divider()
 # --- Monte Carlo Simulation Inputs ---
 st.sidebar.header("🎲 Monte Carlo Simulation")
 run_simulation = st.sidebar.checkbox(
-    "Run Simulation", help="Enable to run a Monte Carlo simulation to understand the range of potential outcomes."
+    "Run Simulation",
+    help="Enable to run a Monte Carlo simulation to understand the range of potential outcomes.",
 )
 sim_param_configs = {}
 if run_simulation:
@@ -284,8 +285,13 @@ if run_simulation:
     num_simulations = st.sidebar.slider(
         "Number of Simulations", 100, 10000, 1000, 100, key="num_simulations"
     )
-    
-    sim_options = ["Exit Valuation/Price", "Annual ROI", "Salary Growth Rate", "Exit Year"]
+
+    sim_options = [
+        "Exit Valuation/Price",
+        "Annual ROI",
+        "Salary Growth Rate",
+        "Exit Year",
+    ]
     if equity_type == EquityType.RSU:
         sim_options.append("Total Dilution")
 
@@ -296,7 +302,17 @@ if run_simulation:
     )
 
     # Reusable function to create sliders for a given parameter
-    def create_sim_sliders(label, min_value, max_value, default_range, default_mode, step, key_prefix, format_str, multiplier=1.0):
+    def create_sim_sliders(
+        label,
+        min_value,
+        max_value,
+        default_range,
+        default_mode,
+        step,
+        key_prefix,
+        format_str,
+        multiplier=1.0,
+    ):
         with st.sidebar.expander(f"Configuration for {label}"):
             range_vals = st.slider(
                 "Range",
@@ -306,7 +322,7 @@ if run_simulation:
                 step=step,
                 key=f"{key_prefix}_range",
                 format=format_str,
-                help=f"The minimum and maximum possible values for {label} in the simulation."
+                help=f"The minimum and maximum possible values for {label} in the simulation.",
             )
             mode_val = st.slider(
                 "Most Likely",
@@ -316,66 +332,94 @@ if run_simulation:
                 step=step,
                 key=f"{key_prefix}_mode",
                 format=format_str,
-                help=f"The single most probable value for {label}. The simulation will generate more outcomes around this value."
+                help=f"The single most probable value for {label}. The simulation will generate more outcomes around this value.",
             )
             return {
                 "min_val": range_vals[0] * multiplier,
                 "max_val": range_vals[1] * multiplier,
-                "mode": mode_val * multiplier
+                "mode": mode_val * multiplier,
             }
 
     if "Exit Valuation/Price" in sim_variables:
         if equity_type == EquityType.RSU:
             sim_param_configs["valuation"] = create_sim_sliders(
                 label="Exit Valuation",
-                min_value=1.0, max_value=1000.0,
-                default_range=(10.0, 100.0), default_mode=25.0,
-                step=1.0, key_prefix="valuation", format_str="%.1fM SAR",
-                multiplier=1_000_000.0
+                min_value=1.0,
+                max_value=1000.0,
+                default_range=(10.0, 100.0),
+                default_mode=25.0,
+                step=1.0,
+                key_prefix="valuation",
+                format_str="%.1fM SAR",
+                multiplier=1_000_000.0,
             )
         else:
             sim_param_configs["valuation"] = create_sim_sliders(
                 label="Exit Price per Share",
-                min_value=0.0, max_value=200.0,
-                default_range=(10.0, 80.0), default_mode=50.0,
-                step=0.5, key_prefix="price", format_str="%.2f SAR"
+                min_value=0.0,
+                max_value=200.0,
+                default_range=(10.0, 80.0),
+                default_mode=50.0,
+                step=0.5,
+                key_prefix="price",
+                format_str="%.2f SAR",
             )
 
     if "Annual ROI" in sim_variables:
         sim_param_configs["roi"] = create_sim_sliders(
             label="Annual ROI",
-            min_value=0.0, max_value=25.0,
-            default_range=(3.0, 10.0), default_mode=5.4,
-            step=0.1, key_prefix="roi", format_str="%.1f%%",
-            multiplier=0.01
+            min_value=0.0,
+            max_value=25.0,
+            default_range=(3.0, 10.0),
+            default_mode=5.4,
+            step=0.1,
+            key_prefix="roi",
+            format_str="%.1f%%",
+            multiplier=0.01,
         )
 
     if "Salary Growth Rate" in sim_variables:
         sim_param_configs["salary_growth"] = create_sim_sliders(
             label="Salary Growth Rate",
-            min_value=0.0, max_value=15.0,
-            default_range=(2.0, 7.0), default_mode=3.0,
-            step=0.1, key_prefix="growth", format_str="%.1f%%",
-            multiplier=0.01
+            min_value=0.0,
+            max_value=15.0,
+            default_range=(2.0, 7.0),
+            default_mode=3.0,
+            step=0.1,
+            key_prefix="growth",
+            format_str="%.1f%%",
+            multiplier=0.01,
         )
 
     if "Total Dilution" in sim_variables:
-        st.sidebar.info("This simulation will override the detailed, round-by-round dilution modeling.")
+        st.sidebar.info(
+            "This simulation will override the detailed, round-by-round dilution modeling."
+        )
         sim_param_configs["dilution"] = create_sim_sliders(
             label="Total Dilution",
-            min_value=0.0, max_value=90.0,
-            default_range=(30.0, 70.0), default_mode=50.0,
-            step=1.0, key_prefix="dilution", format_str="%.1f%%",
-            multiplier=0.01
+            min_value=0.0,
+            max_value=90.0,
+            default_range=(30.0, 70.0),
+            default_mode=50.0,
+            step=1.0,
+            key_prefix="dilution",
+            format_str="%.1f%%",
+            multiplier=0.01,
         )
 
     if "Exit Year" in sim_variables:
-        st.sidebar.warning("Simulating the Exit Year is computationally intensive and will be slower.")
+        st.sidebar.warning(
+            "Simulating the Exit Year is computationally intensive and will be slower."
+        )
         sim_param_configs["exit_year"] = create_sim_sliders(
             label="Exit Year",
-            min_value=1, max_value=20,
-            default_range=(3, 10), default_mode=5,
-            step=1, key_prefix="exit_year", format_str="%d years"
+            min_value=1,
+            max_value=20,
+            default_range=(3, 10),
+            default_mode=5,
+            step=1,
+            key_prefix="exit_year",
+            format_str="%d years",
         )
 
 
@@ -600,12 +644,18 @@ if run_simulation:
             labels={"x": "Net Outcome (SAR)", "y": "Cumulative Probability"},
         )
         st.plotly_chart(fig_ecdf, use_container_width=True)
-    
+
     with tabs[4]:
         st.subheader("Valuation vs. Net Outcome")
-        x_label = "Exit Valuation (SAR)" if equity_type == EquityType.RSU else "Exit Price per Share (SAR)"
+        x_label = (
+            "Exit Valuation (SAR)"
+            if equity_type == EquityType.RSU
+            else "Exit Price per Share (SAR)"
+        )
         if "valuation" not in sim_param_configs:
-             st.warning("Enable 'Exit Valuation/Price' in the simulation variables to see this plot.")
+            st.warning(
+                "Enable 'Exit Valuation/Price' in the simulation variables to see this plot."
+            )
         else:
             scatter_df = pd.DataFrame(
                 {
@@ -618,24 +668,39 @@ if run_simulation:
                 x="SimulatedValuation",
                 y="NetOutcome",
                 title=f"Impact of {x_label} on Net Outcome",
-                labels={"SimulatedValuation": x_label, "NetOutcome": "Net Outcome (SAR)"},
+                labels={
+                    "SimulatedValuation": x_label,
+                    "NetOutcome": "Net Outcome (SAR)",
+                },
                 trendline="ols",
                 opacity=0.3,
             )
             st.plotly_chart(fig_scatter, use_container_width=True)
-            
+
     with tabs[5]:
         st.subheader("Detailed Statistics")
         stats_df = pd.DataFrame(net_outcomes, columns=["Net Outcome"])
         # Custom formatter to handle 'count' separately
         formatters = {
-            col: (lambda x: f"{x:,.0f}") if col == "count" else (lambda x: format_currency_compact(x, add_sar=True))
+            col: (lambda x: f"{x:,.0f}")
+            if col == "count"
+            else (lambda x: format_currency_compact(x, add_sar=True))
             for col in ["Net Outcome"]
         }
         # Apply formatting to the description
         described_df = stats_df.describe(percentiles=[0.05, 0.25, 0.5, 0.75, 0.95])
-        described_df.loc["count", "Net Outcome"] = int(described_df.loc["count", "Net Outcome"])
-        st.dataframe(described_df.style.format({"Net Outcome": lambda x: f"{x:,.0f}" if isinstance(x, int) else format_currency_compact(x, add_sar=True)}))
+        described_df.loc["count", "Net Outcome"] = int(
+            described_df.loc["count", "Net Outcome"]
+        )
+        st.dataframe(
+            described_df.style.format(
+                {
+                    "Net Outcome": lambda x: f"{x:,.0f}"
+                    if isinstance(x, int)
+                    else format_currency_compact(x, add_sar=True)
+                }
+            )
+        )
 
 
 # --- Detailed Breakdown Section ---
@@ -652,9 +717,7 @@ if not is_clear_win:
         )
         display_df["Opportunity Cost (Invested Surplus)"] = display_df[
             "Opportunity Cost (Invested Surplus)"
-        ].map(
-            format_currency_compact
-        )
+        ].map(format_currency_compact)
         vested_equity_label = (
             "Vested Equity (Post-Dilution)"
             if equity_type == EquityType.RSU

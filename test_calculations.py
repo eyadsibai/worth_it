@@ -3,6 +3,7 @@ Unit tests for the financial calculation functions.
 This module uses pytest to test the functions in the 'calculations' module.
 """
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -31,6 +32,29 @@ def sample_opportunity_cost_df(sample_monthly_df):
         monthly_df=four_year_df, annual_roi=0.05, investment_frequency="Annually"
     )
 
+# --- Base parameters for Monte Carlo tests ---
+@pytest.fixture
+def monte_carlo_base_params():
+    """Provides a base set of parameters for Monte Carlo simulations."""
+    return {
+        "exit_year": 5,
+        "current_job_monthly_salary": 10000,
+        "startup_monthly_salary": 8000,
+        "current_job_salary_growth_rate": 0.03,
+        "annual_roi": 0.05,
+        "investment_frequency": "Annually",
+        "startup_params": {
+            "equity_type": EquityType.RSU,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "rsu_params": {
+                "equity_pct": 0.05,
+                "target_exit_valuation": 20_000_000,
+                "simulate_dilution": False,
+            },
+            "options_params": {},
+        },
+    }
 
 # --- Test Core Functions ---
 
@@ -136,36 +160,18 @@ def test_calculate_npv():
 # --- Test Monte Carlo Simulation ---
 
 
-def test_run_monte_carlo_simulation():
+def test_run_monte_carlo_simulation(monte_carlo_base_params):
     """Tests the flexible Monte Carlo simulation function with sliders."""
     num_simulations = 100
-    base_params = {
-        "exit_year": 5,
-        "current_job_monthly_salary": 10000,
-        "startup_monthly_salary": 8000,
-        "current_job_salary_growth_rate": 0.03,
-        "annual_roi": 0.05,
-        "investment_frequency": "Annually",
-        "startup_params": {
-            "equity_type": EquityType.RSU,
-            "total_vesting_years": 4,
-            "cliff_years": 1,
-            "rsu_params": {
-                "equity_pct": 0.05,
-                "target_exit_valuation": 20_000_000,
-                "simulate_dilution": False,
-            },
-            "options_params": {},
-        },
-    }
     sim_param_configs = {
         "valuation": {"min_val": 10_000_000, "max_val": 30_000_000, "mode": 20_000_000},
-        "roi": {"min_val": 3.0, "max_val": 8.0, "mode": 5.0},
+        "roi": {"min_val": 0.03, "max_val": 0.08, "mode": 0.05},
+        "dilution": {"min_val": 0.1, "max_val": 0.5, "mode": 0.2}
     }
 
     results = calculations.run_monte_carlo_simulation(
         num_simulations=num_simulations,
-        base_params=base_params,
+        base_params=monte_carlo_base_params,
         sim_param_configs=sim_param_configs,
     )
     assert isinstance(results, dict)
@@ -173,34 +179,42 @@ def test_run_monte_carlo_simulation():
     assert len(results["net_outcomes"]) == num_simulations
     assert "simulated_valuations" in results
     assert len(results["simulated_valuations"]) == num_simulations
+    assert not np.isnan(results["net_outcomes"]).any()
 
-def test_run_monte_carlo_iterative_for_exit_year():
+
+def test_run_monte_carlo_simulation_no_dilution_sim(monte_carlo_base_params):
+    """
+    Tests the Monte Carlo simulation runs without error when 'Total Dilution'
+    is not a simulated variable, which was the source of the original bug.
+    """
+    num_simulations = 100
+    # Note: "dilution" is NOT included in the simulated parameters
+    sim_param_configs = {
+        "valuation": {"min_val": 10_000_000, "max_val": 30_000_000, "mode": 20_000_000},
+        "roi": {"min_val": 0.03, "max_val": 0.08, "mode": 0.05},
+    }
+
+    # This call should now run without raising a TypeError
+    results = calculations.run_monte_carlo_simulation(
+        num_simulations=num_simulations,
+        base_params=monte_carlo_base_params,
+        sim_param_configs=sim_param_configs,
+    )
+    assert len(results["net_outcomes"]) == num_simulations
+    assert not np.isnan(results["net_outcomes"]).any()
+
+
+def test_run_monte_carlo_iterative_for_exit_year(monte_carlo_base_params):
     """Tests that the iterative method is called when exit_year is simulated."""
     num_simulations = 50
-    base_params = {
-        "exit_year": 5,
-        "current_job_monthly_salary": 10000,
-        "startup_monthly_salary": 8000,
-        "current_job_salary_growth_rate": 0.03,
-        "annual_roi": 0.05,
-        "investment_frequency": "Annually",
-        "startup_params": {
-            "equity_type": EquityType.RSU,
-            "total_vesting_years": 4,
-            "cliff_years": 1,
-            "rsu_params": {
-                "equity_pct": 0.05,
-                "target_exit_valuation": 20_000_000,
-            },
-        },
-    }
     sim_param_configs = {
         "exit_year": {"min_val": 3, "max_val": 7, "mode": 5}
     }
 
     results = calculations.run_monte_carlo_simulation(
         num_simulations=num_simulations,
-        base_params=base_params,
+        base_params=monte_carlo_base_params,
         sim_param_configs=sim_param_configs,
     )
     assert len(results["net_outcomes"]) == num_simulations
+    assert not np.isnan(results["net_outcomes"]).any()

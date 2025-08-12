@@ -119,14 +119,14 @@ def calculate_startup_scenario(
     equity_type = startup_params["equity_type"]
     total_vesting_years = startup_params["total_vesting_years"]
     cliff_years = startup_params["cliff_years"]
-    
+
     if opportunity_cost_df.empty:
         return {
             "results_df": pd.DataFrame(),
             "final_payout_value": 0,
             "final_opportunity_cost": 0,
             "payout_label": "Your Equity Value",
-            "breakeven_label": "Breakeven Value"
+            "breakeven_label": "Breakeven Value",
         }
 
     results_df = opportunity_cost_df.copy()
@@ -149,9 +149,9 @@ def calculate_startup_scenario(
         total_dilution = 0.0
 
         if startup_params.get("simulated_dilution") is not None:
-             total_dilution = startup_params["simulated_dilution"]
-             diluted_equity_pct = initial_equity_pct * (1 - total_dilution)
-             results_df["CumulativeDilution"] = 1 - total_dilution
+            total_dilution = startup_params["simulated_dilution"]
+            diluted_equity_pct = initial_equity_pct * (1 - total_dilution)
+            results_df["CumulativeDilution"] = 1 - total_dilution
         elif rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
             sorted_rounds = sorted(
                 rsu_params["dilution_rounds"], key=lambda r: r["year"]
@@ -180,7 +180,7 @@ def calculate_startup_scenario(
         final_payout_value = (
             rsu_params["target_exit_valuation"]
             * final_vested_equity_pct
-            * (1-total_dilution)
+            * (1 - total_dilution)
         )
 
         yearly_diluted_equity_pct = (
@@ -294,23 +294,25 @@ def calculate_npv(
         return np.nan
 
 
-def get_random_variates(num_simulations: int, config: Dict, default_val: float) -> np.ndarray:
+def get_random_variates(
+    num_simulations: int, config: Dict, default_val: float
+) -> np.ndarray:
     """Generates random numbers based on a distribution configuration."""
     if not config:
         return np.full(num_simulations, default_val)
-    
-    min_val, max_val, mode = config['min_val'], config['max_val'], config['mode']
-    
+
+    min_val, max_val, mode = config["min_val"], config["max_val"], config["mode"]
+
     scale = max_val - min_val
     if scale > 0:
         c = (mode - min_val) / scale
     else:
         # If min == max, the distribution is a single point. 'c' is irrelevant.
         c = 0.5
-    
+
     # Ensure 'c' is within the valid [0, 1] range for the triangular distribution
     c = np.clip(c, 0, 1)
-    
+
     return stats.triang.rvs(c=c, loc=min_val, scale=scale, size=num_simulations)
 
 
@@ -323,14 +325,18 @@ def run_monte_carlo_simulation(
     Runs a flexible, vectorized Monte Carlo simulation.
     """
     if "exit_year" in sim_param_configs:
-        return run_monte_carlo_simulation_iterative(num_simulations, base_params, sim_param_configs)
-    
+        return run_monte_carlo_simulation_iterative(
+            num_simulations, base_params, sim_param_configs
+        )
+
     sim_params = {}
     sim_params["valuation"] = get_random_variates(
         num_simulations,
         sim_param_configs.get("valuation"),
         base_params["startup_params"]["rsu_params"].get("target_exit_valuation")
-        or base_params["startup_params"]["options_params"].get("target_exit_price_per_share"),
+        or base_params["startup_params"]["options_params"].get(
+            "target_exit_price_per_share"
+        ),
     )
     sim_params["roi"] = get_random_variates(
         num_simulations, sim_param_configs.get("roi"), base_params["annual_roi"]
@@ -344,12 +350,13 @@ def run_monte_carlo_simulation(
         num_simulations, sim_param_configs.get("dilution"), np.nan
     )
 
-    return run_monte_carlo_simulation_vectorized(num_simulations, base_params, sim_params)
+    return run_monte_carlo_simulation_vectorized(
+        num_simulations, base_params, sim_params
+    )
+
 
 def run_monte_carlo_simulation_vectorized(
-    num_simulations: int,
-    base_params: Dict[str, Any],
-    sim_params: Dict[str, np.ndarray]
+    num_simulations: int, base_params: Dict[str, Any], sim_params: Dict[str, np.ndarray]
 ) -> Dict[str, np.ndarray]:
     """
     Vectorized calculation for fixed exit year simulations.
@@ -371,41 +378,52 @@ def run_monte_carlo_simulation_vectorized(
         fv_factors = (1 + monthly_rois[:, np.newaxis]) ** months_to_grow
         final_opportunity_cost = (investable_surpluses * fv_factors).sum(axis=1)
     else:
-        annual_investable_surpluses = np.array([
-            np.sum(investable_surpluses[i].reshape(-1, 12), axis=1) for i in range(num_simulations)
-        ])
+        annual_investable_surpluses = np.array(
+            [
+                np.sum(investable_surpluses[i].reshape(-1, 12), axis=1)
+                for i in range(num_simulations)
+            ]
+        )
         years_to_grow = exit_year - np.arange(1, exit_year + 1)
         fv_factors = (1 + sim_params["roi"][:, np.newaxis]) ** years_to_grow
         final_opportunity_cost = (annual_investable_surpluses * fv_factors).sum(axis=1)
 
     startup_params = base_params["startup_params"]
-    final_vested_pct = np.clip((exit_year / startup_params["total_vesting_years"]), 0, 1)
+    final_vested_pct = np.clip(
+        (exit_year / startup_params["total_vesting_years"]), 0, 1
+    )
     if exit_year < startup_params["cliff_years"]:
         final_vested_pct = 0
 
     if startup_params["equity_type"].value == "Equity (RSUs)":
         rsu_params = startup_params["rsu_params"]
-        
+
         # Use simulated dilution if available, otherwise use the round-by-round calculation
         if not np.all(np.isnan(sim_params["dilution"])):
-             cumulative_dilution = 1 - sim_params["dilution"]
+            cumulative_dilution = 1 - sim_params["dilution"]
         else:
             cumulative_dilution = 1.0
-            if rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
+            if rsu_params.get("simulate_dilution") and rsu_params.get(
+                "dilution_rounds"
+            ):
                 for r in sorted(rsu_params["dilution_rounds"], key=lambda r: r["year"]):
                     if r["year"] <= exit_year:
                         cumulative_dilution *= 1 - r.get("dilution", 0)
-        
+
         final_equity_pct = rsu_params["equity_pct"] * cumulative_dilution
-        final_payout_value = sim_params["valuation"] * final_equity_pct * final_vested_pct
+        final_payout_value = (
+            sim_params["valuation"] * final_equity_pct * final_vested_pct
+        )
     else:
         options_params = startup_params["options_params"]
         final_vested_options = options_params["num_options"] * final_vested_pct
-        profit_per_share = np.maximum(0, sim_params["valuation"] - options_params["strike_price"])
+        profit_per_share = np.maximum(
+            0, sim_params["valuation"] - options_params["strike_price"]
+        )
         final_payout_value = profit_per_share * final_vested_options
 
     net_outcomes = final_payout_value - final_opportunity_cost
-    
+
     return {
         "net_outcomes": net_outcomes,
         "simulated_valuations": sim_params["valuation"],
@@ -428,7 +446,9 @@ def run_monte_carlo_simulation_iterative(
         num_simulations,
         sim_param_configs.get("valuation"),
         base_params["startup_params"]["rsu_params"].get("target_exit_valuation")
-        or base_params["startup_params"]["options_params"].get("target_exit_price_per_share"),
+        or base_params["startup_params"]["options_params"].get(
+            "target_exit_price_per_share"
+        ),
     )
     sim_params["roi"] = get_random_variates(
         num_simulations, sim_param_configs.get("roi"), base_params["annual_roi"]
@@ -451,28 +471,35 @@ def run_monte_carlo_simulation_iterative(
             base_params["startup_monthly_salary"],
             sim_params["salary_growth"][i],
         )
-        
+
         opportunity_cost_df = calculate_annual_opportunity_cost(
             monthly_df, sim_params["roi"][i], base_params["investment_frequency"]
         )
-        
+
         sim_startup_params = base_params["startup_params"].copy()
         sim_startup_params["exit_year"] = exit_year
         dilution_val = sim_params["dilution"][i]
-        sim_startup_params["simulated_dilution"] = dilution_val if not np.isnan(dilution_val) else None
-
+        sim_startup_params["simulated_dilution"] = (
+            dilution_val if not np.isnan(dilution_val) else None
+        )
 
         if sim_startup_params["equity_type"].value == "Equity (RSUs)":
             sim_startup_params["rsu_params"] = sim_startup_params["rsu_params"].copy()
-            sim_startup_params["rsu_params"]["target_exit_valuation"] = sim_params["valuation"][i]
+            sim_startup_params["rsu_params"]["target_exit_valuation"] = sim_params[
+                "valuation"
+            ][i]
         else:
-            sim_startup_params["options_params"] = sim_startup_params["options_params"].copy()
-            sim_startup_params["options_params"]["target_exit_price_per_share"] = sim_params["valuation"][i]
+            sim_startup_params["options_params"] = sim_startup_params[
+                "options_params"
+            ].copy()
+            sim_startup_params["options_params"]["target_exit_price_per_share"] = (
+                sim_params["valuation"][i]
+            )
 
         results = calculate_startup_scenario(opportunity_cost_df, sim_startup_params)
         net_outcome = results["final_payout_value"] - results["final_opportunity_cost"]
         net_outcomes.append(net_outcome)
-    
+
     return {
         "net_outcomes": np.array(net_outcomes),
         "simulated_valuations": sim_params["valuation"],
