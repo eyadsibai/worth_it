@@ -260,8 +260,8 @@ def test_simulation_beyond_vesting_period():
 # --- Test Monte Carlo Simulation ---
 
 
-def test_run_monte_carlo_simulation():
-    """Tests the Monte Carlo simulation function."""
+def test_run_monte_carlo_simulation_vectorized():
+    """Tests the vectorized Monte Carlo simulation function."""
     num_simulations = 100
     startup_params = {
         "equity_type": EquityType.RSU,
@@ -275,7 +275,7 @@ def test_run_monte_carlo_simulation():
         },
         "options_params": {},
     }
-    results = calculations.run_monte_carlo_simulation(
+    results = calculations.run_monte_carlo_simulation_vectorized(
         num_simulations=num_simulations,
         simulation_end_year=5,
         current_job_monthly_salary=10000,

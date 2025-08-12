@@ -7,6 +7,7 @@ All financial calculations are delegated to the 'calculations' module.
 
 from enum import Enum
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -270,23 +271,36 @@ run_simulation = st.sidebar.checkbox(
     "Run Simulation", help="Enable to run a Monte Carlo simulation."
 )
 if run_simulation:
+    st.sidebar.info("This feature runs many scenarios to model uncertainty.")
     num_simulations = st.sidebar.slider(
         "Number of Simulations",
         min_value=100,
         max_value=10000,
         value=1000,
         step=100,
-        help="The number of random scenarios to simulate.",
+        help="The number of random scenarios to simulate. Higher is more accurate but slower.",
     )
-    valuation_range_M = st.sidebar.slider(
-        "Valuation Range (Millions SAR)",
-        min_value=1,
-        max_value=2000,
-        value=(10, 50),
-        step=1,
-        help="The range of possible exit valuations (in millions SAR) to use in the simulation.",
-    )
-    valuation_range = [v * 1_000_000 for v in valuation_range_M]
+
+    if equity_type == EquityType.RSU:
+        valuation_range_M = st.sidebar.slider(
+            "Exit Valuation Range (Millions SAR)",
+            min_value=1,
+            max_value=2000,
+            value=(10, 50),
+            step=1,
+            help="The range of possible exit valuations (in millions SAR) to use in the simulation.",
+        )
+        valuation_range = [v * 1_000_000 for v in valuation_range_M]
+    else:  # Stock Options
+        price_range = st.sidebar.slider(
+            "Exit Price per Share Range (SAR)",
+            min_value=0.0,
+            max_value=500.0,
+            value=(10.0, 100.0),
+            step=1.0,
+            help="The range of possible exit prices per share to use in the simulation.",
+        )
+        valuation_range = price_range  # The function re-uses this variable
 
     roi_range_pct = st.sidebar.slider(
         "Annual ROI Range (%)",
@@ -423,8 +437,8 @@ if run_simulation:
     st.divider()
     st.header("🎲 Monte Carlo Simulation Results")
 
-    with st.spinner(f"Running {num_simulations} simulations..."):
-        simulation_results = calculations.run_monte_carlo_simulation(
+    with st.spinner(f"Running {num_simulations} simulations... (Now Optimized! ✨)"):
+        simulation_results = calculations.run_monte_carlo_simulation_vectorized(
             num_simulations=num_simulations,
             simulation_end_year=simulation_end_year,
             current_job_monthly_salary=current_salary,

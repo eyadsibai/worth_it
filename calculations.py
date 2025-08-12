@@ -6,7 +6,7 @@ scenarios (RSUs and Stock Options), dilution, IRR, NPV, and run Monte Carlo simu
 It is designed to be independent of the Streamlit UI.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, Tuple
 
 import numpy as np
 import numpy_financial as npf
@@ -287,7 +287,7 @@ def calculate_npv(
         return np.nan
 
 
-def run_monte_carlo_simulation(
+def run_monte_carlo_simulation_vectorized(
     num_simulations: int,
     simulation_end_year: int,
     current_job_monthly_salary: float,
@@ -295,61 +295,80 @@ def run_monte_carlo_simulation(
     current_job_salary_growth_rate: float,
     investment_frequency: str,
     startup_params: Dict[str, Any],
-    valuation_range: List[float],
-    roi_range: List[float],
+    valuation_range: Tuple[float, float],
+    roi_range: Tuple[float, float],
 ) -> np.ndarray:
     """
-    Runs a Monte Carlo simulation to model a range of potential outcomes.
+    Runs a vectorized Monte Carlo simulation for much faster computation.
     """
-    net_outcomes = []
-
-    # Pre-calculate the monthly data grid as it's constant for all simulations
+    # --- Setup and Pre-computation ---
+    total_months = simulation_end_year * 12
     monthly_df = create_monthly_data_grid(
-        simulation_end_year=simulation_end_year,
-        current_job_monthly_salary=current_job_monthly_salary,
-        startup_monthly_salary=startup_monthly_salary,
-        current_job_salary_growth_rate=current_job_salary_growth_rate,
+        simulation_end_year,
+        current_job_monthly_salary,
+        startup_monthly_salary,
+        current_job_salary_growth_rate,
+    )
+    investable_surplus = monthly_df["InvestableSurplus"].values
+
+    # --- Generate Random Variables ---
+    simulated_rois = np.random.uniform(
+        roi_range[0], roi_range[1], num_simulations
+    )
+    simulated_valuations = np.random.uniform(
+        valuation_range[0], valuation_range[1], num_simulations
     )
 
-    for _ in range(num_simulations):
-        # Sample from uniform distributions for valuation and ROI
-        simulated_valuation = np.random.uniform(
-            valuation_range[0], valuation_range[1]
+    # --- Vectorized Opportunity Cost Calculation ---
+    if investment_frequency == "Monthly":
+        monthly_rois = (1 + simulated_rois) ** (1 / 12) - 1
+        months_to_grow = np.arange(total_months - 1, -1, -1)
+        # Reshape for broadcasting
+        fv_factors = (1 + monthly_rois[:, np.newaxis]) ** months_to_grow
+        final_opportunity_cost = (investable_surplus * fv_factors).sum(axis=1)
+    else:  # Annually
+        annual_investable_surplus = monthly_df.groupby("Year")[
+            "InvestableSurplus"
+        ].sum()
+        years_to_grow = simulation_end_year - annual_investable_surplus.index
+        fv_factors = (1 + simulated_rois[:, np.newaxis]) ** years_to_grow.values
+        final_opportunity_cost = (
+            annual_investable_surplus.values * fv_factors
+        ).sum(axis=1)
+
+    # --- Vectorized Payout Calculation ---
+    equity_type = startup_params["equity_type"]
+    total_vesting_years = startup_params["total_vesting_years"]
+    cliff_years = startup_params["cliff_years"]
+
+    final_vested_pct = np.clip(
+        (simulation_end_year / total_vesting_years), 0, 1
+    )
+    if simulation_end_year < cliff_years:
+        final_vested_pct = 0
+
+    if equity_type.value == "Equity (RSUs)":
+        rsu_params = startup_params["rsu_params"]
+        initial_equity_pct = rsu_params["equity_pct"]
+        cumulative_dilution = 1.0
+        if rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
+            for r in sorted(rsu_params["dilution_rounds"], key=lambda r: r["year"]):
+                if r["year"] <= simulation_end_year:
+                    cumulative_dilution *= 1 - r.get("dilution", 0)
+        
+        final_equity_pct = initial_equity_pct * cumulative_dilution
+        final_payout_value = (
+            simulated_valuations * final_equity_pct * final_vested_pct
         )
-        simulated_roi = np.random.uniform(roi_range[0], roi_range[1])
+    else:  # Stock Options
+        options_params = startup_params["options_params"]
+        num_options = options_params["num_options"]
+        strike_price = options_params["strike_price"]
+        
+        final_vested_options = num_options * final_vested_pct
+        profit_per_share = np.maximum(0, simulated_valuations - strike_price)
+        final_payout_value = profit_per_share * final_vested_options
 
-        # Create a deep copy of startup_params to avoid modifying the original dict
-        sim_startup_params = startup_params.copy()
-
-        # Update the simulation parameters with the sampled values
-        if sim_startup_params["equity_type"].value == "Equity (RSUs)":
-            sim_startup_params["rsu_params"] = sim_startup_params["rsu_params"].copy()
-            sim_startup_params["rsu_params"][
-                "target_exit_valuation"
-            ] = simulated_valuation
-        else:
-            # For stock options, we need to handle the exit price per share
-            # This is a simplification; a more complex model might link this to valuation
-            # Here, we assume the provided range is for exit price per share
-            sim_startup_params["options_params"] = sim_startup_params[
-                "options_params"
-            ].copy()
-            sim_startup_params["options_params"][
-                "target_exit_price_per_share"
-            ] = simulated_valuation
-
-        # Recalculate opportunity cost with the simulated ROI
-        opportunity_cost_df = calculate_annual_opportunity_cost(
-            monthly_df=monthly_df,
-            annual_roi=simulated_roi,
-            investment_frequency=investment_frequency,
-        )
-
-        # Calculate the startup scenario with the simulated parameters
-        results = calculate_startup_scenario(opportunity_cost_df, sim_startup_params)
-        final_payout_value = results["final_payout_value"]
-        final_opportunity_cost = results["final_opportunity_cost"]
-        net_outcome = final_payout_value - final_opportunity_cost
-        net_outcomes.append(net_outcome)
-
-    return np.array(net_outcomes)
+    # --- Final Net Outcome Calculation ---
+    net_outcomes = final_payout_value - final_opportunity_cost
+    return net_outcomes
