@@ -592,7 +592,9 @@ if not is_clear_win:
         )
         display_df["Opportunity Cost (Invested Surplus)"] = display_df[
             "Opportunity Cost (Invested Surplus)"
-        ].map(format_currency_compact)
+        ].map(
+            format_currency_compact
+        )
         vested_equity_label = (
             "Vested Equity (Post-Dilution)"
             if equity_type == EquityType.RSU
