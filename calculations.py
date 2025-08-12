@@ -53,7 +53,7 @@ def calculate_annual_opportunity_cost(
     """
     if monthly_df.empty:
         return pd.DataFrame()
-        
+
     results_df = pd.DataFrame(
         index=pd.RangeIndex(1, monthly_df["Year"].max() + 1, name="Year")
     )
@@ -118,7 +118,7 @@ def calculate_startup_scenario(
     equity_type = startup_params["equity_type"]
     total_vesting_years = startup_params["total_vesting_years"]
     cliff_years = startup_params["cliff_years"]
-
+    
     if opportunity_cost_df.empty:
         return {
             "results_df": pd.DataFrame(),
@@ -305,7 +305,127 @@ def run_monte_carlo_simulation(
     sim_ranges: Dict[str, Tuple[float, float]],
 ) -> Dict[str, np.ndarray]:
     """
-    Runs a flexible Monte Carlo simulation, allowing certain parameters to be randomized.
+    Runs a flexible, vectorized Monte Carlo simulation.
+    """
+    # --- Generate Random Variables ---
+    sim_params = {}
+    sim_params["exit_year"] = (
+        np.random.randint(
+            sim_ranges["exit_year"][0], sim_ranges["exit_year"][1], num_simulations
+        )
+        if "exit_year" in sim_ranges
+        else np.full(num_simulations, base_params["exit_year"])
+    )
+    sim_params["valuation"] = (
+        np.random.uniform(
+            sim_ranges["valuation"][0], sim_ranges["valuation"][1], num_simulations
+        )
+        if "valuation" in sim_ranges
+        else np.full(
+            num_simulations,
+            base_params["startup_params"]["rsu_params"].get("target_exit_valuation")
+            or base_params["startup_params"]["options_params"].get(
+                "target_exit_price_per_share"
+            ),
+        )
+    )
+    sim_params["roi"] = (
+        np.random.uniform(sim_ranges["roi"][0], sim_ranges["roi"][1], num_simulations)
+        if "roi" in sim_ranges
+        else np.full(num_simulations, base_params["annual_roi"])
+    )
+    sim_params["salary_growth"] = (
+        np.random.uniform(
+            sim_ranges["salary_growth"][0],
+            sim_ranges["salary_growth"][1],
+            num_simulations,
+        )
+        if "salary_growth" in sim_ranges
+        else np.full(
+            num_simulations, base_params["current_job_salary_growth_rate"]
+        )
+    )
+
+    if "exit_year" in sim_ranges:
+        # Fallback to iterative method if exit year is randomized
+        return run_monte_carlo_simulation_iterative(num_simulations, base_params, sim_ranges)
+    else:
+        return run_monte_carlo_simulation_vectorized(num_simulations, base_params, sim_params)
+
+def run_monte_carlo_simulation_vectorized(
+    num_simulations: int,
+    base_params: Dict[str, Any],
+    sim_params: Dict[str, np.ndarray]
+) -> Dict[str, np.ndarray]:
+    """
+    Vectorized calculation for fixed exit year simulations.
+    """
+    exit_year = base_params["exit_year"]
+    total_months = exit_year * 12
+
+    # Vectorized monthly data grid calculation
+    month_indices = np.arange(total_months)
+    year_indices = month_indices // 12
+    current_salaries = base_params["current_job_monthly_salary"] * (
+        (1 + sim_params["salary_growth"][:, np.newaxis]) ** year_indices
+    )
+    monthly_surpluses = current_salaries - base_params["startup_monthly_salary"]
+    investable_surpluses = np.clip(monthly_surpluses, 0, None)
+
+    # --- Vectorized Opportunity Cost Calculation ---
+    if base_params["investment_frequency"] == "Monthly":
+        monthly_rois = (1 + sim_params["roi"]) ** (1 / 12) - 1
+        months_to_grow = np.arange(total_months - 1, -1, -1)
+        fv_factors = (1 + monthly_rois[:, np.newaxis]) ** months_to_grow
+        final_opportunity_cost = (investable_surpluses * fv_factors).sum(axis=1)
+    else:  # Annually
+        annual_investable_surpluses = np.array(
+            [np.sum(investable_surpluses[i].reshape(-1, 12), axis=1) for i in range(num_simulations)]
+        )
+        years_to_grow = exit_year - np.arange(1, exit_year + 1)
+        fv_factors = (1 + sim_params["roi"][:, np.newaxis]) ** years_to_grow
+        final_opportunity_cost = (annual_investable_surpluses * fv_factors).sum(axis=1)
+
+    # --- Vectorized Payout Calculation ---
+    startup_params = base_params["startup_params"]
+    final_vested_pct = np.clip((exit_year / startup_params["total_vesting_years"]), 0, 1)
+    if exit_year < startup_params["cliff_years"]:
+        final_vested_pct = 0
+
+    if startup_params["equity_type"].value == "Equity (RSUs)":
+        rsu_params = startup_params["rsu_params"]
+        cumulative_dilution = 1.0
+        if rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
+            for r in sorted(rsu_params["dilution_rounds"], key=lambda r: r["year"]):
+                if r["year"] <= exit_year:
+                    cumulative_dilution *= 1 - r.get("dilution", 0)
+        
+        final_equity_pct = rsu_params["equity_pct"] * cumulative_dilution
+        final_payout_value = (
+            sim_params["valuation"] * final_equity_pct * final_vested_pct
+        )
+    else:  # Stock Options
+        options_params = startup_params["options_params"]
+        final_vested_options = options_params["num_options"] * final_vested_pct
+        profit_per_share = np.maximum(0, sim_params["valuation"] - options_params["strike_price"])
+        final_payout_value = profit_per_share * final_vested_options
+
+    net_outcomes = final_payout_value - final_opportunity_cost
+    
+    return {
+        "net_outcomes": net_outcomes,
+        "simulated_valuations": sim_params["valuation"],
+    }
+
+
+def run_monte_carlo_simulation_iterative(
+    num_simulations: int,
+    base_params: Dict[str, Any],
+    sim_ranges: Dict[str, Tuple[float, float]],
+) -> Dict[str, np.ndarray]:
+    """
+    An iterative (slower) version for when simulating variables like exit_year,
+    which changes the structure of the calculation for each run.
     """
     # --- Generate Random Variables ---
     sim_params = {}
