@@ -148,7 +148,11 @@ def calculate_startup_scenario(
         diluted_equity_pct = initial_equity_pct
         total_dilution = 0.0
 
-        if rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
+        if startup_params.get("simulated_dilution") is not None:
+             total_dilution = startup_params["simulated_dilution"]
+             diluted_equity_pct = initial_equity_pct * (1 - total_dilution)
+             results_df["CumulativeDilution"] = 1 - total_dilution
+        elif rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
             sorted_rounds = sorted(
                 rsu_params["dilution_rounds"], key=lambda r: r["year"]
             )
@@ -176,7 +180,7 @@ def calculate_startup_scenario(
         final_payout_value = (
             rsu_params["target_exit_valuation"]
             * final_vested_equity_pct
-            * results_df["CumulativeDilution"].iloc[-1]
+            * (1-total_dilution)
         )
 
         yearly_diluted_equity_pct = (
@@ -296,13 +300,14 @@ def get_random_variates(num_simulations: int, config: Dict, default_val: float) 
         return np.full(num_simulations, default_val)
         
     dist_name = config.pop("dist").lower()
+    if dist_name == 'log-normal':
+        dist_name = 'lognorm'
+
     dist = getattr(stats, dist_name)
     
-    # For triangular, 'c' is a shape parameter, not location/scale
     if dist_name == 'triangular':
         return dist.rvs(size=num_simulations, **config)
     
-    # For other distributions, loc/scale are standard
     return dist.rvs(size=num_simulations, **config)
 
 
@@ -314,11 +319,9 @@ def run_monte_carlo_simulation(
     """
     Runs a flexible, vectorized Monte Carlo simulation.
     """
-    # Determine if we need the slower iterative method
     if "exit_year" in sim_param_configs:
         return run_monte_carlo_simulation_iterative(num_simulations, base_params, sim_param_configs)
     
-    # --- Generate Random Variables ---
     sim_params = {}
     sim_params["valuation"] = get_random_variates(
         num_simulations,
@@ -333,6 +336,9 @@ def run_monte_carlo_simulation(
         num_simulations,
         sim_param_configs.get("salary_growth"),
         base_params["current_job_salary_growth_rate"],
+    )
+    sim_params["dilution"] = get_random_variates(
+        num_simulations, sim_param_configs.get("dilution"), None
     )
 
     return run_monte_carlo_simulation_vectorized(num_simulations, base_params, sim_params)
@@ -376,11 +382,16 @@ def run_monte_carlo_simulation_vectorized(
 
     if startup_params["equity_type"].value == "Equity (RSUs)":
         rsu_params = startup_params["rsu_params"]
-        cumulative_dilution = 1.0
-        if rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
-            for r in sorted(rsu_params["dilution_rounds"], key=lambda r: r["year"]):
-                if r["year"] <= exit_year:
-                    cumulative_dilution *= 1 - r.get("dilution", 0)
+        
+        # Use simulated dilution if available, otherwise use the round-by-round calculation
+        if sim_params["dilution"] is not None:
+             cumulative_dilution = 1 - sim_params["dilution"]
+        else:
+            cumulative_dilution = 1.0
+            if rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
+                for r in sorted(rsu_params["dilution_rounds"], key=lambda r: r["year"]):
+                    if r["year"] <= exit_year:
+                        cumulative_dilution *= 1 - r.get("dilution", 0)
         
         final_equity_pct = rsu_params["equity_pct"] * cumulative_dilution
         final_payout_value = sim_params["valuation"] * final_equity_pct * final_vested_pct
@@ -424,6 +435,9 @@ def run_monte_carlo_simulation_iterative(
         sim_param_configs.get("salary_growth"),
         base_params["current_job_salary_growth_rate"],
     )
+    sim_params["dilution"] = get_random_variates(
+        num_simulations, sim_param_configs.get("dilution"), None
+    )
 
     net_outcomes = []
     for i in range(num_simulations):
@@ -441,6 +455,8 @@ def run_monte_carlo_simulation_iterative(
         
         sim_startup_params = base_params["startup_params"].copy()
         sim_startup_params["exit_year"] = exit_year
+        sim_startup_params["simulated_dilution"] = sim_params["dilution"][i] if sim_params["dilution"] is not None else None
+
 
         if sim_startup_params["equity_type"].value == "Equity (RSUs)":
             sim_startup_params["rsu_params"] = sim_startup_params["rsu_params"].copy()
