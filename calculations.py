@@ -301,12 +301,15 @@ def get_random_variates(num_simulations: int, config: Dict, default_val: float) 
     
     min_val, max_val, mode = config['min_val'], config['max_val'], config['mode']
     
-    # Handle percentages
-    if max_val <= 1.0 and default_val <= 1.0:
-        min_val, max_val, mode = min_val/100, max_val/100, mode/100
-
     scale = max_val - min_val
-    c = (mode - min_val) / scale if scale > 0 else 0
+    if scale > 0:
+        c = (mode - min_val) / scale
+    else:
+        # If min == max, the distribution is a single point. 'c' is irrelevant.
+        c = 0.5
+    
+    # Ensure 'c' is within the valid [0, 1] range for the triangular distribution
+    c = np.clip(c, 0, 1)
     
     return stats.triang.rvs(c=c, loc=min_val, scale=scale, size=num_simulations)
 

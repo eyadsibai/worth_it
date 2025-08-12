@@ -269,11 +269,18 @@ st.sidebar.divider()
 # --- Monte Carlo Simulation Inputs ---
 st.sidebar.header("🎲 Monte Carlo Simulation")
 run_simulation = st.sidebar.checkbox(
-    "Run Simulation", help="Enable to run a Monte Carlo simulation."
+    "Run Simulation", help="Enable to run a Monte Carlo simulation to understand the range of potential outcomes."
 )
 sim_param_configs = {}
 if run_simulation:
-    st.sidebar.info("Select variables and configure their ranges to simulate.")
+    st.sidebar.info(
+        """
+        **About the Simulation:**
+        This simulation uses a **Triangular Distribution** to model uncertainty.
+        For each variable you select, you'll define a **minimum**, **maximum**, and **most likely** value.
+        The simulation then runs thousands of times, each time picking a random value from the specified range for each variable, allowing you to see a full spectrum of possible financial outcomes.
+        """
+    )
     num_simulations = st.sidebar.slider(
         "Number of Simulations", 100, 10000, 1000, 100, key="num_simulations"
     )
@@ -288,35 +295,88 @@ if run_simulation:
         default=["Exit Valuation/Price", "Annual ROI"],
     )
 
-    def get_slider_params(var_name, is_percent=False, is_int=False):
-        params = {}
-        with st.sidebar.expander(f"Configuration for {var_name}"):
-            if is_percent:
-                min_val, max_val, default_vals = 0.0, 1.0, (0.2, 0.8)
-            elif is_int:
-                min_val, max_val, default_vals = 1, 20, (3, 10)
-            else:
-                min_val, max_val, default_vals = 0.0, 100_000_000.0, (5_000_000.0, 50_000_000.0)
+    # Reusable function to create sliders for a given parameter
+    def create_sim_sliders(label, min_value, max_value, default_range, default_mode, step, key_prefix, format_str, multiplier=1.0):
+        with st.sidebar.expander(f"Configuration for {label}"):
+            range_vals = st.slider(
+                "Range",
+                min_value=min_value,
+                max_value=max_value,
+                value=default_range,
+                step=step,
+                key=f"{key_prefix}_range",
+                format=format_str,
+                help=f"The minimum and maximum possible values for {label} in the simulation."
+            )
+            mode_val = st.slider(
+                "Most Likely",
+                min_value=range_vals[0],
+                max_value=range_vals[1],
+                value=default_mode,
+                step=step,
+                key=f"{key_prefix}_mode",
+                format=format_str,
+                help=f"The single most probable value for {label}. The simulation will generate more outcomes around this value."
+            )
+            return {
+                "min_val": range_vals[0] * multiplier,
+                "max_val": range_vals[1] * multiplier,
+                "mode": mode_val * multiplier
+            }
 
-            range_vals = st.slider("Range", min_val, max_val, default_vals, key=f"{var_name}_range")
-            mode_val = st.slider("Most Likely", range_vals[0], range_vals[1], (range_vals[0] + range_vals[1])/2, key=f"{var_name}_mode")
-            
-            params['min_val'], params['max_val'], params['mode'] = range_vals[0], range_vals[1], mode_val
-        return params
+    if "Exit Valuation/Price" in sim_variables:
+        if equity_type == EquityType.RSU:
+            sim_param_configs["valuation"] = create_sim_sliders(
+                label="Exit Valuation",
+                min_value=1.0, max_value=1000.0,
+                default_range=(10.0, 100.0), default_mode=25.0,
+                step=1.0, key_prefix="valuation", format_str="%.1fM SAR",
+                multiplier=1_000_000.0
+            )
+        else:
+            sim_param_configs["valuation"] = create_sim_sliders(
+                label="Exit Price per Share",
+                min_value=0.0, max_value=200.0,
+                default_range=(10.0, 80.0), default_mode=50.0,
+                step=0.5, key_prefix="price", format_str="%.2f SAR"
+            )
+
+    if "Annual ROI" in sim_variables:
+        sim_param_configs["roi"] = create_sim_sliders(
+            label="Annual ROI",
+            min_value=0.0, max_value=25.0,
+            default_range=(3.0, 10.0), default_mode=5.4,
+            step=0.1, key_prefix="roi", format_str="%.1f%%",
+            multiplier=0.01
+        )
+
+    if "Salary Growth Rate" in sim_variables:
+        sim_param_configs["salary_growth"] = create_sim_sliders(
+            label="Salary Growth Rate",
+            min_value=0.0, max_value=15.0,
+            default_range=(2.0, 7.0), default_mode=3.0,
+            step=0.1, key_prefix="growth", format_str="%.1f%%",
+            multiplier=0.01
+        )
+
+    if "Total Dilution" in sim_variables:
+        st.sidebar.info("This simulation will override the detailed, round-by-round dilution modeling.")
+        sim_param_configs["dilution"] = create_sim_sliders(
+            label="Total Dilution",
+            min_value=0.0, max_value=90.0,
+            default_range=(30.0, 70.0), default_mode=50.0,
+            step=1.0, key_prefix="dilution", format_str="%.1f%%",
+            multiplier=0.01
+        )
 
     if "Exit Year" in sim_variables:
         st.sidebar.warning("Simulating the Exit Year is computationally intensive and will be slower.")
-        sim_param_configs["exit_year"] = get_slider_params("Exit Year", is_int=True)
-    if "Exit Valuation/Price" in sim_variables:
-        label = "Exit Valuation" if equity_type == EquityType.RSU else "Exit Price"
-        sim_param_configs["valuation"] = get_slider_params(label)
-    if "Annual ROI" in sim_variables:
-        sim_param_configs["roi"] = get_slider_params("Annual ROI", is_percent=True)
-    if "Salary Growth Rate" in sim_variables:
-        sim_param_configs["salary_growth"] = get_slider_params("Salary Growth Rate", is_percent=True)
-    if "Total Dilution" in sim_variables:
-        st.sidebar.info("This will override the detailed dilution simulation.")
-        sim_param_configs["dilution"] = get_slider_params("Total Dilution (%)", is_percent=True)
+        sim_param_configs["exit_year"] = create_sim_sliders(
+            label="Exit Year",
+            min_value=1, max_value=20,
+            default_range=(3, 10), default_mode=5,
+            step=1, key_prefix="exit_year", format_str="%d years"
+        )
 
 
 # --- Main App UI ---
