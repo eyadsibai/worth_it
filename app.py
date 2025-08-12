@@ -10,6 +10,7 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.figure_factory as ff
 import streamlit as st
 
 import calculations
@@ -47,13 +48,13 @@ st.sidebar.title("⚖️ Configuration")
 
 # --- Global Settings ---
 st.sidebar.header("⚙️ Global Settings")
-simulation_end_year = st.sidebar.slider(
-    label="Simulation End Year",
+exit_year = st.sidebar.slider(
+    label="Year of Exit",
     min_value=1,
     max_value=20,
     value=5,
     step=1,
-    help="Set the total duration for this financial comparison. The analysis will project outcomes up to the end of this year.",
+    help="Set the total duration for this financial comparison. The analysis will project outcomes up to this year, assuming an exit occurs.",
 )
 st.sidebar.divider()
 
@@ -270,6 +271,7 @@ st.sidebar.header("🎲 Monte Carlo Simulation")
 run_simulation = st.sidebar.checkbox(
     "Run Simulation", help="Enable to run a Monte Carlo simulation."
 )
+sim_ranges = {}
 if run_simulation:
     st.sidebar.info("This feature runs many scenarios to model uncertainty.")
     num_simulations = st.sidebar.slider(
@@ -278,39 +280,70 @@ if run_simulation:
         max_value=10000,
         value=1000,
         step=100,
-        help="The number of random scenarios to simulate. Higher is more accurate but slower.",
+        help="The number of random scenarios to simulate. Higher is more accurate but may be slower.",
     )
 
-    if equity_type == EquityType.RSU:
-        valuation_range_M = st.sidebar.slider(
-            "Exit Valuation Range (Millions SAR)",
+    sim_variables = st.sidebar.multiselect(
+        "Select variables to simulate",
+        options=["Exit Valuation/Price", "Annual ROI", "Salary Growth Rate", "Exit Year"],
+        default=["Exit Valuation/Price", "Annual ROI"],
+    )
+
+    if "Exit Year" in sim_variables:
+        st.sidebar.warning(
+            "Simulating the Exit Year is computationally intensive and will be slower."
+        )
+        exit_year_range = st.sidebar.slider(
+            "Exit Year Range",
             min_value=1,
-            max_value=2000,
-            value=(10, 50),
+            max_value=20,
+            value=(
+                exit_year - 2 if exit_year > 2 else 1,
+                exit_year + 5,
+            ),
             step=1,
-            help="The range of possible exit valuations (in millions SAR) to use in the simulation.",
         )
-        valuation_range = [v * 1_000_000 for v in valuation_range_M]
-    else:  # Stock Options
-        price_range = st.sidebar.slider(
-            "Exit Price per Share Range (SAR)",
-            min_value=0.0,
-            max_value=500.0,
-            value=(10.0, 100.0),
-            step=1.0,
-            help="The range of possible exit prices per share to use in the simulation.",
-        )
-        valuation_range = price_range  # The function re-uses this variable
+        sim_ranges["exit_year"] = (exit_year_range[0], exit_year_range[1] + 1) # +1 for np.random.randint upper bound
 
-    roi_range_pct = st.sidebar.slider(
-        "Annual ROI Range (%)",
-        min_value=0.0,
-        max_value=30.0,
-        value=(3.0, 10.0),
-        step=0.5,
-        help="The range of possible annual returns on investment for the salary surplus.",
-    )
-    roi_range = [r / 100 for r in roi_range_pct]
+    if "Exit Valuation/Price" in sim_variables:
+        if equity_type == EquityType.RSU:
+            valuation_range_M = st.sidebar.slider(
+                "Exit Valuation Range (Millions SAR)",
+                min_value=1,
+                max_value=2000,
+                value=(10, 50),
+                step=1,
+            )
+            sim_ranges["valuation"] = tuple(v * 1_000_000 for v in valuation_range_M)
+        else:
+            price_range = st.sidebar.slider(
+                "Exit Price per Share Range (SAR)",
+                min_value=0.0,
+                max_value=500.0,
+                value=(10.0, 100.0),
+                step=1.0,
+            )
+            sim_ranges["valuation"] = price_range
+
+    if "Annual ROI" in sim_variables:
+        roi_range_pct = st.sidebar.slider(
+            "Annual ROI Range (%)",
+            min_value=0.0,
+            max_value=30.0,
+            value=(3.0, 10.0),
+            step=0.5,
+        )
+        sim_ranges["roi"] = tuple(r / 100 for r in roi_range_pct)
+
+    if "Salary Growth Rate" in sim_variables:
+        growth_range_pct = st.sidebar.slider(
+            "Salary Growth Rate Range (%)",
+            min_value=0.0,
+            max_value=15.0,
+            value=(2.0, 7.0),
+            step=0.5,
+        )
+        sim_ranges["salary_growth"] = tuple(r / 100 for r in growth_range_pct)
 
 
 # --- Main App UI ---
@@ -328,7 +361,7 @@ with st.expander("👋 New to this tool? Click here for a guide!"):
 
 # --- Core Logic Execution ---
 monthly_df = calculations.create_monthly_data_grid(
-    simulation_end_year=simulation_end_year,
+    exit_year=exit_year,
     current_job_monthly_salary=current_salary,
     startup_monthly_salary=startup_salary,
     current_job_salary_growth_rate=current_job_salary_growth_rate,
@@ -344,7 +377,7 @@ startup_params = {
     "cliff_years": cliff_years,
     "rsu_params": rsu_params,
     "options_params": options_params,
-    "simulation_end_year": simulation_end_year,
+    "exit_year": exit_year,
 }
 results = calculations.calculate_startup_scenario(opportunity_cost_df, startup_params)
 results_df = results["results_df"]
@@ -382,7 +415,7 @@ if equity_type == EquityType.RSU:
     )
 else:
     exit_scenario_text = f"{format_currency_compact(options_params['target_exit_price_per_share'])}/Share"
-st.subheader(f"Outcome at End of Year {simulation_end_year} (at {exit_scenario_text})")
+st.subheader(f"Outcome at End of Year {exit_year} (at {exit_scenario_text})")
 
 if equity_type == EquityType.RSU and rsu_params.get("simulate_dilution"):
     col1, col2, col3 = st.columns(3)
@@ -437,24 +470,31 @@ if run_simulation:
     st.divider()
     st.header("🎲 Monte Carlo Simulation Results")
 
-    with st.spinner(f"Running {num_simulations} simulations... (Now Optimized! ✨)"):
-        sim_results = calculations.run_monte_carlo_simulation_vectorized(
+    base_params = {
+        "exit_year": exit_year,
+        "current_job_monthly_salary": current_salary,
+        "startup_monthly_salary": startup_salary,
+        "current_job_salary_growth_rate": current_job_salary_growth_rate,
+        "annual_roi": annual_roi,
+        "investment_frequency": investment_frequency,
+        "startup_params": startup_params,
+    }
+
+    spinner_text = f"Running {num_simulations} simulations..."
+    if "Exit Year" in sim_variables:
+        spinner_text += " (Simulating exit year may be slower)"
+
+    with st.spinner(spinner_text):
+        sim_results = calculations.run_monte_carlo_simulation(
             num_simulations=num_simulations,
-            simulation_end_year=simulation_end_year,
-            current_job_monthly_salary=current_salary,
-            startup_monthly_salary=startup_salary,
-            current_job_salary_growth_rate=current_job_salary_growth_rate,
-            investment_frequency=investment_frequency,
-            startup_params=startup_params,
-            valuation_range=valuation_range,
-            roi_range=roi_range,
+            base_params=base_params,
+            sim_ranges=sim_ranges,
         )
+
     net_outcomes = sim_results["net_outcomes"]
     prob_positive_outcome = (net_outcomes > 0).sum() / len(net_outcomes)
-    
+
     st.subheader("Simulation Summary")
-    
-    # Display key statistics in columns
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Probability of Positive Outcome", f"{prob_positive_outcome:.2%}")
     col2.metric("Average Net Outcome", format_currency_compact(net_outcomes.mean()))
@@ -465,12 +505,17 @@ if run_simulation:
         help="A measure of the outcome's volatility. Higher means more uncertainty.",
     )
 
-    # Create tabs for different plots
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(
-        ["Histogram", "Box Plot", "Cumulative Probability", "Scatter Plot", "Statistics"]
-    )
+    tab_titles = [
+        "Histogram",
+        "Probability Density",
+        "Box Plot",
+        "Cumulative Probability",
+        "Scatter Plot",
+        "Statistics",
+    ]
+    tabs = st.tabs(tab_titles)
 
-    with tab1:
+    with tabs[0]:
         st.subheader("Distribution of Net Outcomes")
         fig_hist = px.histogram(
             net_outcomes,
@@ -480,7 +525,25 @@ if run_simulation:
         )
         st.plotly_chart(fig_hist, use_container_width=True)
 
-    with tab2:
+    with tabs[1]:
+        st.subheader("Probability Density of Net Outcomes")
+        st.info(
+            "This plot shows a smoothed curve of the outcome distribution, making it easier to see where the most likely results are concentrated."
+        )
+        fig_dist = ff.create_distplot(
+            [net_outcomes],
+            group_labels=["Net Outcome"],
+            show_rug=False,
+            bin_size=(net_outcomes.max() - net_outcomes.min()) / 100,
+        )
+        fig_dist.update_layout(
+            title_text="Probability Density Function (PDF) of Net Outcomes",
+            xaxis_title="Net Outcome (SAR)",
+            yaxis_title="Density",
+        )
+        st.plotly_chart(fig_dist, use_container_width=True)
+
+    with tabs[2]:
         st.subheader("Box Plot of Net Outcomes")
         fig_box = px.box(
             y=net_outcomes,
@@ -490,37 +553,56 @@ if run_simulation:
         )
         st.plotly_chart(fig_box, use_container_width=True)
 
-    with tab3:
+    with tabs[3]:
         st.subheader("Cumulative Probability (ECDF)")
+        st.info(
+            """
+        **How to read this chart:** This plot shows the probability that your net outcome will be *less than or equal to* a certain value.
+        For example, find a value on the x-axis (e.g., 10M SAR). The corresponding y-axis value (e.g., 0.6) means there is a 60% chance your outcome will be 10M SAR or less.
+        """
+        )
         fig_ecdf = px.ecdf(
             net_outcomes,
             title="Probability of Achieving a Certain Net Outcome",
-            labels={"x": "Net Outcome (SAR)", "y": "Probability"},
+            labels={"x": "Net Outcome (SAR)", "y": "Cumulative Probability"},
         )
         st.plotly_chart(fig_ecdf, use_container_width=True)
     
-    with tab4:
+    with tabs[4]:
         st.subheader("Valuation vs. Net Outcome")
-        scatter_df = pd.DataFrame({
-            'Simulated Valuation/Price': sim_results["simulated_valuations"],
-            'Net Outcome': net_outcomes
-        })
         x_label = "Exit Valuation (SAR)" if equity_type == EquityType.RSU else "Exit Price per Share (SAR)"
-        fig_scatter = px.scatter(
-            scatter_df,
-            x='Simulated Valuation/Price',
-            y='Net Outcome',
-            title=f"Impact of {x_label} on Net Outcome",
-            labels={'Simulated Valuation/Price': x_label, 'Net Outcome': 'Net Outcome (SAR)'},
-            trendline="ols",
-            opacity=0.3
-        )
-        st.plotly_chart(fig_scatter, use_container_width=True)
-
-    with tab5:
+        if "valuation" not in sim_ranges:
+             st.warning("Enable 'Exit Valuation/Price' in the simulation variables to see this plot.")
+        else:
+            scatter_df = pd.DataFrame(
+                {
+                    "SimulatedValuation": sim_results["simulated_valuations"],
+                    "NetOutcome": net_outcomes,
+                }
+            )
+            fig_scatter = px.scatter(
+                scatter_df,
+                x="SimulatedValuation",
+                y="NetOutcome",
+                title=f"Impact of {x_label} on Net Outcome",
+                labels={"SimulatedValuation": x_label, "NetOutcome": "Net Outcome (SAR)"},
+                trendline="ols",
+                opacity=0.3,
+            )
+            st.plotly_chart(fig_scatter, use_container_width=True)
+            
+    with tabs[5]:
         st.subheader("Detailed Statistics")
         stats_df = pd.DataFrame(net_outcomes, columns=["Net Outcome"])
-        st.dataframe(stats_df.describe(percentiles=[.05, .25, .5, .75, .95]).style.format(lambda x: format_currency_compact(x, add_sar=True)))
+        # Custom formatter to handle 'count' separately
+        formatters = {
+            col: (lambda x: f"{x:,.0f}") if col == "count" else (lambda x: format_currency_compact(x, add_sar=True))
+            for col in ["Net Outcome"]
+        }
+        # Apply formatting to the description
+        described_df = stats_df.describe(percentiles=[0.05, 0.25, 0.5, 0.75, 0.95])
+        described_df.loc["count", "Net Outcome"] = int(described_df.loc["count", "Net Outcome"])
+        st.dataframe(described_df.style.format({"Net Outcome": lambda x: f"{x:,.0f}" if isinstance(x, int) else format_currency_compact(x, add_sar=True)}))
 
 
 # --- Detailed Breakdown Section ---

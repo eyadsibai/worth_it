@@ -16,7 +16,7 @@ from app import EquityType
 def sample_monthly_df():
     """Provides a sample monthly DataFrame for testing."""
     return calculations.create_monthly_data_grid(
-        simulation_end_year=5,
+        exit_year=5,
         current_job_monthly_salary=10000,
         startup_monthly_salary=8000,
         current_job_salary_growth_rate=0.0,
@@ -39,7 +39,7 @@ def sample_opportunity_cost_df(sample_monthly_df):
 def test_create_monthly_data_grid():
     """Tests the creation of the monthly data grid."""
     df = calculations.create_monthly_data_grid(
-        simulation_end_year=2,
+        exit_year=2,
         current_job_monthly_salary=10000,
         startup_monthly_salary=8000,
         current_job_salary_growth_rate=0.10,
@@ -76,7 +76,7 @@ def test_calculate_startup_scenario_rsu_no_dilution(sample_opportunity_cost_df):
         "equity_type": EquityType.RSU,
         "total_vesting_years": 4,
         "cliff_years": 1,
-        "simulation_end_year": 4,
+        "exit_year": 4,
         "rsu_params": {
             "equity_pct": 0.05,  # 5%
             "target_exit_valuation": 10_000_000,
@@ -103,7 +103,7 @@ def test_calculate_startup_scenario_rsu_no_dilution(sample_opportunity_cost_df):
 def test_calculate_startup_scenario_rsu_with_time_dependent_dilution():
     """Tests RSU calculation with time-dependent dilution."""
     monthly_df = calculations.create_monthly_data_grid(
-        simulation_end_year=5,
+        exit_year=5,
         current_job_monthly_salary=10000,
         startup_monthly_salary=8000,
         current_job_salary_growth_rate=0.0,
@@ -115,7 +115,7 @@ def test_calculate_startup_scenario_rsu_with_time_dependent_dilution():
         "equity_type": EquityType.RSU,
         "total_vesting_years": 4,
         "cliff_years": 1,
-        "simulation_end_year": 5,
+        "exit_year": 5,
         "rsu_params": {
             "equity_pct": 0.10,  # 10%
             "target_exit_valuation": 20_000_000,
@@ -163,7 +163,7 @@ def test_calculate_startup_scenario_options(sample_opportunity_cost_df):
         "equity_type": EquityType.STOCK_OPTIONS,
         "total_vesting_years": 4,
         "cliff_years": 1,
-        "simulation_end_year": 4,
+        "exit_year": 4,
         "rsu_params": {},
         "options_params": {
             "num_options": 10000,
@@ -223,7 +223,7 @@ def test_calculate_npv():
 def test_simulation_beyond_vesting_period():
     """Tests that vesting caps at 100% when simulation ends after the vesting period."""
     monthly_df = calculations.create_monthly_data_grid(
-        simulation_end_year=7,  # Simulate for 7 years
+        exit_year=7,  # Simulate for 7 years
         current_job_monthly_salary=10000,
         startup_monthly_salary=8000,
         current_job_salary_growth_rate=0.0,
@@ -235,7 +235,7 @@ def test_simulation_beyond_vesting_period():
         "equity_type": EquityType.STOCK_OPTIONS,
         "total_vesting_years": 4,  # Vesting over 4 years
         "cliff_years": 1,
-        "simulation_end_year": 7,
+        "exit_year": 7,
         "rsu_params": {},
         "options_params": {
             "num_options": 10000,
@@ -259,31 +259,37 @@ def test_simulation_beyond_vesting_period():
 # --- Test Monte Carlo Simulation ---
 
 
-def test_run_monte_carlo_simulation_vectorized():
-    """Tests the vectorized Monte Carlo simulation function."""
+def test_run_monte_carlo_simulation():
+    """Tests the flexible Monte Carlo simulation function."""
     num_simulations = 100
-    startup_params = {
-        "equity_type": EquityType.RSU,
-        "total_vesting_years": 4,
-        "cliff_years": 1,
-        "simulation_end_year": 5,
-        "rsu_params": {
-            "equity_pct": 0.05,
-            "target_exit_valuation": 10_000_000,  # This will be overridden
-            "simulate_dilution": False,
+    base_params = {
+        "exit_year": 5,
+        "current_job_monthly_salary": 10000,
+        "startup_monthly_salary": 8000,
+        "current_job_salary_growth_rate": 0.0,
+        "annual_roi": 0.05,
+        "investment_frequency": "Annually",
+        "startup_params": {
+            "equity_type": EquityType.RSU,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "rsu_params": {
+                "equity_pct": 0.05,
+                "target_exit_valuation": 10_000_000,
+                "simulate_dilution": False,
+            },
+            "options_params": {},
         },
-        "options_params": {},
     }
-    results = calculations.run_monte_carlo_simulation_vectorized(
+    sim_ranges = {
+        "valuation": (5_000_000, 20_000_000),
+        "roi": (0.03, 0.08),
+    }
+
+    results = calculations.run_monte_carlo_simulation(
         num_simulations=num_simulations,
-        simulation_end_year=5,
-        current_job_monthly_salary=10000,
-        startup_monthly_salary=8000,
-        current_job_salary_growth_rate=0.0,
-        investment_frequency="Annually",
-        startup_params=startup_params,
-        valuation_range=(5_000_000, 20_000_000),
-        roi_range=(0.03, 0.08),
+        base_params=base_params,
+        sim_ranges=sim_ranges,
     )
     assert isinstance(results, dict)
     assert "net_outcomes" in results
