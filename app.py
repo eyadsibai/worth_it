@@ -438,7 +438,7 @@ if run_simulation:
     st.header("🎲 Monte Carlo Simulation Results")
 
     with st.spinner(f"Running {num_simulations} simulations... (Now Optimized! ✨)"):
-        simulation_results = calculations.run_monte_carlo_simulation_vectorized(
+        sim_results = calculations.run_monte_carlo_simulation_vectorized(
             num_simulations=num_simulations,
             simulation_end_year=simulation_end_year,
             current_job_monthly_salary=current_salary,
@@ -449,39 +449,78 @@ if run_simulation:
             valuation_range=valuation_range,
             roi_range=roi_range,
         )
-
-    prob_positive_outcome = (
-        (simulation_results > 0).sum() / len(simulation_results) * 100
-    )
-    mean_outcome = simulation_results.mean()
-    median_outcome = np.median(simulation_results)
-
-    st.subheader("Distribution of Net Outcomes")
-    fig = px.histogram(
-        simulation_results,
-        nbins=100,
-        title="Distribution of Potential Net Outcomes",
-        labels={"value": "Net Outcome (SAR)"},
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
+    net_outcomes = sim_results["net_outcomes"]
+    prob_positive_outcome = (net_outcomes > 0).sum() / len(net_outcomes)
+    
     st.subheader("Simulation Summary")
-    col1, col2, col3 = st.columns(3)
-    col1.metric(
-        "Probability of Positive Outcome",
-        f"{prob_positive_outcome:.2f}%",
-        help="The percentage of simulations where the startup offer resulted in a better financial outcome.",
+    
+    # Display key statistics in columns
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Probability of Positive Outcome", f"{prob_positive_outcome:.2%}")
+    col2.metric("Average Net Outcome", format_currency_compact(net_outcomes.mean()))
+    col3.metric("Median Net Outcome", format_currency_compact(np.median(net_outcomes)))
+    col4.metric(
+        "Std. Deviation",
+        format_currency_compact(net_outcomes.std()),
+        help="A measure of the outcome's volatility. Higher means more uncertainty.",
     )
-    col2.metric(
-        "Average Net Outcome",
-        format_currency_compact(mean_outcome),
-        help="The average net outcome across all simulations.",
+
+    # Create tabs for different plots
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(
+        ["Histogram", "Box Plot", "Cumulative Probability", "Scatter Plot", "Statistics"]
     )
-    col3.metric(
-        "Median Net Outcome",
-        format_currency_compact(median_outcome),
-        help="The median (50th percentile) net outcome, which is less sensitive to extreme outliers.",
-    )
+
+    with tab1:
+        st.subheader("Distribution of Net Outcomes")
+        fig_hist = px.histogram(
+            net_outcomes,
+            nbins=100,
+            title="Frequency of Potential Net Outcomes",
+            labels={"value": "Net Outcome (SAR)"},
+        )
+        st.plotly_chart(fig_hist, use_container_width=True)
+
+    with tab2:
+        st.subheader("Box Plot of Net Outcomes")
+        fig_box = px.box(
+            y=net_outcomes,
+            title="Range and Quartiles of Net Outcomes",
+            labels={"y": "Net Outcome (SAR)"},
+            points="outliers",
+        )
+        st.plotly_chart(fig_box, use_container_width=True)
+
+    with tab3:
+        st.subheader("Cumulative Probability (ECDF)")
+        fig_ecdf = px.ecdf(
+            net_outcomes,
+            title="Probability of Achieving a Certain Net Outcome",
+            labels={"x": "Net Outcome (SAR)", "y": "Probability"},
+        )
+        st.plotly_chart(fig_ecdf, use_container_width=True)
+    
+    with tab4:
+        st.subheader("Valuation vs. Net Outcome")
+        scatter_df = pd.DataFrame({
+            'Simulated Valuation/Price': sim_results["simulated_valuations"],
+            'Net Outcome': net_outcomes
+        })
+        x_label = "Exit Valuation (SAR)" if equity_type == EquityType.RSU else "Exit Price per Share (SAR)"
+        fig_scatter = px.scatter(
+            scatter_df,
+            x='Simulated Valuation/Price',
+            y='Net Outcome',
+            title=f"Impact of {x_label} on Net Outcome",
+            labels={'Simulated Valuation/Price': x_label, 'Net Outcome': 'Net Outcome (SAR)'},
+            trendline="ols",
+            opacity=0.3
+        )
+        st.plotly_chart(fig_scatter, use_container_width=True)
+
+    with tab5:
+        st.subheader("Detailed Statistics")
+        stats_df = pd.DataFrame(net_outcomes, columns=["Net Outcome"])
+        st.dataframe(stats_df.describe(percentiles=[.05, .25, .5, .75, .95]).style.format(lambda x: format_currency_compact(x, add_sar=True)))
 
 
 # --- Detailed Breakdown Section ---

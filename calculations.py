@@ -297,9 +297,10 @@ def run_monte_carlo_simulation_vectorized(
     startup_params: Dict[str, Any],
     valuation_range: Tuple[float, float],
     roi_range: Tuple[float, float],
-) -> np.ndarray:
+) -> Dict[str, np.ndarray]:
     """
     Runs a vectorized Monte Carlo simulation for much faster computation.
+    Returns a dictionary of simulation results.
     """
     # --- Setup and Pre-computation ---
     total_months = simulation_end_year * 12
@@ -371,4 +372,9 @@ def run_monte_carlo_simulation_vectorized(
 
     # --- Final Net Outcome Calculation ---
     net_outcomes = final_payout_value - final_opportunity_cost
-    return net_outcomes
+    
+    return {
+        "net_outcomes": net_outcomes,
+        "simulated_valuations": simulated_valuations,
+        "final_opportunity_cost": final_opportunity_cost,
+    }

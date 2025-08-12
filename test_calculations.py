@@ -3,7 +3,6 @@ Unit tests for the financial calculation functions.
 This module uses pytest to test the functions in the 'calculations' module.
 """
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -283,8 +282,9 @@ def test_run_monte_carlo_simulation_vectorized():
         current_job_salary_growth_rate=0.0,
         investment_frequency="Annually",
         startup_params=startup_params,
-        valuation_range=[5_000_000, 20_000_000],
-        roi_range=[0.03, 0.08],
+        valuation_range=(5_000_000, 20_000_000),
+        roi_range=(0.03, 0.08),
     )
-    assert isinstance(results, np.ndarray)
-    assert len(results) == num_simulations
+    assert isinstance(results, dict)
+    assert "net_outcomes" in results
+    assert len(results["net_outcomes"]) == num_simulations
