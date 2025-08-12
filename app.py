@@ -148,7 +148,7 @@ if equity_type == EquityType.RSU:
     rsu_params["equity_pct"] = (
         st.sidebar.slider(
             "Total Equity Grant (%)",
-            0.5,
+            0.01,
             25.0,
             5.0,
             0.1,
@@ -258,7 +258,7 @@ else:  # Stock Options
     options_params["target_exit_price_per_share"] = st.sidebar.number_input(
         "Price per Share at Exit (SAR)",
         min_value=0.00,
-        value=0.50,
+        value=50.0,
         step=0.25,
         format="%.2f",
         help="Your best guess for the price of a single share when you eventually sell.",
@@ -273,9 +273,9 @@ run_simulation = st.sidebar.checkbox(
 )
 sim_param_configs = {}
 if run_simulation:
-    st.sidebar.info("Select variables and their distributions to simulate.")
+    st.sidebar.info("Select variables and configure their ranges to simulate.")
     num_simulations = st.sidebar.slider(
-        "Number of Simulations", 100, 10000, 1000, 100
+        "Number of Simulations", 100, 10000, 1000, 100, key="num_simulations"
     )
     
     sim_options = ["Exit Valuation/Price", "Annual ROI", "Salary Growth Rate", "Exit Year"]
@@ -288,30 +288,35 @@ if run_simulation:
         default=["Exit Valuation/Price", "Annual ROI"],
     )
 
-    def get_dist_params(var_name, is_percent=False, is_int=False):
+    def get_slider_params(var_name, is_percent=False, is_int=False):
         params = {}
         with st.sidebar.expander(f"Configuration for {var_name}"):
-            range_vals = st.slider(f"Range for {var_name}", 0.0, 100.0 if is_percent else 100_000_000.0, (20.0, 80.0), key=f"{var_name}_range")
-            mode_val = st.slider(f"Most Likely for {var_name}", range_vals[0], range_vals[1], (range_vals[0] + range_vals[1])/2, key=f"{var_name}_mode")
+            if is_percent:
+                min_val, max_val, default_vals = 0.0, 100.0, (20.0, 80.0)
+            elif is_int:
+                min_val, max_val, default_vals = 1, 20, (3, 10)
+            else:
+                min_val, max_val, default_vals = 0.0, 100_000_000.0, (5_000_000.0, 50_000_000.0)
+
+            range_vals = st.slider("Range", min_val, max_val, default_vals, key=f"{var_name}_range")
+            mode_val = st.slider("Most Likely", range_vals[0], range_vals[1], (range_vals[0] + range_vals[1])/2, key=f"{var_name}_mode")
             
-            params['min_val'] = range_vals[0]
-            params['max_val'] = range_vals[1]
-            params['mode'] = mode_val
+            params['min_val'], params['max_val'], params['mode'] = range_vals[0], range_vals[1], mode_val
         return params
 
     if "Exit Year" in sim_variables:
         st.sidebar.warning("Simulating the Exit Year is computationally intensive and will be slower.")
-        sim_param_configs["exit_year"] = get_dist_params("Exit Year", is_int=True)
+        sim_param_configs["exit_year"] = get_slider_params("Exit Year", is_int=True)
     if "Exit Valuation/Price" in sim_variables:
         label = "Exit Valuation" if equity_type == EquityType.RSU else "Exit Price"
-        sim_param_configs["valuation"] = get_dist_params(label)
+        sim_param_configs["valuation"] = get_slider_params(label)
     if "Annual ROI" in sim_variables:
-        sim_param_configs["roi"] = get_dist_params("Annual ROI", is_percent=True)
+        sim_param_configs["roi"] = get_slider_params("Annual ROI", is_percent=True)
     if "Salary Growth Rate" in sim_variables:
-        sim_param_configs["salary_growth"] = get_dist_params("Salary Growth Rate", is_percent=True)
+        sim_param_configs["salary_growth"] = get_slider_params("Salary Growth Rate", is_percent=True)
     if "Total Dilution" in sim_variables:
-        st.sidebar.info("This will override the detailed dilution simulation below.")
-        sim_param_configs["dilution"] = get_dist_params("Total Dilution (%)", is_percent=True)
+        st.sidebar.info("This will override the detailed dilution simulation.")
+        sim_param_configs["dilution"] = get_slider_params("Total Dilution (%)", is_percent=True)
 
 
 # --- Main App UI ---
