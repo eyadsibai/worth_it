@@ -3,7 +3,6 @@ Unit tests for the financial calculation functions.
 This module uses pytest to test the functions in the 'calculations' module.
 """
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -138,7 +137,7 @@ def test_calculate_npv():
 
 
 def test_run_monte_carlo_simulation():
-    """Tests the flexible Monte Carlo simulation function with scipy.stats."""
+    """Tests the flexible Monte Carlo simulation function with sliders."""
     num_simulations = 100
     base_params = {
         "exit_year": 5,
@@ -160,8 +159,8 @@ def test_run_monte_carlo_simulation():
         },
     }
     sim_param_configs = {
-        "valuation": {"dist": "normal", "loc": 20_000_000, "scale": 5_000_000},
-        "roi": {"dist": "uniform", "loc": 0.03, "scale": 0.05}, # Represents range 0.03 to 0.08
+        "valuation": {"min_val": 10_000_000, "max_val": 30_000_000, "mode": 20_000_000},
+        "roi": {"min_val": 3.0, "max_val": 8.0, "mode": 5.0},
     }
 
     results = calculations.run_monte_carlo_simulation(
@@ -196,7 +195,7 @@ def test_run_monte_carlo_iterative_for_exit_year():
         },
     }
     sim_param_configs = {
-        "exit_year": {"dist": "triang", "loc": 3, "scale": 4, "c": 0.5} # min=3, max=7, mode=5
+        "exit_year": {"min_val": 3, "max_val": 7, "mode": 5}
     }
 
     results = calculations.run_monte_carlo_simulation(

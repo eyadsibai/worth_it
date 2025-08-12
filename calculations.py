@@ -298,17 +298,17 @@ def get_random_variates(num_simulations: int, config: Dict, default_val: float) 
     """Generates random numbers based on a distribution configuration."""
     if not config:
         return np.full(num_simulations, default_val)
-        
-    dist_name = config.pop("dist").lower()
-    if dist_name == 'log-normal':
-        dist_name = 'lognorm'
+    
+    min_val, max_val, mode = config['min_val'], config['max_val'], config['mode']
+    
+    # Handle percentages
+    if max_val <= 1.0 and default_val <= 1.0:
+        min_val, max_val, mode = min_val/100, max_val/100, mode/100
 
-    dist = getattr(stats, dist_name)
+    scale = max_val - min_val
+    c = (mode - min_val) / scale if scale > 0 else 0
     
-    if dist_name == 'triangular':
-        return dist.rvs(size=num_simulations, **config)
-    
-    return dist.rvs(size=num_simulations, **config)
+    return stats.triang.rvs(c=c, loc=min_val, scale=scale, size=num_simulations)
 
 
 def run_monte_carlo_simulation(
@@ -468,7 +468,7 @@ def run_monte_carlo_simulation_iterative(
         results = calculate_startup_scenario(opportunity_cost_df, sim_startup_params)
         net_outcome = results["final_payout_value"] - results["final_opportunity_cost"]
         net_outcomes.append(net_outcome)
-
+    
     return {
         "net_outcomes": np.array(net_outcomes),
         "simulated_valuations": sim_params["valuation"],
