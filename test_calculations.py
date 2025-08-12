@@ -3,6 +3,7 @@ Unit tests for the financial calculation functions.
 This module uses pytest to test the functions in the 'calculations' module.
 """
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -254,3 +255,36 @@ def test_simulation_beyond_vesting_period():
     assert results_df["Vested Equity (%)"].iloc[4] == pytest.approx(100.0)  # Year 5
     assert results_df["Vested Equity (%)"].iloc[5] == pytest.approx(100.0)  # Year 6
     assert results_df["Vested Equity (%)"].iloc[6] == pytest.approx(100.0)  # Year 7
+
+
+# --- Test Monte Carlo Simulation ---
+
+
+def test_run_monte_carlo_simulation():
+    """Tests the Monte Carlo simulation function."""
+    num_simulations = 100
+    startup_params = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 1,
+        "simulation_end_year": 5,
+        "rsu_params": {
+            "equity_pct": 0.05,
+            "target_exit_valuation": 10_000_000,  # This will be overridden
+            "simulate_dilution": False,
+        },
+        "options_params": {},
+    }
+    results = calculations.run_monte_carlo_simulation(
+        num_simulations=num_simulations,
+        simulation_end_year=5,
+        current_job_monthly_salary=10000,
+        startup_monthly_salary=8000,
+        current_job_salary_growth_rate=0.0,
+        investment_frequency="Annually",
+        startup_params=startup_params,
+        valuation_range=[5_000_000, 20_000_000],
+        roi_range=[0.03, 0.08],
+    )
+    assert isinstance(results, np.ndarray)
+    assert len(results) == num_simulations

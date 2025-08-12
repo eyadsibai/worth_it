@@ -262,6 +262,42 @@ else:  # Stock Options
         help="Your best guess for the price of a single share when you eventually sell.",
     )
 
+st.sidebar.divider()
+
+# --- Monte Carlo Simulation Inputs ---
+st.sidebar.header("🎲 Monte Carlo Simulation")
+run_simulation = st.sidebar.checkbox(
+    "Run Simulation", help="Enable to run a Monte Carlo simulation."
+)
+if run_simulation:
+    num_simulations = st.sidebar.slider(
+        "Number of Simulations",
+        min_value=100,
+        max_value=10000,
+        value=1000,
+        step=100,
+        help="The number of random scenarios to simulate.",
+    )
+    valuation_range_M = st.sidebar.slider(
+        "Valuation Range (Millions SAR)",
+        min_value=1,
+        max_value=2000,
+        value=(10, 50),
+        step=1,
+        help="The range of possible exit valuations (in millions SAR) to use in the simulation.",
+    )
+    valuation_range = [v * 1_000_000 for v in valuation_range_M]
+
+    roi_range_pct = st.sidebar.slider(
+        "Annual ROI Range (%)",
+        min_value=0.0,
+        max_value=30.0,
+        value=(3.0, 10.0),
+        step=0.5,
+        help="The range of possible annual returns on investment for the salary surplus.",
+    )
+    roi_range = [r / 100 for r in roi_range_pct]
+
 
 # --- Main App UI ---
 st.title("Startup Offer vs. Current Job: Financial Comparison")
@@ -272,6 +308,7 @@ with st.expander("👋 New to this tool? Click here for a guide!"):
     - **Step 1: Configure Scenarios**: Use the sidebar to input details for your current job and the startup offer.
     - **Step 2: Analyze Outcomes**: Review the key metrics like Net Outcome, NPV, and IRR.
     - **Step 3: Explore Details**: Check the yearly breakdown and charts for a deeper understanding.
+    - **Step 4 (Optional): Run a Monte Carlo Simulation**: Use the sidebar to run a simulation for a range of possible outcomes.
     """
     )
 
@@ -379,6 +416,58 @@ col5.metric(
     f"{irr_value:.2f}%" if pd.notna(irr_value) else "N/A",
     help="The effective annual interest rate your 'investment' (the opportunity cost) would yield. A higher IRR indicates a more profitable decision.",
 )
+
+
+# --- Monte Carlo Simulation Section ---
+if run_simulation:
+    st.divider()
+    st.header("🎲 Monte Carlo Simulation Results")
+
+    with st.spinner(f"Running {num_simulations} simulations..."):
+        simulation_results = calculations.run_monte_carlo_simulation(
+            num_simulations=num_simulations,
+            simulation_end_year=simulation_end_year,
+            current_job_monthly_salary=current_salary,
+            startup_monthly_salary=startup_salary,
+            current_job_salary_growth_rate=current_job_salary_growth_rate,
+            investment_frequency=investment_frequency,
+            startup_params=startup_params,
+            valuation_range=valuation_range,
+            roi_range=roi_range,
+        )
+
+    prob_positive_outcome = (
+        (simulation_results > 0).sum() / len(simulation_results) * 100
+    )
+    mean_outcome = simulation_results.mean()
+    median_outcome = np.median(simulation_results)
+
+    st.subheader("Distribution of Net Outcomes")
+    fig = px.histogram(
+        simulation_results,
+        nbins=100,
+        title="Distribution of Potential Net Outcomes",
+        labels={"value": "Net Outcome (SAR)"},
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.subheader("Simulation Summary")
+    col1, col2, col3 = st.columns(3)
+    col1.metric(
+        "Probability of Positive Outcome",
+        f"{prob_positive_outcome:.2f}%",
+        help="The percentage of simulations where the startup offer resulted in a better financial outcome.",
+    )
+    col2.metric(
+        "Average Net Outcome",
+        format_currency_compact(mean_outcome),
+        help="The average net outcome across all simulations.",
+    )
+    col3.metric(
+        "Median Net Outcome",
+        format_currency_compact(median_outcome),
+        help="The median (50th percentile) net outcome, which is less sensitive to extreme outliers.",
+    )
 
 
 # --- Detailed Breakdown Section ---

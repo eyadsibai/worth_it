@@ -2,11 +2,11 @@
 Core calculation functions for financial analysis.
 
 This module provides functions to calculate opportunity costs, startup equity
-scenarios (RSUs and Stock Options), dilution, IRR, and NPV. It is designed to be
-independent of the Streamlit UI.
+scenarios (RSUs and Stock Options), dilution, IRR, NPV, and run Monte Carlo simulations.
+It is designed to be independent of the Streamlit UI.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import numpy as np
 import numpy_financial as npf
@@ -285,3 +285,71 @@ def calculate_npv(
         return npf.npv(monthly_roi, cash_flows)
     except (ValueError, TypeError):
         return np.nan
+
+
+def run_monte_carlo_simulation(
+    num_simulations: int,
+    simulation_end_year: int,
+    current_job_monthly_salary: float,
+    startup_monthly_salary: float,
+    current_job_salary_growth_rate: float,
+    investment_frequency: str,
+    startup_params: Dict[str, Any],
+    valuation_range: List[float],
+    roi_range: List[float],
+) -> np.ndarray:
+    """
+    Runs a Monte Carlo simulation to model a range of potential outcomes.
+    """
+    net_outcomes = []
+
+    # Pre-calculate the monthly data grid as it's constant for all simulations
+    monthly_df = create_monthly_data_grid(
+        simulation_end_year=simulation_end_year,
+        current_job_monthly_salary=current_job_monthly_salary,
+        startup_monthly_salary=startup_monthly_salary,
+        current_job_salary_growth_rate=current_job_salary_growth_rate,
+    )
+
+    for _ in range(num_simulations):
+        # Sample from uniform distributions for valuation and ROI
+        simulated_valuation = np.random.uniform(
+            valuation_range[0], valuation_range[1]
+        )
+        simulated_roi = np.random.uniform(roi_range[0], roi_range[1])
+
+        # Create a deep copy of startup_params to avoid modifying the original dict
+        sim_startup_params = startup_params.copy()
+
+        # Update the simulation parameters with the sampled values
+        if sim_startup_params["equity_type"].value == "Equity (RSUs)":
+            sim_startup_params["rsu_params"] = sim_startup_params["rsu_params"].copy()
+            sim_startup_params["rsu_params"][
+                "target_exit_valuation"
+            ] = simulated_valuation
+        else:
+            # For stock options, we need to handle the exit price per share
+            # This is a simplification; a more complex model might link this to valuation
+            # Here, we assume the provided range is for exit price per share
+            sim_startup_params["options_params"] = sim_startup_params[
+                "options_params"
+            ].copy()
+            sim_startup_params["options_params"][
+                "target_exit_price_per_share"
+            ] = simulated_valuation
+
+        # Recalculate opportunity cost with the simulated ROI
+        opportunity_cost_df = calculate_annual_opportunity_cost(
+            monthly_df=monthly_df,
+            annual_roi=simulated_roi,
+            investment_frequency=investment_frequency,
+        )
+
+        # Calculate the startup scenario with the simulated parameters
+        results = calculate_startup_scenario(opportunity_cost_df, sim_startup_params)
+        final_payout_value = results["final_payout_value"]
+        final_opportunity_cost = results["final_opportunity_cost"]
+        net_outcome = final_payout_value - final_opportunity_cost
+        net_outcomes.append(net_outcome)
+
+    return np.array(net_outcomes)
