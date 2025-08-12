@@ -278,9 +278,13 @@ if run_simulation:
         "Number of Simulations", 100, 10000, 1000, 100
     )
     
+    sim_options = ["Exit Valuation/Price", "Annual ROI", "Salary Growth Rate", "Exit Year"]
+    if equity_type == EquityType.RSU:
+        sim_options.append("Total Dilution")
+
     sim_variables = st.sidebar.multiselect(
         "Select variables to simulate",
-        options=["Exit Valuation/Price", "Annual ROI", "Salary Growth Rate", "Exit Year"],
+        options=sim_options,
         default=["Exit Valuation/Price", "Annual ROI"],
     )
 
@@ -347,6 +351,9 @@ if run_simulation:
         sim_param_configs["roi"] = get_dist_params("Annual ROI", is_percent=True)
     if "Salary Growth Rate" in sim_variables:
         sim_param_configs["salary_growth"] = get_dist_params("Salary Growth Rate", is_percent=True)
+    if "Total Dilution" in sim_variables:
+        st.sidebar.info("This will override the detailed dilution simulation below.")
+        sim_param_configs["dilution"] = get_dist_params("Total Dilution (%)", is_percent=True, default_dist="Triangular")
 
 
 # --- Main App UI ---
