@@ -288,65 +288,46 @@ if run_simulation:
         default=["Exit Valuation/Price", "Annual ROI"],
     )
 
-    def get_dist_params(var_name, default_dist="Normal", is_percent=False, is_int=False, value_format=None):
-        dist_options = ["Normal", "Uniform", "Triangular"]
-        if var_name == "Exit Valuation":
-            dist_options.append("Log-Normal")
+    def get_dist_params(var_name, default_dist="Normal", is_percent=False, is_int=False):
+        dist_options = ["Normal", "Uniform", "Triangular", "Log-Normal"]
         
-        dist_name = st.sidebar.selectbox(
-            f"Distribution for {var_name}",
-            dist_options,
-            index=dist_options.index(default_dist),
-        )
-        params = {"dist": dist_name}
+        params = {}
+        with st.sidebar.expander(f"Configuration for {var_name}"):
+            dist_name = st.selectbox(
+                "Distribution",
+                dist_options,
+                index=dist_options.index(default_dist),
+                key=f"{var_name}_dist"
+            )
+            params["dist"] = dist_name
 
-        # Dynamically create input widgets based on distribution
-        if dist_name in ["Normal", "Log-Normal"]:
-            default_mean = 0.05 if is_percent else 10_000_000
-            default_std_dev = 0.02 if is_percent else 5_000_000
-            params["loc"] = st.sidebar.number_input(f"Mean / Mu for {var_name}", value=default_mean, format=value_format)
-            params["scale"] = st.sidebar.number_input(f"Std Dev / Sigma for {var_name}", value=default_std_dev, format=value_format)
+            if dist_name in ["Normal", "Log-Normal"]:
+                mean_val = 0.05 if is_percent else 10_000_000.0
+                std_val = 0.02 if is_percent else 5_000_000.0
+                params["loc"] = st.number_input("Mean / Mu", value=mean_val, key=f"{var_name}_mean")
+                params["scale"] = st.number_input("Std Dev / Sigma", value=std_val, key=f"{var_name}_std")
+            
+            elif dist_name in ["Uniform", "Triangular"]:
+                min_default = 0.0 if is_percent else 1_000_000.0
+                max_default = 0.1 if is_percent else 20_000_000.0
+                
+                if is_int:
+                    min_default, max_default = int(min_default), int(max_default)
 
-        elif dist_name == "Uniform":
-            min_val = 0.0 if is_percent else 1_000_000.0
-            max_val = 0.1 if is_percent else 20_000_000.0
-            if is_int:
-                 min_val, max_val = int(min_val), int(max_val)
-                 step = 1
-            else:
-                 step = None
-
-            min_in = st.sidebar.number_input(f"Min for {var_name}", value=min_val, step=step, format=value_format)
-            max_in = st.sidebar.number_input(f"Max for {var_name}", value=max_val, step=step, format=value_format)
-            params["loc"] = min_in
-            params["scale"] = max_in - min_in
-
-        elif dist_name == "Triangular":
-            min_val = 0.0 if is_percent else 1_000_000.0
-            mode_val = 0.05 if is_percent else 15_000_000.0
-            max_val = 0.12 if is_percent else 50_000_000.0
-            if is_int:
-                 min_val, mode_val, max_val = int(min_val), int(mode_val), int(max_val)
-                 step = 1
-            else:
-                step = None
-
-            min_in = st.sidebar.number_input(f"Min for {var_name}", value=min_val, step=step, format=value_format)
-            mode_in = st.sidebar.number_input(f"Mode for {var_name}", value=mode_val, step=step, format=value_format)
-            max_in = st.sidebar.number_input(f"Max for {var_name}", value=max_val, step=step, format=value_format)
-            params["loc"] = min_in
-            params["scale"] = max_in - min_in
-            params["c"] = (mode_in - min_in) / (max_in - min_in) if (max_in - min_in) > 0 else 0
-        
-        # Add range clipping inputs
-        range_min_val = 0.0 if is_percent else 0.0
-        range_max_val = 1.0 if is_percent else 1_000_000_000.0
-        if is_int:
-            range_min_val, range_max_val = int(range_min_val), int(range_max_val)
-
-        params['clip_min'] = st.sidebar.number_input(f"Min Range for {var_name}", value=range_min_val, format=value_format)
-        params['clip_max'] = st.sidebar.number_input(f"Max Range for {var_name}", value=range_max_val, format=value_format)
-
+                range_vals = st.slider("Range", min_default, max_default, (min_default, max_default), key=f"{var_name}_range")
+                params['clip_min'], params['clip_max'] = range_vals
+                
+                if dist_name == "Triangular":
+                    mode_default = 0.05 if is_percent else 15_000_000.0
+                    if is_int:
+                        mode_default = int(mode_default)
+                    mode = st.slider("Most Likely", min_value=range_vals[0], max_value=range_vals[1], value=mode_default, key=f"{var_name}_mode")
+                    params["loc"] = range_vals[0]
+                    params["scale"] = range_vals[1] - range_vals[0]
+                    params["c"] = (mode - range_vals[0]) / (range_vals[1] - range_vals[0]) if (range_vals[1] - range_vals[0]) > 0 else 0
+                else: # Uniform
+                    params["loc"] = range_vals[0]
+                    params["scale"] = range_vals[1] - range_vals[0]
 
         return params
 
@@ -358,9 +339,9 @@ if run_simulation:
         default_dist = "Log-Normal" if equity_type == EquityType.RSU else "Triangular"
         sim_param_configs["valuation"] = get_dist_params(label, default_dist=default_dist)
     if "Annual ROI" in sim_variables:
-        sim_param_configs["roi"] = get_dist_params("Annual ROI", is_percent=True)
+        sim_param_configs["roi"] = get_dist_params("Annual ROI", is_percent=True, default_dist="Normal")
     if "Salary Growth Rate" in sim_variables:
-        sim_param_configs["salary_growth"] = get_dist_params("Salary Growth Rate", is_percent=True)
+        sim_param_configs["salary_growth"] = get_dist_params("Salary Growth Rate", is_percent=True, default_dist="Triangular")
     if "Total Dilution" in sim_variables:
         st.sidebar.info("This will override the detailed dilution simulation below.")
         sim_param_configs["dilution"] = get_dist_params("Total Dilution (%)", is_percent=True, default_dist="Triangular")
