@@ -338,7 +338,7 @@ def run_monte_carlo_simulation(
         base_params["current_job_salary_growth_rate"],
     )
     sim_params["dilution"] = get_random_variates(
-        num_simulations, sim_param_configs.get("dilution"), None
+        num_simulations, sim_param_configs.get("dilution"), np.nan
     )
 
     return run_monte_carlo_simulation_vectorized(num_simulations, base_params, sim_params)
@@ -384,7 +384,7 @@ def run_monte_carlo_simulation_vectorized(
         rsu_params = startup_params["rsu_params"]
         
         # Use simulated dilution if available, otherwise use the round-by-round calculation
-        if sim_params["dilution"] is not None:
+        if not np.all(np.isnan(sim_params["dilution"])):
              cumulative_dilution = 1 - sim_params["dilution"]
         else:
             cumulative_dilution = 1.0
@@ -436,7 +436,7 @@ def run_monte_carlo_simulation_iterative(
         base_params["current_job_salary_growth_rate"],
     )
     sim_params["dilution"] = get_random_variates(
-        num_simulations, sim_param_configs.get("dilution"), None
+        num_simulations, sim_param_configs.get("dilution"), np.nan
     )
 
     net_outcomes = []
@@ -455,7 +455,8 @@ def run_monte_carlo_simulation_iterative(
         
         sim_startup_params = base_params["startup_params"].copy()
         sim_startup_params["exit_year"] = exit_year
-        sim_startup_params["simulated_dilution"] = sim_params["dilution"][i] if sim_params["dilution"] is not None else None
+        dilution_val = sim_params["dilution"][i]
+        sim_startup_params["simulated_dilution"] = dilution_val if not np.isnan(dilution_val) else None
 
 
         if sim_startup_params["equity_type"].value == "Equity (RSUs)":
