@@ -271,79 +271,82 @@ st.sidebar.header("🎲 Monte Carlo Simulation")
 run_simulation = st.sidebar.checkbox(
     "Run Simulation", help="Enable to run a Monte Carlo simulation."
 )
-sim_ranges = {}
+sim_param_configs = {}
 if run_simulation:
-    st.sidebar.info("This feature runs many scenarios to model uncertainty.")
+    st.sidebar.info("Select variables and their distributions to simulate.")
     num_simulations = st.sidebar.slider(
-        "Number of Simulations",
-        min_value=100,
-        max_value=10000,
-        value=1000,
-        step=100,
-        help="The number of random scenarios to simulate. Higher is more accurate but may be slower.",
+        "Number of Simulations", 100, 10000, 1000, 100
     )
-
+    
     sim_variables = st.sidebar.multiselect(
         "Select variables to simulate",
         options=["Exit Valuation/Price", "Annual ROI", "Salary Growth Rate", "Exit Year"],
         default=["Exit Valuation/Price", "Annual ROI"],
     )
 
+    def get_dist_params(var_name, default_dist="Normal", is_percent=False, is_int=False, value_format=None):
+        dist_options = ["Normal", "Uniform", "Triangular"]
+        if var_name == "Exit Valuation":
+            dist_options.append("Log-Normal")
+        
+        dist_name = st.sidebar.selectbox(
+            f"Distribution for {var_name}",
+            dist_options,
+            index=dist_options.index(default_dist),
+        )
+        params = {"dist": dist_name}
+
+        # Dynamically create input widgets based on distribution
+        if dist_name in ["Normal", "Log-Normal"]:
+            default_mean = 0.05 if is_percent else 10_000_000
+            default_std_dev = 0.02 if is_percent else 5_000_000
+            params["loc"] = st.sidebar.number_input(f"Mean / Mu for {var_name}", value=default_mean, format=value_format)
+            params["scale"] = st.sidebar.number_input(f"Std Dev / Sigma for {var_name}", value=default_std_dev, format=value_format)
+
+        elif dist_name == "Uniform":
+            min_val = 0 if is_percent else 1_000_000
+            max_val = 0.1 if is_percent else 20_000_000
+            if is_int:
+                 min_val, max_val = int(min_val), int(max_val)
+                 step = 1
+            else:
+                 step = None
+
+            min_in = st.sidebar.number_input(f"Min for {var_name}", value=min_val, step=step, format=value_format)
+            max_in = st.sidebar.number_input(f"Max for {var_name}", value=max_val, step=step, format=value_format)
+            params["loc"] = min_in
+            params["scale"] = max_in - min_in
+
+        elif dist_name == "Triangular":
+            min_val = 0 if is_percent else 1_000_000
+            mode_val = 0.05 if is_percent else 15_000_000
+            max_val = 0.12 if is_percent else 50_000_000
+            if is_int:
+                 min_val, mode_val, max_val = int(min_val), int(mode_val), int(max_val)
+                 step = 1
+            else:
+                step = None
+
+            min_in = st.sidebar.number_input(f"Min for {var_name}", value=min_val, step=step, format=value_format)
+            mode_in = st.sidebar.number_input(f"Mode for {var_name}", value=mode_val, step=step, format=value_format)
+            max_in = st.sidebar.number_input(f"Max for {var_name}", value=max_val, step=step, format=value_format)
+            params["loc"] = min_in
+            params["scale"] = max_in - min_in
+            params["c"] = (mode_in - min_in) / (max_in - min_in) if (max_in - min_in) > 0 else 0
+
+        return params
+
     if "Exit Year" in sim_variables:
-        st.sidebar.warning(
-            "Simulating the Exit Year is computationally intensive and will be slower."
-        )
-        exit_year_range = st.sidebar.slider(
-            "Exit Year Range",
-            min_value=1,
-            max_value=20,
-            value=(
-                exit_year - 2 if exit_year > 2 else 1,
-                exit_year + 5,
-            ),
-            step=1,
-        )
-        sim_ranges["exit_year"] = (exit_year_range[0], exit_year_range[1] + 1) # +1 for np.random.randint upper bound
-
+        st.sidebar.warning("Simulating the Exit Year is computationally intensive and will be slower.")
+        sim_param_configs["exit_year"] = get_dist_params("Exit Year", default_dist="Triangular", is_int=True)
     if "Exit Valuation/Price" in sim_variables:
-        if equity_type == EquityType.RSU:
-            valuation_range_M = st.sidebar.slider(
-                "Exit Valuation Range (Millions SAR)",
-                min_value=1,
-                max_value=2000,
-                value=(10, 50),
-                step=1,
-            )
-            sim_ranges["valuation"] = tuple(v * 1_000_000 for v in valuation_range_M)
-        else:
-            price_range = st.sidebar.slider(
-                "Exit Price per Share Range (SAR)",
-                min_value=0.0,
-                max_value=500.0,
-                value=(10.0, 100.0),
-                step=1.0,
-            )
-            sim_ranges["valuation"] = price_range
-
+        label = "Exit Valuation" if equity_type == EquityType.RSU else "Exit Price"
+        default_dist = "Log-Normal" if equity_type == EquityType.RSU else "Triangular"
+        sim_param_configs["valuation"] = get_dist_params(label, default_dist=default_dist)
     if "Annual ROI" in sim_variables:
-        roi_range_pct = st.sidebar.slider(
-            "Annual ROI Range (%)",
-            min_value=0.0,
-            max_value=30.0,
-            value=(3.0, 10.0),
-            step=0.5,
-        )
-        sim_ranges["roi"] = tuple(r / 100 for r in roi_range_pct)
-
+        sim_param_configs["roi"] = get_dist_params("Annual ROI", is_percent=True)
     if "Salary Growth Rate" in sim_variables:
-        growth_range_pct = st.sidebar.slider(
-            "Salary Growth Rate Range (%)",
-            min_value=0.0,
-            max_value=15.0,
-            value=(2.0, 7.0),
-            step=0.5,
-        )
-        sim_ranges["salary_growth"] = tuple(r / 100 for r in growth_range_pct)
+        sim_param_configs["salary_growth"] = get_dist_params("Salary Growth Rate", is_percent=True)
 
 
 # --- Main App UI ---
@@ -488,7 +491,7 @@ if run_simulation:
         sim_results = calculations.run_monte_carlo_simulation(
             num_simulations=num_simulations,
             base_params=base_params,
-            sim_ranges=sim_ranges,
+            sim_param_configs=sim_param_configs,
         )
 
     net_outcomes = sim_results["net_outcomes"]
@@ -571,7 +574,7 @@ if run_simulation:
     with tabs[4]:
         st.subheader("Valuation vs. Net Outcome")
         x_label = "Exit Valuation (SAR)" if equity_type == EquityType.RSU else "Exit Price per Share (SAR)"
-        if "valuation" not in sim_ranges:
+        if "valuation" not in sim_param_configs:
              st.warning("Enable 'Exit Valuation/Price' in the simulation variables to see this plot.")
         else:
             scatter_df = pd.DataFrame(
