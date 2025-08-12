@@ -159,11 +159,11 @@ if equity_type == EquityType.RSU:
     st.sidebar.subheader("Hypothetical Exit Scenario")
     valuation_in_millions = st.sidebar.slider(
         label="Future Valuation (Millions SAR)",
-        min_value=1,
-        max_value=1000,
-        value=25,
-        step=1,
-        format="%dM SAR",
+        min_value=1.0,
+        max_value=1000.0,
+        value=25.0,
+        step=1.0,
+        format="%.1fM SAR",
         help="Your best guess for the startup's total valuation at the time you might sell your shares.",
     )
     rsu_params["target_exit_valuation"] = valuation_in_millions * 1_000_000
@@ -292,7 +292,7 @@ if run_simulation:
         params = {}
         with st.sidebar.expander(f"Configuration for {var_name}"):
             if is_percent:
-                min_val, max_val, default_vals = 0.0, 100.0, (20.0, 80.0)
+                min_val, max_val, default_vals = 0.0, 1.0, (0.2, 0.8)
             elif is_int:
                 min_val, max_val, default_vals = 1, 20, (3, 10)
             else:
