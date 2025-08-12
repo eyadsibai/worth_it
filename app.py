@@ -308,8 +308,8 @@ if run_simulation:
             params["scale"] = st.sidebar.number_input(f"Std Dev / Sigma for {var_name}", value=default_std_dev, format=value_format)
 
         elif dist_name == "Uniform":
-            min_val = 0 if is_percent else 1_000_000
-            max_val = 0.1 if is_percent else 20_000_000
+            min_val = 0.0 if is_percent else 1_000_000.0
+            max_val = 0.1 if is_percent else 20_000_000.0
             if is_int:
                  min_val, max_val = int(min_val), int(max_val)
                  step = 1
@@ -322,9 +322,9 @@ if run_simulation:
             params["scale"] = max_in - min_in
 
         elif dist_name == "Triangular":
-            min_val = 0 if is_percent else 1_000_000
-            mode_val = 0.05 if is_percent else 15_000_000
-            max_val = 0.12 if is_percent else 50_000_000
+            min_val = 0.0 if is_percent else 1_000_000.0
+            mode_val = 0.05 if is_percent else 15_000_000.0
+            max_val = 0.12 if is_percent else 50_000_000.0
             if is_int:
                  min_val, mode_val, max_val = int(min_val), int(mode_val), int(max_val)
                  step = 1
@@ -337,6 +337,16 @@ if run_simulation:
             params["loc"] = min_in
             params["scale"] = max_in - min_in
             params["c"] = (mode_in - min_in) / (max_in - min_in) if (max_in - min_in) > 0 else 0
+        
+        # Add range clipping inputs
+        range_min_val = 0.0 if is_percent else 0.0
+        range_max_val = 1.0 if is_percent else 1_000_000_000.0
+        if is_int:
+            range_min_val, range_max_val = int(range_min_val), int(range_max_val)
+
+        params['clip_min'] = st.sidebar.number_input(f"Min Range for {var_name}", value=range_min_val, format=value_format)
+        params['clip_max'] = st.sidebar.number_input(f"Max Range for {var_name}", value=range_max_val, format=value_format)
+
 
         return params
 

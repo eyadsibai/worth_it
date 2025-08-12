@@ -468,7 +468,7 @@ def run_monte_carlo_simulation_iterative(
         results = calculate_startup_scenario(opportunity_cost_df, sim_startup_params)
         net_outcome = results["final_payout_value"] - results["final_opportunity_cost"]
         net_outcomes.append(net_outcome)
-    
+
     return {
         "net_outcomes": np.array(net_outcomes),
         "simulated_valuations": sim_params["valuation"],
