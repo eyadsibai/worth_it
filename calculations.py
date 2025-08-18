@@ -42,18 +42,33 @@ def create_monthly_data_grid(
     )
     df["MonthlySurplus"] = df["CurrentJobSalary"] - startup_monthly_salary
     df["InvestableSurplus"] = df["MonthlySurplus"].clip(lower=0)
+    df["ExerciseCost"] = 0  # Initialize exercise cost column
 
     return df
 
 
 def calculate_annual_opportunity_cost(
-    monthly_df: pd.DataFrame, annual_roi: float, investment_frequency: str
+    monthly_df: pd.DataFrame,
+    annual_roi: float,
+    investment_frequency: str,
+    options_params: Dict = None,
 ) -> pd.DataFrame:
     """
     Calculates the future value (opportunity cost) of the forgone surplus for each year.
+    Now includes logic to handle the cash outflow of exercising stock options.
     """
     if monthly_df.empty:
         return pd.DataFrame()
+
+    if options_params and options_params.get("exercise_strategy") == "Exercise After Vesting":
+        exercise_year = options_params.get("exercise_year", 0)
+        exercise_month_index = (exercise_year * 12) - 1
+        num_options = options_params.get("num_options", 0)
+        strike_price = options_params.get("strike_price", 0)
+        total_exercise_cost = num_options * strike_price
+
+        if 0 <= exercise_month_index < len(monthly_df):
+            monthly_df.loc[exercise_month_index, "ExerciseCost"] = total_exercise_cost
 
     results_df = pd.DataFrame(
         index=pd.RangeIndex(1, monthly_df["Year"].max() + 1, name="Year")
@@ -68,24 +83,34 @@ def calculate_annual_opportunity_cost(
     opportunity_costs = []
     monthly_roi = annual_to_monthly_roi(annual_roi)
     annual_investable_surplus = monthly_df.groupby("Year")["InvestableSurplus"].sum()
+    annual_exercise_cost = monthly_df.groupby("Year")["ExerciseCost"].sum()
 
     for year_end in results_df.index:
         current_df = monthly_df[monthly_df["Year"] <= year_end]
+        net_monthly_cashflow = (
+            current_df["InvestableSurplus"] - current_df["ExerciseCost"]
+        )
+
         if investment_frequency == "Monthly":
             months_to_grow = (year_end * 12) - current_df.index - 1
-            fv = (
-                current_df["InvestableSurplus"] * (1 + monthly_roi) ** months_to_grow
-            ).sum()
+            fv = (net_monthly_cashflow * (1 + monthly_roi) ** months_to_grow).sum()
         else:  # Annually
-            current_annual_investable = annual_investable_surplus.loc[1:year_end]
-            years_to_grow = year_end - current_annual_investable.index
-            fv = (current_annual_investable * (1 + annual_roi) ** years_to_grow).sum()
+            annual_net_cashflow = (
+                annual_investable_surplus.loc[1:year_end]
+                - annual_exercise_cost.loc[1:year_end]
+            )
+            years_to_grow = year_end - annual_net_cashflow.index
+            fv = (annual_net_cashflow * (1 + annual_roi) ** years_to_grow).sum()
+
         opportunity_costs.append(fv)
 
     results_df["Opportunity Cost (Invested Surplus)"] = opportunity_costs
     results_df["Investment Returns"] = results_df[
         "Opportunity Cost (Invested Surplus)"
-    ] - results_df[principal_col_label].clip(lower=0)
+    ] - (
+        results_df[principal_col_label].clip(lower=0)
+        - annual_exercise_cost.cumsum()
+    )
     results_df["Year"] = results_df.index
     return results_df
 
@@ -338,9 +363,8 @@ def run_monte_carlo_simulation(
     # Using a normal distribution for ROI
     if "roi" in sim_param_configs:
         roi_config = sim_param_configs["roi"]
-        mean_roi = roi_config["mode"]
-        # Approximate std dev from range
-        std_dev_roi = (roi_config["max_val"] - roi_config["min_val"]) / 4
+        mean_roi = roi_config["mean"]
+        std_dev_roi = roi_config["std_dev"]
         sim_params["roi"] = stats.norm.rvs(
             loc=mean_roi, scale=std_dev_roi, size=num_simulations
         )
@@ -488,6 +512,7 @@ def run_monte_carlo_simulation_iterative(
     )
 
     net_outcomes = []
+    final_opportunity_costs = []  # To be used in case of failure
     for i in range(num_simulations):
         exit_year = int(sim_params["exit_year"][i])
         monthly_df = create_monthly_data_grid(
@@ -499,6 +524,9 @@ def run_monte_carlo_simulation_iterative(
 
         opportunity_cost_df = calculate_annual_opportunity_cost(
             monthly_df, sim_params["roi"][i], base_params["investment_frequency"]
+        )
+        final_opportunity_costs.append(
+            opportunity_cost_df["Opportunity Cost (Invested Surplus)"].iloc[-1]
         )
 
         sim_startup_params = base_params["startup_params"].copy()
@@ -526,15 +554,79 @@ def run_monte_carlo_simulation_iterative(
         net_outcomes.append(net_outcome)
 
     net_outcomes = np.array(net_outcomes)
+    final_opportunity_costs = np.array(final_opportunity_costs)
 
     # Incorporate failure probability
     failure_mask = (
         np.random.rand(num_simulations) < base_params["failure_probability"]
     )
-    net_outcomes[failure_mask] = -final_opportunity_cost[failure_mask]
-
+    net_outcomes[failure_mask] = -final_opportunity_costs[failure_mask]
 
     return {
         "net_outcomes": net_outcomes,
         "simulated_valuations": sim_params["valuation"],
     }
+
+
+def run_sensitivity_analysis(
+    base_params: Dict, sim_param_configs: Dict
+) -> pd.DataFrame:
+    """Runs a sensitivity analysis on simulated variables."""
+    impacts = []
+    num_simulations_sensitivity = 500  # A smaller number for faster analysis
+
+    for var, config in sim_param_configs.items():
+        if not config:
+            continue
+
+        low_val = stats.beta.ppf(
+            0.1,
+            a=1
+            + 4 * (config["mode"] - config["min_val"]) / (config["max_val"] - config["min_val"]),
+            b=1
+            + 4 * (config["max_val"] - config["mode"]) / (config["max_val"] - config["min_val"]),
+            loc=config["min_val"],
+            scale=config["max_val"] - config["min_val"],
+        )
+        high_val = stats.beta.ppf(
+            0.9,
+            a=1
+            + 4 * (config["mode"] - config["min_val"]) / (config["max_val"] - config["min_val"]),
+            b=1
+            + 4 * (config["max_val"] - config["mode"]) / (config["max_val"] - config["min_val"]),
+            loc=config["min_val"],
+            scale=config["max_val"] - config["min_val"],
+        )
+
+        # Run with low value
+        low_sim_params = {
+            key: np.full(num_simulations_sensitivity, val["mode"])
+            for key, val in sim_param_configs.items()
+            if key != var
+        }
+        low_sim_params[var] = np.full(num_simulations_sensitivity, low_val)
+        low_results = run_monte_carlo_simulation_vectorized(
+            num_simulations_sensitivity, base_params, low_sim_params
+        )
+        low_mean_outcome = low_results["net_outcomes"].mean()
+
+        # Run with high value
+        high_sim_params = {
+            key: np.full(num_simulations_sensitivity, val["mode"])
+            for key, val in sim_param_configs.items()
+            if key != var
+        }
+        high_sim_params[var] = np.full(num_simulations_sensitivity, high_val)
+        high_results = run_monte_carlo_simulation_vectorized(
+            num_simulations_sensitivity, base_params, high_sim_params
+        )
+        high_mean_outcome = high_results["net_outcomes"].mean()
+
+        impacts.append(
+            {
+                "Variable": var.replace("_", " ").title(),
+                "Impact": high_mean_outcome - low_mean_outcome,
+            }
+        )
+
+    return pd.DataFrame(impacts).sort_values(by="Impact", ascending=False)

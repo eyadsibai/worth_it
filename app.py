@@ -264,6 +264,22 @@ else:  # Stock Options
         help="Your best guess for the price of a single share when you eventually sell.",
     )
 
+    with st.sidebar.expander("Advanced Settings"):
+        options_params["exercise_strategy"] = st.radio(
+            "Option Exercise Strategy",
+            ["Exercise at Exit", "Exercise After Vesting"],
+            help="Choose when to model the cash outflow for exercising your options. Exercising early can have tax advantages but requires cash upfront.",
+        )
+        if options_params["exercise_strategy"] == "Exercise After Vesting":
+            options_params["exercise_year"] = st.slider(
+                "Year of Exercise",
+                min_value=1,
+                max_value=exit_year,
+                value=max(1, total_vesting_years),
+                step=1,
+                help="The year you plan to exercise your vested options. The cost will be subtracted from your invested surplus in that year.",
+            )
+
 st.sidebar.divider()
 
 # --- Monte Carlo Simulation Inputs ---
@@ -276,10 +292,11 @@ sim_param_configs = {}
 if run_simulation:
     st.sidebar.info(
         """
-        **About the Simulation:**
-        This simulation uses various distributions to model uncertainty.
-        For each variable, you'll define a range and a 'most likely' value.
-        The simulation then runs thousands of times to generate a spectrum of possible outcomes.
+        **How the Simulation Works:**
+        Instead of a single guess, this simulation explores thousands of possibilities.
+        - **Startup Valuations** and similar variables are modeled using a **PERT distribution**, which creates a smooth curve based on your min, max, and most likely estimates.
+        - **Investment Returns (ROI)** are modeled using a **Normal distribution**, a standard for financial returns.
+        - **Startup Failure** is modeled as a binary event; in a set percentage of simulations, the equity value will be zero.
         """
     )
     num_simulations = st.sidebar.slider(
@@ -293,7 +310,7 @@ if run_simulation:
             100.0,
             25.0,
             1.0,
-            help="The probability that the startup fails completely, resulting in a total loss of equity value.",
+            help="The probability that the startup fails, resulting in a total loss of equity. Modeled using a Bernoulli distribution (a random chance).",
         )
         / 100.0
     )
@@ -323,6 +340,7 @@ if run_simulation:
         key_prefix,
         format_str,
         multiplier=1.0,
+        help_text="",
     ):
         with st.sidebar.expander(f"Configuration for {label}"):
             range_vals = st.slider(
@@ -333,7 +351,7 @@ if run_simulation:
                 step=step,
                 key=f"{key_prefix}_range",
                 format=format_str,
-                help=f"The minimum and maximum possible values for {label} in the simulation.",
+                help=f"The minimum and maximum possible values for {label}. {help_text}",
             )
             mode_val = st.slider(
                 "Most Likely",
@@ -343,7 +361,7 @@ if run_simulation:
                 step=step,
                 key=f"{key_prefix}_mode",
                 format=format_str,
-                help=f"The single most probable value for {label}. The simulation will generate more outcomes around this value.",
+                help=f"The single most probable value for {label}. {help_text}",
             )
             return {
                 "min_val": range_vals[0] * multiplier,
@@ -351,22 +369,39 @@ if run_simulation:
                 "mode": mode_val * multiplier,
             }
 
+    # Conditional simulation inputs
+    if "Exit Year" in sim_variables:
+        st.sidebar.warning(
+            "Simulating the Exit Year is computationally intensive and will be slower."
+        )
+        sim_param_configs["exit_year"] = create_sim_sliders(
+            label="Exit Year",
+            min_value=1,
+            max_value=20,
+            default_range=(3, 10),
+            default_mode=5,
+            step=1,
+            key_prefix="exit_year",
+            format_str="%d years",
+            help_text="Modeled using a PERT distribution and rounded to the nearest year.",
+        )
+
     if "Exit Valuation/Price" in sim_variables:
-        if "Exit Year" in sim_variables:
+        if "Exit Year" in sim_variables and st.sidebar.checkbox(
+            "Enable Year-Dependent Valuations",
+            help="Set different valuation ranges for different exit years.",
+        ):
             st.sidebar.subheader("Year-Dependent Exit Valuation")
             st.sidebar.info(
-                "Define different valuation ranges for each potential exit year."
+                "Define valuation ranges for each potential exit year. This provides a more nuanced simulation."
             )
             yearly_valuation_configs = {}
-            exit_year_range = sim_param_configs.get(
-                "exit_year", {"min_val": exit_year, "max_val": exit_year}
+            # Correctly get the range from the slider's state
+            exit_year_range_values = st.session_state.get(
+                "exit_year_range", (exit_year, exit_year)
             )
-            min_exit_year = int(
-                exit_year_range.get("min_val", 1)
-            )  # Default min_val if not set
-            max_exit_year = int(
-                exit_year_range.get("max_val", 20)
-            )  # Default max_val if not set
+            min_exit_year = int(exit_year_range_values[0])
+            max_exit_year = int(exit_year_range_values[1])
 
             for year in range(min_exit_year, max_exit_year + 1):
                 with st.sidebar.expander(f"Valuation config for Year {year}"):
@@ -374,19 +409,25 @@ if run_simulation:
                         yearly_valuation_configs[year] = {
                             "min_val": (
                                 st.number_input(
-                                    f"Min Valuation (M SAR) - Year {year}", value=10.0
+                                    "Min Valuation (M SAR)",
+                                    value=float(year * 2),
+                                    key=f"min_val_{year}",
                                 )
                                 * 1_000_000
                             ),
                             "max_val": (
                                 st.number_input(
-                                    f"Max Valuation (M SAR) - Year {year}", value=100.0
+                                    "Max Valuation (M SAR)",
+                                    value=float(year * 20),
+                                    key=f"max_val_{year}",
                                 )
                                 * 1_000_000
                             ),
                             "mode": (
                                 st.number_input(
-                                    f"Most Likely (M SAR) - Year {year}", value=25.0
+                                    "Most Likely (M SAR)",
+                                    value=float(year * 5),
+                                    key=f"mode_val_{year}",
                                 )
                                 * 1_000_000
                             ),
@@ -394,13 +435,19 @@ if run_simulation:
                     else:
                         yearly_valuation_configs[year] = {
                             "min_val": st.number_input(
-                                f"Min Price/Share (SAR) - Year {year}", value=10.0
+                                "Min Price/Share (SAR)",
+                                value=float(year * 2),
+                                key=f"min_price_{year}",
                             ),
                             "max_val": st.number_input(
-                                f"Max Price/Share (SAR) - Year {year}", value=80.0
+                                "Max Price/Share (SAR)",
+                                value=float(year * 15),
+                                key=f"max_price_{year}",
                             ),
                             "mode": st.number_input(
-                                f"Most Likely (SAR) - Year {year}", value=50.0
+                                "Most Likely (SAR)",
+                                value=float(year * 8),
+                                key=f"mode_price_{year}",
                             ),
                         }
             sim_param_configs["yearly_valuation"] = yearly_valuation_configs
@@ -416,6 +463,7 @@ if run_simulation:
                     key_prefix="valuation",
                     format_str="%.1fM SAR",
                     multiplier=1_000_000.0,
+                    help_text="Modeled using a PERT distribution.",
                 )
             else:
                 sim_param_configs["valuation"] = create_sim_sliders(
@@ -427,20 +475,33 @@ if run_simulation:
                     step=0.5,
                     key_prefix="price",
                     format_str="%.2f SAR",
+                    help_text="Modeled using a PERT distribution.",
                 )
 
     if "Annual ROI" in sim_variables:
-        sim_param_configs["roi"] = create_sim_sliders(
-            label="Annual ROI",
-            min_value=0.0,
-            max_value=25.0,
-            default_range=(3.0, 10.0),
-            default_mode=5.4,
-            step=0.1,
-            key_prefix="roi",
-            format_str="%.1f%%",
-            multiplier=0.01,
-        )
+        with st.sidebar.expander("Configuration for Annual ROI"):
+            roi_mean = st.slider(
+                "Average ROI (%)",
+                min_value=0.0,
+                max_value=25.0,
+                value=5.4,
+                step=0.1,
+                key="roi_mean",
+                help="Your best guess for the average annual return. This will be the center of the distribution.",
+            )
+            roi_std_dev = st.slider(
+                "Volatility (Std. Dev %)",
+                min_value=0.0,
+                max_value=15.0,
+                value=4.0,
+                step=0.1,
+                key="roi_std",
+                help="How much you expect the annual return to vary. Higher values mean more risk and wider outcomes. Modeled using a Normal distribution.",
+            )
+            sim_param_configs["roi"] = {
+                "mean": roi_mean / 100.0,
+                "std_dev": roi_std_dev / 100.0,
+            }
 
     if "Salary Growth Rate" in sim_variables:
         sim_param_configs["salary_growth"] = create_sim_sliders(
@@ -453,9 +514,10 @@ if run_simulation:
             key_prefix="growth",
             format_str="%.1f%%",
             multiplier=0.01,
+            help_text="Modeled using a PERT distribution.",
         )
 
-    if "Total Dilution" in sim_variables:
+    if "Total Dilution" in sim_variables and equity_type == EquityType.RSU:
         st.sidebar.info(
             "This simulation will override the detailed, round-by-round dilution modeling."
         )
@@ -469,21 +531,7 @@ if run_simulation:
             key_prefix="dilution",
             format_str="%.1f%%",
             multiplier=0.01,
-        )
-
-    if "Exit Year" in sim_variables:
-        st.sidebar.warning(
-            "Simulating the Exit Year is computationally intensive and will be slower."
-        )
-        sim_param_configs["exit_year"] = create_sim_sliders(
-            label="Exit Year",
-            min_value=1,
-            max_value=20,
-            default_range=(3, 10),
-            default_mode=5,
-            step=1,
-            key_prefix="exit_year",
-            format_str="%d years",
+            help_text="Modeled using a PERT distribution.",
         )
 
 
@@ -552,11 +600,13 @@ if is_clear_win:
 
 if equity_type == EquityType.RSU:
     exit_scenario_text = (
-        f"{format_currency_compact(rsu_params['target_exit_valuation'])} Valuation"
+        f"{format_currency_compact(rsu_params.get('target_exit_valuation', 0))} Valuation"
     )
 else:
-    exit_scenario_text = f"{format_currency_compact(options_params['target_exit_price_per_share'])}/Share"
+    exit_scenario_text = f"{format_currency_compact(options_params.get('target_exit_price_per_share', 0))}/Share"
+
 st.subheader(f"Outcome at End of Year {exit_year} (at {exit_scenario_text})")
+
 
 if equity_type == EquityType.RSU and rsu_params.get("simulate_dilution"):
     col1, col2, col3 = st.columns(3)
@@ -655,6 +705,9 @@ if run_simulation:
         "Scatter Plot",
         "Statistics",
     ]
+    if len(sim_variables) >= 2:
+        tab_titles.append("Sensitivity Analysis")
+
     tabs = st.tabs(tab_titles)
 
     with tabs[0]:
@@ -717,7 +770,10 @@ if run_simulation:
             if equity_type == EquityType.RSU
             else "Exit Price per Share (SAR)"
         )
-        if "valuation" not in sim_param_configs and "yearly_valuation" not in sim_param_configs:
+        if (
+            "valuation" not in sim_param_configs
+            and "yearly_valuation" not in sim_param_configs
+        ):
             st.warning(
                 "Enable 'Exit Valuation/Price' in the simulation variables to see this plot."
             )
@@ -766,6 +822,28 @@ if run_simulation:
                 }
             )
         )
+
+    if len(sim_variables) >= 2:
+        with tabs[6]:
+            st.subheader("Sensitivity Analysis (Tornado Chart)")
+            st.info(
+                "This chart shows how much each variable, from its low end (10th percentile) to its high end (90th percentile), impacts the final net outcome. The most influential variables are at the top."
+            )
+            with st.spinner("Running sensitivity analysis..."):
+                sensitivity_results = calculations.run_sensitivity_analysis(
+                    base_params=base_params, sim_param_configs=sim_param_configs
+                )
+
+                fig_tornado = px.bar(
+                    sensitivity_results,
+                    x="Impact",
+                    y="Variable",
+                    orientation="h",
+                    title="Impact of Variables on Net Outcome",
+                    labels={"Impact": "Range of Net Outcome (SAR)"},
+                )
+                fig_tornado.update_layout(yaxis={"categoryorder": "total ascending"})
+                st.plotly_chart(fig_tornado, use_container_width=True)
 
 
 # --- Detailed Breakdown Section ---
