@@ -277,13 +277,25 @@ if run_simulation:
     st.sidebar.info(
         """
         **About the Simulation:**
-        This simulation uses a **Triangular Distribution** to model uncertainty.
-        For each variable you select, you'll define a **minimum**, **maximum**, and **most likely** value.
-        The simulation then runs thousands of times, each time picking a random value from the specified range for each variable, allowing you to see a full spectrum of possible financial outcomes.
+        This simulation uses various distributions to model uncertainty.
+        For each variable, you'll define a range and a 'most likely' value.
+        The simulation then runs thousands of times to generate a spectrum of possible outcomes.
         """
     )
     num_simulations = st.sidebar.slider(
         "Number of Simulations", 100, 10000, 1000, 100, key="num_simulations"
+    )
+
+    failure_probability = (
+        st.sidebar.slider(
+            "Risk of Complete Failure (%)",
+            0.0,
+            100.0,
+            25.0,
+            1.0,
+            help="The probability that the startup fails completely, resulting in a total loss of equity value.",
+        )
+        / 100.0
     )
 
     sim_options = [
@@ -301,7 +313,6 @@ if run_simulation:
         default=["Exit Valuation/Price", "Annual ROI"],
     )
 
-    # Reusable function to create sliders for a given parameter
     def create_sim_sliders(
         label,
         min_value,
@@ -341,29 +352,82 @@ if run_simulation:
             }
 
     if "Exit Valuation/Price" in sim_variables:
-        if equity_type == EquityType.RSU:
-            sim_param_configs["valuation"] = create_sim_sliders(
-                label="Exit Valuation",
-                min_value=1.0,
-                max_value=1000.0,
-                default_range=(10.0, 100.0),
-                default_mode=25.0,
-                step=1.0,
-                key_prefix="valuation",
-                format_str="%.1fM SAR",
-                multiplier=1_000_000.0,
+        if "Exit Year" in sim_variables:
+            st.sidebar.subheader("Year-Dependent Exit Valuation")
+            st.sidebar.info(
+                "Define different valuation ranges for each potential exit year."
             )
+            yearly_valuation_configs = {}
+            exit_year_range = sim_param_configs.get(
+                "exit_year", {"min_val": exit_year, "max_val": exit_year}
+            )
+            min_exit_year = int(
+                exit_year_range.get("min_val", 1)
+            )  # Default min_val if not set
+            max_exit_year = int(
+                exit_year_range.get("max_val", 20)
+            )  # Default max_val if not set
+
+            for year in range(min_exit_year, max_exit_year + 1):
+                with st.sidebar.expander(f"Valuation config for Year {year}"):
+                    if equity_type == EquityType.RSU:
+                        yearly_valuation_configs[year] = {
+                            "min_val": (
+                                st.number_input(
+                                    f"Min Valuation (M SAR) - Year {year}", value=10.0
+                                )
+                                * 1_000_000
+                            ),
+                            "max_val": (
+                                st.number_input(
+                                    f"Max Valuation (M SAR) - Year {year}", value=100.0
+                                )
+                                * 1_000_000
+                            ),
+                            "mode": (
+                                st.number_input(
+                                    f"Most Likely (M SAR) - Year {year}", value=25.0
+                                )
+                                * 1_000_000
+                            ),
+                        }
+                    else:
+                        yearly_valuation_configs[year] = {
+                            "min_val": st.number_input(
+                                f"Min Price/Share (SAR) - Year {year}", value=10.0
+                            ),
+                            "max_val": st.number_input(
+                                f"Max Price/Share (SAR) - Year {year}", value=80.0
+                            ),
+                            "mode": st.number_input(
+                                f"Most Likely (SAR) - Year {year}", value=50.0
+                            ),
+                        }
+            sim_param_configs["yearly_valuation"] = yearly_valuation_configs
         else:
-            sim_param_configs["valuation"] = create_sim_sliders(
-                label="Exit Price per Share",
-                min_value=0.0,
-                max_value=200.0,
-                default_range=(10.0, 80.0),
-                default_mode=50.0,
-                step=0.5,
-                key_prefix="price",
-                format_str="%.2f SAR",
-            )
+            if equity_type == EquityType.RSU:
+                sim_param_configs["valuation"] = create_sim_sliders(
+                    label="Exit Valuation",
+                    min_value=1.0,
+                    max_value=1000.0,
+                    default_range=(10.0, 100.0),
+                    default_mode=25.0,
+                    step=1.0,
+                    key_prefix="valuation",
+                    format_str="%.1fM SAR",
+                    multiplier=1_000_000.0,
+                )
+            else:
+                sim_param_configs["valuation"] = create_sim_sliders(
+                    label="Exit Price per Share",
+                    min_value=0.0,
+                    max_value=200.0,
+                    default_range=(10.0, 80.0),
+                    default_mode=50.0,
+                    step=0.5,
+                    key_prefix="price",
+                    format_str="%.2f SAR",
+                )
 
     if "Annual ROI" in sim_variables:
         sim_param_configs["roi"] = create_sim_sliders(
@@ -555,6 +619,7 @@ if run_simulation:
         "annual_roi": annual_roi,
         "investment_frequency": investment_frequency,
         "startup_params": startup_params,
+        "failure_probability": failure_probability,  # Add failure probability
     }
 
     spinner_text = f"Running {num_simulations} simulations..."
@@ -652,7 +717,7 @@ if run_simulation:
             if equity_type == EquityType.RSU
             else "Exit Price per Share (SAR)"
         )
-        if "valuation" not in sim_param_configs:
+        if "valuation" not in sim_param_configs and "yearly_valuation" not in sim_param_configs:
             st.warning(
                 "Enable 'Exit Valuation/Price' in the simulation variables to see this plot."
             )
