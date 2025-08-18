@@ -75,6 +75,16 @@ def calculate_annual_opportunity_cost(
         if 0 <= exercise_month_index < len(monthly_df_copy):
             monthly_df_copy.loc[exercise_month_index, "ExerciseCost"] = total_exercise_cost
 
+    if monthly_df_copy.empty:
+        return pd.DataFrame(
+            columns=[
+                "Principal Forgone",
+                "Opportunity Cost (Invested Surplus)",
+                "Investment Returns",
+                "Year",
+            ]
+        )
+
     results_df = pd.DataFrame(
         index=pd.RangeIndex(1, monthly_df_copy["Year"].max() + 1, name="Year")
     )
@@ -355,15 +365,18 @@ def run_monte_carlo_simulation(
     sim_param_configs: Dict[str, Any],
 ) -> Dict[str, np.ndarray]:
     """
-    Runs a flexible, vectorized Monte Carlo simulation.
+    Prepares parameters and runs the appropriate Monte Carlo simulation.
     """
+    # If exit year is simulated, the calculation must be iterative.
     if "exit_year" in sim_param_configs:
         return run_monte_carlo_simulation_iterative(
             num_simulations, base_params, sim_param_configs
         )
 
+    # --- Prepare a complete sim_params dictionary for vectorization ---
     sim_params = {}
-    # Handle ROI separately as it uses a Normal distribution
+
+    # Handle ROI (Normal distribution)
     if "roi" in sim_param_configs:
         roi_config = sim_param_configs["roi"]
         sim_params["roi"] = stats.norm.rvs(
@@ -372,24 +385,36 @@ def run_monte_carlo_simulation(
     else:
         sim_params["roi"] = np.full(num_simulations, base_params["annual_roi"])
 
-    # Handle other variables with PERT distribution
-    for var, config in sim_param_configs.items():
-        if var != "roi":
-            default_val = 0
-            if var == "valuation":
-                default_val = base_params["startup_params"]["rsu_params"].get(
-                    "target_exit_valuation"
-                ) or base_params["startup_params"]["options_params"].get(
-                    "target_exit_price_per_share"
-                )
-            elif var == "salary_growth":
-                default_val = base_params["current_job_salary_growth_rate"]
-            elif var == "dilution":
-                default_val = np.nan
+    # Handle Valuation (PERT distribution)
+    if "valuation" in sim_param_configs:
+        sim_params["valuation"] = get_random_variates_pert(
+            num_simulations, sim_param_configs["valuation"], 0
+        )
+    else:
+        default_valuation = base_params["startup_params"]["rsu_params"].get(
+            "target_exit_valuation"
+        ) or base_params["startup_params"]["options_params"].get(
+            "target_exit_price_per_share"
+        )
+        sim_params["valuation"] = np.full(num_simulations, default_valuation)
 
-            sim_params[var] = get_random_variates_pert(
-                num_simulations, config, default_val
-            )
+    # Handle Salary Growth (PERT distribution)
+    if "salary_growth" in sim_param_configs:
+        sim_params["salary_growth"] = get_random_variates_pert(
+            num_simulations, sim_param_configs["salary_growth"], 0
+        )
+    else:
+        sim_params["salary_growth"] = np.full(
+            num_simulations, base_params["current_job_salary_growth_rate"]
+        )
+
+    # Handle Dilution (PERT distribution)
+    if "dilution" in sim_param_configs:
+        sim_params["dilution"] = get_random_variates_pert(
+            num_simulations, sim_param_configs["dilution"], np.nan
+        )
+    else:
+        sim_params["dilution"] = np.full(num_simulations, np.nan)
 
     return run_monte_carlo_simulation_vectorized(
         num_simulations, base_params, sim_params
@@ -622,6 +647,12 @@ def run_sensitivity_analysis(
                 base_case_sim_params[other_var] = np.full(
                     num_simulations_sensitivity, other_config["mode"]
                 )
+        # Ensure all required keys are present, falling back to base_params if not simulated
+        if "salary_growth" not in base_case_sim_params:
+            base_case_sim_params["salary_growth"] = np.full(
+                num_simulations_sensitivity,
+                base_params["current_job_salary_growth_rate"],
+            )
 
         # --- Run with low value ---
         low_sim_params = base_case_sim_params.copy()
