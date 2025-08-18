@@ -60,20 +60,25 @@ def calculate_annual_opportunity_cost(
     if monthly_df.empty:
         return pd.DataFrame()
 
-    if options_params and options_params.get("exercise_strategy") == "Exercise After Vesting":
+    monthly_df_copy = monthly_df.copy()
+
+    if (
+        options_params
+        and options_params.get("exercise_strategy") == "Exercise After Vesting"
+    ):
         exercise_year = options_params.get("exercise_year", 0)
         exercise_month_index = (exercise_year * 12) - 1
         num_options = options_params.get("num_options", 0)
         strike_price = options_params.get("strike_price", 0)
         total_exercise_cost = num_options * strike_price
 
-        if 0 <= exercise_month_index < len(monthly_df):
-            monthly_df.loc[exercise_month_index, "ExerciseCost"] = total_exercise_cost
+        if 0 <= exercise_month_index < len(monthly_df_copy):
+            monthly_df_copy.loc[exercise_month_index, "ExerciseCost"] = total_exercise_cost
 
     results_df = pd.DataFrame(
-        index=pd.RangeIndex(1, monthly_df["Year"].max() + 1, name="Year")
+        index=pd.RangeIndex(1, monthly_df_copy["Year"].max() + 1, name="Year")
     )
-    annual_surplus = monthly_df.groupby("Year")["MonthlySurplus"].sum()
+    annual_surplus = monthly_df_copy.groupby("Year")["MonthlySurplus"].sum()
     principal_col_label = (
         "Principal Forgone" if annual_surplus.sum() >= 0 else "Salary Gain"
     )
@@ -82,11 +87,13 @@ def calculate_annual_opportunity_cost(
 
     opportunity_costs = []
     monthly_roi = annual_to_monthly_roi(annual_roi)
-    annual_investable_surplus = monthly_df.groupby("Year")["InvestableSurplus"].sum()
-    annual_exercise_cost = monthly_df.groupby("Year")["ExerciseCost"].sum()
+    annual_investable_surplus = monthly_df_copy.groupby("Year")[
+        "InvestableSurplus"
+    ].sum()
+    annual_exercise_cost = monthly_df_copy.groupby("Year")["ExerciseCost"].sum()
 
     for year_end in results_df.index:
-        current_df = monthly_df[monthly_df["Year"] <= year_end]
+        current_df = monthly_df_copy[monthly_df_copy["Year"] <= year_end]
         net_monthly_cashflow = (
             current_df["InvestableSurplus"] - current_df["ExerciseCost"]
         )
@@ -95,10 +102,10 @@ def calculate_annual_opportunity_cost(
             months_to_grow = (year_end * 12) - current_df.index - 1
             fv = (net_monthly_cashflow * (1 + monthly_roi) ** months_to_grow).sum()
         else:  # Annually
-            annual_net_cashflow = (
-                annual_investable_surplus.loc[1:year_end]
-                - annual_exercise_cost.loc[1:year_end]
-            )
+            # Ensure series are aligned and handle missing years with fill_value=0
+            annual_net_cashflow = annual_investable_surplus.reindex(
+                range(1, year_end + 1), fill_value=0
+            ) - annual_exercise_cost.reindex(range(1, year_end + 1), fill_value=0)
             years_to_grow = year_end - annual_net_cashflow.index
             fv = (annual_net_cashflow * (1 + annual_roi) ** years_to_grow).sum()
 
@@ -109,8 +116,9 @@ def calculate_annual_opportunity_cost(
         "Opportunity Cost (Invested Surplus)"
     ] - (
         results_df[principal_col_label].clip(lower=0)
-        - annual_exercise_cost.cumsum()
+        - annual_exercise_cost.reindex(results_df.index, fill_value=0).cumsum()
     )
+
     results_df["Year"] = results_df.index
     return results_df
 
@@ -169,7 +177,7 @@ def calculate_startup_scenario(
 
     if equity_type.value == "Equity (RSUs)":
         rsu_params = startup_params["rsu_params"]
-        initial_equity_pct = rsu_params["equity_pct"]
+        initial_equity_pct = rsu_params.get("equity_pct", 0.0)
         diluted_equity_pct = initial_equity_pct
         total_dilution = 0.0
 
@@ -203,7 +211,7 @@ def calculate_startup_scenario(
             results_df["Vested Equity (%)"].iloc[-1] / 100
         ) * initial_equity_pct
         final_payout_value = (
-            rsu_params["target_exit_valuation"]
+            rsu_params.get("target_exit_valuation", 0)
             * final_vested_equity_pct
             * (1 - total_dilution)
         )
@@ -237,13 +245,13 @@ def calculate_startup_scenario(
 
     else:  # Stock Options
         options_params = startup_params["options_params"]
-        num_options = options_params["num_options"]
-        strike_price = options_params["strike_price"]
+        num_options = options_params.get("num_options", 0)
+        strike_price = options_params.get("strike_price", 0)
 
         vested_options_series = (results_df["Vested Equity (%)"] / 100) * num_options
 
         final_payout_value = (
-            max(0, options_params["target_exit_price_per_share"] - strike_price)
+            max(0, options_params.get("target_exit_price_per_share", 0) - strike_price)
             * vested_options_series.iloc[-1]
         )
 
@@ -328,7 +336,10 @@ def get_random_variates_pert(
 
     min_val, max_val, mode = config["min_val"], config["max_val"], config["mode"]
 
-    # The 'gamma' parameter in PERT is typically 4, but can be adjusted.
+    # Handle the case where max_val equals min_val
+    if max_val == min_val:
+        return np.full(num_simulations, min_val)
+
     gamma = 4.0
     alpha = 1 + gamma * (mode - min_val) / (max_val - min_val)
     beta = 1 + gamma * (max_val - mode) / (max_val - min_val)
@@ -352,33 +363,33 @@ def run_monte_carlo_simulation(
         )
 
     sim_params = {}
-    sim_params["valuation"] = get_random_variates_pert(
-        num_simulations,
-        sim_param_configs.get("valuation"),
-        base_params["startup_params"]["rsu_params"].get("target_exit_valuation")
-        or base_params["startup_params"]["options_params"].get(
-            "target_exit_price_per_share"
-        ),
-    )
-    # Using a normal distribution for ROI
+    # Handle ROI separately as it uses a Normal distribution
     if "roi" in sim_param_configs:
         roi_config = sim_param_configs["roi"]
-        mean_roi = roi_config["mean"]
-        std_dev_roi = roi_config["std_dev"]
         sim_params["roi"] = stats.norm.rvs(
-            loc=mean_roi, scale=std_dev_roi, size=num_simulations
+            loc=roi_config["mean"], scale=roi_config["std_dev"], size=num_simulations
         )
     else:
         sim_params["roi"] = np.full(num_simulations, base_params["annual_roi"])
 
-    sim_params["salary_growth"] = get_random_variates_pert(
-        num_simulations,
-        sim_param_configs.get("salary_growth"),
-        base_params["current_job_salary_growth_rate"],
-    )
-    sim_params["dilution"] = get_random_variates_pert(
-        num_simulations, sim_param_configs.get("dilution"), np.nan
-    )
+    # Handle other variables with PERT distribution
+    for var, config in sim_param_configs.items():
+        if var != "roi":
+            default_val = 0
+            if var == "valuation":
+                default_val = base_params["startup_params"]["rsu_params"].get(
+                    "target_exit_valuation"
+                ) or base_params["startup_params"]["options_params"].get(
+                    "target_exit_price_per_share"
+                )
+            elif var == "salary_growth":
+                default_val = base_params["current_job_salary_growth_rate"]
+            elif var == "dilution":
+                default_val = np.nan
+
+            sim_params[var] = get_random_variates_pert(
+                num_simulations, config, default_val
+            )
 
     return run_monte_carlo_simulation_vectorized(
         num_simulations, base_params, sim_params
@@ -428,7 +439,7 @@ def run_monte_carlo_simulation_vectorized(
     if startup_params["equity_type"].value == "Equity (RSUs)":
         rsu_params = startup_params["rsu_params"]
 
-        if not np.all(np.isnan(sim_params["dilution"])):
+        if "dilution" in sim_params and not np.all(np.isnan(sim_params["dilution"])):
             cumulative_dilution = 1 - sim_params["dilution"]
         else:
             cumulative_dilution = 1.0
@@ -439,15 +450,15 @@ def run_monte_carlo_simulation_vectorized(
                     if r["year"] <= exit_year:
                         cumulative_dilution *= 1 - r.get("dilution", 0)
 
-        final_equity_pct = rsu_params["equity_pct"] * cumulative_dilution
+        final_equity_pct = rsu_params.get("equity_pct", 0.0) * cumulative_dilution
         final_payout_value = (
             sim_params["valuation"] * final_equity_pct * final_vested_pct
         )
     else:
         options_params = startup_params["options_params"]
-        final_vested_options = options_params["num_options"] * final_vested_pct
+        final_vested_options = options_params.get("num_options", 0) * final_vested_pct
         profit_per_share = np.maximum(
-            0, sim_params["valuation"] - options_params["strike_price"]
+            0, sim_params["valuation"] - options_params.get("strike_price", 0)
         )
         final_payout_value = profit_per_share * final_vested_options
 
@@ -461,7 +472,7 @@ def run_monte_carlo_simulation_vectorized(
 
     return {
         "net_outcomes": net_outcomes,
-        "simulated_valuations": sim_params["valuation"],
+        "simulated_valuations": sim_params.get("valuation", np.array([])),
     }
 
 
@@ -482,26 +493,28 @@ def run_monte_carlo_simulation_iterative(
         yearly_valuation = sim_param_configs["yearly_valuation"]
         valuations = []
         for year in sim_params["exit_year"]:
+            # Ensure year is treated as a string key
             config = yearly_valuation.get(
-                year, list(yearly_valuation.values())[0]
-            )  # Fallback to first config
+                str(year), list(yearly_valuation.values())[0]
+            )
             valuations.append(
                 get_random_variates_pert(1, config, config["mode"])[0]
             )
         sim_params["valuation"] = np.array(valuations)
-    else:
+    elif "valuation" in sim_param_configs:
         sim_params["valuation"] = get_random_variates_pert(
-            num_simulations,
-            sim_param_configs.get("valuation"),
-            base_params["startup_params"]["rsu_params"].get("target_exit_valuation")
-            or base_params["startup_params"]["options_params"].get(
-                "target_exit_price_per_share"
-            ),
+            num_simulations, sim_param_configs["valuation"], 0
         )
 
-    sim_params["roi"] = get_random_variates_pert(
-        num_simulations, sim_param_configs.get("roi"), base_params["annual_roi"]
-    )
+    # Handle other variables
+    if "roi" in sim_param_configs:
+        roi_config = sim_param_configs["roi"]
+        sim_params["roi"] = stats.norm.rvs(
+            loc=roi_config["mean"], scale=roi_config["std_dev"], size=num_simulations
+        )
+    else:
+        sim_params["roi"] = np.full(num_simulations, base_params["annual_roi"])
+
     sim_params["salary_growth"] = get_random_variates_pert(
         num_simulations,
         sim_param_configs.get("salary_growth"),
@@ -512,11 +525,11 @@ def run_monte_carlo_simulation_iterative(
     )
 
     net_outcomes = []
-    final_opportunity_costs = []  # To be used in case of failure
+    final_opportunity_costs = []
     for i in range(num_simulations):
-        exit_year = int(sim_params["exit_year"][i])
+        exit_year_sim = int(sim_params["exit_year"][i])
         monthly_df = create_monthly_data_grid(
-            exit_year,
+            exit_year_sim,
             base_params["current_job_monthly_salary"],
             base_params["startup_monthly_salary"],
             sim_params["salary_growth"][i],
@@ -530,7 +543,7 @@ def run_monte_carlo_simulation_iterative(
         )
 
         sim_startup_params = base_params["startup_params"].copy()
-        sim_startup_params["exit_year"] = exit_year
+        sim_startup_params["exit_year"] = exit_year_sim
         dilution_val = sim_params["dilution"][i]
         sim_startup_params["simulated_dilution"] = (
             dilution_val if not np.isnan(dilution_val) else None
@@ -545,9 +558,9 @@ def run_monte_carlo_simulation_iterative(
             sim_startup_params["options_params"] = sim_startup_params[
                 "options_params"
             ].copy()
-            sim_startup_params["options_params"]["target_exit_price_per_share"] = (
-                sim_params["valuation"][i]
-            )
+            sim_startup_params["options_params"][
+                "target_exit_price_per_share"
+            ] = sim_params["valuation"][i]
 
         results = calculate_startup_scenario(opportunity_cost_df, sim_startup_params)
         net_outcome = results["final_payout_value"] - results["final_opportunity_cost"]
@@ -564,7 +577,7 @@ def run_monte_carlo_simulation_iterative(
 
     return {
         "net_outcomes": net_outcomes,
-        "simulated_valuations": sim_params["valuation"],
+        "simulated_valuations": sim_params.get("valuation", np.array([])),
     }
 
 
@@ -573,49 +586,53 @@ def run_sensitivity_analysis(
 ) -> pd.DataFrame:
     """Runs a sensitivity analysis on simulated variables."""
     impacts = []
-    num_simulations_sensitivity = 500  # A smaller number for faster analysis
+    num_simulations_sensitivity = 500
 
-    for var, config in sim_param_configs.items():
-        if not config:
-            continue
+    simulated_vars = {
+        k: v for k, v in sim_param_configs.items() if v
+    }  # Filter out empty configs
 
-        low_val = stats.beta.ppf(
-            0.1,
-            a=1
-            + 4 * (config["mode"] - config["min_val"]) / (config["max_val"] - config["min_val"]),
-            b=1
-            + 4 * (config["max_val"] - config["mode"]) / (config["max_val"] - config["min_val"]),
-            loc=config["min_val"],
-            scale=config["max_val"] - config["min_val"],
-        )
-        high_val = stats.beta.ppf(
-            0.9,
-            a=1
-            + 4 * (config["mode"] - config["min_val"]) / (config["max_val"] - config["min_val"]),
-            b=1
-            + 4 * (config["max_val"] - config["mode"]) / (config["max_val"] - config["min_val"]),
-            loc=config["min_val"],
-            scale=config["max_val"] - config["min_val"],
-        )
+    for var, config in simulated_vars.items():
+        # --- Determine low and high values based on distribution ---
+        if "mean" in config:  # Normal distribution for ROI
+            low_val = stats.norm.ppf(0.1, loc=config["mean"], scale=config["std_dev"])
+            high_val = stats.norm.ppf(0.9, loc=config["mean"], scale=config["std_dev"])
+        else:  # PERT distribution for others
+            min_val, max_val, mode = config["min_val"], config["max_val"], config["mode"]
+            if max_val == min_val:
+                continue
+            gamma = 4.0
+            alpha = 1 + gamma * (mode - min_val) / (max_val - min_val)
+            beta = 1 + gamma * (max_val - mode) / (max_val - min_val)
+            low_val = stats.beta.ppf(
+                0.1, a=alpha, b=beta, loc=min_val, scale=max_val - min_val
+            )
+            high_val = stats.beta.ppf(
+                0.9, a=alpha, b=beta, loc=min_val, scale=max_val - min_val
+            )
 
-        # Run with low value
-        low_sim_params = {
-            key: np.full(num_simulations_sensitivity, val["mode"])
-            for key, val in sim_param_configs.items()
-            if key != var
-        }
+        # --- Base case (all others at mode/mean) ---
+        base_case_sim_params = {}
+        for other_var, other_config in simulated_vars.items():
+            if "mean" in other_config:
+                base_case_sim_params[other_var] = np.full(
+                    num_simulations_sensitivity, other_config["mean"]
+                )
+            else:
+                base_case_sim_params[other_var] = np.full(
+                    num_simulations_sensitivity, other_config["mode"]
+                )
+
+        # --- Run with low value ---
+        low_sim_params = base_case_sim_params.copy()
         low_sim_params[var] = np.full(num_simulations_sensitivity, low_val)
         low_results = run_monte_carlo_simulation_vectorized(
             num_simulations_sensitivity, base_params, low_sim_params
         )
         low_mean_outcome = low_results["net_outcomes"].mean()
 
-        # Run with high value
-        high_sim_params = {
-            key: np.full(num_simulations_sensitivity, val["mode"])
-            for key, val in sim_param_configs.items()
-            if key != var
-        }
+        # --- Run with high value ---
+        high_sim_params = base_case_sim_params.copy()
         high_sim_params[var] = np.full(num_simulations_sensitivity, high_val)
         high_results = run_monte_carlo_simulation_vectorized(
             num_simulations_sensitivity, base_params, high_sim_params
@@ -625,6 +642,8 @@ def run_sensitivity_analysis(
         impacts.append(
             {
                 "Variable": var.replace("_", " ").title(),
+                "Low": low_mean_outcome,
+                "High": high_mean_outcome,
                 "Impact": high_mean_outcome - low_mean_outcome,
             }
         )

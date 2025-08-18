@@ -280,6 +280,7 @@ else:  # Stock Options
                 help="The year you plan to exercise your vested options. The cost will be subtracted from your invested surplus in that year.",
             )
 
+
 st.sidebar.divider()
 
 # --- Monte Carlo Simulation Inputs ---
@@ -387,16 +388,19 @@ if run_simulation:
         )
 
     if "Exit Valuation/Price" in sim_variables:
-        if "Exit Year" in sim_variables and st.sidebar.checkbox(
-            "Enable Year-Dependent Valuations",
-            help="Set different valuation ranges for different exit years.",
-        ):
+        use_yearly_valuation = False
+        if "Exit Year" in sim_variables:
+            use_yearly_valuation = st.sidebar.checkbox(
+                "Enable Year-Dependent Valuations",
+                help="Set different valuation ranges for different exit years.",
+            )
+
+        if use_yearly_valuation:
             st.sidebar.subheader("Year-Dependent Exit Valuation")
             st.sidebar.info(
                 "Define valuation ranges for each potential exit year. This provides a more nuanced simulation."
             )
             yearly_valuation_configs = {}
-            # Correctly get the range from the slider's state
             exit_year_range_values = st.session_state.get(
                 "exit_year_range", (exit_year, exit_year)
             )
@@ -406,7 +410,7 @@ if run_simulation:
             for year in range(min_exit_year, max_exit_year + 1):
                 with st.sidebar.expander(f"Valuation config for Year {year}"):
                     if equity_type == EquityType.RSU:
-                        yearly_valuation_configs[year] = {
+                        yearly_valuation_configs[str(year)] = {
                             "min_val": (
                                 st.number_input(
                                     "Min Valuation (M SAR)",
@@ -433,7 +437,7 @@ if run_simulation:
                             ),
                         }
                     else:
-                        yearly_valuation_configs[year] = {
+                        yearly_valuation_configs[str(year)] = {
                             "min_val": st.number_input(
                                 "Min Price/Share (SAR)",
                                 value=float(year * 2),
@@ -559,6 +563,7 @@ opportunity_cost_df = calculations.calculate_annual_opportunity_cost(
     monthly_df=monthly_df,
     annual_roi=annual_roi,
     investment_frequency=investment_frequency,
+    options_params=options_params,
 )
 startup_params = {
     "equity_type": equity_type,
@@ -612,7 +617,7 @@ if equity_type == EquityType.RSU and rsu_params.get("simulate_dilution"):
     col1, col2, col3 = st.columns(3)
     col1.metric(
         "Initial Equity Grant",
-        f"{rsu_params['equity_pct']:.2%}",
+        f"{rsu_params.get('equity_pct', 0):.2%}",
         help="The percentage of the company you were initially offered.",
     )
     col2.metric(
@@ -669,7 +674,7 @@ if run_simulation:
         "annual_roi": annual_roi,
         "investment_frequency": investment_frequency,
         "startup_params": startup_params,
-        "failure_probability": failure_probability,  # Add failure probability
+        "failure_probability": failure_probability,
     }
 
     spinner_text = f"Running {num_simulations} simulations..."
