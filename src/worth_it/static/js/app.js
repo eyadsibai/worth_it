@@ -40,9 +40,16 @@ const basePlotLayout = {
   },
 };
 
+const debounce = (fn, delay = 400) => {
+  let timeoutId;
+  return (...args) => {
+    window.clearTimeout(timeoutId);
+    timeoutId = window.setTimeout(() => fn.apply(null, args), delay);
+  };
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   const scenarioForm = document.getElementById("scenarioForm");
-  const recalcButton = document.getElementById("recalculateButton");
   const calculateButton = document.getElementById("calculateButton");
   const simulateButton = document.getElementById("simulateButton");
   const errorMessage = document.getElementById("errorMessage");
@@ -111,6 +118,26 @@ document.addEventListener("DOMContentLoaded", () => {
   const ctx = document.getElementById("projectionChart").getContext("2d");
   let projectionChart;
   let lastSimulationConfig = { includeValuation: false };
+  let isCalculating = false;
+  let pendingAutoRecalc = false;
+
+  const shouldIgnoreAutoRecalc = (target) => {
+    if (!target) return false;
+    if (target.closest(".simulation-config")) {
+      return true;
+    }
+    return target.id === "enableSimulation";
+  };
+
+  const triggerAutoRecalculate = () => {
+    if (isCalculating) {
+      pendingAutoRecalc = true;
+      return;
+    }
+    scenarioForm.requestSubmit();
+  };
+
+  const scheduleAutoRecalculate = debounce(triggerAutoRecalculate, 450);
 
   const initialiseChart = () => {
     projectionChart = new Chart(ctx, {
@@ -171,7 +198,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const setCalculatingState = (isLoading) => {
     calculateButton.disabled = isLoading;
-    recalcButton.disabled = isLoading;
     calculateButton.textContent = isLoading ? "Calculating..." : "Calculate scenario";
   };
 
@@ -276,12 +302,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const removeButton = document.createElement("button");
     removeButton.type = "button";
     removeButton.textContent = "Remove";
+
+    const yearField = createInput("Round year", yearInput);
+    const dilutionField = createInput("Dilution (%)", dilutionInput);
+
+    const notifyChange = () => scheduleAutoRecalculate();
+    yearInput.addEventListener("input", notifyChange);
+    yearInput.addEventListener("change", triggerAutoRecalculate);
+    dilutionInput.addEventListener("input", notifyChange);
+    dilutionInput.addEventListener("change", triggerAutoRecalculate);
+
     removeButton.addEventListener("click", () => {
       dilutionList.removeChild(container);
+      triggerAutoRecalculate();
     });
 
-    container.appendChild(createInput("Round year", yearInput));
-    container.appendChild(createInput("Dilution (%)", dilutionInput));
+    container.appendChild(yearField);
+    container.appendChild(dilutionField);
     container.appendChild(removeButton);
     dilutionList.appendChild(container);
   };
@@ -320,18 +357,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const units = equityTypeSelect.value === "Equity (RSUs)" ? "SAR millions" : "SAR";
 
-    container.appendChild(createInput("Exit year", yearInput));
-    container.appendChild(createInput(`Min (${units})`, minInput));
-    container.appendChild(createInput(`Mode (${units})`, modeInput));
-    container.appendChild(createInput(`Max (${units})`, maxInput));
+    const yearField = createInput("Exit year", yearInput);
+    const minField = createInput(`Min (${units})`, minInput);
+    const modeField = createInput(`Mode (${units})`, modeInput);
+    const maxField = createInput(`Max (${units})`, maxInput);
+
+    const notifyChange = () => scheduleAutoRecalculate();
+    yearInput.addEventListener("input", notifyChange);
+    yearInput.addEventListener("change", triggerAutoRecalculate);
+    minInput.addEventListener("input", notifyChange);
+    minInput.addEventListener("change", triggerAutoRecalculate);
+    modeInput.addEventListener("input", notifyChange);
+    modeInput.addEventListener("change", triggerAutoRecalculate);
+    maxInput.addEventListener("input", notifyChange);
+    maxInput.addEventListener("change", triggerAutoRecalculate);
 
     const removeButton = document.createElement("button");
     removeButton.type = "button";
     removeButton.textContent = "Remove";
     removeButton.addEventListener("click", () => {
       valuationYearlyConfig.removeChild(container);
+      triggerAutoRecalculate();
     });
 
+    container.appendChild(yearField);
+    container.appendChild(minField);
+    container.appendChild(modeField);
+    container.appendChild(maxField);
     container.appendChild(removeButton);
     valuationYearlyConfig.appendChild(container);
   };
@@ -815,8 +867,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const submitCalculation = async (event) => {
     event.preventDefault();
     errorMessage.textContent = "";
+    if (isCalculating) {
+      pendingAutoRecalc = true;
+      return;
+    }
+
     try {
       const payload = collectBaseInputs(false);
+      isCalculating = true;
       setCalculatingState(true);
       const response = await fetch("/calculate", {
         method: "POST",
@@ -835,7 +893,12 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error(error);
       errorMessage.textContent = error.message;
     } finally {
+      isCalculating = false;
       setCalculatingState(false);
+      if (pendingAutoRecalc) {
+        pendingAutoRecalc = false;
+        triggerAutoRecalculate();
+      }
     }
   };
 
@@ -883,17 +946,23 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  recalcButton.addEventListener("click", () => scenarioForm.requestSubmit());
   scenarioForm.addEventListener("submit", submitCalculation);
   simulateButton.addEventListener("click", runSimulation);
 
   equityTypeSelect.addEventListener("change", () => {
     updateEquityFields();
     updateSimulationFieldVisibility();
+    triggerAutoRecalculate();
   });
 
-  simulateDilutionCheckbox.addEventListener("change", updateDilutionVisibility);
-  exerciseStrategy.addEventListener("change", toggleExerciseYear);
+  simulateDilutionCheckbox.addEventListener("change", () => {
+    updateDilutionVisibility();
+    triggerAutoRecalculate();
+  });
+  exerciseStrategy.addEventListener("change", () => {
+    toggleExerciseYear();
+    scheduleAutoRecalculate();
+  });
   enableSimulation.addEventListener("change", updateSimulationVisibility);
 
   simulateValuation.addEventListener("change", updateSimulationFieldVisibility);
@@ -914,6 +983,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   addDilutionRoundButton.addEventListener("click", () => addDilutionRound({ year: "", dilution: "" }));
   addValuationYearButton.addEventListener("click", () => addValuationYearRow());
+
+  scenarioForm.addEventListener("input", (event) => {
+    if (shouldIgnoreAutoRecalc(event.target)) {
+      return;
+    }
+    scheduleAutoRecalculate();
+  });
+
+  scenarioForm.addEventListener("change", (event) => {
+    if (shouldIgnoreAutoRecalc(event.target)) {
+      return;
+    }
+    triggerAutoRecalculate();
+  });
 
   initialiseChart();
   updateEquityFields();
