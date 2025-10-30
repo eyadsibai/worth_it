@@ -250,7 +250,14 @@ class SimulationSummary:
                 float(np.round(v, 2)) for v in self.simulated_valuations
             ],
             "sensitivity": [
-                {key: float(np.round(val, 2)) for key, val in row.items()}
+                {
+                    key: (
+                        float(np.round(val, 2))
+                        if isinstance(val, (int, float, np.floating))
+                        else val
+                    )
+                    for key, val in row.items()
+                }
                 for row in self.sensitivity
             ],
             "stats": {key: float(np.round(val, 2)) for key, val in self.stats.items()},
