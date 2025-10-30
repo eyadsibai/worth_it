@@ -6,10 +6,11 @@ This module uses pytest to test the functions in the 'calculations' module.
 import numpy as np
 import pandas as pd
 import pytest
+from fastapi.testclient import TestClient
 
 # Assuming your calculations module is in the same directory or accessible via PYTHONPATH
 from worth_it import calculations
-from worth_it.app import EquityType
+from worth_it.app import EquityType, app
 
 
 # --- Test Fixtures ---
@@ -218,3 +219,49 @@ def test_run_monte_carlo_iterative_for_exit_year(monte_carlo_base_params):
     )
     assert len(results["net_outcomes"]) == num_simulations
     assert not np.isnan(results["net_outcomes"]).any()
+
+
+def test_simulation_endpoint_handles_yearly_valuations():
+    """Year-specific valuation inputs should not break the simulation endpoint."""
+
+    client = TestClient(app)
+    payload = {
+        "inputs": {
+            "current_salary": 30000,
+            "startup_salary": 20000,
+            "salary_growth_rate": 0.03,
+            "annual_roi": 0.054,
+            "exit_year": 7,
+            "investment_frequency": "Monthly",
+            "equity_type": "Equity (RSUs)",
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "rsu_params": {
+                "equity_pct": 0.05,
+                "target_exit_valuation": 25_000_000,
+                "simulate_dilution": False,
+                "dilution_rounds": [],
+            },
+            "options_params": None,
+            "failure_probability": 0.1,
+        },
+        "num_simulations": 200,
+        "simulation_params": {
+            "yearly_valuation": {
+                "5": {"min_val": 15_000_000, "mode": 20_000_000, "max_val": 25_000_000},
+                "6": {"min_val": 20_000_000, "mode": 26_000_000, "max_val": 32_000_000},
+            },
+            "roi": {"mean": 0.05, "std_dev": 0.02},
+            "exit_year": {"min_val": 5, "mode": 7, "max_val": 9},
+        },
+    }
+
+    response = client.post("/simulate", json=payload)
+    assert response.status_code == 200
+    body = response.json()
+    assert isinstance(body["net_outcomes"], list)
+    # Sensitivity should include only the supported variables (ROI / Exit Year)
+    assert all(
+        row["Variable"] in {"Roi", "Exit Year"}
+        for row in body.get("sensitivity", [])
+    )

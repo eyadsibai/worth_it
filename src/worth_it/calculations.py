@@ -644,16 +644,25 @@ def run_sensitivity_analysis(
     impacts = []
     num_simulations_sensitivity = 500
 
-    simulated_vars = {
-        k: v for k, v in sim_param_configs.items() if v
-    }  # Filter out empty configs
+    simulated_vars = {}
+    for var, config in sim_param_configs.items():
+        if not config:
+            continue
+        # Year-specific valuation ranges are represented as nested dictionaries
+        # rather than a single distribution. They cannot be reduced to a low/high
+        # pair for the one-at-a-time sensitivity sweep, so we skip them.
+        if var == "yearly_valuation":
+            continue
+        simulated_vars[var] = config
+
+    default_valuation = get_default_exit_valuation(base_params)
 
     for var, config in simulated_vars.items():
         # --- Determine low and high values based on distribution ---
         if "mean" in config:  # Normal distribution for ROI
             low_val = stats.norm.ppf(0.1, loc=config["mean"], scale=config["std_dev"])
             high_val = stats.norm.ppf(0.9, loc=config["mean"], scale=config["std_dev"])
-        else:  # PERT distribution for others
+        elif {"min_val", "max_val", "mode"}.issubset(config):  # PERT distribution for others
             min_val, max_val, mode = config["min_val"], config["max_val"], config["mode"]
             if max_val == min_val:
                 continue
@@ -666,6 +675,9 @@ def run_sensitivity_analysis(
             high_val = stats.beta.ppf(
                 0.9, a=alpha, b=beta, loc=min_val, scale=max_val - min_val
             )
+        else:
+            # Unsupported configuration shape – skip instead of erroring out.
+            continue
 
         # --- Base case (all others at mode/mean) ---
         base_case_sim_params = {}
@@ -683,6 +695,10 @@ def run_sensitivity_analysis(
             base_case_sim_params["salary_growth"] = np.full(
                 num_simulations_sensitivity,
                 base_params["current_job_salary_growth_rate"],
+            )
+        if "valuation" not in base_case_sim_params:
+            base_case_sim_params["valuation"] = np.full(
+                num_simulations_sensitivity, default_valuation
             )
 
         # --- Run with low value ---
@@ -709,5 +725,8 @@ def run_sensitivity_analysis(
                 "Impact": high_mean_outcome - low_mean_outcome,
             }
         )
+
+    if not impacts:
+        return pd.DataFrame(columns=["Variable", "Low", "High", "Impact"])
 
     return pd.DataFrame(impacts).sort_values(by="Impact", ascending=False)
