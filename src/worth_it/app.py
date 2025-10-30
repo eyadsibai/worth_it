@@ -18,6 +18,17 @@ from pydantic import BaseModel, Field, model_validator
 from . import calculations
 
 
+def _round_numeric(value: Any, decimals: int = 2) -> Any:
+    """Round numeric inputs while leaving non-numeric values untouched."""
+
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return value
+
+    return float(np.round(numeric, decimals))
+
+
 class EquityType(str, Enum):
     """Enum describing the available equity packages."""
 
@@ -214,7 +225,7 @@ class CalculationResult:
                     {
                         **row,
                         **{
-                            key: float(np.round(value, 2))
+                            key: _round_numeric(value, 2)
                             for key, value in row.items()
                             if key != "year"
                         },
@@ -250,17 +261,10 @@ class SimulationSummary:
                 float(np.round(v, 2)) for v in self.simulated_valuations
             ],
             "sensitivity": [
-                {
-                    key: (
-                        float(np.round(val, 2))
-                        if isinstance(val, (int, float, np.floating))
-                        else val
-                    )
-                    for key, val in row.items()
-                }
+                {key: _round_numeric(val, 2) for key, val in row.items()}
                 for row in self.sensitivity
             ],
-            "stats": {key: float(np.round(val, 2)) for key, val in self.stats.items()},
+            "stats": {key: _round_numeric(val, 2) for key, val in self.stats.items()},
         }
 
 
