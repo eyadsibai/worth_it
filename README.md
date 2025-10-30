@@ -8,7 +8,7 @@ Install the dependencies and run the API using Uvicorn:
 
 ```bash
 uv pip install -e .
-uv run uvicorn app:app --reload
+uv run uvicorn worth_it.app:app --reload
 ```
 
 The dashboard is available at [http://localhost:8000](http://localhost:8000).
@@ -16,10 +16,13 @@ The dashboard is available at [http://localhost:8000](http://localhost:8000).
 ## Project Structure
 
 ```
-calculations.py      # Core financial calculations
-app.py               # FastAPI app and REST endpoints
-static/              # Front-end assets (CSS + JavaScript)
-templates/           # Jinja2 templates for the dashboard shell
+src/
+  worth_it/
+    __init__.py
+    calculations.py      # Core financial calculations
+    app.py               # FastAPI app and REST endpoints
+    static/              # Front-end assets (CSS + JavaScript)
+    templates/           # Jinja2 templates for the dashboard shell
 ```
 
 Unit tests focus on the calculation engine:

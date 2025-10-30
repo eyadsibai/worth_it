@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "worth-it-temp"
 version = "0.1.0"
@@ -16,3 +20,16 @@ dependencies = [
     "scipy>=1.15.3",
     "uvicorn[standard]>=0.32.1",
 ]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"worth_it" = ["static/**/*", "templates/**/*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

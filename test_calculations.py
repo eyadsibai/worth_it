@@ -8,8 +8,8 @@ import pandas as pd
 import pytest
 
 # Assuming your calculations module is in the same directory or accessible via PYTHONPATH
-import calculations
-from app import EquityType
+from worth_it import calculations
+from worth_it.app import EquityType
 
 
 # --- Test Fixtures ---

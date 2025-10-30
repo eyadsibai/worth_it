@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from enum import Enum
+from importlib import resources
 from pathlib import Path
 from typing import Literal
 
@@ -19,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
-import calculations
+from . import calculations
 
 
 class EquityType(str, Enum):
@@ -93,7 +94,7 @@ class CalculationRequest(BaseModel):
     )
 
 
-BASE_DIR = Path(__file__).parent
+BASE_DIR = Path(resources.files(__package__))
 app = FastAPI(title="Worth It Financial Simulator", version="2.0.0")
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
