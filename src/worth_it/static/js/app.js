@@ -364,6 +364,45 @@ document.addEventListener("DOMContentLoaded", () => {
     return configs;
   };
 
+  const safeReadResponse = async (response) => {
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      try {
+        return await response.json();
+      } catch (error) {
+        console.warn("Failed to parse JSON response", error);
+      }
+    }
+    try {
+      return await response.text();
+    } catch (error) {
+      console.warn("Failed to read response body", error);
+      return "";
+    }
+  };
+
+  const extractErrorMessage = (body, fallback) => {
+    if (!body) {
+      return fallback;
+    }
+    if (typeof body === "string") {
+      return body.trim() || fallback;
+    }
+    if (typeof body === "object" && body.detail) {
+      if (Array.isArray(body.detail)) {
+        const message = body.detail
+          .map((entry) => (typeof entry?.msg === "string" ? entry.msg : ""))
+          .filter(Boolean)
+          .join(". ");
+        return message || fallback;
+      }
+      if (typeof body.detail === "string") {
+        return body.detail;
+      }
+    }
+    return fallback;
+  };
+
   const collectBaseInputs = (includeFailureProbability = false) => {
     const currentSalary = parseNumber(document.getElementById("currentSalary").value);
     const salaryGrowth = parseNumber(document.getElementById("salaryGrowth").value) / 100;
@@ -784,11 +823,14 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const result = await response.json();
+      const body = await safeReadResponse(response);
       if (!response.ok) {
-        throw new Error(result.detail || "Unable to complete the calculation.");
+        throw new Error(extractErrorMessage(body, "Unable to complete the calculation."));
       }
-      updateOverview(result);
+      if (!body || typeof body !== "object") {
+        throw new Error("Unexpected response from the calculation service.");
+      }
+      updateOverview(body);
     } catch (error) {
       console.error(error);
       errorMessage.textContent = error.message;
@@ -825,11 +867,14 @@ document.addEventListener("DOMContentLoaded", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ inputs, num_simulations: numSimulations, simulation_params: simulationParams }),
       });
-      const result = await response.json();
+      const body = await safeReadResponse(response);
       if (!response.ok) {
-        throw new Error(result.detail || "Simulation failed. Please review your inputs.");
+        throw new Error(extractErrorMessage(body, "Simulation failed. Please review your inputs."));
       }
-      renderSimulation(result);
+      if (!body || typeof body !== "object") {
+        throw new Error("Unexpected response from the simulation service.");
+      }
+      renderSimulation(body);
     } catch (error) {
       console.error(error);
       errorMessage.textContent = error.message;
