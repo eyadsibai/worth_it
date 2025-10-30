@@ -129,15 +129,9 @@ document.addEventListener("DOMContentLoaded", () => {
     return target.id === "enableSimulation";
   };
 
-  const triggerAutoRecalculate = () => {
-    if (isCalculating) {
-      pendingAutoRecalc = true;
-      return;
-    }
-    scenarioForm.requestSubmit();
-  };
-
-  const scheduleAutoRecalculate = debounce(triggerAutoRecalculate, 450);
+  const scheduleAutoRecalculate = debounce(() => {
+    triggerAutoRecalculate();
+  }, 450);
 
   const initialiseChart = () => {
     projectionChart = new Chart(ctx, {
@@ -864,8 +858,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const submitCalculation = async (event) => {
-    event.preventDefault();
+  const executeCalculation = async () => {
     errorMessage.textContent = "";
     if (isCalculating) {
       pendingAutoRecalc = true;
@@ -900,6 +893,17 @@ document.addEventListener("DOMContentLoaded", () => {
         triggerAutoRecalculate();
       }
     }
+  };
+
+  const triggerAutoRecalculate = () => {
+    executeCalculation();
+  };
+
+  const submitCalculation = async (event) => {
+    if (event) {
+      event.preventDefault();
+    }
+    await executeCalculation();
   };
 
   const runSimulation = async () => {
@@ -947,6 +951,10 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   scenarioForm.addEventListener("submit", submitCalculation);
+  calculateButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    submitCalculation();
+  });
   simulateButton.addEventListener("click", runSimulation);
 
   equityTypeSelect.addEventListener("change", () => {
@@ -1004,5 +1012,5 @@ document.addEventListener("DOMContentLoaded", () => {
   toggleExerciseYear();
   updateSimulationVisibility();
   updateSimulationFieldVisibility();
-  scenarioForm.requestSubmit();
+  executeCalculation();
 });
