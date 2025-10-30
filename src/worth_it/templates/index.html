@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Worth It – Financial Journey Sandbox</title>
+    <title>Worth It – Financial Journey Simulator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -12,130 +12,433 @@
     />
     <link rel="stylesheet" href="/static/css/styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" defer></script>
     <script src="/static/js/app.js" defer></script>
   </head>
   <body>
     <main class="page">
-      <section class="hero">
+      <header class="hero">
         <div>
           <p class="eyebrow">Your Financial Journey Sandbox</p>
           <h1>Compare career paths with confidence.</h1>
           <p class="subtitle">
-            Model your current role against a potential startup offer to see how the
-            future could play out across salaries, equity, and investment returns.
+            Model your current role against a potential startup offer to see how salaries,
+            equity, investment returns, and risk may evolve over time.
           </p>
         </div>
         <button class="primary-action" id="recalculateButton" type="button">
-          Recalculate Journey
+          Recalculate Scenario
         </button>
-      </section>
+      </header>
 
-      <section class="layout">
-        <div class="panel panel--chart">
-          <header class="panel__header">
-            <div>
-              <p class="label">Projected Net Worth</p>
-              <h2 id="projectedNetWorth">SAR 0</h2>
-              <p class="muted" id="growthLabel">&nbsp;</p>
-            </div>
-            <div class="legend">
-              <span class="legend__item legend__item--current">Current Path</span>
-              <span class="legend__item legend__item--startup">Startup Path</span>
-            </div>
-          </header>
-          <div class="panel__body">
-            <canvas id="projectionChart" aria-label="Projected net worth chart" role="img"></canvas>
-          </div>
-        </div>
+      <section class="main-grid">
+        <section class="panel panel--form">
+          <form id="scenarioForm">
+            <h2 class="panel__title">1. Configure your scenarios</h2>
 
-        <div class="panel panel--metrics">
-          <div class="metric">
-            <p class="metric__label">Net Outcome</p>
-            <p class="metric__value" id="netOutcome">SAR 0</p>
-            <span class="metric__helper">Difference at exit</span>
-          </div>
-          <div class="metric">
-            <p class="metric__label">Net Present Value</p>
-            <p class="metric__value" id="npvValue">SAR 0</p>
-            <span class="metric__helper">Discounted to today</span>
-          </div>
-          <div class="metric">
-            <p class="metric__label">Internal Rate of Return</p>
-            <p class="metric__value" id="irrValue">0%</p>
-            <span class="metric__helper">Annualised</span>
-          </div>
-          <div class="metric">
-            <p class="metric__label">Diluted Equity</p>
-            <p class="metric__value" id="dilutedEquity">0%</p>
-            <span class="metric__helper" id="dilutionHelper">No dilution applied</span>
-          </div>
-        </div>
+            <fieldset>
+              <legend>Current role</legend>
+              <div class="form-grid">
+                <label>
+                  <span>Monthly salary (SAR)</span>
+                  <input type="number" id="currentSalary" min="0" step="500" value="30000" required />
+                </label>
+                <label>
+                  <span>Annual salary growth (%)</span>
+                  <input type="number" id="salaryGrowth" min="0" step="0.1" value="3" />
+                </label>
+                <label>
+                  <span>Annual ROI on surplus (%)</span>
+                  <input type="number" id="annualRoi" min="0" step="0.1" value="5.4" />
+                </label>
+                <label>
+                  <span>Investment frequency</span>
+                  <select id="investmentFrequency">
+                    <option value="Monthly" selected>Monthly</option>
+                    <option value="Annually">Annually</option>
+                  </select>
+                </label>
+              </div>
+            </fieldset>
 
-        <aside class="panel panel--form">
-          <form id="financialForm">
-            <div class="form-group">
-              <label for="currentSalary">Current Salary (Monthly SAR)</label>
-              <input type="number" id="currentSalary" name="currentSalary" min="0" step="500" value="30000" required />
-            </div>
-            <div class="form-group">
-              <label for="salaryGrowth">Annual Salary Growth (%)</label>
-              <input type="number" id="salaryGrowth" name="salaryGrowth" min="0" step="0.5" value="3" />
-            </div>
-            <div class="form-group">
-              <label for="startupSalary">Startup Salary (Monthly SAR)</label>
-              <input type="number" id="startupSalary" name="startupSalary" min="0" step="500" value="20000" required />
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="exitYear">Years to Exit</label>
-                <input type="number" id="exitYear" name="exitYear" min="1" max="20" value="5" />
+            <fieldset>
+              <legend>Startup offer</legend>
+              <div class="form-grid">
+                <label>
+                  <span>Startup salary (monthly SAR)</span>
+                  <input type="number" id="startupSalary" min="0" step="500" value="20000" required />
+                </label>
+                <label>
+                  <span>Equity type</span>
+                  <select id="equityType">
+                    <option value="Equity (RSUs)" selected>Equity (RSUs)</option>
+                    <option value="Stock Options">Stock Options</option>
+                  </select>
+                </label>
               </div>
-              <div class="form-group">
-                <label for="annualRoi">Annual ROI (%)</label>
-                <input type="number" id="annualRoi" name="annualRoi" min="0" step="0.1" value="5.4" />
+
+              <div id="rsuFields" class="form-grid">
+                <label>
+                  <span>Total equity grant (%)</span>
+                  <input type="number" id="equityPct" min="0" step="0.1" value="5" />
+                </label>
+                <label>
+                  <span>Exit valuation (SAR millions)</span>
+                  <input type="number" id="exitValuation" min="1" step="1" value="25" />
+                </label>
+                <label class="checkbox">
+                  <input type="checkbox" id="simulateDilution" checked />
+                  <span>Model future dilution from fundraising</span>
+                </label>
               </div>
-            </div>
-            <div class="form-group">
-              <label for="investmentFrequency">Investment Frequency</label>
-              <select id="investmentFrequency" name="investmentFrequency">
-                <option value="Monthly">Monthly</option>
-                <option value="Annually">Annually</option>
-              </select>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="equityPct">Equity Grant (%)</label>
-                <input type="number" id="equityPct" name="equityPct" min="0" step="0.1" value="5" />
+
+              <div id="dilutionConfig" class="card">
+                <div class="card__header">
+                  <h3>Fundraising rounds</h3>
+                  <button type="button" class="text-button" id="addDilutionRound">Add round</button>
+                </div>
+                <p class="card__helper">
+                  Add each funding round to capture the dilution impact across Series A, B, C...
+                </p>
+                <div id="dilutionRounds" class="repeatable-list"></div>
               </div>
-              <div class="form-group">
-                <label for="exitValuation">Exit Valuation (SAR millions)</label>
-                <input type="number" id="exitValuation" name="exitValuation" min="1" step="1" value="25" />
+
+              <div id="optionsFields" class="form-grid hidden">
+                <label>
+                  <span>Number of options</span>
+                  <input type="number" id="numOptions" min="0" step="100" value="1000" />
+                </label>
+                <label>
+                  <span>Strike price (SAR)</span>
+                  <input type="number" id="strikePrice" min="0" step="0.1" value="0.25" />
+                </label>
+                <label>
+                  <span>Exit price per share (SAR)</span>
+                  <input type="number" id="exitPrice" min="0" step="0.5" value="50" />
+                </label>
+                <label>
+                  <span>Exercise strategy</span>
+                  <select id="exerciseStrategy">
+                    <option value="Exercise at Exit" selected>Exercise at Exit</option>
+                    <option value="Exercise After Vesting">Exercise After Vesting</option>
+                  </select>
+                </label>
+                <label id="exerciseYearGroup" class="hidden">
+                  <span>Year of exercise</span>
+                  <input type="number" id="exerciseYear" min="1" max="40" value="4" />
+                </label>
               </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="vestingYears">Vesting Period (Years)</label>
-                <input type="number" id="vestingYears" name="vestingYears" min="1" max="10" value="4" />
+            </fieldset>
+
+            <fieldset>
+              <legend>Timeline</legend>
+              <div class="form-grid">
+                <label>
+                  <span>Years to exit</span>
+                  <input type="number" id="exitYear" min="1" max="40" value="5" />
+                </label>
+                <label>
+                  <span>Total vesting period (years)</span>
+                  <input type="number" id="vestingYears" min="1" max="15" value="4" />
+                </label>
+                <label>
+                  <span>Cliff (years)</span>
+                  <input type="number" id="cliffYears" min="0" max="5" value="1" />
+                </label>
               </div>
-              <div class="form-group">
-                <label for="cliffYears">Cliff (Years)</label>
-                <input type="number" id="cliffYears" name="cliffYears" min="0" max="5" value="1" />
+            </fieldset>
+
+            <fieldset>
+              <legend>Monte Carlo simulation</legend>
+              <label class="checkbox">
+                <input type="checkbox" id="enableSimulation" />
+                <span>Run Monte Carlo simulation (What-if analysis)</span>
+              </label>
+
+              <div id="simulationConfig" class="simulation-config hidden">
+                <div class="form-grid">
+                  <label>
+                    <span>Number of simulations</span>
+                    <input type="number" id="numSimulations" min="100" max="20000" step="100" value="1000" />
+                  </label>
+                  <label>
+                    <span>Risk of complete failure (%)</span>
+                    <input type="number" id="failureProbability" min="0" max="100" step="1" value="25" />
+                  </label>
+                </div>
+
+                <div class="simulation-options">
+                  <h3>Variables to simulate</h3>
+                  <label class="checkbox">
+                    <input type="checkbox" id="simulateValuation" checked />
+                    <span>Exit valuation / share price</span>
+                  </label>
+                  <label class="checkbox">
+                    <input type="checkbox" id="simulateRoi" checked />
+                    <span>Annual ROI on surplus</span>
+                  </label>
+                  <label class="checkbox">
+                    <input type="checkbox" id="simulateSalaryGrowth" />
+                    <span>Salary growth rate</span>
+                  </label>
+                  <label class="checkbox">
+                    <input type="checkbox" id="simulateExitYear" />
+                    <span>Exit year</span>
+                  </label>
+                  <label class="checkbox" id="simulateDilutionWrapper">
+                    <input type="checkbox" id="simulateDilutionTotal" />
+                    <span>Total dilution</span>
+                  </label>
+                </div>
+
+                <div id="valuationConfig" class="card">
+                  <div class="card__header">
+                    <h3>Exit valuation distribution (PERT)</h3>
+                    <label class="checkbox">
+                      <input type="checkbox" id="useYearlyValuation" />
+                      <span>Specify valuation ranges per exit year</span>
+                    </label>
+                  </div>
+                  <div class="form-grid" id="valuationRangeFields">
+                    <label>
+                      <span id="valuationMinLabel">Min (SAR millions)</span>
+                      <input type="number" id="valuationMin" min="0" step="1" value="10" />
+                    </label>
+                    <label>
+                      <span id="valuationModeLabel">Most likely (SAR millions)</span>
+                      <input type="number" id="valuationMode" min="0" step="1" value="25" />
+                    </label>
+                    <label>
+                      <span id="valuationMaxLabel">Max (SAR millions)</span>
+                      <input type="number" id="valuationMax" min="0" step="1" value="100" />
+                    </label>
+                  </div>
+                  <div id="valuationYearlyConfig" class="repeatable-list hidden"></div>
+                  <button type="button" class="text-button hidden" id="addValuationYear">
+                    Add valuation year
+                  </button>
+                </div>
+
+                <div id="roiConfig" class="card">
+                  <h3>Annual ROI distribution (Normal)</h3>
+                  <div class="form-grid">
+                    <label>
+                      <span>Mean (%)</span>
+                      <input type="number" id="roiMean" min="0" max="50" step="0.1" value="5.4" />
+                    </label>
+                    <label>
+                      <span>Standard deviation (%)</span>
+                      <input type="number" id="roiStd" min="0" max="30" step="0.1" value="4" />
+                    </label>
+                  </div>
+                </div>
+
+                <div id="salaryConfig" class="card hidden">
+                  <h3>Salary growth distribution (PERT)</h3>
+                  <div class="form-grid">
+                    <label>
+                      <span>Min (%)</span>
+                      <input type="number" id="salaryMin" min="0" step="0.1" value="2" />
+                    </label>
+                    <label>
+                      <span>Most likely (%)</span>
+                      <input type="number" id="salaryMode" min="0" step="0.1" value="3" />
+                    </label>
+                    <label>
+                      <span>Max (%)</span>
+                      <input type="number" id="salaryMax" min="0" step="0.1" value="7" />
+                    </label>
+                  </div>
+                </div>
+
+                <div id="exitYearConfig" class="card hidden">
+                  <h3>Exit year distribution (PERT)</h3>
+                  <div class="form-grid">
+                    <label>
+                      <span>Earliest year</span>
+                      <input type="number" id="exitYearMin" min="1" max="40" value="3" />
+                    </label>
+                    <label>
+                      <span>Most likely year</span>
+                      <input type="number" id="exitYearMode" min="1" max="40" value="5" />
+                    </label>
+                    <label>
+                      <span>Latest year</span>
+                      <input type="number" id="exitYearMax" min="1" max="40" value="10" />
+                    </label>
+                  </div>
+                </div>
+
+                <div id="dilutionTotalConfig" class="card hidden">
+                  <h3>Total dilution distribution (PERT)</h3>
+                  <div class="form-grid">
+                    <label>
+                      <span>Min (%)</span>
+                      <input type="number" id="dilutionMin" min="0" max="90" step="1" value="30" />
+                    </label>
+                    <label>
+                      <span>Most likely (%)</span>
+                      <input type="number" id="dilutionMode" min="0" max="90" step="1" value="50" />
+                    </label>
+                    <label>
+                      <span>Max (%)</span>
+                      <input type="number" id="dilutionMax" min="0" max="90" step="1" value="70" />
+                    </label>
+                  </div>
+                  <p class="card__helper">
+                    When simulating total dilution we override the detailed fundraising rounds above.
+                  </p>
+                </div>
               </div>
+            </fieldset>
+
+            <div class="form-actions">
+              <button type="submit" class="primary-action primary-action--full" id="calculateButton">
+                Calculate scenario
+              </button>
+              <button type="button" class="secondary-action" id="simulateButton">
+                Run Monte Carlo
+              </button>
+              <p class="form-helper" id="errorMessage" role="alert" aria-live="assertive"></p>
             </div>
-            <div class="form-group form-group--checkbox">
-              <input type="checkbox" id="simulateDilution" name="simulateDilution" />
-              <label for="simulateDilution">Simulate Dilution</label>
-            </div>
-            <div class="form-group" id="dilutionInput" hidden>
-              <label for="dilutionPct">Total Dilution (%)</label>
-              <input type="number" id="dilutionPct" name="dilutionPct" min="0" max="100" step="1" value="10" />
-            </div>
-            <button class="primary-action primary-action--full" type="submit">
-              Recalculate Journey
-            </button>
-            <p class="form-helper" id="errorMessage" role="alert" aria-live="assertive"></p>
           </form>
-        </aside>
+        </section>
+
+        <section class="results-column">
+          <section class="panel panel--metrics">
+            <h2 class="panel__title">2. Results overview</h2>
+            <div id="decisionBanner" class="banner" hidden></div>
+            <div class="metrics-grid">
+              <div class="metric">
+                <p class="metric__label" id="payoutLabel">Your Equity Value</p>
+                <p class="metric__value" id="payoutValue">SAR 0</p>
+              </div>
+              <div class="metric">
+                <p class="metric__label">Opportunity Cost</p>
+                <p class="metric__value" id="opportunityCostValue">SAR 0</p>
+              </div>
+              <div class="metric">
+                <p class="metric__label">Net Outcome</p>
+                <p class="metric__value" id="netOutcome">SAR 0</p>
+              </div>
+              <div class="metric">
+                <p class="metric__label">Net Present Value</p>
+                <p class="metric__value" id="npvValue">SAR 0</p>
+              </div>
+              <div class="metric">
+                <p class="metric__label">Internal Rate of Return</p>
+                <p class="metric__value" id="irrValue">0%</p>
+              </div>
+              <div class="metric">
+                <p class="metric__label">Diluted Equity</p>
+                <p class="metric__value" id="dilutedEquity">0%</p>
+                <span class="metric__helper" id="dilutionHelper">No dilution applied</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel panel--chart">
+            <header class="panel__header">
+              <div>
+                <p class="label">Projected net worth</p>
+                <h2 id="projectedNetWorth">SAR 0</h2>
+                <p class="muted" id="growthLabel">Configure your scenario to see projections.</p>
+              </div>
+              <div class="legend">
+                <span class="legend__item legend__item--current">Current path</span>
+                <span class="legend__item legend__item--startup">Startup path</span>
+              </div>
+            </header>
+            <div class="panel__body">
+              <canvas id="projectionChart" aria-label="Projected net worth" role="img"></canvas>
+            </div>
+          </section>
+
+          <section class="panel panel--breakdown" id="breakdownPanel">
+            <header class="panel__header">
+              <div>
+                <p class="label">Year-by-year breakdown</p>
+                <h2>How the journey unfolds</h2>
+              </div>
+            </header>
+            <div class="panel__body">
+              <table id="breakdownTable">
+                <thead>
+                  <tr>
+                    <th>Year</th>
+                    <th id="principalColumn">Principal Forgone</th>
+                    <th>Opportunity Cost</th>
+                    <th>Investment Returns</th>
+                    <th id="vestedColumn">Vested Equity</th>
+                    <th id="breakevenColumn">Breakeven</th>
+                    <th id="dilutionColumn" class="hidden">Dilution factor</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel panel--simulation hidden" id="simulationPanel">
+            <header class="panel__header">
+              <div>
+                <p class="label">3. Monte Carlo results</p>
+                <h2>Understanding the distribution of outcomes</h2>
+              </div>
+            </header>
+            <div class="panel__body simulation-content">
+              <div class="metrics-grid" id="simulationSummary">
+                <div class="metric">
+                  <p class="metric__label">Chance of positive outcome</p>
+                  <p class="metric__value" id="probabilityPositive">0%</p>
+                </div>
+                <div class="metric">
+                  <p class="metric__label">Average net outcome</p>
+                  <p class="metric__value" id="meanOutcome">SAR 0</p>
+                </div>
+                <div class="metric">
+                  <p class="metric__label">Median net outcome</p>
+                  <p class="metric__value" id="medianOutcome">SAR 0</p>
+                </div>
+                <div class="metric">
+                  <p class="metric__label">Standard deviation</p>
+                  <p class="metric__value" id="stdOutcome">SAR 0</p>
+                </div>
+              </div>
+
+              <div class="chart-grid">
+                <div class="chart-card">
+                  <h3>Distribution of net outcomes</h3>
+                  <div id="histogramChart" class="plot"></div>
+                </div>
+                <div class="chart-card">
+                  <h3>Probability density</h3>
+                  <div id="densityChart" class="plot"></div>
+                </div>
+                <div class="chart-card">
+                  <h3>Box plot</h3>
+                  <div id="boxChart" class="plot"></div>
+                </div>
+                <div class="chart-card">
+                  <h3>Cumulative probability (ECDF)</h3>
+                  <div id="ecdfChart" class="plot"></div>
+                </div>
+                <div class="chart-card">
+                  <h3>Valuation vs net outcome</h3>
+                  <div id="scatterChart" class="plot"></div>
+                </div>
+                <div class="chart-card">
+                  <h3>Detailed statistics</h3>
+                  <table id="simulationStats"></table>
+                </div>
+                <div class="chart-card hidden" id="sensitivityCard">
+                  <h3>Sensitivity analysis</h3>
+                  <div id="sensitivityChart" class="plot"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
       </section>
     </main>
   </body>
