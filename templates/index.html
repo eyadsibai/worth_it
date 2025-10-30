@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Worth It – Financial Journey Sandbox</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/css/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+    <script src="/static/js/app.js" defer></script>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Your Financial Journey Sandbox</p>
+          <h1>Compare career paths with confidence.</h1>
+          <p class="subtitle">
+            Model your current role against a potential startup offer to see how the
+            future could play out across salaries, equity, and investment returns.
+          </p>
+        </div>
+        <button class="primary-action" id="recalculateButton" type="button">
+          Recalculate Journey
+        </button>
+      </section>
+
+      <section class="layout">
+        <div class="panel panel--chart">
+          <header class="panel__header">
+            <div>
+              <p class="label">Projected Net Worth</p>
+              <h2 id="projectedNetWorth">SAR 0</h2>
+              <p class="muted" id="growthLabel">&nbsp;</p>
+            </div>
+            <div class="legend">
+              <span class="legend__item legend__item--current">Current Path</span>
+              <span class="legend__item legend__item--startup">Startup Path</span>
+            </div>
+          </header>
+          <div class="panel__body">
+            <canvas id="projectionChart" aria-label="Projected net worth chart" role="img"></canvas>
+          </div>
+        </div>
+
+        <div class="panel panel--metrics">
+          <div class="metric">
+            <p class="metric__label">Net Outcome</p>
+            <p class="metric__value" id="netOutcome">SAR 0</p>
+            <span class="metric__helper">Difference at exit</span>
+          </div>
+          <div class="metric">
+            <p class="metric__label">Net Present Value</p>
+            <p class="metric__value" id="npvValue">SAR 0</p>
+            <span class="metric__helper">Discounted to today</span>
+          </div>
+          <div class="metric">
+            <p class="metric__label">Internal Rate of Return</p>
+            <p class="metric__value" id="irrValue">0%</p>
+            <span class="metric__helper">Annualised</span>
+          </div>
+          <div class="metric">
+            <p class="metric__label">Diluted Equity</p>
+            <p class="metric__value" id="dilutedEquity">0%</p>
+            <span class="metric__helper" id="dilutionHelper">No dilution applied</span>
+          </div>
+        </div>
+
+        <aside class="panel panel--form">
+          <form id="financialForm">
+            <div class="form-group">
+              <label for="currentSalary">Current Salary (Monthly SAR)</label>
+              <input type="number" id="currentSalary" name="currentSalary" min="0" step="500" value="30000" required />
+            </div>
+            <div class="form-group">
+              <label for="salaryGrowth">Annual Salary Growth (%)</label>
+              <input type="number" id="salaryGrowth" name="salaryGrowth" min="0" step="0.5" value="3" />
+            </div>
+            <div class="form-group">
+              <label for="startupSalary">Startup Salary (Monthly SAR)</label>
+              <input type="number" id="startupSalary" name="startupSalary" min="0" step="500" value="20000" required />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="exitYear">Years to Exit</label>
+                <input type="number" id="exitYear" name="exitYear" min="1" max="20" value="5" />
+              </div>
+              <div class="form-group">
+                <label for="annualRoi">Annual ROI (%)</label>
+                <input type="number" id="annualRoi" name="annualRoi" min="0" step="0.1" value="5.4" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="investmentFrequency">Investment Frequency</label>
+              <select id="investmentFrequency" name="investmentFrequency">
+                <option value="Monthly">Monthly</option>
+                <option value="Annually">Annually</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="equityPct">Equity Grant (%)</label>
+                <input type="number" id="equityPct" name="equityPct" min="0" step="0.1" value="5" />
+              </div>
+              <div class="form-group">
+                <label for="exitValuation">Exit Valuation (SAR millions)</label>
+                <input type="number" id="exitValuation" name="exitValuation" min="1" step="1" value="25" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="vestingYears">Vesting Period (Years)</label>
+                <input type="number" id="vestingYears" name="vestingYears" min="1" max="10" value="4" />
+              </div>
+              <div class="form-group">
+                <label for="cliffYears">Cliff (Years)</label>
+                <input type="number" id="cliffYears" name="cliffYears" min="0" max="5" value="1" />
+              </div>
+            </div>
+            <div class="form-group form-group--checkbox">
+              <input type="checkbox" id="simulateDilution" name="simulateDilution" />
+              <label for="simulateDilution">Simulate Dilution</label>
+            </div>
+            <div class="form-group" id="dilutionInput" hidden>
+              <label for="dilutionPct">Total Dilution (%)</label>
+              <input type="number" id="dilutionPct" name="dilutionPct" min="0" max="100" step="1" value="10" />
+            </div>
+            <button class="primary-action primary-action--full" type="submit">
+              Recalculate Journey
+            </button>
+            <p class="form-helper" id="errorMessage" role="alert" aria-live="assertive"></p>
+          </form>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>

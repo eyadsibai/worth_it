@@ -359,6 +359,39 @@ def get_random_variates_pert(
     )
 
 
+def sample_roi_values(
+    num_simulations: int, roi_config: Dict | None, default_roi: float
+) -> np.ndarray:
+    """Samples ROI values supporting normal or PERT configuration styles."""
+    if not roi_config:
+        return np.full(num_simulations, default_roi)
+
+    if {"mean", "std_dev"}.issubset(roi_config):
+        return stats.norm.rvs(
+            loc=roi_config["mean"],
+            scale=roi_config["std_dev"],
+            size=num_simulations,
+        )
+
+    if {"min_val", "max_val", "mode"}.issubset(roi_config):
+        return get_random_variates_pert(num_simulations, roi_config, default_roi)
+
+    raise KeyError("ROI configuration must include either mean/std_dev or min/max/mode")
+
+
+def get_default_exit_valuation(base_params: Dict[str, Any]) -> float:
+    """Retrieves the default exit valuation from the base startup parameters."""
+    startup_params = base_params.get("startup_params", {})
+    rsu_params = startup_params.get("rsu_params", {}) or {}
+    options_params = startup_params.get("options_params", {}) or {}
+
+    return (
+        rsu_params.get("target_exit_valuation")
+        or options_params.get("target_exit_price_per_share")
+        or 0
+    )
+
+
 def run_monte_carlo_simulation(
     num_simulations: int,
     base_params: Dict[str, Any],
@@ -376,14 +409,12 @@ def run_monte_carlo_simulation(
     # --- Prepare a complete sim_params dictionary for vectorization ---
     sim_params = {}
 
-    # Handle ROI (Normal distribution)
-    if "roi" in sim_param_configs:
-        roi_config = sim_param_configs["roi"]
-        sim_params["roi"] = stats.norm.rvs(
-            loc=roi_config["mean"], scale=roi_config["std_dev"], size=num_simulations
-        )
-    else:
-        sim_params["roi"] = np.full(num_simulations, base_params["annual_roi"])
+    # Handle ROI (Normal or PERT distribution)
+    sim_params["roi"] = sample_roi_values(
+        num_simulations,
+        sim_param_configs.get("roi"),
+        base_params["annual_roi"],
+    )
 
     # Handle Valuation (PERT distribution)
     if "valuation" in sim_param_configs:
@@ -391,12 +422,9 @@ def run_monte_carlo_simulation(
             num_simulations, sim_param_configs["valuation"], 0
         )
     else:
-        default_valuation = base_params["startup_params"]["rsu_params"].get(
-            "target_exit_valuation"
-        ) or base_params["startup_params"]["options_params"].get(
-            "target_exit_price_per_share"
+        sim_params["valuation"] = np.full(
+            num_simulations, get_default_exit_valuation(base_params)
         )
-        sim_params["valuation"] = np.full(num_simulations, default_valuation)
 
     # Handle Salary Growth (PERT distribution)
     if "salary_growth" in sim_param_configs:
@@ -488,10 +516,10 @@ def run_monte_carlo_simulation_vectorized(
         final_payout_value = profit_per_share * final_vested_options
 
     # Incorporate failure probability
-    failure_mask = (
-        np.random.rand(num_simulations) < base_params["failure_probability"]
-    )
-    final_payout_value[failure_mask] = 0
+    failure_probability = base_params.get("failure_probability", 0.0)
+    if failure_probability > 0:
+        failure_mask = np.random.rand(num_simulations) < failure_probability
+        final_payout_value[failure_mask] = 0
 
     net_outcomes = final_payout_value - final_opportunity_cost
 
@@ -532,13 +560,11 @@ def run_monte_carlo_simulation_iterative(
         )
 
     # Handle other variables
-    if "roi" in sim_param_configs:
-        roi_config = sim_param_configs["roi"]
-        sim_params["roi"] = stats.norm.rvs(
-            loc=roi_config["mean"], scale=roi_config["std_dev"], size=num_simulations
-        )
-    else:
-        sim_params["roi"] = np.full(num_simulations, base_params["annual_roi"])
+    sim_params["roi"] = sample_roi_values(
+        num_simulations,
+        sim_param_configs.get("roi"),
+        base_params["annual_roi"],
+    )
 
     sim_params["salary_growth"] = get_random_variates_pert(
         num_simulations,
@@ -548,6 +574,11 @@ def run_monte_carlo_simulation_iterative(
     sim_params["dilution"] = get_random_variates_pert(
         num_simulations, sim_param_configs.get("dilution"), np.nan
     )
+
+    if "valuation" not in sim_params:
+        sim_params["valuation"] = np.full(
+            num_simulations, get_default_exit_valuation(base_params)
+        )
 
     net_outcomes = []
     final_opportunity_costs = []
@@ -595,10 +626,10 @@ def run_monte_carlo_simulation_iterative(
     final_opportunity_costs = np.array(final_opportunity_costs)
 
     # Incorporate failure probability
-    failure_mask = (
-        np.random.rand(num_simulations) < base_params["failure_probability"]
-    )
-    net_outcomes[failure_mask] = -final_opportunity_costs[failure_mask]
+    failure_probability = base_params.get("failure_probability", 0.0)
+    if failure_probability > 0:
+        failure_mask = np.random.rand(num_simulations) < failure_probability
+        net_outcomes[failure_mask] = -final_opportunity_costs[failure_mask]
 
     return {
         "net_outcomes": net_outcomes,
