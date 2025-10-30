@@ -96,7 +96,8 @@
                   <button type="button" class="text-button" id="addDilutionRound">Add round</button>
                 </div>
                 <p class="card__helper">
-                  Add each funding round to capture the dilution impact across Series A, B, C...
+                  Add each funding round to capture the dilution impact and salary raises across
+                  Series A, B, C...
                 </p>
                 <div id="dilutionRounds" class="repeatable-list"></div>
               </div>
@@ -303,139 +304,167 @@
         </section>
 
         <section class="results-column">
-          <section class="panel panel--metrics">
-            <h2 class="panel__title">2. Results overview</h2>
-            <div id="decisionBanner" class="banner" hidden></div>
-            <div class="metrics-grid">
-              <div class="metric">
-                <p class="metric__label" id="payoutLabel">Your Equity Value</p>
-                <p class="metric__value" id="payoutValue">SAR 0</p>
-              </div>
-              <div class="metric">
-                <p class="metric__label">Opportunity Cost</p>
-                <p class="metric__value" id="opportunityCostValue">SAR 0</p>
-              </div>
-              <div class="metric">
-                <p class="metric__label">Net Outcome</p>
-                <p class="metric__value" id="netOutcome">SAR 0</p>
-              </div>
-              <div class="metric">
-                <p class="metric__label">Net Present Value</p>
-                <p class="metric__value" id="npvValue">SAR 0</p>
-              </div>
-              <div class="metric">
-                <p class="metric__label">Internal Rate of Return</p>
-                <p class="metric__value" id="irrValue">0%</p>
-              </div>
-              <div class="metric">
-                <p class="metric__label">Diluted Equity</p>
-                <p class="metric__value" id="dilutedEquity">0%</p>
-                <span class="metric__helper" id="dilutionHelper">No dilution applied</span>
-              </div>
-            </div>
-          </section>
+          <div class="results-tabs" role="tablist">
+            <button
+              type="button"
+              class="results-tab results-tab--active"
+              data-tab="deterministic"
+              aria-selected="true"
+              aria-controls="deterministicTab"
+            >
+              Deterministic results
+            </button>
+            <button
+              type="button"
+              class="results-tab"
+              data-tab="simulation"
+              aria-selected="false"
+              aria-controls="simulationTab"
+            >
+              Monte Carlo
+            </button>
+          </div>
 
-          <section class="panel panel--chart">
-            <header class="panel__header">
-              <div>
-                <p class="label">Projected net worth</p>
-                <h2 id="projectedNetWorth">SAR 0</h2>
-                <p class="muted" id="growthLabel">Configure your scenario to see projections.</p>
-              </div>
-              <div class="legend">
-                <span class="legend__item legend__item--current">Current path</span>
-                <span class="legend__item legend__item--startup">Startup path</span>
-              </div>
-            </header>
-            <div class="panel__body">
-              <canvas id="projectionChart" aria-label="Projected net worth" role="img"></canvas>
-            </div>
-          </section>
-
-          <section class="panel panel--breakdown" id="breakdownPanel">
-            <header class="panel__header">
-              <div>
-                <p class="label">Year-by-year breakdown</p>
-                <h2>How the journey unfolds</h2>
-              </div>
-            </header>
-            <div class="panel__body">
-              <table id="breakdownTable">
-                <thead>
-                  <tr>
-                    <th>Year</th>
-                    <th id="principalColumn">Principal Forgone</th>
-                    <th>Opportunity Cost</th>
-                    <th>Investment Returns</th>
-                    <th id="vestedColumn">Vested Equity</th>
-                    <th id="breakevenColumn">Breakeven</th>
-                    <th id="dilutionColumn" class="hidden">Dilution factor</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </section>
-
-          <section class="panel panel--simulation hidden" id="simulationPanel">
-            <header class="panel__header">
-              <div>
-                <p class="label">3. Monte Carlo results</p>
-                <h2>Understanding the distribution of outcomes</h2>
-              </div>
-            </header>
-            <div class="panel__body simulation-content">
-              <div class="metrics-grid" id="simulationSummary">
+          <div class="tab-panel tab-panel--active" id="deterministicTab" role="tabpanel">
+            <section class="panel panel--metrics">
+              <h2 class="panel__title">2. Results overview</h2>
+              <div id="decisionBanner" class="banner" hidden></div>
+              <div class="metrics-grid">
                 <div class="metric">
-                  <p class="metric__label">Chance of positive outcome</p>
-                  <p class="metric__value" id="probabilityPositive">0%</p>
+                  <p class="metric__label" id="payoutLabel">Your Equity Value</p>
+                  <p class="metric__value" id="payoutValue">SAR 0</p>
                 </div>
                 <div class="metric">
-                  <p class="metric__label">Average net outcome</p>
-                  <p class="metric__value" id="meanOutcome">SAR 0</p>
+                  <p class="metric__label">Opportunity Cost</p>
+                  <p class="metric__value" id="opportunityCostValue">SAR 0</p>
                 </div>
                 <div class="metric">
-                  <p class="metric__label">Median net outcome</p>
-                  <p class="metric__value" id="medianOutcome">SAR 0</p>
+                  <p class="metric__label">Net Outcome</p>
+                  <p class="metric__value" id="netOutcome">SAR 0</p>
                 </div>
                 <div class="metric">
-                  <p class="metric__label">Standard deviation</p>
-                  <p class="metric__value" id="stdOutcome">SAR 0</p>
+                  <p class="metric__label">Net Present Value</p>
+                  <p class="metric__value" id="npvValue">SAR 0</p>
+                </div>
+                <div class="metric">
+                  <p class="metric__label">Internal Rate of Return</p>
+                  <p class="metric__value" id="irrValue">0%</p>
+                </div>
+                <div class="metric">
+                  <p class="metric__label">Diluted Equity</p>
+                  <p class="metric__value" id="dilutedEquity">0%</p>
+                  <span class="metric__helper" id="dilutionHelper">No dilution applied</span>
                 </div>
               </div>
+            </section>
 
-              <div class="chart-grid">
-                <div class="chart-card">
-                  <h3>Distribution of net outcomes</h3>
-                  <div id="histogramChart" class="plot"></div>
+            <section class="panel panel--chart">
+              <header class="panel__header">
+                <div>
+                  <p class="label">Projected net worth</p>
+                  <h2 id="projectedNetWorth">SAR 0</h2>
+                  <p class="muted" id="growthLabel">Configure your scenario to see projections.</p>
                 </div>
-                <div class="chart-card">
-                  <h3>Probability density</h3>
-                  <div id="densityChart" class="plot"></div>
+                <div class="legend">
+                  <span class="legend__item legend__item--current">Current path</span>
+                  <span class="legend__item legend__item--startup">Startup path</span>
                 </div>
-                <div class="chart-card">
-                  <h3>Box plot</h3>
-                  <div id="boxChart" class="plot"></div>
+              </header>
+              <div class="panel__body">
+                <canvas id="projectionChart" aria-label="Projected net worth" role="img"></canvas>
+              </div>
+            </section>
+
+            <section class="panel panel--breakdown" id="breakdownPanel">
+              <header class="panel__header">
+                <div>
+                  <p class="label">Year-by-year breakdown</p>
+                  <h2>How the journey unfolds</h2>
                 </div>
-                <div class="chart-card">
-                  <h3>Cumulative probability (ECDF)</h3>
-                  <div id="ecdfChart" class="plot"></div>
+              </header>
+              <div class="panel__body">
+                <table id="breakdownTable">
+                  <thead>
+                    <tr>
+                      <th>Year</th>
+                      <th id="principalColumn">Principal Forgone</th>
+                      <th>Opportunity Cost</th>
+                      <th>Investment Returns</th>
+                      <th id="vestedColumn">Vested Equity</th>
+                      <th id="breakevenColumn">Breakeven</th>
+                      <th id="dilutionColumn" class="hidden">Dilution factor</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <div class="tab-panel" id="simulationTab" role="tabpanel" aria-hidden="true">
+            <p class="tab-panel__helper" id="simulationPlaceholder">
+              Configure a Monte Carlo simulation to explore the distribution of possible outcomes.
+            </p>
+            <section class="panel panel--simulation hidden" id="simulationPanel">
+              <header class="panel__header">
+                <div>
+                  <p class="label">3. Monte Carlo results</p>
+                  <h2>Understanding the distribution of outcomes</h2>
                 </div>
-                <div class="chart-card">
-                  <h3>Valuation vs net outcome</h3>
-                  <div id="scatterChart" class="plot"></div>
+              </header>
+              <div class="panel__body simulation-content">
+                <div class="metrics-grid" id="simulationSummary">
+                  <div class="metric">
+                    <p class="metric__label">Chance of positive outcome</p>
+                    <p class="metric__value" id="probabilityPositive">0%</p>
+                  </div>
+                  <div class="metric">
+                    <p class="metric__label">Average net outcome</p>
+                    <p class="metric__value" id="meanOutcome">SAR 0</p>
+                  </div>
+                  <div class="metric">
+                    <p class="metric__label">Median net outcome</p>
+                    <p class="metric__value" id="medianOutcome">SAR 0</p>
+                  </div>
+                  <div class="metric">
+                    <p class="metric__label">Standard deviation</p>
+                    <p class="metric__value" id="stdOutcome">SAR 0</p>
+                  </div>
                 </div>
-                <div class="chart-card">
-                  <h3>Detailed statistics</h3>
-                  <table id="simulationStats"></table>
-                </div>
-                <div class="chart-card hidden" id="sensitivityCard">
-                  <h3>Sensitivity analysis</h3>
-                  <div id="sensitivityChart" class="plot"></div>
+
+                <div class="chart-grid">
+                  <div class="chart-card">
+                    <h3>Distribution of net outcomes</h3>
+                    <div id="histogramChart" class="plot"></div>
+                  </div>
+                  <div class="chart-card">
+                    <h3>Probability density</h3>
+                    <div id="densityChart" class="plot"></div>
+                  </div>
+                  <div class="chart-card">
+                    <h3>Box plot</h3>
+                    <div id="boxChart" class="plot"></div>
+                  </div>
+                  <div class="chart-card">
+                    <h3>Cumulative probability (ECDF)</h3>
+                    <div id="ecdfChart" class="plot"></div>
+                  </div>
+                  <div class="chart-card">
+                    <h3>Valuation vs net outcome</h3>
+                    <div id="scatterChart" class="plot"></div>
+                  </div>
+                  <div class="chart-card">
+                    <h3>Detailed statistics</h3>
+                    <table id="simulationStats"></table>
+                  </div>
+                  <div class="chart-card hidden" id="sensitivityCard">
+                    <h3>Sensitivity analysis</h3>
+                    <div id="sensitivityChart" class="plot"></div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
+          </div>
         </section>
       </section>
     </main>

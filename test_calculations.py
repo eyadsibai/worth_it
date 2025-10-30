@@ -55,6 +55,9 @@ def monte_carlo_base_params():
             },
             "options_params": {},
         },
+        "startup_salary_adjustments": [
+            {"year": 3, "salary_raise_pct": 0.05},
+        ],
     }
 
 # --- Test Core Functions ---
@@ -73,6 +76,22 @@ def test_create_monthly_data_grid():
     assert df["MonthlySurplus"].iloc[0] == 2000
     assert df["MonthlySurplus"].iloc[12] == 3000
     assert "InvestableSurplus" in df.columns
+
+
+def test_create_monthly_data_grid_with_salary_raise():
+    """Salary raises tied to dilution rounds adjust startup pay over time."""
+    adjustments = [{"year": 2, "salary_raise_pct": 0.1}]
+    df = calculations.create_monthly_data_grid(
+        exit_year=3,
+        current_job_monthly_salary=10000,
+        startup_monthly_salary=8000,
+        current_job_salary_growth_rate=0.0,
+        startup_salary_adjustments=adjustments,
+    )
+    assert df["StartupSalary"].iloc[0] == pytest.approx(8000)
+    # Salary increases at the start of year 2 (month index 12)
+    assert df["StartupSalary"].iloc[12] == pytest.approx(8800)
+    assert df["MonthlySurplus"].iloc[12] == pytest.approx(1200)
 
 
 def test_calculate_annual_opportunity_cost(sample_monthly_df):

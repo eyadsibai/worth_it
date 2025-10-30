@@ -6,7 +6,7 @@ scenarios (RSUs and Stock Options), dilution, IRR, NPV, and run Monte Carlo simu
 It is designed to be independent of the Streamlit UI.
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import numpy as np
 import numpy_financial as npf
@@ -19,11 +19,42 @@ def annual_to_monthly_roi(annual_roi: float) -> float:
     return (1 + annual_roi) ** (1 / 12) - 1
 
 
+def build_startup_salary_series(
+    exit_year: int,
+    startup_monthly_salary: float,
+    startup_salary_adjustments: List[Dict[str, float]] | None = None,
+) -> np.ndarray:
+    """Constructs a monthly salary series incorporating fundraising raises."""
+
+    total_months = exit_year * 12
+    salaries = np.full(total_months, startup_monthly_salary, dtype=float)
+
+    if not startup_salary_adjustments:
+        return salaries
+
+    current_salary = float(startup_monthly_salary)
+    for event in sorted(
+        startup_salary_adjustments, key=lambda entry: entry.get("year", 0)
+    ):
+        year = int(event.get("year", 0) or 0)
+        if year < 1:
+            continue
+        start_month = (year - 1) * 12
+        if start_month >= total_months:
+            continue
+        raise_pct = float(event.get("salary_raise_pct", 0.0) or 0.0)
+        current_salary *= 1 + max(0.0, raise_pct)
+        salaries[start_month:] = current_salary
+
+    return salaries
+
+
 def create_monthly_data_grid(
     exit_year: int,
     current_job_monthly_salary: float,
     startup_monthly_salary: float,
     current_job_salary_growth_rate: float,
+    startup_salary_adjustments: List[Dict[str, float]] | None = None,
 ) -> pd.DataFrame:
     """
     Creates a DataFrame with one row per month, calculating the monthly salary
@@ -40,7 +71,12 @@ def create_monthly_data_grid(
     df["CurrentJobSalary"] = current_job_monthly_salary * (
         (1 + current_job_salary_growth_rate) ** year_index
     )
-    df["MonthlySurplus"] = df["CurrentJobSalary"] - startup_monthly_salary
+
+    startup_salaries = build_startup_salary_series(
+        exit_year, startup_monthly_salary, startup_salary_adjustments
+    )
+    df["StartupSalary"] = startup_salaries
+    df["MonthlySurplus"] = df["CurrentJobSalary"] - df["StartupSalary"]
     df["InvestableSurplus"] = df["MonthlySurplus"].clip(lower=0)
     df["ExerciseCost"] = 0  # Initialize exercise cost column
 
@@ -463,7 +499,12 @@ def run_monte_carlo_simulation_vectorized(
     current_salaries = base_params["current_job_monthly_salary"] * (
         (1 + sim_params["salary_growth"][:, np.newaxis]) ** year_indices
     )
-    monthly_surpluses = current_salaries - base_params["startup_monthly_salary"]
+    startup_salaries = build_startup_salary_series(
+        exit_year,
+        base_params["startup_monthly_salary"],
+        base_params.get("startup_salary_adjustments"),
+    )
+    monthly_surpluses = current_salaries - startup_salaries
     investable_surpluses = np.clip(monthly_surpluses, 0, None)
 
     if base_params["investment_frequency"] == "Monthly":
@@ -589,6 +630,7 @@ def run_monte_carlo_simulation_iterative(
             base_params["current_job_monthly_salary"],
             base_params["startup_monthly_salary"],
             sim_params["salary_growth"][i],
+            base_params.get("startup_salary_adjustments"),
         )
 
         opportunity_cost_df = calculate_annual_opportunity_cost(

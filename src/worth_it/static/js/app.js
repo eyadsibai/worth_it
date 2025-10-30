@@ -114,12 +114,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const stdOutcome = document.getElementById("stdOutcome");
   const simulationStats = document.getElementById("simulationStats");
   const sensitivityCard = document.getElementById("sensitivityCard");
+  const simulationPlaceholder = document.getElementById("simulationPlaceholder");
+  const resultsTabButtons = document.querySelectorAll(".results-tab");
+  const tabPanels = {
+    deterministic: document.getElementById("deterministicTab"),
+    simulation: document.getElementById("simulationTab"),
+  };
 
   const ctx = document.getElementById("projectionChart").getContext("2d");
   let projectionChart;
   let lastSimulationConfig = { includeValuation: false };
   let isCalculating = false;
   let pendingAutoRecalc = false;
+  let activeTab = "deterministic";
 
   const shouldIgnoreAutoRecalc = (target) => {
     if (!target) return false;
@@ -200,6 +207,28 @@ document.addEventListener("DOMContentLoaded", () => {
     simulateButton.textContent = isLoading ? "Running simulation..." : "Run Monte Carlo";
   };
 
+  const setActiveTab = (tab) => {
+    if (!tabPanels[tab]) {
+      return;
+    }
+    activeTab = tab;
+    resultsTabButtons.forEach((button) => {
+      const isActive = button.dataset.tab === tab;
+      button.classList.toggle("results-tab--active", isActive);
+      button.setAttribute("aria-selected", String(isActive));
+    });
+    Object.entries(tabPanels).forEach(([key, panel]) => {
+      if (!panel) return;
+      const isActive = key === tab;
+      panel.classList.toggle("tab-panel--active", isActive);
+      if (isActive) {
+        panel.removeAttribute("aria-hidden");
+      } else {
+        panel.setAttribute("aria-hidden", "true");
+      }
+    });
+  };
+
   const updateEquityFields = () => {
     const equityType = equityTypeSelect.value;
     const isRSU = equityType === "Equity (RSUs)";
@@ -223,7 +252,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (isRSU) {
       if (dilutionList.childElementCount === 0) {
-        addDilutionRound({ year: 2, dilution: 20 });
+        addDilutionRound({ year: 2, dilution: 20, salary_raise: 10 });
       }
     } else {
       dilutionList.innerHTML = "";
@@ -274,7 +303,7 @@ document.addEventListener("DOMContentLoaded", () => {
     return wrapper;
   };
 
-  const addDilutionRound = (defaults = { year: "", dilution: "" }) => {
+  const addDilutionRound = (defaults = { year: "", dilution: "", salary_raise: "" }) => {
     const container = document.createElement("div");
     container.className = "repeatable-item";
 
@@ -293,18 +322,30 @@ document.addEventListener("DOMContentLoaded", () => {
     dilutionInput.value = defaults.dilution;
     dilutionInput.className = "dilution-percentage";
 
+    const salaryRaiseInput = document.createElement("input");
+    salaryRaiseInput.type = "number";
+    salaryRaiseInput.min = "0";
+    salaryRaiseInput.max = "200";
+    salaryRaiseInput.step = "0.5";
+    salaryRaiseInput.value =
+      defaults.salary_raise ?? defaults.salaryRaise ?? defaults.salary_raise_pct ?? "";
+    salaryRaiseInput.className = "salary-raise";
+
     const removeButton = document.createElement("button");
     removeButton.type = "button";
     removeButton.textContent = "Remove";
 
     const yearField = createInput("Round year", yearInput);
     const dilutionField = createInput("Dilution (%)", dilutionInput);
+    const salaryField = createInput("Salary raise (%)", salaryRaiseInput);
 
     const notifyChange = () => scheduleAutoRecalculate();
     yearInput.addEventListener("input", notifyChange);
     yearInput.addEventListener("change", triggerAutoRecalculate);
     dilutionInput.addEventListener("input", notifyChange);
     dilutionInput.addEventListener("change", triggerAutoRecalculate);
+    salaryRaiseInput.addEventListener("input", notifyChange);
+    salaryRaiseInput.addEventListener("change", triggerAutoRecalculate);
 
     removeButton.addEventListener("click", () => {
       dilutionList.removeChild(container);
@@ -313,6 +354,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     container.appendChild(yearField);
     container.appendChild(dilutionField);
+    container.appendChild(salaryField);
     container.appendChild(removeButton);
     dilutionList.appendChild(container);
   };
@@ -388,8 +430,12 @@ document.addEventListener("DOMContentLoaded", () => {
     items.forEach((item) => {
       const year = parseInteger(item.querySelector(".dilution-year").value);
       const dilution = parseNumber(item.querySelector(".dilution-percentage").value) / 100;
+      const salaryRaiseField = item.querySelector(".salary-raise");
+      const salaryRaisePct = salaryRaiseField
+        ? parseNumber(salaryRaiseField.value) / 100
+        : 0;
       if (year > 0 && dilution >= 0) {
-        rounds.push({ year, dilution });
+        rounds.push({ year, dilution, salary_raise_pct: Math.max(0, salaryRaisePct) });
       }
     });
     return rounds;
@@ -705,7 +751,11 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const renderSimulation = (summary) => {
+    if (simulationPlaceholder) {
+      simulationPlaceholder.classList.add("hidden");
+    }
     simulationPanel.classList.remove("hidden");
+    setActiveTab("simulation");
     probabilityPositive.textContent = formatPercent(summary.probability_positive, 1);
     meanOutcome.textContent = formatCurrency(summary.mean_outcome);
     medianOutcome.textContent = formatCurrency(summary.median_outcome);
@@ -950,6 +1000,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  resultsTabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const targetTab = button.dataset.tab;
+      if (!targetTab) return;
+      setActiveTab(targetTab);
+    });
+  });
+
   scenarioForm.addEventListener("submit", submitCalculation);
   calculateButton.addEventListener("click", (event) => {
     event.preventDefault();
@@ -989,7 +1047,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  addDilutionRoundButton.addEventListener("click", () => addDilutionRound({ year: "", dilution: "" }));
+  addDilutionRoundButton.addEventListener("click", () =>
+    addDilutionRound({ year: "", dilution: "", salary_raise: "" }),
+  );
   addValuationYearButton.addEventListener("click", () => addValuationYearRow());
 
   scenarioForm.addEventListener("input", (event) => {
@@ -1006,6 +1066,7 @@ document.addEventListener("DOMContentLoaded", () => {
     triggerAutoRecalculate();
   });
 
+  setActiveTab(activeTab);
   initialiseChart();
   updateEquityFields();
   updateDilutionVisibility();

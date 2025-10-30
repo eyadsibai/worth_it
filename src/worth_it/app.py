@@ -48,6 +48,12 @@ class DilutionRound(BaseModel):
 
     year: int = Field(ge=1, le=40)
     dilution: float = Field(ge=0.0, le=1.0)
+    salary_raise_pct: float = Field(
+        0.0,
+        ge=0.0,
+        le=5.0,
+        description="Expected salary increase (as a decimal) triggered by this round.",
+    )
 
 
 class RSUParams(BaseModel):
@@ -329,14 +335,33 @@ def _prepare_yearly_breakdown(
     return breakdown
 
 
+def _extract_salary_raise_schedule(payload: CalculationRequest) -> list[dict[str, float]]:
+    """Build a salary raise schedule from the fundraising configuration."""
+
+    if payload.equity_type != EquityType.RSU or not payload.rsu_params:
+        return []
+
+    schedule: list[dict[str, float]] = []
+    for round_config in payload.rsu_params.dilution_rounds:
+        schedule.append(
+            {
+                "year": round_config.year,
+                "salary_raise_pct": round_config.salary_raise_pct,
+            }
+        )
+    return schedule
+
+
 def _run_calculations(payload: CalculationRequest) -> CalculationResult:
     """Execute the financial calculations for the provided payload."""
 
+    salary_raise_schedule = _extract_salary_raise_schedule(payload)
     monthly_df = calculations.create_monthly_data_grid(
         exit_year=payload.exit_year,
         current_job_monthly_salary=payload.current_salary,
         startup_monthly_salary=payload.startup_salary,
         current_job_salary_growth_rate=payload.salary_growth_rate,
+        startup_salary_adjustments=salary_raise_schedule,
     )
 
     options_params_dict: Dict[str, Any] | None = (
@@ -353,6 +378,8 @@ def _run_calculations(payload: CalculationRequest) -> CalculationResult:
         raise HTTPException(status_code=400, detail="Not enough data to run calculations.")
 
     startup_params = _build_startup_params(payload)
+    if salary_raise_schedule:
+        startup_params["salary_raise_schedule"] = salary_raise_schedule
 
     results = calculations.calculate_startup_scenario(opportunity_cost_df, startup_params)
     results_df = results["results_df"].copy()
@@ -455,6 +482,11 @@ def _build_simulation_config(params: SimulationParameters) -> dict[str, Any]:
 def _run_simulation(request: SimulationRequest) -> SimulationSummary:
     """Execute the Monte Carlo simulation for the provided payload."""
 
+    startup_params = _build_startup_params(request.inputs)
+    salary_raise_schedule = _extract_salary_raise_schedule(request.inputs)
+    if salary_raise_schedule:
+        startup_params["salary_raise_schedule"] = salary_raise_schedule
+
     base_params = {
         "exit_year": request.inputs.exit_year,
         "current_job_monthly_salary": request.inputs.current_salary,
@@ -462,8 +494,9 @@ def _run_simulation(request: SimulationRequest) -> SimulationSummary:
         "current_job_salary_growth_rate": request.inputs.salary_growth_rate,
         "annual_roi": request.inputs.annual_roi,
         "investment_frequency": request.inputs.investment_frequency,
-        "startup_params": _build_startup_params(request.inputs),
+        "startup_params": startup_params,
         "failure_probability": request.inputs.failure_probability,
+        "startup_salary_adjustments": salary_raise_schedule,
     }
 
     sim_param_configs = _build_simulation_config(request.simulation_params)
