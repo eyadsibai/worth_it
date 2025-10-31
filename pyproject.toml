@@ -1,10 +1,12 @@
 [project]
-name = "worth-it-temp"
-version = "0.1.0"
-description = "Add your description here"
+name = "worth-it"
+version = "2.0.0"
+description = "Financial comparison tool for evaluating startup job offers"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
     "jupyter>=1.1.1",
     "numpy>=2.2.6",
     "numpy-financial>=1.0.0",
@@ -15,7 +17,5 @@ dependencies = [
     "pytest>=8.4.1",
     "scipy>=1.15.3",
     "statsmodels>=0.14.5",
-    "streamlit>=1.47.1",
-    "watchdog>=6.0.0",
 ]
 
