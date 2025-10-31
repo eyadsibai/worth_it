@@ -7,10 +7,9 @@ from enum import Enum
 # Add parent directory to path to import calculations module
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from fastapi import APIRouter, HTTPException
 import numpy as np
-import pandas as pd
 
 from backend.models import (
     CalculationRequest,
@@ -18,18 +17,9 @@ from backend.models import (
     FinancialMetrics,
     BreakevenAnalysis,
     YearlyBreakdown,
-    MonteCarloResults,
-    SimulationResult,
-    SensitivityAnalysis,
     EquityType as APIEquityType,
 )
-from calculations import (
-    create_monthly_data_grid,
-    calculate_annual_opportunity_cost,
-    calculate_startup_scenario,
-    calculate_npv,
-    calculate_irr,
-)
+import calculations
 
 
 # Match the enum from app.py for calculations module
@@ -42,36 +32,6 @@ class EquityTypeCalc(str, Enum):
 router = APIRouter()
 
 
-def create_yearly_breakdown(
-    monthly_df: pd.DataFrame,
-    exit_year: int,
-    results_df: pd.DataFrame,
-) -> List[YearlyBreakdown]:
-    """Create year-by-year breakdown from monthly data."""
-    breakdown = []
-
-    for year in range(1, exit_year + 1):
-        # Get data at end of this year
-        year_end_month = year * 12 - 1
-        if year_end_month >= len(results_df):
-            year_end_month = len(results_df) - 1
-
-        year_data = results_df.iloc[year_end_month]
-
-        breakdown.append(
-            YearlyBreakdown(
-                year=year,
-                current_job_salary=float(year_data.get('CurrentJobSalary', 0)) * 12,  # Convert to annual
-                startup_salary=float(year_data.get('StartupSalary', 0)) * 12,  # Convert to annual
-                salary_difference=(float(year_data.get('StartupSalary', 0)) - float(year_data.get('CurrentJobSalary', 0))) * 12,
-                cumulative_investment=float(year_data.get('CumulativeOpportunityCost', 0)),
-                vested_equity_percentage=float(year_data.get('VestedPercentage', 0)) * 100,
-            )
-        )
-
-    return breakdown
-
-
 @router.post("/calculate", response_model=CalculationResponse)
 async def calculate_worth_it(request: CalculationRequest) -> CalculationResponse:
     """
@@ -80,30 +40,33 @@ async def calculate_worth_it(request: CalculationRequest) -> CalculationResponse
     try:
         # Extract parameters
         exit_year = request.exit_year
-        discount_rate = request.discount_rate / 100
         current_job = request.current_job
         startup_offer = request.startup_offer
 
-        # Create monthly data grid
-        monthly_df = create_monthly_data_grid(
+        # Step 1: Create monthly data grid
+        monthly_df = calculations.create_monthly_data_grid(
             exit_year=exit_year,
             current_job_monthly_salary=current_job.monthly_salary,
             startup_monthly_salary=startup_offer.monthly_salary,
             current_job_salary_growth_rate=current_job.annual_growth_rate / 100,
         )
 
-        # Prepare parameters based on equity type
+        # Step 2: Prepare parameters based on equity type
         options_params = None
         rsu_params = None
+        equity_type_calc = None
 
         if startup_offer.equity_type == APIEquityType.RSU:
             if not startup_offer.rsu:
                 raise HTTPException(status_code=400, detail="RSU parameters required")
 
             rsu = startup_offer.rsu
+            equity_type_calc = EquityTypeCalc.RSU
+
             rsu_params = {
                 'equity_pct': rsu.equity_percentage / 100,
                 'target_exit_valuation': rsu.target_exit_valuation,
+                'simulate_dilution': False,
             }
 
             # Add dilution if applicable
@@ -112,27 +75,30 @@ async def calculate_worth_it(request: CalculationRequest) -> CalculationResponse
                 for round_name in ['round_a', 'round_b', 'round_c', 'round_d']:
                     round_data = getattr(rsu.dilution, round_name)
                     if round_data.enabled and round_data.valuation and round_data.new_investment:
+                        # Calculate dilution for this round
+                        pre_money = round_data.valuation - round_data.new_investment
+                        dilution_pct = round_data.new_investment / round_data.valuation
                         dilution_rounds.append({
+                            'year': 1,  # Simplified - assume all rounds happen early
+                            'dilution': dilution_pct,
                             'post_money_valuation': round_data.valuation,
-                            'new_money_in': round_data.new_investment
+                            'new_money_in': round_data.new_investment,
                         })
+
                 if dilution_rounds:
                     rsu_params['simulate_dilution'] = True
                     rsu_params['dilution_rounds'] = dilution_rounds
-                else:
-                    rsu_params['simulate_dilution'] = False
-            else:
-                rsu_params['simulate_dilution'] = False
 
             vesting_years = rsu.vesting_years
             cliff_years = rsu.cliff_years
-            equity_type_calc = EquityTypeCalc.RSU
 
         else:  # Stock Options
             if not startup_offer.stock_options:
                 raise HTTPException(status_code=400, detail="Stock options parameters required")
 
             opts = startup_offer.stock_options
+            equity_type_calc = EquityTypeCalc.STOCK_OPTIONS
+
             options_params = {
                 'num_options_granted': opts.num_options,
                 'strike_price_per_share': opts.strike_price,
@@ -142,17 +108,16 @@ async def calculate_worth_it(request: CalculationRequest) -> CalculationResponse
 
             vesting_years = opts.vesting_years
             cliff_years = opts.cliff_years
-            equity_type_calc = EquityTypeCalc.STOCK_OPTIONS
 
-        # Calculate opportunity cost
-        opportunity_cost_df = calculate_annual_opportunity_cost(
+        # Step 3: Calculate opportunity cost
+        opportunity_cost_df = calculations.calculate_annual_opportunity_cost(
             monthly_df=monthly_df,
             annual_roi=current_job.annual_roi / 100 if current_job.invest_surplus else 0,
             investment_frequency=current_job.investment_frequency,
             options_params=options_params,
         )
 
-        # Prepare startup parameters
+        # Step 4: Calculate startup scenario
         startup_params = {
             "equity_type": equity_type_calc,
             "total_vesting_years": vesting_years,
@@ -162,26 +127,29 @@ async def calculate_worth_it(request: CalculationRequest) -> CalculationResponse
             "exit_year": exit_year,
         }
 
-        # Calculate startup scenario
-        results = calculate_startup_scenario(opportunity_cost_df, startup_params)
+        results = calculations.calculate_startup_scenario(opportunity_cost_df, startup_params)
         results_df = results["results_df"]
         final_payout_value = results["final_payout_value"]
         final_opportunity_cost = results["final_opportunity_cost"]
-        total_dilution = results.get("total_dilution")
+        total_dilution = results.get("total_dilution", 0)
         diluted_equity_pct = results.get("diluted_equity_pct")
 
         net_outcome = final_payout_value - final_opportunity_cost
 
         # Calculate vested percentage
         if not results_df.empty:
-            vested_percentage = float(results_df.iloc[-1].get('VestedPercentage', 0))
+            vested_percentage = float(results_df["Vested Equity (%)"].iloc[-1]) / 100
         else:
             vested_percentage = 0.0
 
-        # Calculate NPV and IRR
-        monthly_surplus = monthly_df["MonthlySurplus"].values
-        irr = calculate_irr(monthly_surplus, final_payout_value)
-        npv = calculate_npv(monthly_surplus, current_job.annual_roi / 100 if current_job.invest_surplus else discount_rate, final_payout_value)
+        # Step 5: Calculate NPV and IRR
+        monthly_surplus = monthly_df["MonthlySurplus"]  # Keep as pandas Series
+        irr = calculations.calculate_irr(monthly_surplus, final_payout_value)
+        npv = calculations.calculate_npv(
+            monthly_surplus,
+            current_job.annual_roi / 100 if current_job.invest_surplus else request.discount_rate / 100,
+            final_payout_value
+        )
 
         # Create financial metrics
         metrics = FinancialMetrics(
@@ -203,8 +171,8 @@ async def calculate_worth_it(request: CalculationRequest) -> CalculationResponse
                 equity_pct = rsu_params['equity_pct']
                 if diluted_equity_pct:
                     equity_pct = diluted_equity_pct
-                if equity_pct > 0:
-                    breakeven_valuation = final_opportunity_cost / equity_pct
+                if equity_pct > 0 and vested_percentage > 0:
+                    breakeven_valuation = final_opportunity_cost / (equity_pct * vested_percentage)
 
             elif startup_offer.equity_type == APIEquityType.STOCK_OPTIONS and options_params:
                 num_options = options_params['num_options_granted']
@@ -218,12 +186,22 @@ async def calculate_worth_it(request: CalculationRequest) -> CalculationResponse
             breakeven_price=breakeven_price,
         )
 
-        # Create yearly breakdown
-        yearly_breakdown = create_yearly_breakdown(
-            monthly_df=monthly_df,
-            exit_year=exit_year,
-            results_df=results_df,
-        )
+        # Create yearly breakdown from results_df
+        yearly_breakdown = []
+        for year in range(1, exit_year + 1):
+            year_idx = year - 1
+            if year_idx < len(results_df):
+                row = results_df.iloc[year_idx]
+                yearly_breakdown.append(
+                    YearlyBreakdown(
+                        year=year,
+                        current_job_salary=float(row.get('CurrentJobSalary', 0)) * 12,
+                        startup_salary=float(row.get('StartupSalary', 0)) * 12,
+                        salary_difference=float(row.get('StartupSalary', 0) - row.get('CurrentJobSalary', 0)) * 12,
+                        cumulative_investment=float(row.get('CumulativeOpportunityCost', 0)),
+                        vested_equity_percentage=float(row.get('Vested Equity (%)', 0)),
+                    )
+                )
 
         return CalculationResponse(
             metrics=metrics,
