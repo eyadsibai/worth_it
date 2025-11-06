@@ -149,7 +149,7 @@ if equity_type == EquityType.RSU:
         st.sidebar.slider(
             "Total Equity Grant (%)",
             0.01,
-            25.0,
+            100.0,
             5.0,
             0.1,
             help="The total percentage of the company's equity offered to you as a grant.",
