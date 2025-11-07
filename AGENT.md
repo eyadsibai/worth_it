@@ -176,7 +176,7 @@ Final Payout = (Initial Equity % × Cumulative Dilution × Vested % × Remaining
 - Cash from sales is added at the END
 
 ### 3. Vectorized Monte Carlo
-**File**: `calculations.py:512-646`
+**File**: `calculations.py:522-683`
 
 **Purpose**: Fast Monte Carlo when exit year is fixed
 
@@ -187,12 +187,12 @@ Final Payout = (Initial Equity % × Cumulative Dilution × Vested % × Remaining
 
 **Important Code**:
 ```python
-# Lines 566-627: Equity sales handling
-# Lines 529-545: Exercise costs handling
+# Lines 604-661: Equity sales handling
+# Lines 556-577: Exercise costs handling
 ```
 
 ### 4. Iterative Monte Carlo
-**File**: `calculations.py:674-776`
+**File**: `calculations.py:686-795`
 
 **Purpose**: Monte Carlo when exit year varies
 
