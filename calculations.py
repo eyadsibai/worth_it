@@ -94,13 +94,18 @@ def calculate_annual_opportunity_cost(
                     0,
                 )
 
-                # Find cumulative dilution factor up to the year *before* the sale
+                # Find cumulative dilution factor and cumulative sold equity up to the year *before* the sale
                 cumulative_dilution_factor = 1.0
+                cumulative_sold_factor = 1.0
                 for prev_r in dilution_rounds:
                     if prev_r["year"] < sale_year:
                         cumulative_dilution_factor *= 1 - prev_r.get("dilution", 0)
+                        if "percent_to_sell" in prev_r and prev_r["percent_to_sell"] > 0:
+                            cumulative_sold_factor *= (1 - prev_r["percent_to_sell"])
 
-                equity_at_sale = initial_equity_pct * cumulative_dilution_factor
+                # percent_to_sell is a percentage of remaining equity at the time of sale
+                # (after accounting for both dilution and previous equity sales)
+                equity_at_sale = initial_equity_pct * cumulative_dilution_factor * cumulative_sold_factor
                 cash_from_sale = (
                     float(vested_pct_at_sale)
                     * equity_at_sale
