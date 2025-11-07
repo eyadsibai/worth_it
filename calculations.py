@@ -49,7 +49,8 @@ def create_monthly_data_grid(
         sorted_rounds = sorted(dilution_rounds, key=lambda r: r["year"])
         for r in sorted_rounds:
             if "new_salary" in r and r["new_salary"] > 0:
-                start_month = (r["year"] - 1) * 12
+                # Handle year 0 (inception): max ensures year 0 maps to month 0
+                start_month = max(0, (r["year"] - 1) * 12)
                 df.loc[start_month:, "StartupSalary"] = r["new_salary"]
 
     df["MonthlySurplus"] = df["CurrentJobSalary"] - df["StartupSalary"]
@@ -118,7 +119,9 @@ def calculate_annual_opportunity_cost(
                     * r["percent_to_sell"]
                 )
 
-                sale_month_index = (sale_year * 12) - 1
+                # Handle year 0: sales at year 0 happen at month 0 (inception)
+                # Other years: sale at end of year (last month of that year)
+                sale_month_index = max(0, (sale_year * 12) - 1) if sale_year > 0 else 0
                 if 0 <= sale_month_index < len(monthly_df_copy):
                     monthly_df_copy.loc[sale_month_index, "CashFromSale"] += cash_from_sale
 

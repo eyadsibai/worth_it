@@ -586,3 +586,79 @@ def test_monte_carlo_iterative_with_equity_sales():
     assert len(results["net_outcomes"]) == num_simulations
     assert not np.isnan(results["net_outcomes"]).any()
     assert np.all(np.isfinite(results["net_outcomes"]))
+
+
+def test_year_0_handling():
+    """
+    Tests that year 0 (inception/pre-seed) is handled correctly for:
+    1. Salary changes at year 0
+    2. Dilution rounds at year 0
+    3. Equity sales at year 0 (with cliff=0 edge case)
+    """
+    # Test 1: Salary change at year 0
+    dilution_rounds = [
+        {"year": 0, "new_salary": 15000, "dilution": 0.15}
+    ]
+    df = calculations.create_monthly_data_grid(
+        exit_year=3,
+        current_job_monthly_salary=20000,
+        startup_monthly_salary=10000,
+        current_job_salary_growth_rate=0.0,
+        dilution_rounds=dilution_rounds,
+    )
+
+    # Salary should be changed from month 0 (year 0 maps to month 0)
+    assert df["StartupSalary"].iloc[0] == 15000
+    assert df["StartupSalary"].iloc[35] == 15000
+
+    # Test 2: Equity sale at year 0 with no cliff (edge case)
+    startup_params = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 0,  # No cliff (unusual but possible)
+        "exit_year": 3,
+        "rsu_params": {
+            "equity_pct": 0.10,
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": True,
+            "dilution_rounds": [
+                {
+                    "year": 0,
+                    "dilution": 0.15,
+                    "percent_to_sell": 0.10,  # Sell 10% at inception
+                    "valuation_at_sale": 5_000_000,
+                }
+            ],
+        },
+        "options_params": {},
+    }
+
+    monthly_df = calculations.create_monthly_data_grid(
+        exit_year=3,
+        current_job_monthly_salary=20000,
+        startup_monthly_salary=15000,
+        current_job_salary_growth_rate=0.0,
+        dilution_rounds=startup_params["rsu_params"]["dilution_rounds"],
+    )
+
+    opportunity_df = calculations.calculate_annual_opportunity_cost(
+        monthly_df=monthly_df,
+        annual_roi=0.05,
+        investment_frequency="Annually",
+        startup_params=startup_params,
+    )
+
+    # Should not crash and should produce valid results
+    assert "Cash From Sale (FV)" in opportunity_df.columns
+    # At year 0 with no cliff, 0% is vested, so no cash from sale
+    assert opportunity_df["Cash From Sale (FV)"].iloc[-1] == 0.0
+
+    # Test 3: Dilution at year 0
+    results = calculations.calculate_startup_scenario(
+        opportunity_df, startup_params
+    )
+
+    # Should complete without errors
+    assert results["final_payout_value"] >= 0
+    assert not np.isnan(results["final_payout_value"])
+    assert not np.isinf(results["final_payout_value"])
