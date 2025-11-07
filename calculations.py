@@ -94,7 +94,7 @@ def calculate_annual_opportunity_cost(
                     0,
                 )
 
-                # Find cumulative dilution factor and cumulative sold equity up to the year *before* the sale
+                # Find cumulative dilution factor and cumulative sold equity factor up to the year *before* the sale
                 cumulative_dilution_factor = 1.0
                 cumulative_sold_factor = 1.0
                 for prev_r in dilution_rounds:
