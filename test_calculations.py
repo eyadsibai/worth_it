@@ -406,7 +406,7 @@ def test_equity_sales_after_exit_ignored(sample_opportunity_cost_df):
         },
         "options_params": {},
     }
-    
+
     startup_params_sale_after_exit = {
         "equity_type": EquityType.RSU,
         "total_vesting_years": 4,
@@ -423,14 +423,14 @@ def test_equity_sales_after_exit_ignored(sample_opportunity_cost_df):
         },
         "options_params": {},
     }
-    
+
     results_before = calculations.calculate_startup_scenario(
         sample_opportunity_cost_df, startup_params_sale_before_exit
     )
     results_after = calculations.calculate_startup_scenario(
         sample_opportunity_cost_df, startup_params_sale_after_exit
     )
-    
+
     # Final payout should be the same since the sale in year 4 happens after exit in year 3
     assert results_before["final_payout_value"] == pytest.approx(
         results_after["final_payout_value"]
