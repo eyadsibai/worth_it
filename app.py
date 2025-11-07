@@ -289,11 +289,12 @@ if equity_type == EquityType.RSU:
                     round_details = {}
                     round_details["year"] = st.number_input(
                         f"Year of {series_name}",
-                        min_value=1,
+                        min_value=0,  # Allow year 0 for pre-seed
                         max_value=20,
-                        value=i + 1,  # Start from year 1
+                        value=max(0, i),  # Pre-seed at year 0, others later
                         step=1,
                         key=f"year_{series_name}",
+                        help="Year when this funding round occurs. Pre-seed can be at year 0 (before you join or at start).",
                     )
 
                     # Salary Change Option
@@ -361,19 +362,41 @@ if equity_type == EquityType.RSU:
                     if st.checkbox(
                         "💵 Sell Equity in this Round?", key=f"sell_equity_{series_name}"
                     ):
-                        round_details["percent_to_sell"] = (
-                            st.slider(
-                                "Percentage of Vested Equity to Sell",
-                                0.0,
-                                100.0,
-                                10.0,
-                                1.0,
-                                key=f"sell_pct_{series_name}",
-                                format="%.1f%%",
-                                help="The percentage of your already-vested equity you wish to sell.",
+                        # Calculate vested percentage at this sale time
+                        sale_year = round_details["year"]
+
+                        # Calculate vested percentage based on vesting schedule
+                        if sale_year < cliff_years:
+                            vested_pct_at_sale = 0.0
+                        else:
+                            vested_pct_at_sale = min(100.0, (sale_year / total_vesting_years) * 100)
+
+                        # Show vesting info
+                        if vested_pct_at_sale == 0.0:
+                            st.warning(f"⚠️ No equity is vested at year {sale_year} (cliff is {cliff_years} years). You cannot sell equity yet.")
+                            # Set to 0 and skip the slider
+                            round_details["percent_to_sell"] = 0.0
+                        else:
+                            if vested_pct_at_sale < 100.0:
+                                st.info(f"📊 At year {sale_year}: **{vested_pct_at_sale:.1f}%** is vested, **{100-vested_pct_at_sale:.1f}%** is unvested")
+                                st.caption("⚠️ Note: You can only receive cash for vested equity. Selling unvested equity means forfeiting it (common in secondary sales).")
+                            else:
+                                st.info(f"📊 At year {sale_year}: **100%** of your equity is fully vested")
+
+                            # Default to selling 10% of remaining equity
+                            round_details["percent_to_sell"] = (
+                                st.slider(
+                                    "Percentage of Remaining Equity to Sell/Forfeit",
+                                    0.0,
+                                    100.0,
+                                    10.0,
+                                    1.0,
+                                    key=f"sell_pct_{series_name}",
+                                    format="%.1f%%",
+                                    help=f"Percentage of remaining equity to sell. You'll receive cash only for the vested portion ({vested_pct_at_sale:.1f}%). Unvested equity will be forfeited.",
+                                )
+                                / 100.0
                             )
-                            / 100.0
-                        )
 
                         # Set valuation for the sale
                         if post_money_valuation and dilution_method == "By Valuation":
