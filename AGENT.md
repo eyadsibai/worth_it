@@ -22,6 +22,44 @@ worth_it/
 
 ---
 
+## Getting Started
+
+### Prerequisites
+
+This project uses **`uv`** for Python package management. Do NOT use `pip` or `python` directly.
+
+**Install uv** (if not already installed):
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+### Setup & Running
+
+**1. Install dependencies:**
+```bash
+uv sync
+```
+
+**2. Run the application:**
+```bash
+uv run streamlit run app.py
+```
+
+**3. Run tests:**
+```bash
+uv run pytest test_calculations.py -v
+```
+
+**Important Commands:**
+- ✅ **Use**: `uv run pytest` - Runs tests with proper environment
+- ✅ **Use**: `uv run streamlit` - Runs Streamlit app with proper environment
+- ✅ **Use**: `uv sync` - Installs/updates dependencies
+- ❌ **Don't use**: `python -m pytest` - May use wrong Python/packages
+- ❌ **Don't use**: `pip install` - Bypasses uv's environment management
+- ❌ **Don't use**: `streamlit run` directly - May miss dependencies
+
+---
+
 ## Architecture Overview
 
 ### Separation of Concerns
@@ -789,27 +827,36 @@ def sample_opportunity_cost_df():
 
 **Original Author**: Eyad Sibai (https://linkedin.com/in/eyadsibai)
 
-**Recent Major Fixes** (commit 7953ad4):
-- Fixed Monte Carlo equity sales handling
-- Fixed Monte Carlo option exercise costs
-- Fixed iterative Monte Carlo parameter passing
+**Recent Major Fixes**:
+- **Commit 1097421** (2025-01-07): Fixed critical exercise cost logic bug where exercise costs were INCREASING outcomes instead of decreasing them
+  - Exercise costs now properly tracked and subtracted from final outcomes
+  - Added comprehensive test `test_exercise_costs_reduce_net_outcomes()`
+  - Fixed in both vectorized and iterative Monte Carlo paths
+- **Commit 7953ad4**: Fixed Monte Carlo equity sales handling, option exercise costs, and iterative MC parameter passing
+- **Commit 80063b3**: Fixed year 0 support and improved equity sale vesting clarity
+- **Commit a7daad5**: Added comprehensive AGENT.md documentation
 
 ---
 
-*Last Updated*: 2025-01-07 (after commit 7953ad4)
+*Last Updated*: 2025-01-07 (after commit 1097421)
 *Version*: 0.1.0
 *Python*: 3.10+
+*Package Manager*: uv
 
 ---
 
 ## Final Notes for AI Agents
 
-1. **Always run tests before and after changes**: `uv run pytest test_calculations.py -v`
-2. **The separation between calculations.py and app.py is sacred** - don't add calculations to app.py
-3. **Cash from equity sales is startup wealth, not opportunity cost** - this is counterintuitive but critical
-4. **Sequential equity sales are percentages of REMAINING equity** - not independent
-5. **Read the recent commit messages** - they often explain subtle bugs and fixes
-6. **When in doubt, add a test** - tests are the specification
-7. **NumPy vectorization is tricky** - verify shapes carefully when modifying Monte Carlo code
+1. **ALWAYS use `uv` commands** - Never use `python`, `pip`, or direct command execution
+   - ✅ `uv run pytest` - NOT `python -m pytest`
+   - ✅ `uv run streamlit` - NOT `streamlit run`
+   - ✅ `uv sync` - NOT `pip install`
+2. **Always run tests before and after changes**: `uv run pytest test_calculations.py -v`
+3. **The separation between calculations.py and app.py is sacred** - don't add calculations to app.py
+4. **Cash from equity sales is startup wealth, not opportunity cost** - this is counterintuitive but critical
+5. **Sequential equity sales are percentages of REMAINING equity** - not independent
+6. **Read the recent commit messages** - they often explain subtle bugs and fixes
+7. **When in doubt, add a test** - tests are the specification
+8. **NumPy vectorization is tricky** - verify shapes carefully when modifying Monte Carlo code
 
 Good luck! 🚀
