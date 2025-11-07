@@ -650,7 +650,7 @@ def test_year_0_handling():
 
     # Should not crash and should produce valid results
     assert "Cash From Sale (FV)" in opportunity_df.columns
-    # At year 0 with no cliff, 0% is vested, so no cash from sale
+    # At year 0, 0% is vested (0/4 years), so no cash from sale
     assert opportunity_df["Cash From Sale (FV)"].iloc[-1] == 0.0
 
     # Test 3: Dilution at year 0
