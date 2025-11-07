@@ -79,7 +79,7 @@ The codebase follows a **clean separation** between UI and business logic:
 3. **test_calculations.py** - Test suite
    - Comprehensive unit tests for all calculations
    - Uses pytest fixtures for common test data
-   - Currently 17 tests, all passing
+   - Currently 22 tests, all passing
 
 ---
 
