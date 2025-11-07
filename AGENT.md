@@ -213,7 +213,7 @@ Tests are organized by functionality:
 - **RSU Scenarios** (3 tests): RSU calculations with/without dilution
 - **Stock Options** (1 test): Options valuation
 - **Advanced Features** (7 tests): Salary increases, equity sales, multiple sales
-- **Monte Carlo** (3 tests): Vectorized, iterative, and with equity sales
+- **Monte Carlo** (6 tests): Vectorized, iterative, with equity sales, stock options & exercise costs, year 0 handling, and exercise cost impact
 
 ### Running Tests
 
