@@ -744,7 +744,7 @@ def test_exercise_costs_reduce_net_outcomes():
 
     # The difference should be approximately the exercise cost compounded
     # Strike price = 2.0, num_options = 10000 → total cost = 20,000
-    # Compounded for 1 year at 8% monthly: ~21,600
+    # Compounded monthly for 1 year at 8% annual ROI: ~21,600
     expected_reduction = 20000 * (1.08 ** (1))  # Approximately 21,600
     actual_reduction = mean_without - mean_with
 
