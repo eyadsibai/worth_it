@@ -391,7 +391,7 @@ if equity_type == EquityType.RSU:
                             # Default to selling 10% of remaining equity
                             round_details["percent_to_sell"] = (
                                 st.slider(
-                                    "Percentage of Remaining Equity to Sell/Forfeit",
+                                    "Percentage of Remaining Equity to Sell (vested) or Forfeit (unvested)",
                                     0.0,
                                     100.0,
                                     10.0,
