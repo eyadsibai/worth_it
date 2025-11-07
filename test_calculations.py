@@ -235,7 +235,8 @@ def test_cash_from_equity_sale_added_to_surplus():
     """
     Tests that the cash generated from selling a portion of vested equity
     is correctly tracked in the 'Cash From Sale (FV)' column, separate from
-    opportunity cost. This cash is startup-side wealth, not foregone BigCorp earnings.
+    opportunity cost, and that this value is properly added to the final payout.
+    This cash is startup-side wealth, not foregone BigCorp earnings.
     """
     startup_params = {
         "equity_type": EquityType.RSU,
