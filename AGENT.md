@@ -757,14 +757,14 @@ with st.expander("🐛 Debug Info"):
 | Function | Purpose | Location |
 |----------|---------|----------|
 | `create_monthly_data_grid()` | Month-by-month salary comparison | `calculations.py:22` |
-| `calculate_annual_opportunity_cost()` | Future value of foregone salary | `calculations.py:63` |
-| `calculate_startup_scenario()` | Final equity value with dilution/sales | `calculations.py:217` |
+| `calculate_annual_opportunity_cost()` | Future value of foregone salary | `calculations.py:64` |
+| `calculate_startup_scenario()` | Final equity value with dilution/sales | `calculations.py:229` |
 | `calculate_irr()` | Internal Rate of Return | `calculations.py:384` |
 | `calculate_npv()` | Net Present Value | `calculations.py:406` |
 | `run_monte_carlo_simulation()` | Main MC dispatcher | `calculations.py:450` |
-| `run_monte_carlo_simulation_vectorized()` | Fast MC (fixed exit year) | `calculations.py:512` |
-| `run_monte_carlo_simulation_iterative()` | Slow MC (variable exit year) | `calculations.py:674` |
-| `run_sensitivity_analysis()` | Variable impact analysis | `calculations.py:779` |
+| `run_monte_carlo_simulation_vectorized()` | Fast MC (fixed exit year) | `calculations.py:522` |
+| `run_monte_carlo_simulation_iterative()` | Slow MC (variable exit year) | `calculations.py:686` |
+| `run_sensitivity_analysis()` | Variable impact analysis | `calculations.py:798` |
 
 ### Important Constants
 
