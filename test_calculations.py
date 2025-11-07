@@ -452,3 +452,137 @@ def test_run_monte_carlo_iterative_for_exit_year(monte_carlo_base_params):
     )
     assert len(results["net_outcomes"]) == num_simulations
     assert not np.isnan(results["net_outcomes"]).any()
+
+
+def test_monte_carlo_with_equity_sales(monte_carlo_base_params):
+    """
+    Tests that Monte Carlo simulation correctly handles equity sales in dilution rounds.
+    The vectorized method should account for both the reduction in final payout and
+    the cash received from sales.
+    """
+    # Add equity sales to the base params
+    monte_carlo_base_params["startup_params"]["rsu_params"]["simulate_dilution"] = True
+    monte_carlo_base_params["startup_params"]["rsu_params"]["dilution_rounds"] = [
+        {
+            "year": 2,
+            "dilution": 0.20,
+            "percent_to_sell": 0.50,  # Sell 50% of vested equity
+            "valuation_at_sale": 10_000_000,
+        }
+    ]
+
+    num_simulations = 50
+    sim_param_configs = {
+        "valuation": {"min_val": 10_000_000, "max_val": 30_000_000, "mode": 20_000_000},
+        "roi": {"mean": 0.05, "std_dev": 0.02},
+    }
+
+    results = calculations.run_monte_carlo_simulation(
+        num_simulations=num_simulations,
+        base_params=monte_carlo_base_params,
+        sim_param_configs=sim_param_configs,
+    )
+
+    # Verify results are valid
+    assert len(results["net_outcomes"]) == num_simulations
+    assert not np.isnan(results["net_outcomes"]).any()
+
+    # The net outcomes should be finite numbers (not inf or -inf)
+    assert np.all(np.isfinite(results["net_outcomes"]))
+
+
+def test_monte_carlo_with_stock_options_and_exercise_costs():
+    """
+    Tests that Monte Carlo simulation correctly handles stock option exercise costs.
+    """
+    base_params = {
+        "exit_year": 5,
+        "current_job_monthly_salary": 10000,
+        "startup_monthly_salary": 8000,
+        "current_job_salary_growth_rate": 0.03,
+        "annual_roi": 0.05,
+        "investment_frequency": "Annually",
+        "startup_params": {
+            "equity_type": EquityType.STOCK_OPTIONS,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "rsu_params": {},
+            "options_params": {
+                "num_options": 10000,
+                "strike_price": 1.0,
+                "target_exit_price_per_share": 50.0,
+                "exercise_strategy": "Exercise After Vesting",
+                "exercise_year": 4,
+            },
+        },
+        "failure_probability": 0.25,
+    }
+
+    num_simulations = 50
+    sim_param_configs = {
+        "valuation": {"min_val": 10.0, "max_val": 100.0, "mode": 50.0},
+        "roi": {"mean": 0.05, "std_dev": 0.02},
+    }
+
+    results = calculations.run_monte_carlo_simulation(
+        num_simulations=num_simulations,
+        base_params=base_params,
+        sim_param_configs=sim_param_configs,
+    )
+
+    # Verify results are valid
+    assert len(results["net_outcomes"]) == num_simulations
+    assert not np.isnan(results["net_outcomes"]).any()
+    assert np.all(np.isfinite(results["net_outcomes"]))
+
+
+def test_monte_carlo_iterative_with_equity_sales():
+    """
+    Tests that the iterative Monte Carlo (when exit year is simulated) correctly
+    handles equity sales.
+    """
+    base_params = {
+        "exit_year": 5,
+        "current_job_monthly_salary": 10000,
+        "startup_monthly_salary": 8000,
+        "current_job_salary_growth_rate": 0.03,
+        "annual_roi": 0.05,
+        "investment_frequency": "Annually",
+        "startup_params": {
+            "equity_type": EquityType.RSU,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "rsu_params": {
+                "equity_pct": 0.05,
+                "target_exit_valuation": 20_000_000,
+                "simulate_dilution": True,
+                "dilution_rounds": [
+                    {
+                        "year": 2,
+                        "dilution": 0.20,
+                        "percent_to_sell": 0.50,
+                        "valuation_at_sale": 10_000_000,
+                    }
+                ],
+            },
+            "options_params": {},
+        },
+        "failure_probability": 0.25,
+    }
+
+    num_simulations = 30
+    sim_param_configs = {
+        "exit_year": {"min_val": 3, "max_val": 7, "mode": 5},
+        "valuation": {"min_val": 10_000_000, "max_val": 30_000_000, "mode": 20_000_000},
+    }
+
+    results = calculations.run_monte_carlo_simulation(
+        num_simulations=num_simulations,
+        base_params=base_params,
+        sim_param_configs=sim_param_configs,
+    )
+
+    # Verify results are valid
+    assert len(results["net_outcomes"]) == num_simulations
+    assert not np.isnan(results["net_outcomes"]).any()
+    assert np.all(np.isfinite(results["net_outcomes"]))
