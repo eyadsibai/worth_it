@@ -75,6 +75,7 @@ def calculate_annual_opportunity_cost(
         return pd.DataFrame()
 
     monthly_df_copy = monthly_df.copy()
+
     # --- Handle Cash from Equity Sales ---
     if startup_params and startup_params.get("equity_type").value == "Equity (RSUs)":
         rsu_params = startup_params["rsu_params"]
@@ -101,7 +102,7 @@ def calculate_annual_opportunity_cost(
 
                 equity_at_sale = initial_equity_pct * cumulative_dilution_factor
                 cash_from_sale = (
-                    vested_pct_at_sale
+                    float(vested_pct_at_sale)
                     * equity_at_sale
                     * r["valuation_at_sale"]
                     * r["percent_to_sell"]
