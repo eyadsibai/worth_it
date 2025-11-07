@@ -163,29 +163,38 @@ def calculate_annual_opportunity_cost(
 
     for year_end in results_df.index:
         current_df = monthly_df_copy[monthly_df_copy["Year"] <= year_end]
-        
-        # Calculate opportunity cost WITHOUT cash from sale
-        # (cash from sale is startup-side wealth, not foregone BigCorp earnings)
-        net_monthly_cashflow = (
-            current_df["InvestableSurplus"]
-            - current_df["ExerciseCost"]
-        )
 
+        # Calculate opportunity cost from foregone salary (without exercise costs)
+        # Exercise costs are treated as additional outflow and added separately
         if investment_frequency == "Monthly":
             months_to_grow = (year_end * 12) - current_df.index - 1
-            fv_opportunity = (net_monthly_cashflow * (1 + monthly_roi) ** months_to_grow).sum()
-            
+
+            # Future value of foregone salary that could be invested
+            fv_investable_surplus = (current_df["InvestableSurplus"] * (1 + monthly_roi) ** months_to_grow).sum()
+
+            # Future value of exercise costs (additional cash outflow)
+            fv_exercise_cost = (current_df["ExerciseCost"] * (1 + monthly_roi) ** months_to_grow).sum()
+
+            # Total opportunity cost includes both foregone salary and exercise costs
+            fv_opportunity = fv_investable_surplus + fv_exercise_cost
+
             # Calculate future value of cash from sale separately
             cash_flow = current_df["CashFromSale"]
             fv_cash_from_sale = (cash_flow * (1 + monthly_roi) ** months_to_grow).sum()
         else:  # Annually
-            annual_net_cashflow = (
-                annual_investable_surplus.reindex(range(1, year_end + 1), fill_value=0)
-                - annual_exercise_cost.reindex(range(1, year_end + 1), fill_value=0)
-            )
-            years_to_grow = year_end - annual_net_cashflow.index
-            fv_opportunity = (annual_net_cashflow * (1 + annual_roi) ** years_to_grow).sum()
-            
+            annual_investable = annual_investable_surplus.reindex(range(1, year_end + 1), fill_value=0)
+            annual_exercise = annual_exercise_cost.reindex(range(1, year_end + 1), fill_value=0)
+            years_to_grow = year_end - annual_investable.index
+
+            # Future value of foregone salary that could be invested
+            fv_investable_surplus = (annual_investable * (1 + annual_roi) ** years_to_grow).sum()
+
+            # Future value of exercise costs (additional cash outflow)
+            fv_exercise_cost = (annual_exercise * (1 + annual_roi) ** years_to_grow).sum()
+
+            # Total opportunity cost includes both foregone salary and exercise costs
+            fv_opportunity = fv_investable_surplus + fv_exercise_cost
+
             # Calculate future value of cash from sale separately
             annual_cash = annual_cash_from_sale.reindex(range(1, year_end + 1), fill_value=0)
             fv_cash_from_sale = (annual_cash * (1 + annual_roi) ** years_to_grow).sum()
@@ -527,9 +536,27 @@ def run_monte_carlo_simulation_vectorized(
     monthly_surpluses = current_salaries - base_params["startup_monthly_salary"]
     investable_surpluses = np.clip(monthly_surpluses, 0, None)
 
-    # Handle stock option exercise costs
+    # Calculate opportunity cost from investable surplus (without exercise costs)
+    if base_params["investment_frequency"] == "Monthly":
+        monthly_rois = (1 + sim_params["roi"]) ** (1 / 12) - 1
+        months_to_grow = np.arange(total_months - 1, -1, -1)
+        fv_factors = (1 + monthly_rois[:, np.newaxis]) ** months_to_grow
+        final_opportunity_cost = (investable_surpluses * fv_factors).sum(axis=1)
+    else:
+        annual_investable_surpluses = np.array(
+            [
+                np.sum(investable_surpluses[i].reshape(-1, 12), axis=1)
+                for i in range(num_simulations)
+            ]
+        )
+        years_to_grow = exit_year - np.arange(1, exit_year + 1)
+        fv_factors = (1 + sim_params["roi"][:, np.newaxis]) ** years_to_grow
+        final_opportunity_cost = (annual_investable_surpluses * fv_factors).sum(axis=1)
+
+    # Handle stock option exercise costs separately (as additional outflow)
+    # Exercise costs should REDUCE the net outcome, not increase it
+    exercise_costs_fv = np.zeros(num_simulations)
     options_params = base_params["startup_params"].get("options_params", {})
-    exercise_costs = np.zeros((num_simulations, total_months))
 
     if (options_params and
         options_params.get("exercise_strategy") == "Exercise After Vesting"):
@@ -540,26 +567,14 @@ def run_monte_carlo_simulation_vectorized(
                 num_options = options_params.get("num_options", 0)
                 strike_price = options_params.get("strike_price", 0)
                 total_exercise_cost = num_options * strike_price
-                exercise_costs[:, exercise_month_index] = total_exercise_cost
 
-    # Subtract exercise costs from investable surplus
-    net_investable_surpluses = investable_surpluses - exercise_costs
-
-    if base_params["investment_frequency"] == "Monthly":
-        monthly_rois = (1 + sim_params["roi"]) ** (1 / 12) - 1
-        months_to_grow = np.arange(total_months - 1, -1, -1)
-        fv_factors = (1 + monthly_rois[:, np.newaxis]) ** months_to_grow
-        final_opportunity_cost = (net_investable_surpluses * fv_factors).sum(axis=1)
-    else:
-        annual_investable_surpluses = np.array(
-            [
-                np.sum(net_investable_surpluses[i].reshape(-1, 12), axis=1)
-                for i in range(num_simulations)
-            ]
-        )
-        years_to_grow = exit_year - np.arange(1, exit_year + 1)
-        fv_factors = (1 + sim_params["roi"][:, np.newaxis]) ** years_to_grow
-        final_opportunity_cost = (annual_investable_surpluses * fv_factors).sum(axis=1)
+                # Calculate future value of exercise cost
+                if base_params["investment_frequency"] == "Monthly":
+                    months_remaining = total_months - 1 - exercise_month_index
+                    exercise_costs_fv = total_exercise_cost * ((1 + monthly_rois) ** months_remaining)
+                else:
+                    years_remaining = exit_year - exercise_year
+                    exercise_costs_fv = total_exercise_cost * ((1 + sim_params["roi"]) ** years_remaining)
 
     startup_params = base_params["startup_params"]
     final_vested_pct = np.clip(
@@ -658,7 +673,9 @@ def run_monte_carlo_simulation_vectorized(
     )
     final_payout_value[failure_mask] = 0
 
-    net_outcomes = final_payout_value - final_opportunity_cost
+    # Calculate net outcomes: payout - opportunity cost - exercise costs
+    # Exercise costs are subtracted to ensure spending money to exercise reduces the outcome
+    net_outcomes = final_payout_value - final_opportunity_cost - exercise_costs_fv
 
     return {
         "net_outcomes": net_outcomes,

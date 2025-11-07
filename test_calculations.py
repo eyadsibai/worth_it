@@ -662,3 +662,97 @@ def test_year_0_handling():
     assert results["final_payout_value"] >= 0
     assert not np.isnan(results["final_payout_value"])
     assert not np.isinf(results["final_payout_value"])
+
+
+def test_exercise_costs_reduce_net_outcomes():
+    """
+    Critical test to verify that exercise costs REDUCE net outcomes, not increase them.
+    This test was added to verify the fix for the bug where subtracting exercise costs
+    from investable surplus caused them to increase outcomes instead of decreasing them.
+    """
+    # Base parameters for both scenarios
+    base_params_template = {
+        "exit_year": 5,
+        "current_job_monthly_salary": 10000,
+        "startup_monthly_salary": 8000,
+        "current_job_salary_growth_rate": 0.03,
+        "annual_roi": 0.08,  # Higher ROI to make exercise cost impact more visible
+        "investment_frequency": "Monthly",
+        "startup_params": {
+            "equity_type": EquityType.STOCK_OPTIONS,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "rsu_params": {},
+            "options_params": {
+                "num_options": 10000,
+                "strike_price": 2.0,  # $20k exercise cost
+                "target_exit_price_per_share": 50.0,
+                "exercise_strategy": "Exercise After Vesting",
+                "exercise_year": 4,
+            },
+        },
+        "failure_probability": 0.0,  # Disable failure to isolate exercise cost impact
+    }
+
+    # Scenario 1: WITH exercise costs
+    params_with_exercise = base_params_template.copy()
+    params_with_exercise["startup_params"] = base_params_template["startup_params"].copy()
+    params_with_exercise["startup_params"]["options_params"] = base_params_template["startup_params"]["options_params"].copy()
+
+    # Scenario 2: WITHOUT exercise costs (exercise at exit)
+    params_without_exercise = base_params_template.copy()
+    params_without_exercise["startup_params"] = base_params_template["startup_params"].copy()
+    params_without_exercise["startup_params"]["options_params"] = base_params_template["startup_params"]["options_params"].copy()
+    params_without_exercise["startup_params"]["options_params"]["exercise_strategy"] = "Exercise at Exit"
+
+    # Use fixed seed for reproducible results
+    np.random.seed(42)
+
+    # Run simulations
+    num_simulations = 100
+    sim_param_configs = {
+        "valuation": {"min_val": 40.0, "max_val": 60.0, "mode": 50.0},
+        "roi": {"mean": 0.08, "std_dev": 0.01},
+    }
+
+    results_with_exercise = calculations.run_monte_carlo_simulation(
+        num_simulations=num_simulations,
+        base_params=params_with_exercise,
+        sim_param_configs=sim_param_configs,
+    )
+
+    # Reset seed for comparable simulations
+    np.random.seed(42)
+
+    results_without_exercise = calculations.run_monte_carlo_simulation(
+        num_simulations=num_simulations,
+        base_params=params_without_exercise,
+        sim_param_configs=sim_param_configs,
+    )
+
+    # CRITICAL ASSERTION: Exercise costs should REDUCE outcomes
+    # With exercise costs: you pay 20k at year 4, which compounds for 1 year
+    # Expected reduction: approximately 20k * (1.08)^(1 year) = ~21.6k
+    mean_with = np.mean(results_with_exercise["net_outcomes"])
+    mean_without = np.mean(results_without_exercise["net_outcomes"])
+
+    # Exercise costs should make outcomes LOWER
+    assert mean_with < mean_without, (
+        f"CRITICAL BUG: Exercise costs INCREASED outcomes instead of decreasing them! "
+        f"Mean with exercise: {mean_with:.2f}, Mean without: {mean_without:.2f}"
+    )
+
+    # The difference should be approximately the exercise cost compounded
+    # Strike price = 2.0, num_options = 10000 → total cost = 20,000
+    # Compounded for 1 year at 8% monthly: ~21,600
+    expected_reduction = 20000 * (1.08 ** (1))  # Approximately 21,600
+    actual_reduction = mean_without - mean_with
+
+    # Allow for some variance due to Monte Carlo randomness (within 50%)
+    assert actual_reduction > expected_reduction * 0.5, (
+        f"Exercise cost reduction too small. Expected ~{expected_reduction:.2f}, "
+        f"got {actual_reduction:.2f}"
+    )
+
+    print(f"✓ Exercise costs correctly reduce outcomes by {actual_reduction:.2f} "
+          f"(expected ~{expected_reduction:.2f})")
