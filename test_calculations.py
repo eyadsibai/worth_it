@@ -452,3 +452,306 @@ def test_run_monte_carlo_iterative_for_exit_year(monte_carlo_base_params):
     )
     assert len(results["net_outcomes"]) == num_simulations
     assert not np.isnan(results["net_outcomes"]).any()
+
+
+def test_monte_carlo_with_equity_sales(monte_carlo_base_params):
+    """
+    Tests that Monte Carlo simulation correctly handles equity sales in dilution rounds.
+    The vectorized method should account for both the reduction in final payout and
+    the cash received from sales.
+    """
+    # Add equity sales to the base params
+    monte_carlo_base_params["startup_params"]["rsu_params"]["simulate_dilution"] = True
+    monte_carlo_base_params["startup_params"]["rsu_params"]["dilution_rounds"] = [
+        {
+            "year": 2,
+            "dilution": 0.20,
+            "percent_to_sell": 0.50,  # Sell 50% of vested equity
+            "valuation_at_sale": 10_000_000,
+        }
+    ]
+
+    num_simulations = 50
+    sim_param_configs = {
+        "valuation": {"min_val": 10_000_000, "max_val": 30_000_000, "mode": 20_000_000},
+        "roi": {"mean": 0.05, "std_dev": 0.02},
+    }
+
+    results = calculations.run_monte_carlo_simulation(
+        num_simulations=num_simulations,
+        base_params=monte_carlo_base_params,
+        sim_param_configs=sim_param_configs,
+    )
+
+    # Verify results are valid
+    assert len(results["net_outcomes"]) == num_simulations
+    assert not np.isnan(results["net_outcomes"]).any()
+
+    # The net outcomes should be finite numbers (not inf or -inf)
+    assert np.all(np.isfinite(results["net_outcomes"]))
+
+
+def test_monte_carlo_with_stock_options_and_exercise_costs():
+    """
+    Tests that Monte Carlo simulation correctly handles stock option exercise costs.
+    """
+    base_params = {
+        "exit_year": 5,
+        "current_job_monthly_salary": 10000,
+        "startup_monthly_salary": 8000,
+        "current_job_salary_growth_rate": 0.03,
+        "annual_roi": 0.05,
+        "investment_frequency": "Annually",
+        "startup_params": {
+            "equity_type": EquityType.STOCK_OPTIONS,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "rsu_params": {},
+            "options_params": {
+                "num_options": 10000,
+                "strike_price": 1.0,
+                "target_exit_price_per_share": 50.0,
+                "exercise_strategy": "Exercise After Vesting",
+                "exercise_year": 4,
+            },
+        },
+        "failure_probability": 0.25,
+    }
+
+    num_simulations = 50
+    sim_param_configs = {
+        "valuation": {"min_val": 10.0, "max_val": 100.0, "mode": 50.0},
+        "roi": {"mean": 0.05, "std_dev": 0.02},
+    }
+
+    results = calculations.run_monte_carlo_simulation(
+        num_simulations=num_simulations,
+        base_params=base_params,
+        sim_param_configs=sim_param_configs,
+    )
+
+    # Verify results are valid
+    assert len(results["net_outcomes"]) == num_simulations
+    assert not np.isnan(results["net_outcomes"]).any()
+    assert np.all(np.isfinite(results["net_outcomes"]))
+
+
+def test_monte_carlo_iterative_with_equity_sales():
+    """
+    Tests that the iterative Monte Carlo (when exit year is simulated) correctly
+    handles equity sales.
+    """
+    base_params = {
+        "exit_year": 5,
+        "current_job_monthly_salary": 10000,
+        "startup_monthly_salary": 8000,
+        "current_job_salary_growth_rate": 0.03,
+        "annual_roi": 0.05,
+        "investment_frequency": "Annually",
+        "startup_params": {
+            "equity_type": EquityType.RSU,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "rsu_params": {
+                "equity_pct": 0.05,
+                "target_exit_valuation": 20_000_000,
+                "simulate_dilution": True,
+                "dilution_rounds": [
+                    {
+                        "year": 2,
+                        "dilution": 0.20,
+                        "percent_to_sell": 0.50,
+                        "valuation_at_sale": 10_000_000,
+                    }
+                ],
+            },
+            "options_params": {},
+        },
+        "failure_probability": 0.25,
+    }
+
+    num_simulations = 30
+    sim_param_configs = {
+        "exit_year": {"min_val": 3, "max_val": 7, "mode": 5},
+        "valuation": {"min_val": 10_000_000, "max_val": 30_000_000, "mode": 20_000_000},
+    }
+
+    results = calculations.run_monte_carlo_simulation(
+        num_simulations=num_simulations,
+        base_params=base_params,
+        sim_param_configs=sim_param_configs,
+    )
+
+    # Verify results are valid
+    assert len(results["net_outcomes"]) == num_simulations
+    assert not np.isnan(results["net_outcomes"]).any()
+    assert np.all(np.isfinite(results["net_outcomes"]))
+
+
+def test_year_0_handling():
+    """
+    Tests that year 0 (inception/pre-seed) is handled correctly for:
+    1. Salary changes at year 0
+    2. Dilution rounds at year 0
+    3. Equity sales at year 0 (with cliff=0 edge case)
+    """
+    # Test 1: Salary change at year 0
+    dilution_rounds = [
+        {"year": 0, "new_salary": 15000, "dilution": 0.15}
+    ]
+    df = calculations.create_monthly_data_grid(
+        exit_year=3,
+        current_job_monthly_salary=20000,
+        startup_monthly_salary=10000,
+        current_job_salary_growth_rate=0.0,
+        dilution_rounds=dilution_rounds,
+    )
+
+    # Salary should be changed from month 0 (year 0 maps to month 0)
+    assert df["StartupSalary"].iloc[0] == 15000
+    assert df["StartupSalary"].iloc[35] == 15000
+
+    # Test 2: Equity sale at year 0 with no cliff (edge case)
+    startup_params = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 0,  # No cliff (unusual but possible)
+        "exit_year": 3,
+        "rsu_params": {
+            "equity_pct": 0.10,
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": True,
+            "dilution_rounds": [
+                {
+                    "year": 0,
+                    "dilution": 0.15,
+                    "percent_to_sell": 0.10,  # Sell 10% at inception
+                    "valuation_at_sale": 5_000_000,
+                }
+            ],
+        },
+        "options_params": {},
+    }
+
+    monthly_df = calculations.create_monthly_data_grid(
+        exit_year=3,
+        current_job_monthly_salary=20000,
+        startup_monthly_salary=15000,
+        current_job_salary_growth_rate=0.0,
+        dilution_rounds=startup_params["rsu_params"]["dilution_rounds"],
+    )
+
+    opportunity_df = calculations.calculate_annual_opportunity_cost(
+        monthly_df=monthly_df,
+        annual_roi=0.05,
+        investment_frequency="Annually",
+        startup_params=startup_params,
+    )
+
+    # Should not crash and should produce valid results
+    assert "Cash From Sale (FV)" in opportunity_df.columns
+    # At year 0, 0% is vested (0/4 years), so no cash from sale
+    assert opportunity_df["Cash From Sale (FV)"].iloc[-1] == 0.0
+
+    # Test 3: Dilution at year 0
+    results = calculations.calculate_startup_scenario(
+        opportunity_df, startup_params
+    )
+
+    # Should complete without errors
+    assert results["final_payout_value"] >= 0
+    assert not np.isnan(results["final_payout_value"])
+    assert not np.isinf(results["final_payout_value"])
+
+
+def test_exercise_costs_reduce_net_outcomes():
+    """
+    Critical test to verify that exercise costs REDUCE net outcomes, not increase them.
+    This test was added to verify the fix for the bug where subtracting exercise costs
+    from investable surplus caused them to increase outcomes instead of decreasing them.
+    """
+    # Base parameters for both scenarios
+    base_params_template = {
+        "exit_year": 5,
+        "current_job_monthly_salary": 10000,
+        "startup_monthly_salary": 8000,
+        "current_job_salary_growth_rate": 0.03,
+        "annual_roi": 0.08,  # Higher ROI to make exercise cost impact more visible
+        "investment_frequency": "Monthly",
+        "startup_params": {
+            "equity_type": EquityType.STOCK_OPTIONS,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "rsu_params": {},
+            "options_params": {
+                "num_options": 10000,
+                "strike_price": 2.0,  # $20k exercise cost
+                "target_exit_price_per_share": 50.0,
+                "exercise_strategy": "Exercise After Vesting",
+                "exercise_year": 4,
+            },
+        },
+        "failure_probability": 0.0,  # Disable failure to isolate exercise cost impact
+    }
+
+    # Scenario 1: WITH exercise costs
+    params_with_exercise = base_params_template.copy()
+    params_with_exercise["startup_params"] = base_params_template["startup_params"].copy()
+    params_with_exercise["startup_params"]["options_params"] = base_params_template["startup_params"]["options_params"].copy()
+
+    # Scenario 2: WITHOUT exercise costs (exercise at exit)
+    params_without_exercise = base_params_template.copy()
+    params_without_exercise["startup_params"] = base_params_template["startup_params"].copy()
+    params_without_exercise["startup_params"]["options_params"] = base_params_template["startup_params"]["options_params"].copy()
+    params_without_exercise["startup_params"]["options_params"]["exercise_strategy"] = "Exercise at Exit"
+
+    # Use fixed seed for reproducible results
+    np.random.seed(42)
+
+    # Run simulations
+    num_simulations = 100
+    sim_param_configs = {
+        "valuation": {"min_val": 40.0, "max_val": 60.0, "mode": 50.0},
+        "roi": {"mean": 0.08, "std_dev": 0.01},
+    }
+
+    results_with_exercise = calculations.run_monte_carlo_simulation(
+        num_simulations=num_simulations,
+        base_params=params_with_exercise,
+        sim_param_configs=sim_param_configs,
+    )
+
+    # Reset seed for comparable simulations
+    np.random.seed(42)
+
+    results_without_exercise = calculations.run_monte_carlo_simulation(
+        num_simulations=num_simulations,
+        base_params=params_without_exercise,
+        sim_param_configs=sim_param_configs,
+    )
+
+    # CRITICAL ASSERTION: Exercise costs should REDUCE outcomes
+    # With exercise costs: you pay 20k at year 4, which compounds for 1 year
+    # Expected reduction: approximately 20k * (1.08)^(1 year) = ~21.6k
+    mean_with = np.mean(results_with_exercise["net_outcomes"])
+    mean_without = np.mean(results_without_exercise["net_outcomes"])
+
+    # Exercise costs should make outcomes LOWER
+    assert mean_with < mean_without, (
+        f"CRITICAL BUG: Exercise costs INCREASED outcomes instead of decreasing them! "
+        f"Mean with exercise: {mean_with:.2f}, Mean without: {mean_without:.2f}"
+    )
+
+    # The difference should be approximately the exercise cost compounded
+    # Strike price = 2.0, num_options = 10000 → total cost = 20,000
+    # Compounded monthly for 1 year at 8% annual ROI: ~21,600
+    expected_reduction = 20000 * (1.08 ** (1))  # Approximately 21,600
+    actual_reduction = mean_without - mean_with
+
+    # Allow for some variance due to Monte Carlo randomness (within 50%)
+    assert actual_reduction > expected_reduction * 0.5, (
+        f"Exercise cost reduction too small. Expected ~{expected_reduction:.2f}, "
+        f"got {actual_reduction:.2f}"
+    )
+
+    # Exercise costs correctly reduce outcomes by {actual_reduction:.2f} (expected ~{expected_reduction:.2f})

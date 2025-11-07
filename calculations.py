@@ -49,7 +49,8 @@ def create_monthly_data_grid(
         sorted_rounds = sorted(dilution_rounds, key=lambda r: r["year"])
         for r in sorted_rounds:
             if "new_salary" in r and r["new_salary"] > 0:
-                start_month = (r["year"] - 1) * 12
+                # Handle year 0 (inception): max ensures year 0 maps to month 0
+                start_month = max(0, (r["year"] - 1) * 12)
                 df.loc[start_month:, "StartupSalary"] = r["new_salary"]
 
     df["MonthlySurplus"] = df["CurrentJobSalary"] - df["StartupSalary"]
@@ -118,7 +119,9 @@ def calculate_annual_opportunity_cost(
                     * r["percent_to_sell"]
                 )
 
-                sale_month_index = (sale_year * 12) - 1
+                # Handle year 0: sales at year 0 happen at month 0 (inception)
+                # Other years: sale at end of year (last month of that year)
+                sale_month_index = 0 if sale_year == 0 else (sale_year * 12) - 1
                 if 0 <= sale_month_index < len(monthly_df_copy):
                     monthly_df_copy.loc[sale_month_index, "CashFromSale"] += cash_from_sale
 
@@ -160,29 +163,38 @@ def calculate_annual_opportunity_cost(
 
     for year_end in results_df.index:
         current_df = monthly_df_copy[monthly_df_copy["Year"] <= year_end]
-        
-        # Calculate opportunity cost WITHOUT cash from sale
-        # (cash from sale is startup-side wealth, not foregone BigCorp earnings)
-        net_monthly_cashflow = (
-            current_df["InvestableSurplus"]
-            - current_df["ExerciseCost"]
-        )
 
+        # Calculate opportunity cost from foregone salary (without exercise costs)
+        # Exercise costs are treated as additional outflow and added separately
         if investment_frequency == "Monthly":
             months_to_grow = (year_end * 12) - current_df.index - 1
-            fv_opportunity = (net_monthly_cashflow * (1 + monthly_roi) ** months_to_grow).sum()
-            
+
+            # Future value of foregone salary that could be invested
+            fv_investable_surplus = (current_df["InvestableSurplus"] * (1 + monthly_roi) ** months_to_grow).sum()
+
+            # Future value of exercise costs (additional cash outflow)
+            fv_exercise_cost = (current_df["ExerciseCost"] * (1 + monthly_roi) ** months_to_grow).sum()
+
+            # Total opportunity cost includes both foregone salary and exercise costs
+            fv_opportunity = fv_investable_surplus + fv_exercise_cost
+
             # Calculate future value of cash from sale separately
             cash_flow = current_df["CashFromSale"]
             fv_cash_from_sale = (cash_flow * (1 + monthly_roi) ** months_to_grow).sum()
         else:  # Annually
-            annual_net_cashflow = (
-                annual_investable_surplus.reindex(range(1, year_end + 1), fill_value=0)
-                - annual_exercise_cost.reindex(range(1, year_end + 1), fill_value=0)
-            )
-            years_to_grow = year_end - annual_net_cashflow.index
-            fv_opportunity = (annual_net_cashflow * (1 + annual_roi) ** years_to_grow).sum()
-            
+            annual_investable = annual_investable_surplus.reindex(range(1, year_end + 1), fill_value=0)
+            annual_exercise = annual_exercise_cost.reindex(range(1, year_end + 1), fill_value=0)
+            years_to_grow = year_end - annual_investable.index
+
+            # Future value of foregone salary that could be invested
+            fv_investable_surplus = (annual_investable * (1 + annual_roi) ** years_to_grow).sum()
+
+            # Future value of exercise costs (additional cash outflow)
+            fv_exercise_cost = (annual_exercise * (1 + annual_roi) ** years_to_grow).sum()
+
+            # Total opportunity cost includes both foregone salary and exercise costs
+            fv_opportunity = fv_investable_surplus + fv_exercise_cost
+
             # Calculate future value of cash from sale separately
             annual_cash = annual_cash_from_sale.reindex(range(1, year_end + 1), fill_value=0)
             fv_cash_from_sale = (annual_cash * (1 + annual_roi) ** years_to_grow).sum()
@@ -211,8 +223,6 @@ def calculate_dilution_from_valuation(
     if pre_money_valuation <= 0 or amount_raised < 0:
         return 0.0
     post_money_valuation = pre_money_valuation + amount_raised
-    if post_money_valuation == 0:
-        return 0.0
     return amount_raised / post_money_valuation
 
 
@@ -526,6 +536,7 @@ def run_monte_carlo_simulation_vectorized(
     monthly_surpluses = current_salaries - base_params["startup_monthly_salary"]
     investable_surpluses = np.clip(monthly_surpluses, 0, None)
 
+    # Calculate opportunity cost from investable surplus (without exercise costs)
     if base_params["investment_frequency"] == "Monthly":
         monthly_rois = (1 + sim_params["roi"]) ** (1 / 12) - 1
         months_to_grow = np.arange(total_months - 1, -1, -1)
@@ -541,6 +552,29 @@ def run_monte_carlo_simulation_vectorized(
         years_to_grow = exit_year - np.arange(1, exit_year + 1)
         fv_factors = (1 + sim_params["roi"][:, np.newaxis]) ** years_to_grow
         final_opportunity_cost = (annual_investable_surpluses * fv_factors).sum(axis=1)
+
+    # Handle stock option exercise costs separately (as additional outflow)
+    # Exercise costs should REDUCE the net outcome, not increase it
+    exercise_costs_fv = np.zeros(num_simulations)
+    options_params = base_params["startup_params"].get("options_params", {})
+
+    if (options_params and
+        options_params.get("exercise_strategy") == "Exercise After Vesting"):
+        exercise_year = options_params.get("exercise_year", 0)
+        if exercise_year <= exit_year:
+            exercise_month_index = (exercise_year * 12) - 1
+            if 0 <= exercise_month_index < total_months:
+                num_options = options_params.get("num_options", 0)
+                strike_price = options_params.get("strike_price", 0)
+                total_exercise_cost = num_options * strike_price
+
+                # Calculate future value of exercise cost
+                if base_params["investment_frequency"] == "Monthly":
+                    months_remaining = total_months - 1 - exercise_month_index
+                    exercise_costs_fv = total_exercise_cost * ((1 + monthly_rois) ** months_remaining)
+                else:
+                    years_remaining = exit_year - exercise_year
+                    exercise_costs_fv = total_exercise_cost * ((1 + sim_params["roi"]) ** years_remaining)
 
     startup_params = base_params["startup_params"]
     final_vested_pct = np.clip(
@@ -563,10 +597,68 @@ def run_monte_carlo_simulation_vectorized(
                     if r["year"] <= exit_year:
                         cumulative_dilution *= 1 - r.get("dilution", 0)
 
+        # Calculate remaining equity factor from secondary sales
+        remaining_equity_factor = 1.0
+        cash_from_sales_fv = 0.0
+
+        if rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
+            sorted_rounds = sorted(rsu_params["dilution_rounds"], key=lambda r: r["year"])
+            initial_equity_pct = rsu_params.get("equity_pct", 0.0)
+
+            for r in sorted_rounds:
+                if "percent_to_sell" in r and r["percent_to_sell"] > 0:
+                    sale_year = r["year"]
+
+                    # Only process sales before or at exit year
+                    if sale_year <= exit_year:
+                        # Calculate vested percentage at sale time
+                        vested_pct_at_sale = np.clip(
+                            (sale_year / startup_params["total_vesting_years"]), 0, 1
+                        )
+                        if sale_year < startup_params["cliff_years"]:
+                            vested_pct_at_sale = 0
+
+                        # Calculate cumulative dilution factor before this sale
+                        cumulative_dilution_before_sale = 1.0
+                        cumulative_sold_before_sale = 1.0
+                        for prev_r in sorted_rounds:
+                            if prev_r["year"] < sale_year:
+                                cumulative_dilution_before_sale *= 1 - prev_r.get("dilution", 0)
+                                if "percent_to_sell" in prev_r and prev_r["percent_to_sell"] > 0:
+                                    cumulative_sold_before_sale *= (1 - prev_r["percent_to_sell"])
+
+                        # Calculate equity at sale
+                        equity_at_sale = initial_equity_pct * cumulative_dilution_before_sale * cumulative_sold_before_sale
+
+                        # Calculate cash from this sale
+                        cash_from_sale = (
+                            vested_pct_at_sale
+                            * equity_at_sale
+                            * r.get("valuation_at_sale", 0)
+                            * r["percent_to_sell"]
+                        )
+
+                        # Calculate future value of this cash
+                        years_to_grow = exit_year - sale_year
+                        if base_params["investment_frequency"] == "Monthly":
+                            monthly_roi = annual_to_monthly_roi(sim_params["roi"][:, np.newaxis])
+                            months_to_grow = years_to_grow * 12
+                            fv_cash = cash_from_sale * ((1 + monthly_roi) ** months_to_grow)
+                        else:  # Annually
+                            fv_cash = cash_from_sale * ((1 + sim_params["roi"][:, np.newaxis]) ** years_to_grow)
+
+                        cash_from_sales_fv += fv_cash.flatten()
+
+                        # Update remaining equity factor
+                        remaining_equity_factor *= (1 - r["percent_to_sell"])
+
         final_equity_pct = rsu_params.get("equity_pct", 0.0) * cumulative_dilution
         final_payout_value = (
-            sim_params["valuation"] * final_equity_pct * final_vested_pct
+            sim_params["valuation"] * final_equity_pct * final_vested_pct * remaining_equity_factor
         )
+
+        # Add cash from equity sales
+        final_payout_value = final_payout_value + cash_from_sales_fv
     else:
         options_params = startup_params["options_params"]
         final_vested_options = options_params.get("num_options", 0) * final_vested_pct
@@ -581,7 +673,9 @@ def run_monte_carlo_simulation_vectorized(
     )
     final_payout_value[failure_mask] = 0
 
-    net_outcomes = final_payout_value - final_opportunity_cost
+    # Calculate net outcomes: payout - opportunity cost - exercise costs
+    # Exercise costs are subtracted to ensure spending money to exercise reduces the outcome
+    net_outcomes = final_payout_value - final_opportunity_cost - exercise_costs_fv
 
     return {
         "net_outcomes": net_outcomes,
@@ -641,20 +735,8 @@ def run_monte_carlo_simulation_iterative(
     final_opportunity_costs = []
     for i in range(num_simulations):
         exit_year_sim = int(sim_params["exit_year"][i])
-        monthly_df = create_monthly_data_grid(
-            exit_year_sim,
-            base_params["current_job_monthly_salary"],
-            base_params["startup_monthly_salary"],
-            sim_params["salary_growth"][i],
-        )
 
-        opportunity_cost_df = calculate_annual_opportunity_cost(
-            monthly_df, sim_params["roi"][i], base_params["investment_frequency"]
-        )
-        final_opportunity_costs.append(
-            opportunity_cost_df["Opportunity Cost (Invested Surplus)"].iloc[-1]
-        )
-
+        # Create sim_startup_params first so we can pass it to calculate_annual_opportunity_cost
         sim_startup_params = base_params["startup_params"].copy()
         sim_startup_params["exit_year"] = exit_year_sim
         dilution_val = sim_params["dilution"][i]
@@ -674,6 +756,25 @@ def run_monte_carlo_simulation_iterative(
             sim_startup_params["options_params"][
                 "target_exit_price_per_share"
             ] = sim_params["valuation"][i]
+
+        monthly_df = create_monthly_data_grid(
+            exit_year_sim,
+            base_params["current_job_monthly_salary"],
+            base_params["startup_monthly_salary"],
+            sim_params["salary_growth"][i],
+            dilution_rounds=sim_startup_params.get("rsu_params", {}).get("dilution_rounds"),
+        )
+
+        opportunity_cost_df = calculate_annual_opportunity_cost(
+            monthly_df,
+            sim_params["roi"][i],
+            base_params["investment_frequency"],
+            options_params=sim_startup_params.get("options_params"),
+            startup_params=sim_startup_params,
+        )
+        final_opportunity_costs.append(
+            opportunity_cost_df["Opportunity Cost (Invested Surplus)"].iloc[-1]
+        )
 
         results = calculate_startup_scenario(opportunity_cost_df, sim_startup_params)
         net_outcome = results["final_payout_value"] - results["final_opportunity_cost"]
