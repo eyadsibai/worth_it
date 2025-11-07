@@ -359,7 +359,12 @@ if equity_type == EquityType.RSU:
 
                     # Equity Sale Section
                     st.markdown("---")
-                    if st.checkbox(
+
+                    # Equity sales only available for Series A and beyond
+                    early_stage_rounds = ["Pre-Seed", "Seed"]
+                    if series_name in early_stage_rounds:
+                        st.info(f"ℹ️ **Secondary equity sales are typically not available in {series_name} rounds.** These only become common in Series A and later when there's sufficient liquidity.")
+                    elif st.checkbox(
                         "💵 Sell Equity in this Round?", key=f"sell_equity_{series_name}"
                     ):
                         # Calculate vested percentage at this sale time
