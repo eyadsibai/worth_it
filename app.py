@@ -56,6 +56,103 @@ exit_year = st.sidebar.slider(
     step=1,
     help="Set the total duration for this financial comparison. The analysis will project outcomes up to this year, assuming an exit occurs.",
 )
+
+st.sidebar.subheader("Hypothetical Exit Scenario")
+st.sidebar.info("📊 Set your expected exit valuation/price. These values will be used based on your equity type below.")
+
+with st.sidebar.expander("💡 Valuation Calculator", expanded=False):
+    st.markdown("**Estimate company valuation using common methods:**")
+
+    calc_method = st.radio(
+        "Calculation Method",
+        ["Revenue Multiple", "Comparable Company", "Stage-Based"],
+        help="Choose a method to estimate company valuation"
+    )
+
+    if calc_method == "Revenue Multiple":
+        st.markdown("**Revenue Multiple Method**")
+        st.caption("SaaS companies typically trade at 5-15x ARR")
+        annual_revenue = st.number_input(
+            "Annual Recurring Revenue (M SAR)",
+            min_value=0.0,
+            value=2.0,
+            step=0.5,
+            key="arr_calc"
+        )
+        revenue_multiple = st.slider(
+            "Revenue Multiple",
+            min_value=1.0,
+            max_value=20.0,
+            value=8.0,
+            step=0.5,
+            help="Typical: Early-stage 3-5x, Growth 8-12x, Late-stage 10-15x",
+            key="rev_multiple"
+        )
+        suggested_valuation = annual_revenue * revenue_multiple
+        st.success(f"💡 Suggested Valuation: **{suggested_valuation:.1f}M SAR**")
+
+    elif calc_method == "Comparable Company":
+        st.markdown("**Comparable Company Method**")
+        comp_valuation = st.number_input(
+            "Comparable Company Valuation (M SAR)",
+            min_value=0.0,
+            value=50.0,
+            step=5.0,
+            key="comp_val"
+        )
+        adjustment = st.slider(
+            "Adjustment Factor",
+            min_value=0.3,
+            max_value=2.0,
+            value=1.0,
+            step=0.1,
+            help="Adjust up/down based on growth, market position, etc.",
+            key="comp_adj"
+        )
+        suggested_valuation = comp_valuation * adjustment
+        st.success(f"💡 Suggested Valuation: **{suggested_valuation:.1f}M SAR**")
+
+    else:  # Stage-Based
+        st.markdown("**Stage-Based Estimation**")
+        stage = st.selectbox(
+            "Company Stage",
+            ["Pre-Seed", "Seed", "Series A", "Series B", "Series C", "Series D+"],
+            index=2,
+            key="stage_select"
+        )
+        stage_ranges = {
+            "Pre-Seed": (1, 5, 2),
+            "Seed": (3, 15, 8),
+            "Series A": (10, 50, 25),
+            "Series B": (30, 150, 80),
+            "Series C": (100, 500, 250),
+            "Series D+": (300, 2000, 800)
+        }
+        min_val, max_val, typical = stage_ranges[stage]
+        st.info(f"**{stage}** typical range: {min_val}-{max_val}M SAR")
+        suggested_valuation = typical
+        st.success(f"💡 Typical Valuation: **{suggested_valuation:.1f}M SAR**")
+
+# Exit scenario inputs
+valuation_in_millions = st.sidebar.slider(
+    label="Exit Valuation for RSUs (Millions SAR)",
+    min_value=1.0,
+    max_value=1000.0,
+    value=25.0,
+    step=1.0,
+    format="%.1fM SAR",
+    help="Company valuation at exit. Used for RSU calculations.",
+)
+
+exit_price_per_share = st.sidebar.number_input(
+    label="Exit Price per Share for Options (SAR)",
+    min_value=0.00,
+    value=50.0,
+    step=0.25,
+    format="%.2f",
+    help="Share price at exit. Used for Stock Option calculations.",
+)
+
 st.sidebar.divider()
 
 
@@ -156,16 +253,7 @@ if equity_type == EquityType.RSU:
         )
         / 100
     )
-    st.sidebar.subheader("Hypothetical Exit Scenario")
-    valuation_in_millions = st.sidebar.slider(
-        label="Future Valuation (Millions SAR)",
-        min_value=1.0,
-        max_value=1000.0,
-        value=25.0,
-        step=1.0,
-        format="%.1fM SAR",
-        help="Your best guess for the startup's total valuation at the time you might sell your shares.",
-    )
+    # Use global exit valuation
     rsu_params["target_exit_valuation"] = valuation_in_millions * 1_000_000
 
     st.sidebar.subheader("Future Fundraising & Dilution")
@@ -208,15 +296,26 @@ if equity_type == EquityType.RSU:
                         key=f"year_{series_name}",
                     )
 
-                    # New Salary Input
-                    round_details["new_salary"] = st.number_input(
-                        "New Monthly Salary (SAR)",
-                        min_value=0,
-                        value=startup_salary,
-                        step=1000,
-                        key=f"new_salary_{series_name}",
-                        help="Your new monthly salary after this funding round.",
+                    # Salary Change Option
+                    change_salary = st.checkbox(
+                        "💰 Change Salary After This Round?",
+                        value=False,
+                        key=f"change_salary_{series_name}",
+                        help="Check if your salary will increase after this funding round."
                     )
+
+                    if change_salary:
+                        round_details["new_salary"] = st.number_input(
+                            "New Monthly Salary (SAR)",
+                            min_value=0,
+                            value=int(startup_salary * 1.2),  # Suggest 20% increase
+                            step=1000,
+                            key=f"new_salary_{series_name}",
+                            help="Your new monthly salary after this funding round.",
+                        )
+                    else:
+                        # Keep current salary (set to 0 to indicate no change)
+                        round_details["new_salary"] = 0
 
                     post_money_valuation = None
                     if dilution_method == "By Percentage":
@@ -260,7 +359,7 @@ if equity_type == EquityType.RSU:
                     # Equity Sale Section
                     st.markdown("---")
                     if st.checkbox(
-                        "Sell Equity in this Round?", key=f"sell_equity_{series_name}"
+                        "💵 Sell Equity in this Round?", key=f"sell_equity_{series_name}"
                     ):
                         round_details["percent_to_sell"] = (
                             st.slider(
@@ -276,24 +375,41 @@ if equity_type == EquityType.RSU:
                             / 100.0
                         )
 
-                        # Set default valuation for the sale
-                        default_valuation_M = (
-                            rsu_params["target_exit_valuation"] / 1e6
-                        )
-                        if post_money_valuation:
-                            default_valuation_M = post_money_valuation / 1e6
+                        # Set valuation for the sale
+                        if post_money_valuation and dilution_method == "By Valuation":
+                            # When using valuation method, default to post-money valuation
+                            use_round_valuation = st.checkbox(
+                                f"Use Round Valuation ({post_money_valuation / 1e6:.1f}M SAR)",
+                                value=True,
+                                key=f"use_round_val_{series_name}",
+                                help="Use the post-money valuation from this funding round for the equity sale price."
+                            )
 
-                        valuation_at_sale_M = st.number_input(
-                            "Valuation at Time of Sale (M SAR)",
-                            min_value=0.1,
-                            value=default_valuation_M,
-                            step=0.5,
-                            key=f"sell_val_{series_name}",
-                            help="The company valuation used to price your shares for this sale.",
-                        )
-                        round_details["valuation_at_sale"] = (
-                            valuation_at_sale_M * 1e6
-                        )
+                            if use_round_valuation:
+                                valuation_at_sale_M = post_money_valuation / 1e6
+                                st.info(f"📊 Sale Valuation: **{valuation_at_sale_M:.1f}M SAR** (from round valuation)")
+                            else:
+                                valuation_at_sale_M = st.number_input(
+                                    "Custom Valuation at Time of Sale (M SAR)",
+                                    min_value=0.1,
+                                    value=post_money_valuation / 1e6,
+                                    step=0.5,
+                                    key=f"sell_val_{series_name}",
+                                    help="Custom company valuation used to price your shares for this sale.",
+                                )
+                        else:
+                            # Default to target exit valuation
+                            default_valuation_M = rsu_params["target_exit_valuation"] / 1e6
+                            valuation_at_sale_M = st.number_input(
+                                "Valuation at Time of Sale (M SAR)",
+                                min_value=0.1,
+                                value=default_valuation_M,
+                                step=0.5,
+                                key=f"sell_val_{series_name}",
+                                help="The company valuation used to price your shares for this sale.",
+                            )
+
+                        round_details["valuation_at_sale"] = valuation_at_sale_M * 1e6
 
                     dilution_rounds.append(round_details)
         rsu_params["dilution_rounds"] = dilution_rounds
@@ -315,15 +431,8 @@ else:  # Stock Options
         format="%.2f",
         help="The fixed price per share you will pay to exercise (buy) your vested options.",
     )
-    st.sidebar.subheader("Hypothetical Exit Scenario")
-    options_params["target_exit_price_per_share"] = st.sidebar.number_input(
-        "Price per Share at Exit (SAR)",
-        min_value=0.00,
-        value=50.0,
-        step=0.25,
-        format="%.2f",
-        help="Your best guess for the price of a single share when you eventually sell.",
-    )
+    # Use global exit price
+    options_params["target_exit_price_per_share"] = exit_price_per_share
 
     with st.sidebar.expander("Advanced Settings"):
         options_params["exercise_strategy"] = st.radio(
