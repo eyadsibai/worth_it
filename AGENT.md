@@ -474,9 +474,9 @@ def calculate_startup_scenario(params: StartupParams) -> StartupResults:
 
 #### B. Reduce Code Duplication
 **Issue**: Equity sales calculation is duplicated in 3 places:
-1. `calculate_annual_opportunity_cost()` (lines 84-123)
+1. `calculate_annual_opportunity_cost()` (lines 93-126)
 2. `calculate_startup_scenario()` (lines 294-309)
-3. `run_monte_carlo_simulation_vectorized()` (lines 566-627)
+3. `run_monte_carlo_simulation_vectorized()` (lines 604-654)
 
 **Improvement**: Extract to a shared function
 
