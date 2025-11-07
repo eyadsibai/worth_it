@@ -187,7 +187,7 @@ Final Payout = (Initial Equity % × Cumulative Dilution × Vested % × Remaining
 
 **Important Code**:
 ```python
-# Lines 604-653: Equity sales handling
+# Lines 604-661: Equity sales handling
 # Lines 556-577: Exercise costs handling
 ```
 
