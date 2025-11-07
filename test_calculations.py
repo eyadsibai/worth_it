@@ -754,5 +754,4 @@ def test_exercise_costs_reduce_net_outcomes():
         f"got {actual_reduction:.2f}"
     )
 
-    print(f"✓ Exercise costs correctly reduce outcomes by {actual_reduction:.2f} "
-          f"(expected ~{expected_reduction:.2f})")
+    # Exercise costs correctly reduce outcomes by {actual_reduction:.2f} (expected ~{expected_reduction:.2f})
