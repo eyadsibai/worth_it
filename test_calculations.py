@@ -319,7 +319,7 @@ def test_final_payout_reduced_after_equity_sale(sample_opportunity_cost_df):
             "target_exit_valuation": 10_000_000,
             "simulate_dilution": True,
             "dilution_rounds": [
-                {"year": 2, "percent_to_sell": 0.50} # Sell 50%
+                {"year": 2, "percent_to_sell": 0.50, "valuation_at_sale": 5_000_000} # Sell 50%
             ],
         },
         "options_params": {},
@@ -334,6 +334,107 @@ def test_final_payout_reduced_after_equity_sale(sample_opportunity_cost_df):
     assert payout_with_sale < payout_no_sale
     # The final payout should be roughly half, as 50% of the equity was sold.
     assert payout_with_sale == pytest.approx(payout_no_sale * 0.5)
+
+
+def test_multiple_equity_sales(sample_opportunity_cost_df):
+    """
+    Tests that multiple sequential equity sales are correctly calculated,
+    with each sale being a percentage of the remaining equity.
+    """
+    startup_params_no_sale = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 1,
+        "exit_year": 4,
+        "rsu_params": {
+            "equity_pct": 0.10,
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": False,
+        },
+        "options_params": {},
+    }
+    results_no_sale = calculations.calculate_startup_scenario(
+        sample_opportunity_cost_df, startup_params_no_sale
+    )
+
+    # Sell 50% in year 2, then 50% of remaining in year 3
+    # This should leave 25% of original equity (0.5 * 0.5)
+    startup_params_multiple_sales = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 1,
+        "exit_year": 4,
+        "rsu_params": {
+            "equity_pct": 0.10,
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": True,
+            "dilution_rounds": [
+                {"year": 2, "percent_to_sell": 0.50, "valuation_at_sale": 5_000_000},  # Sell 50%
+                {"year": 3, "percent_to_sell": 0.50, "valuation_at_sale": 7_000_000},  # Sell 50% of remaining
+            ],
+        },
+        "options_params": {},
+    }
+    results_multiple_sales = calculations.calculate_startup_scenario(
+        sample_opportunity_cost_df, startup_params_multiple_sales
+    )
+
+    payout_no_sale = results_no_sale["final_payout_value"]
+    payout_multiple_sales = results_multiple_sales["final_payout_value"]
+
+    # After selling 50% twice, 25% should remain (0.5 * 0.5 = 0.25)
+    assert payout_multiple_sales == pytest.approx(payout_no_sale * 0.25)
+
+
+def test_equity_sales_after_exit_ignored(sample_opportunity_cost_df):
+    """
+    Tests that equity sales scheduled after the exit year are ignored
+    in the final payout calculation.
+    """
+    startup_params_sale_before_exit = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 1,
+        "exit_year": 3,  # Exit in year 3
+        "rsu_params": {
+            "equity_pct": 0.10,
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": True,
+            "dilution_rounds": [
+                {"year": 2, "percent_to_sell": 0.50, "valuation_at_sale": 5_000_000},  # Before exit
+            ],
+        },
+        "options_params": {},
+    }
+
+    startup_params_sale_after_exit = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 1,
+        "exit_year": 3,  # Exit in year 3
+        "rsu_params": {
+            "equity_pct": 0.10,
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": True,
+            "dilution_rounds": [
+                {"year": 2, "percent_to_sell": 0.50, "valuation_at_sale": 5_000_000},  # Before exit
+                {"year": 4, "percent_to_sell": 0.50, "valuation_at_sale": 7_000_000},  # After exit - should be ignored
+            ],
+        },
+        "options_params": {},
+    }
+
+    results_before = calculations.calculate_startup_scenario(
+        sample_opportunity_cost_df, startup_params_sale_before_exit
+    )
+    results_after = calculations.calculate_startup_scenario(
+        sample_opportunity_cost_df, startup_params_sale_after_exit
+    )
+
+    # Final payout should be the same since the sale in year 4 happens after exit in year 3
+    assert results_before["final_payout_value"] == pytest.approx(
+        results_after["final_payout_value"]
+    )
 
 
 def test_run_monte_carlo_iterative_for_exit_year(monte_carlo_base_params):

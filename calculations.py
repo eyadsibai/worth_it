@@ -94,17 +94,22 @@ def calculate_annual_opportunity_cost(
                     0,
                 )
 
-                # Find cumulative dilution factor up to the year *before* the sale
+                # Find cumulative dilution factor and cumulative sold equity factor up to the year *before* the sale
                 cumulative_dilution_factor = 1.0
+                cumulative_sold_factor = 1.0
                 for prev_r in dilution_rounds:
                     if prev_r["year"] < sale_year:
                         cumulative_dilution_factor *= 1 - prev_r.get("dilution", 0)
+                        if "percent_to_sell" in prev_r and prev_r["percent_to_sell"] > 0:
+                            cumulative_sold_factor *= (1 - prev_r["percent_to_sell"])
 
-                equity_at_sale = initial_equity_pct * cumulative_dilution_factor
+                # percent_to_sell is a percentage of remaining equity at the time of sale
+                # (after accounting for both dilution and previous equity sales)
+                equity_at_sale = initial_equity_pct * cumulative_dilution_factor * cumulative_sold_factor
                 cash_from_sale = (
                     float(vested_pct_at_sale)
                     * equity_at_sale
-                    * r["valuation_at_sale"]
+                    * r.get("valuation_at_sale", 0)
                     * r["percent_to_sell"]
                 )
 
@@ -212,6 +217,7 @@ def calculate_startup_scenario(
     equity_type = startup_params["equity_type"]
     total_vesting_years = startup_params["total_vesting_years"]
     cliff_years = startup_params["cliff_years"]
+    exit_year = startup_params.get("exit_year", 0)
 
     if opportunity_cost_df.empty:
         return {
@@ -270,12 +276,13 @@ def calculate_startup_scenario(
             sorted_rounds = []
 
         # --- Account for Sold Equity ---
-        percent_sold = 0
+        # Only consider equity sales that happen before or at the exit year
+        remaining_equity_factor = 1.0
         for r in sorted_rounds:
             if "percent_to_sell" in r and r["percent_to_sell"] > 0:
-                percent_sold += r["percent_to_sell"]
+                if r["year"] <= exit_year:
+                    remaining_equity_factor *= (1 - r["percent_to_sell"])
 
-        remaining_equity_factor = 1 - percent_sold
         final_vested_equity_pct = (
             results_df["Vested Equity (%)"].iloc[-1] / 100
         ) * initial_equity_pct
