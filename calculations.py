@@ -217,6 +217,7 @@ def calculate_startup_scenario(
     equity_type = startup_params["equity_type"]
     total_vesting_years = startup_params["total_vesting_years"]
     cliff_years = startup_params["cliff_years"]
+    exit_year = startup_params.get("exit_year", 0)
 
     if opportunity_cost_df.empty:
         return {
@@ -275,10 +276,12 @@ def calculate_startup_scenario(
             sorted_rounds = []
 
         # --- Account for Sold Equity ---
+        # Only consider equity sales that happen before or at the exit year
         remaining_equity_factor = 1.0
         for r in sorted_rounds:
             if "percent_to_sell" in r and r["percent_to_sell"] > 0:
-                remaining_equity_factor *= (1 - r["percent_to_sell"])
+                if r["year"] <= exit_year:
+                    remaining_equity_factor *= (1 - r["percent_to_sell"])
 
         final_vested_equity_pct = (
             results_df["Vested Equity (%)"].iloc[-1] / 100
