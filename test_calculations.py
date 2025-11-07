@@ -54,6 +54,7 @@ def monte_carlo_base_params():
             },
             "options_params": {},
         },
+        "failure_probability": 0.25,
     }
 
 # --- Test Core Functions ---
@@ -165,8 +166,8 @@ def test_run_monte_carlo_simulation(monte_carlo_base_params):
     num_simulations = 100
     sim_param_configs = {
         "valuation": {"min_val": 10_000_000, "max_val": 30_000_000, "mode": 20_000_000},
-        "roi": {"min_val": 0.03, "max_val": 0.08, "mode": 0.05},
-        "dilution": {"min_val": 0.1, "max_val": 0.5, "mode": 0.2}
+        "roi": {"mean": 0.05, "std_dev": 0.02},
+        "dilution": {"min_val": 0.1, "max_val": 0.5, "mode": 0.2},
     }
 
     results = calculations.run_monte_carlo_simulation(
@@ -191,7 +192,7 @@ def test_run_monte_carlo_simulation_no_dilution_sim(monte_carlo_base_params):
     # Note: "dilution" is NOT included in the simulated parameters
     sim_param_configs = {
         "valuation": {"min_val": 10_000_000, "max_val": 30_000_000, "mode": 20_000_000},
-        "roi": {"min_val": 0.03, "max_val": 0.08, "mode": 0.05},
+        "roi": {"mean": 0.05, "std_dev": 0.02},
     }
 
     # This call should now run without raising a TypeError
@@ -204,11 +205,244 @@ def test_run_monte_carlo_simulation_no_dilution_sim(monte_carlo_base_params):
     assert not np.isnan(results["net_outcomes"]).any()
 
 
+# --- Test New Features from User Request ---
+
+def test_salary_increase_after_funding_round():
+    """
+    Tests that the startup salary correctly increases after a funding round
+    that includes a new, higher salary.
+    """
+    dilution_rounds = [{"year": 3, "new_salary": 12000}]
+    df = calculations.create_monthly_data_grid(
+        exit_year=4,
+        current_job_monthly_salary=15000,
+        startup_monthly_salary=10000,
+        current_job_salary_growth_rate=0.0,
+        dilution_rounds=dilution_rounds,
+    )
+    # Salary before the round (Year 1 and 2)
+    assert df["StartupSalary"].iloc[0] == 10000
+    assert df["StartupSalary"].iloc[23] == 10000
+    # Salary after the round (Year 3 onwards)
+    assert df["StartupSalary"].iloc[24] == 12000
+    assert df["StartupSalary"].iloc[47] == 12000
+    # Check that surplus calculation reflects the change
+    assert df["MonthlySurplus"].iloc[23] == 5000  # 15000 - 10000
+    assert df["MonthlySurplus"].iloc[24] == 3000  # 15000 - 12000
+
+
+def test_cash_from_equity_sale_added_to_surplus():
+    """
+    Tests that the cash generated from selling a portion of vested equity
+    is correctly tracked in the 'Cash From Sale (FV)' column, separate from
+    opportunity cost, and that this value is properly added to the final payout.
+    This cash is startup-side wealth, not foregone BigCorp earnings.
+    """
+    startup_params = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 1,
+        "exit_year": 4,
+        "rsu_params": {
+            "equity_pct": 0.10,  # 10%
+            "target_exit_valuation": 20_000_000,
+            "simulate_dilution": True,
+            "dilution_rounds": [
+                {
+                    "year": 2,
+                    "dilution": 0.20,
+                    "percent_to_sell": 0.50,  # Sell 50% of vested equity
+                    "valuation_at_sale": 10_000_000,
+                }
+            ],
+        },
+        "options_params": {},
+    }
+
+    # At year 2, 50% of the equity is vested (2 out of 4 years)
+    # Initial equity is 10%, so vested equity is 5%
+    # No dilution has occurred before the sale in year 2
+    # Cash = 5% * 10,000,000 (valuation) * 50% (percent to sell) = 250,000
+    expected_cash_from_sale = 0.05 * 10_000_000 * 0.50
+    assert expected_cash_from_sale == 250_000
+
+    monthly_df = calculations.create_monthly_data_grid(
+        exit_year=4,
+        current_job_monthly_salary=20000,
+        startup_monthly_salary=15000,
+        current_job_salary_growth_rate=0.0,
+        dilution_rounds=startup_params["rsu_params"]["dilution_rounds"],
+    )
+
+    # This function should now handle the cash from sale
+    opportunity_df = calculations.calculate_annual_opportunity_cost(
+        monthly_df=monthly_df,
+        annual_roi=0.05,
+        investment_frequency="Annually",
+        startup_params=startup_params,
+    )
+
+    # Check that the cash from sale is tracked separately in its own column
+    # FV of 250k over 2 years at 5% = 250000 * (1.05)^2 = 275,625
+    assert "Cash From Sale (FV)" in opportunity_df.columns
+    assert opportunity_df["Cash From Sale (FV)"].iloc[-1] == pytest.approx(275625, rel=0.01)
+
+
+def test_final_payout_reduced_after_equity_sale(sample_opportunity_cost_df):
+    """
+    Tests that the final equity payout is correctly reduced after a portion
+    of the equity has been sold in a secondary transaction.
+    """
+    startup_params_no_sale = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 1,
+        "exit_year": 4,
+        "rsu_params": {
+            "equity_pct": 0.05,
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": False,
+        },
+        "options_params": {},
+    }
+    results_no_sale = calculations.calculate_startup_scenario(
+        sample_opportunity_cost_df, startup_params_no_sale
+    )
+
+    startup_params_with_sale = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 1,
+        "exit_year": 4,
+        "rsu_params": {
+            "equity_pct": 0.05,
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": True,
+            "dilution_rounds": [
+                {"year": 2, "percent_to_sell": 0.50, "valuation_at_sale": 5_000_000} # Sell 50%
+            ],
+        },
+        "options_params": {},
+    }
+    results_with_sale = calculations.calculate_startup_scenario(
+        sample_opportunity_cost_df, startup_params_with_sale
+    )
+
+    payout_no_sale = results_no_sale["final_payout_value"]
+    payout_with_sale = results_with_sale["final_payout_value"]
+
+    assert payout_with_sale < payout_no_sale
+    # The final payout should be roughly half, as 50% of the equity was sold.
+    assert payout_with_sale == pytest.approx(payout_no_sale * 0.5)
+
+
+def test_multiple_equity_sales(sample_opportunity_cost_df):
+    """
+    Tests that multiple sequential equity sales are correctly calculated,
+    with each sale being a percentage of the remaining equity.
+    """
+    startup_params_no_sale = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 1,
+        "exit_year": 4,
+        "rsu_params": {
+            "equity_pct": 0.10,
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": False,
+        },
+        "options_params": {},
+    }
+    results_no_sale = calculations.calculate_startup_scenario(
+        sample_opportunity_cost_df, startup_params_no_sale
+    )
+
+    # Sell 50% in year 2, then 50% of remaining in year 3
+    # This should leave 25% of original equity (0.5 * 0.5)
+    startup_params_multiple_sales = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 1,
+        "exit_year": 4,
+        "rsu_params": {
+            "equity_pct": 0.10,
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": True,
+            "dilution_rounds": [
+                {"year": 2, "percent_to_sell": 0.50, "valuation_at_sale": 5_000_000},  # Sell 50%
+                {"year": 3, "percent_to_sell": 0.50, "valuation_at_sale": 7_000_000},  # Sell 50% of remaining
+            ],
+        },
+        "options_params": {},
+    }
+    results_multiple_sales = calculations.calculate_startup_scenario(
+        sample_opportunity_cost_df, startup_params_multiple_sales
+    )
+
+    payout_no_sale = results_no_sale["final_payout_value"]
+    payout_multiple_sales = results_multiple_sales["final_payout_value"]
+
+    # After selling 50% twice, 25% should remain (0.5 * 0.5 = 0.25)
+    assert payout_multiple_sales == pytest.approx(payout_no_sale * 0.25)
+
+
+def test_equity_sales_after_exit_ignored(sample_opportunity_cost_df):
+    """
+    Tests that equity sales scheduled after the exit year are ignored
+    in the final payout calculation.
+    """
+    startup_params_sale_before_exit = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 1,
+        "exit_year": 3,  # Exit in year 3
+        "rsu_params": {
+            "equity_pct": 0.10,
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": True,
+            "dilution_rounds": [
+                {"year": 2, "percent_to_sell": 0.50, "valuation_at_sale": 5_000_000},  # Before exit
+            ],
+        },
+        "options_params": {},
+    }
+
+    startup_params_sale_after_exit = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 1,
+        "exit_year": 3,  # Exit in year 3
+        "rsu_params": {
+            "equity_pct": 0.10,
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": True,
+            "dilution_rounds": [
+                {"year": 2, "percent_to_sell": 0.50, "valuation_at_sale": 5_000_000},  # Before exit
+                {"year": 4, "percent_to_sell": 0.50, "valuation_at_sale": 7_000_000},  # After exit - should be ignored
+            ],
+        },
+        "options_params": {},
+    }
+
+    results_before = calculations.calculate_startup_scenario(
+        sample_opportunity_cost_df, startup_params_sale_before_exit
+    )
+    results_after = calculations.calculate_startup_scenario(
+        sample_opportunity_cost_df, startup_params_sale_after_exit
+    )
+
+    # Final payout should be the same since the sale in year 4 happens after exit in year 3
+    assert results_before["final_payout_value"] == pytest.approx(
+        results_after["final_payout_value"]
+    )
+
+
 def test_run_monte_carlo_iterative_for_exit_year(monte_carlo_base_params):
     """Tests that the iterative method is called when exit_year is simulated."""
     num_simulations = 50
     sim_param_configs = {
-        "exit_year": {"min_val": 3, "max_val": 7, "mode": 5}
+        "exit_year": {"min_val": 3, "max_val": 7, "mode": 5},
+        "valuation": {"min_val": 10_000_000, "max_val": 30_000_000, "mode": 20_000_000},
     }
 
     results = calculations.run_monte_carlo_simulation(

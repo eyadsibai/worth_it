@@ -24,25 +24,38 @@ def create_monthly_data_grid(
     current_job_monthly_salary: float,
     startup_monthly_salary: float,
     current_job_salary_growth_rate: float,
+    dilution_rounds: list = None,
 ) -> pd.DataFrame:
     """
-    Creates a DataFrame with one row per month, calculating the monthly salary
-    surplus which forms the basis of our cash flows.
+    Creates a DataFrame with one row per month, calculating salaries, surplus,
+    and any cash injections from secondary sales.
     """
     if exit_year is None:
-        exit_year = 0  # Prevents TypeError if slider returns None
+        exit_year = 0
 
     total_months = exit_year * 12
     df = pd.DataFrame(index=pd.RangeIndex(total_months, name="MonthIndex"))
     df["Year"] = df.index // 12 + 1
 
+    # --- Calculate Current Job Salary (Vectorized) ---
     year_index = df.index // 12
     df["CurrentJobSalary"] = current_job_monthly_salary * (
         (1 + current_job_salary_growth_rate) ** year_index
     )
-    df["MonthlySurplus"] = df["CurrentJobSalary"] - startup_monthly_salary
+
+    # --- Calculate Startup Salary with Mid-stream Changes ---
+    df["StartupSalary"] = startup_monthly_salary
+    if dilution_rounds:
+        sorted_rounds = sorted(dilution_rounds, key=lambda r: r["year"])
+        for r in sorted_rounds:
+            if "new_salary" in r and r["new_salary"] > 0:
+                start_month = (r["year"] - 1) * 12
+                df.loc[start_month:, "StartupSalary"] = r["new_salary"]
+
+    df["MonthlySurplus"] = df["CurrentJobSalary"] - df["StartupSalary"]
     df["InvestableSurplus"] = df["MonthlySurplus"].clip(lower=0)
-    df["ExerciseCost"] = 0  # Initialize exercise cost column
+    df["ExerciseCost"] = 0
+    df["CashFromSale"] = 0
 
     return df
 
@@ -52,16 +65,64 @@ def calculate_annual_opportunity_cost(
     annual_roi: float,
     investment_frequency: str,
     options_params: Dict = None,
+    startup_params: Dict = None,
 ) -> pd.DataFrame:
     """
     Calculates the future value (opportunity cost) of the forgone surplus for each year.
-    Now includes logic to handle the cash outflow of exercising stock options.
+    Handles stock option exercise costs and tracks cash from secondary sales separately.
+    
+    Cash from equity sales is NOT included in the opportunity cost calculation because
+    it represents startup-side wealth, not foregone BigCorp earnings. Instead, it's
+    tracked in a separate "Cash From Sale (FV)" column that gets added to the final
+    payout value in calculate_startup_scenario().
     """
     if monthly_df.empty:
         return pd.DataFrame()
 
     monthly_df_copy = monthly_df.copy()
 
+    # --- Handle Cash from Equity Sales ---
+    if startup_params and startup_params.get("equity_type").value == "Equity (RSUs)":
+        rsu_params = startup_params["rsu_params"]
+        dilution_rounds = rsu_params.get("dilution_rounds", [])
+        initial_equity_pct = rsu_params.get("equity_pct", 0)
+        total_vesting_years = startup_params["total_vesting_years"]
+        cliff_years = startup_params["cliff_years"]
+
+        for r in dilution_rounds:
+            if "percent_to_sell" in r and r["percent_to_sell"] > 0:
+                sale_year = r["year"]
+                # Calculate vested percentage at the time of sale
+                vested_pct_at_sale = np.where(
+                    sale_year >= cliff_years,
+                    np.clip((sale_year / total_vesting_years), 0, 1),
+                    0,
+                )
+
+                # Find cumulative dilution factor and cumulative sold equity factor up to the year *before* the sale
+                cumulative_dilution_factor = 1.0
+                cumulative_sold_factor = 1.0
+                for prev_r in dilution_rounds:
+                    if prev_r["year"] < sale_year:
+                        cumulative_dilution_factor *= 1 - prev_r.get("dilution", 0)
+                        if "percent_to_sell" in prev_r and prev_r["percent_to_sell"] > 0:
+                            cumulative_sold_factor *= (1 - prev_r["percent_to_sell"])
+
+                # percent_to_sell is a percentage of remaining equity at the time of sale
+                # (after accounting for both dilution and previous equity sales)
+                equity_at_sale = initial_equity_pct * cumulative_dilution_factor * cumulative_sold_factor
+                cash_from_sale = (
+                    float(vested_pct_at_sale)
+                    * equity_at_sale
+                    * r.get("valuation_at_sale", 0)
+                    * r["percent_to_sell"]
+                )
+
+                sale_month_index = (sale_year * 12) - 1
+                if 0 <= sale_month_index < len(monthly_df_copy):
+                    monthly_df_copy.loc[sale_month_index, "CashFromSale"] += cash_from_sale
+
+    # --- Handle Stock Option Exercise Costs ---
     if (
         options_params
         and options_params.get("exercise_strategy") == "Exercise After Vesting"
@@ -73,18 +134,11 @@ def calculate_annual_opportunity_cost(
         total_exercise_cost = num_options * strike_price
 
         if 0 <= exercise_month_index < len(monthly_df_copy):
-            monthly_df_copy.loc[exercise_month_index, "ExerciseCost"] = total_exercise_cost
+            monthly_df_copy.loc[
+                exercise_month_index, "ExerciseCost"
+            ] = total_exercise_cost
 
-    if monthly_df_copy.empty:
-        return pd.DataFrame(
-            columns=[
-                "Principal Forgone",
-                "Opportunity Cost (Invested Surplus)",
-                "Investment Returns",
-                "Year",
-            ]
-        )
-
+    # --- Calculate Future Value of Cash Flows ---
     results_df = pd.DataFrame(
         index=pd.RangeIndex(1, monthly_df_copy["Year"].max() + 1, name="Year")
     )
@@ -96,37 +150,54 @@ def calculate_annual_opportunity_cost(
     results_df[principal_col_label] = annual_surplus.cumsum()
 
     opportunity_costs = []
+    cash_from_sale_future_values = []
     monthly_roi = annual_to_monthly_roi(annual_roi)
     annual_investable_surplus = monthly_df_copy.groupby("Year")[
         "InvestableSurplus"
     ].sum()
     annual_exercise_cost = monthly_df_copy.groupby("Year")["ExerciseCost"].sum()
+    annual_cash_from_sale = monthly_df_copy.groupby("Year")["CashFromSale"].sum()
 
     for year_end in results_df.index:
         current_df = monthly_df_copy[monthly_df_copy["Year"] <= year_end]
+        
+        # Calculate opportunity cost WITHOUT cash from sale
+        # (cash from sale is startup-side wealth, not foregone BigCorp earnings)
         net_monthly_cashflow = (
-            current_df["InvestableSurplus"] - current_df["ExerciseCost"]
+            current_df["InvestableSurplus"]
+            - current_df["ExerciseCost"]
         )
 
         if investment_frequency == "Monthly":
             months_to_grow = (year_end * 12) - current_df.index - 1
-            fv = (net_monthly_cashflow * (1 + monthly_roi) ** months_to_grow).sum()
+            fv_opportunity = (net_monthly_cashflow * (1 + monthly_roi) ** months_to_grow).sum()
+            
+            # Calculate future value of cash from sale separately
+            cash_flow = current_df["CashFromSale"]
+            fv_cash_from_sale = (cash_flow * (1 + monthly_roi) ** months_to_grow).sum()
         else:  # Annually
-            # Ensure series are aligned and handle missing years with fill_value=0
-            annual_net_cashflow = annual_investable_surplus.reindex(
-                range(1, year_end + 1), fill_value=0
-            ) - annual_exercise_cost.reindex(range(1, year_end + 1), fill_value=0)
+            annual_net_cashflow = (
+                annual_investable_surplus.reindex(range(1, year_end + 1), fill_value=0)
+                - annual_exercise_cost.reindex(range(1, year_end + 1), fill_value=0)
+            )
             years_to_grow = year_end - annual_net_cashflow.index
-            fv = (annual_net_cashflow * (1 + annual_roi) ** years_to_grow).sum()
+            fv_opportunity = (annual_net_cashflow * (1 + annual_roi) ** years_to_grow).sum()
+            
+            # Calculate future value of cash from sale separately
+            annual_cash = annual_cash_from_sale.reindex(range(1, year_end + 1), fill_value=0)
+            fv_cash_from_sale = (annual_cash * (1 + annual_roi) ** years_to_grow).sum()
 
-        opportunity_costs.append(fv)
+        opportunity_costs.append(fv_opportunity)
+        cash_from_sale_future_values.append(fv_cash_from_sale)
 
     results_df["Opportunity Cost (Invested Surplus)"] = opportunity_costs
-    results_df["Investment Returns"] = results_df[
-        "Opportunity Cost (Invested Surplus)"
-    ] - (
-        results_df[principal_col_label].clip(lower=0)
-        - annual_exercise_cost.reindex(results_df.index, fill_value=0).cumsum()
+    results_df["Cash From Sale (FV)"] = cash_from_sale_future_values
+    results_df["Investment Returns"] = (
+        results_df["Opportunity Cost (Invested Surplus)"]
+        - (
+            results_df[principal_col_label].clip(lower=0)
+            - annual_exercise_cost.reindex(results_df.index, fill_value=0).cumsum()
+        )
     )
 
     results_df["Year"] = results_df.index
@@ -162,6 +233,7 @@ def calculate_startup_scenario(
     equity_type = startup_params["equity_type"]
     total_vesting_years = startup_params["total_vesting_years"]
     cliff_years = startup_params["cliff_years"]
+    exit_year = startup_params.get("exit_year", 0)
 
     if opportunity_cost_df.empty:
         return {
@@ -195,6 +267,7 @@ def calculate_startup_scenario(
             total_dilution = startup_params["simulated_dilution"]
             diluted_equity_pct = initial_equity_pct * (1 - total_dilution)
             results_df["CumulativeDilution"] = 1 - total_dilution
+            sorted_rounds = []
         elif rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
             sorted_rounds = sorted(
                 rsu_params["dilution_rounds"], key=lambda r: r["year"]
@@ -216,6 +289,15 @@ def calculate_startup_scenario(
             results_df["CumulativeDilution"] = 1.0
             total_dilution = 0.0
             diluted_equity_pct = initial_equity_pct
+            sorted_rounds = []
+
+        # --- Account for Sold Equity ---
+        # Only consider equity sales that happen before or at the exit year
+        remaining_equity_factor = 1.0
+        for r in sorted_rounds:
+            if "percent_to_sell" in r and r["percent_to_sell"] > 0:
+                if r["year"] <= exit_year:
+                    remaining_equity_factor *= (1 - r["percent_to_sell"])
 
         final_vested_equity_pct = (
             results_df["Vested Equity (%)"].iloc[-1] / 100
@@ -224,7 +306,13 @@ def calculate_startup_scenario(
             rsu_params.get("target_exit_valuation", 0)
             * final_vested_equity_pct
             * (1 - total_dilution)
+            * remaining_equity_factor
         )
+        
+        # Add the future value of cash from equity sales to the payout
+        # This cash is startup-side wealth, not opportunity cost
+        if "Cash From Sale (FV)" in results_df.columns:
+            final_payout_value += results_df["Cash From Sale (FV)"].iloc[-1]
 
         yearly_diluted_equity_pct = (
             initial_equity_pct * results_df["CumulativeDilution"]

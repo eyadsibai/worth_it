@@ -183,24 +183,44 @@ if equity_type == EquityType.RSU:
             ("By Percentage", "By Valuation"),
             help="Choose how to model dilution: either by a direct percentage or based on fundraising valuations.",
         )
-        series_names = ["Series A", "Series B", "Series C", "Series D"]
+        series_names = [
+            "Pre-Seed",
+            "Seed",
+            "Series A",
+            "Series B",
+            "Series C",
+            "Series D",
+        ]
         for i, series_name in enumerate(series_names):
             with st.sidebar.expander(f"{series_name} Round Details"):
                 if st.checkbox(
                     f"Enable {series_name} Round",
-                    value=i == 0,
+                    value=i < 2,  # Enable Pre-seed and Seed by default
                     key=f"enable_{series_name}",
                 ):
-                    round_year = st.number_input(
+                    round_details = {}
+                    round_details["year"] = st.number_input(
                         f"Year of {series_name}",
                         min_value=1,
                         max_value=20,
-                        value=i + 2,
+                        value=i + 1,  # Start from year 1
                         step=1,
                         key=f"year_{series_name}",
                     )
+
+                    # New Salary Input
+                    round_details["new_salary"] = st.number_input(
+                        "New Monthly Salary (SAR)",
+                        min_value=0,
+                        value=startup_salary,
+                        step=1000,
+                        key=f"new_salary_{series_name}",
+                        help="Your new monthly salary after this funding round.",
+                    )
+
+                    post_money_valuation = None
                     if dilution_method == "By Percentage":
-                        round_dilution = (
+                        round_details["dilution"] = (
                             st.slider(
                                 f"{series_name} Dilution (%)",
                                 0.0,
@@ -211,30 +231,71 @@ if equity_type == EquityType.RSU:
                             )
                             / 100
                         )
-                    else:
+                    else:  # By Valuation
                         pre_money_M = st.number_input(
                             "Pre-Money Valuation (M SAR)",
                             0.0,
-                            float(10 * (i + 1)),
+                            float(5 * (i + 1)),
                             1.0,
                             key=f"premoney_{series_name}",
                         )
                         raised_M = st.number_input(
                             "Amount Raised (M SAR)",
                             0.0,
-                            float(5 * (i + 1)),
+                            float(2 * (i + 1)),
                             1.0,
                             key=f"raised_{series_name}",
                         )
-                        round_dilution = calculations.calculate_dilution_from_valuation(
+                        round_details[
+                            "dilution"
+                        ] = calculations.calculate_dilution_from_valuation(
                             pre_money_M * 1e6, raised_M * 1e6
                         )
+                        post_money_valuation = (pre_money_M + raised_M) * 1e6
                         st.metric(
-                            f"{series_name} Implied Dilution", f"{round_dilution:.2%}"
+                            f"{series_name} Implied Dilution",
+                            f"{round_details['dilution']:.2%}",
                         )
-                    dilution_rounds.append(
-                        {"year": round_year, "dilution": round_dilution}
-                    )
+
+                    # Equity Sale Section
+                    st.markdown("---")
+                    if st.checkbox(
+                        "Sell Equity in this Round?", key=f"sell_equity_{series_name}"
+                    ):
+                        round_details["percent_to_sell"] = (
+                            st.slider(
+                                "Percentage of Vested Equity to Sell",
+                                0.0,
+                                100.0,
+                                10.0,
+                                1.0,
+                                key=f"sell_pct_{series_name}",
+                                format="%.1f%%",
+                                help="The percentage of your already-vested equity you wish to sell.",
+                            )
+                            / 100.0
+                        )
+
+                        # Set default valuation for the sale
+                        default_valuation_M = (
+                            rsu_params["target_exit_valuation"] / 1e6
+                        )
+                        if post_money_valuation:
+                            default_valuation_M = post_money_valuation / 1e6
+
+                        valuation_at_sale_M = st.number_input(
+                            "Valuation at Time of Sale (M SAR)",
+                            min_value=0.1,
+                            value=default_valuation_M,
+                            step=0.5,
+                            key=f"sell_val_{series_name}",
+                            help="The company valuation used to price your shares for this sale.",
+                        )
+                        round_details["valuation_at_sale"] = (
+                            valuation_at_sale_M * 1e6
+                        )
+
+                    dilution_rounds.append(round_details)
         rsu_params["dilution_rounds"] = dilution_rounds
 
 else:  # Stock Options
@@ -283,261 +344,6 @@ else:  # Stock Options
 
 st.sidebar.divider()
 
-# --- Monte Carlo Simulation Inputs ---
-st.sidebar.header("🎲 Monte Carlo Simulation")
-run_simulation = st.sidebar.checkbox(
-    "Run Simulation",
-    help="Enable to run a Monte Carlo simulation to understand the range of potential outcomes.",
-)
-sim_param_configs = {}
-if run_simulation:
-    st.sidebar.info(
-        """
-        **How the Simulation Works:**
-        Instead of a single guess, this simulation explores thousands of possibilities.
-        - **Startup Valuations** and similar variables are modeled using a **PERT distribution**, which creates a smooth curve based on your min, max, and most likely estimates.
-        - **Investment Returns (ROI)** are modeled using a **Normal distribution**, a standard for financial returns.
-        - **Startup Failure** is modeled as a binary event; in a set percentage of simulations, the equity value will be zero.
-        """
-    )
-    num_simulations = st.sidebar.slider(
-        "Number of Simulations", 100, 10000, 1000, 100, key="num_simulations"
-    )
-
-    failure_probability = (
-        st.sidebar.slider(
-            "Risk of Complete Failure (%)",
-            0.0,
-            100.0,
-            25.0,
-            1.0,
-            help="The probability that the startup fails, resulting in a total loss of equity. Modeled using a Bernoulli distribution (a random chance).",
-        )
-        / 100.0
-    )
-
-    sim_options = [
-        "Exit Valuation/Price",
-        "Annual ROI",
-        "Salary Growth Rate",
-        "Exit Year",
-    ]
-    if equity_type == EquityType.RSU:
-        sim_options.append("Total Dilution")
-
-    sim_variables = st.sidebar.multiselect(
-        "Select variables to simulate",
-        options=sim_options,
-        default=["Exit Valuation/Price", "Annual ROI"],
-    )
-
-    def create_sim_sliders(
-        label,
-        min_value,
-        max_value,
-        default_range,
-        default_mode,
-        step,
-        key_prefix,
-        format_str,
-        multiplier=1.0,
-        help_text="",
-    ):
-        with st.sidebar.expander(f"Configuration for {label}"):
-            range_vals = st.slider(
-                "Range",
-                min_value=min_value,
-                max_value=max_value,
-                value=default_range,
-                step=step,
-                key=f"{key_prefix}_range",
-                format=format_str,
-                help=f"The minimum and maximum possible values for {label}. {help_text}",
-            )
-            mode_val = st.slider(
-                "Most Likely",
-                min_value=range_vals[0],
-                max_value=range_vals[1],
-                value=default_mode,
-                step=step,
-                key=f"{key_prefix}_mode",
-                format=format_str,
-                help=f"The single most probable value for {label}. {help_text}",
-            )
-            return {
-                "min_val": range_vals[0] * multiplier,
-                "max_val": range_vals[1] * multiplier,
-                "mode": mode_val * multiplier,
-            }
-
-    # Conditional simulation inputs
-    if "Exit Year" in sim_variables:
-        st.sidebar.warning(
-            "Simulating the Exit Year is computationally intensive and will be slower."
-        )
-        sim_param_configs["exit_year"] = create_sim_sliders(
-            label="Exit Year",
-            min_value=1,
-            max_value=20,
-            default_range=(3, 10),
-            default_mode=5,
-            step=1,
-            key_prefix="exit_year",
-            format_str="%d years",
-            help_text="Modeled using a PERT distribution and rounded to the nearest year.",
-        )
-
-    if "Exit Valuation/Price" in sim_variables:
-        use_yearly_valuation = False
-        if "Exit Year" in sim_variables:
-            use_yearly_valuation = st.sidebar.checkbox(
-                "Enable Year-Dependent Valuations",
-                help="Set different valuation ranges for different exit years.",
-            )
-
-        if use_yearly_valuation:
-            st.sidebar.subheader("Year-Dependent Exit Valuation")
-            st.sidebar.info(
-                "Define valuation ranges for each potential exit year. This provides a more nuanced simulation."
-            )
-            yearly_valuation_configs = {}
-            exit_year_range_values = st.session_state.get(
-                "exit_year_range", (exit_year, exit_year)
-            )
-            min_exit_year = int(exit_year_range_values[0])
-            max_exit_year = int(exit_year_range_values[1])
-
-            for year in range(min_exit_year, max_exit_year + 1):
-                with st.sidebar.expander(f"Valuation config for Year {year}"):
-                    if equity_type == EquityType.RSU:
-                        yearly_valuation_configs[str(year)] = {
-                            "min_val": (
-                                st.number_input(
-                                    "Min Valuation (M SAR)",
-                                    value=float(year * 2),
-                                    key=f"min_val_{year}",
-                                )
-                                * 1_000_000
-                            ),
-                            "max_val": (
-                                st.number_input(
-                                    "Max Valuation (M SAR)",
-                                    value=float(year * 20),
-                                    key=f"max_val_{year}",
-                                )
-                                * 1_000_000
-                            ),
-                            "mode": (
-                                st.number_input(
-                                    "Most Likely (M SAR)",
-                                    value=float(year * 5),
-                                    key=f"mode_val_{year}",
-                                )
-                                * 1_000_000
-                            ),
-                        }
-                    else:
-                        yearly_valuation_configs[str(year)] = {
-                            "min_val": st.number_input(
-                                "Min Price/Share (SAR)",
-                                value=float(year * 2),
-                                key=f"min_price_{year}",
-                            ),
-                            "max_val": st.number_input(
-                                "Max Price/Share (SAR)",
-                                value=float(year * 15),
-                                key=f"max_price_{year}",
-                            ),
-                            "mode": st.number_input(
-                                "Most Likely (SAR)",
-                                value=float(year * 8),
-                                key=f"mode_price_{year}",
-                            ),
-                        }
-            sim_param_configs["yearly_valuation"] = yearly_valuation_configs
-        else:
-            if equity_type == EquityType.RSU:
-                sim_param_configs["valuation"] = create_sim_sliders(
-                    label="Exit Valuation",
-                    min_value=1.0,
-                    max_value=1000.0,
-                    default_range=(10.0, 100.0),
-                    default_mode=25.0,
-                    step=1.0,
-                    key_prefix="valuation",
-                    format_str="%.1fM SAR",
-                    multiplier=1_000_000.0,
-                    help_text="Modeled using a PERT distribution.",
-                )
-            else:
-                sim_param_configs["valuation"] = create_sim_sliders(
-                    label="Exit Price per Share",
-                    min_value=0.0,
-                    max_value=200.0,
-                    default_range=(10.0, 80.0),
-                    default_mode=50.0,
-                    step=0.5,
-                    key_prefix="price",
-                    format_str="%.2f SAR",
-                    help_text="Modeled using a PERT distribution.",
-                )
-
-    if "Annual ROI" in sim_variables:
-        with st.sidebar.expander("Configuration for Annual ROI"):
-            roi_mean = st.slider(
-                "Average ROI (%)",
-                min_value=0.0,
-                max_value=25.0,
-                value=5.4,
-                step=0.1,
-                key="roi_mean",
-                help="Your best guess for the average annual return. This will be the center of the distribution.",
-            )
-            roi_std_dev = st.slider(
-                "Volatility (Std. Dev %)",
-                min_value=0.0,
-                max_value=15.0,
-                value=4.0,
-                step=0.1,
-                key="roi_std",
-                help="How much you expect the annual return to vary. Higher values mean more risk and wider outcomes. Modeled using a Normal distribution.",
-            )
-            sim_param_configs["roi"] = {
-                "mean": roi_mean / 100.0,
-                "std_dev": roi_std_dev / 100.0,
-            }
-
-    if "Salary Growth Rate" in sim_variables:
-        sim_param_configs["salary_growth"] = create_sim_sliders(
-            label="Salary Growth Rate",
-            min_value=0.0,
-            max_value=15.0,
-            default_range=(2.0, 7.0),
-            default_mode=3.0,
-            step=0.1,
-            key_prefix="growth",
-            format_str="%.1f%%",
-            multiplier=0.01,
-            help_text="Modeled using a PERT distribution.",
-        )
-
-    if "Total Dilution" in sim_variables and equity_type == EquityType.RSU:
-        st.sidebar.info(
-            "This simulation will override the detailed, round-by-round dilution modeling."
-        )
-        sim_param_configs["dilution"] = create_sim_sliders(
-            label="Total Dilution",
-            min_value=0.0,
-            max_value=90.0,
-            default_range=(30.0, 70.0),
-            default_mode=50.0,
-            step=1.0,
-            key_prefix="dilution",
-            format_str="%.1f%%",
-            multiplier=0.01,
-            help_text="Modeled using a PERT distribution.",
-        )
-
 
 # --- Main App UI ---
 st.title("Startup Offer vs. Current Job: Financial Comparison")
@@ -548,384 +354,652 @@ with st.expander("👋 New to this tool? Click here for a guide!"):
     - **Step 1: Configure Scenarios**: Use the sidebar to input details for your current job and the startup offer.
     - **Step 2: Analyze Outcomes**: Review the key metrics like Net Outcome, NPV, and IRR.
     - **Step 3: Explore Details**: Check the yearly breakdown and charts for a deeper understanding.
-    - **Step 4 (Optional): Run a Monte Carlo Simulation**: Use the sidebar to run a simulation for a range of possible outcomes.
+    - **Step 4 (Optional): Run a Monte Carlo Simulation**: Use the new 'Monte Carlo Simulation' tab to explore a range of possible outcomes.
     """
     )
 
-# --- Core Logic Execution ---
-monthly_df = calculations.create_monthly_data_grid(
-    exit_year=exit_year,
-    current_job_monthly_salary=current_salary,
-    startup_monthly_salary=startup_salary,
-    current_job_salary_growth_rate=current_job_salary_growth_rate,
-)
-opportunity_cost_df = calculations.calculate_annual_opportunity_cost(
-    monthly_df=monthly_df,
-    annual_roi=annual_roi,
-    investment_frequency=investment_frequency,
-    options_params=options_params,
-)
-startup_params = {
-    "equity_type": equity_type,
-    "total_vesting_years": total_vesting_years,
-    "cliff_years": cliff_years,
-    "rsu_params": rsu_params,
-    "options_params": options_params,
-    "exit_year": exit_year,
-}
-results = calculations.calculate_startup_scenario(opportunity_cost_df, startup_params)
-results_df = results["results_df"]
-final_payout_value = results["final_payout_value"]
-final_opportunity_cost = results["final_opportunity_cost"]
-payout_label = results["payout_label"]
-breakeven_label = results["breakeven_label"]
-total_dilution = results.get("total_dilution")
-diluted_equity_pct = results.get("diluted_equity_pct")
-net_outcome = final_payout_value - final_opportunity_cost
-irr_value = calculations.calculate_irr(monthly_df["MonthlySurplus"], final_payout_value)
-npv_value = calculations.calculate_npv(
-    monthly_df["MonthlySurplus"], annual_roi, final_payout_value
-)
 
-# --- Display Results ---
-st.divider()
+tab1, tab2 = st.tabs(["Single Scenario Analysis", "Monte Carlo Simulation"])
 
-# --- REVISED: Celebration Feature ---
-# If total salary from startup is higher than total projected salary from current job,
-# then the monthly surplus will be negative. This is a clear win on salary alone.
-total_salary_surplus = monthly_df["MonthlySurplus"].sum()
-is_clear_win = total_salary_surplus < 0
-
-if is_clear_win:
-    st.balloons()
-    st.success(
-        "🎉 ### Clear Decision! \n"
-        "Factoring in salary growth, the startup offer provides a higher total salary over the simulation period. This makes it a clear win, even before considering equity."
+with tab1:
+    # --- Core Logic Execution ---
+    monthly_df = calculations.create_monthly_data_grid(
+        exit_year=exit_year,
+        current_job_monthly_salary=current_salary,
+        startup_monthly_salary=startup_salary,
+        current_job_salary_growth_rate=current_job_salary_growth_rate,
+        dilution_rounds=dilution_rounds,
+    )
+    startup_params = {
+        "equity_type": equity_type,
+        "total_vesting_years": total_vesting_years,
+        "cliff_years": cliff_years,
+        "rsu_params": rsu_params,
+        "options_params": options_params,
+        "exit_year": exit_year,
+    }
+    opportunity_cost_df = calculations.calculate_annual_opportunity_cost(
+        monthly_df=monthly_df,
+        annual_roi=annual_roi,
+        investment_frequency=investment_frequency,
+        options_params=options_params,
+        startup_params=startup_params,
+    )
+    results = calculations.calculate_startup_scenario(
+        opportunity_cost_df, startup_params
+    )
+    results_df = results["results_df"]
+    final_payout_value = results["final_payout_value"]
+    final_opportunity_cost = results["final_opportunity_cost"]
+    payout_label = results["payout_label"]
+    breakeven_label = results["breakeven_label"]
+    total_dilution = results.get("total_dilution")
+    diluted_equity_pct = results.get("diluted_equity_pct")
+    net_outcome = final_payout_value - final_opportunity_cost
+    irr_value = calculations.calculate_irr(
+        monthly_df["MonthlySurplus"], final_payout_value
+    )
+    npv_value = calculations.calculate_npv(
+        monthly_df["MonthlySurplus"], annual_roi, final_payout_value
     )
 
-if equity_type == EquityType.RSU:
-    exit_scenario_text = (
-        f"{format_currency_compact(rsu_params.get('target_exit_valuation', 0))} Valuation"
-    )
-else:
-    exit_scenario_text = f"{format_currency_compact(options_params.get('target_exit_price_per_share', 0))}/Share"
+    # --- Display Results ---
+    st.divider()
 
-st.subheader(f"Outcome at End of Year {exit_year} (at {exit_scenario_text})")
+    # --- REVISED: Celebration Feature ---
+    total_salary_surplus = monthly_df["MonthlySurplus"].sum()
+    is_clear_win = total_salary_surplus < 0
 
+    if is_clear_win:
+        st.balloons()
+        st.success(
+            "🎉 ### Clear Decision! \n"
+            "Factoring in salary growth, the startup offer provides a higher total salary over the simulation period. This makes it a clear win, even before considering equity."
+        )
 
-if equity_type == EquityType.RSU and rsu_params.get("simulate_dilution"):
-    col1, col2, col3 = st.columns(3)
+    if equity_type == EquityType.RSU:
+        exit_scenario_text = f"{format_currency_compact(rsu_params.get('target_exit_valuation', 0))} Valuation"
+    else:
+        exit_scenario_text = f"{format_currency_compact(options_params.get('target_exit_price_per_share', 0))}/Share"
+
+    st.subheader(f"Outcome at End of Year {exit_year} (at {exit_scenario_text})")
+
+    if equity_type == EquityType.RSU and rsu_params.get("simulate_dilution"):
+        col1, col2, col3 = st.columns(3)
+        col1.metric(
+            "Initial Equity Grant",
+            f"{rsu_params.get('equity_pct', 0):.2%}",
+            help="The percentage of the company you were initially offered.",
+        )
+        col2.metric(
+            "Total Dilution",
+            f"{total_dilution:.2%}",
+            help="The total reduction in your ownership stake due to all simulated fundraising rounds.",
+        )
+        col3.metric(
+            "Final Diluted Equity",
+            f"{diluted_equity_pct:.2%}",
+            delta=f"{-total_dilution:.2%}",
+            help="Your final ownership percentage after all dilution has been applied.",
+        )
+
+    col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric(
-        "Initial Equity Grant",
-        f"{rsu_params.get('equity_pct', 0):.2%}",
-        help="The percentage of the company you were initially offered.",
+        payout_label,
+        format_currency_compact(final_payout_value),
+        help="The estimated cash value of your vested equity (or options) at the hypothetical exit, after accounting for any dilution.",
     )
     col2.metric(
-        "Total Dilution",
-        f"{total_dilution:.2%}",
-        help="The total reduction in your ownership stake due to all simulated fundraising rounds.",
+        "Opportunity Cost",
+        format_currency_compact(final_opportunity_cost),
+        help="The total value you would have had if you'd stayed at your current job and invested the salary surplus. This is what you're 'giving up' to take the startup job.",
     )
     col3.metric(
-        "Final Diluted Equity",
-        f"{diluted_equity_pct:.2%}",
-        delta=f"{-total_dilution:.2%}",
-        help="Your final ownership percentage after all dilution has been applied.",
+        "Net Outcome (Future)",
+        format_currency_compact(net_outcome),
+        delta=f"{net_outcome:,.0f} SAR",
+        help="The final difference between your startup equity payout and the opportunity cost. A positive value means the startup offer was financially better in the long run.",
     )
-
-col1, col2, col3, col4, col5 = st.columns(5)
-col1.metric(
-    payout_label,
-    format_currency_compact(final_payout_value),
-    help="The estimated cash value of your vested equity (or options) at the hypothetical exit, after accounting for any dilution.",
-)
-col2.metric(
-    "Opportunity Cost",
-    format_currency_compact(final_opportunity_cost),
-    help="The total value you would have had if you'd stayed at your current job and invested the salary surplus. This is what you're 'giving up' to take the startup job.",
-)
-col3.metric(
-    "Net Outcome (Future)",
-    format_currency_compact(net_outcome),
-    delta=f"{net_outcome:,.0f} SAR",
-    help="The final difference between your startup equity payout and the opportunity cost. A positive value means the startup offer was financially better in the long run.",
-)
-col4.metric(
-    "Net Present Value (NPV)",
-    format_currency_compact(npv_value),
-    help="The 'Net Outcome' translated into today's money. It accounts for the time value of money, showing the total value created by the decision in present terms. A positive NPV is a strong positive signal.",
-)
-col5.metric(
-    "Annualized IRR",
-    f"{irr_value:.2f}%" if pd.notna(irr_value) else "N/A",
-    help="The effective annual interest rate your 'investment' (the opportunity cost) would yield. A higher IRR indicates a more profitable decision.",
-)
-
-
-# --- Monte Carlo Simulation Section ---
-if run_simulation:
-    st.divider()
-    st.header("🎲 Monte Carlo Simulation Results")
-
-    base_params = {
-        "exit_year": exit_year,
-        "current_job_monthly_salary": current_salary,
-        "startup_monthly_salary": startup_salary,
-        "current_job_salary_growth_rate": current_job_salary_growth_rate,
-        "annual_roi": annual_roi,
-        "investment_frequency": investment_frequency,
-        "startup_params": startup_params,
-        "failure_probability": failure_probability,
-    }
-
-    spinner_text = f"Running {num_simulations} simulations..."
-    if "Exit Year" in sim_variables:
-        spinner_text += " (Simulating exit year may be slower)"
-
-    with st.spinner(spinner_text):
-        sim_results = calculations.run_monte_carlo_simulation(
-            num_simulations=num_simulations,
-            base_params=base_params,
-            sim_param_configs=sim_param_configs,
-        )
-
-    net_outcomes = sim_results["net_outcomes"]
-    prob_positive_outcome = (net_outcomes > 0).sum() / len(net_outcomes)
-
-    st.subheader("Simulation Summary")
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Probability of Positive Outcome", f"{prob_positive_outcome:.2%}")
-    col2.metric("Average Net Outcome", format_currency_compact(net_outcomes.mean()))
-    col3.metric("Median Net Outcome", format_currency_compact(np.median(net_outcomes)))
     col4.metric(
-        "Std. Deviation",
-        format_currency_compact(net_outcomes.std()),
-        help="A measure of the outcome's volatility. Higher means more uncertainty.",
+        "Net Present Value (NPV)",
+        format_currency_compact(npv_value),
+        help="The 'Net Outcome' translated into today's money. It accounts for the time value of money, showing the total value created by the decision in present terms. A positive NPV is a strong positive signal.",
+    )
+    col5.metric(
+        "Annualized IRR",
+        f"{irr_value:.2f}%" if pd.notna(irr_value) else "N/A",
+        help="The effective annual interest rate your 'investment' (the opportunity cost) would yield. A higher IRR indicates a more profitable decision.",
     )
 
-    tab_titles = [
-        "Histogram",
-        "Probability Density",
-        "Box Plot",
-        "Cumulative Probability",
-        "Scatter Plot",
-        "Statistics",
-    ]
-    if len(sim_variables) >= 2:
-        tab_titles.append("Sensitivity Analysis")
-
-    tabs = st.tabs(tab_titles)
-
-    with tabs[0]:
-        st.subheader("Distribution of Net Outcomes")
-        fig_hist = px.histogram(
-            net_outcomes,
-            nbins=100,
-            title="Frequency of Potential Net Outcomes",
-            labels={"value": "Net Outcome (SAR)"},
-        )
-        st.plotly_chart(fig_hist, use_container_width=True)
-
-    with tabs[1]:
-        st.subheader("Probability Density of Net Outcomes")
+    # --- Detailed Breakdown Section ---
+    if not is_clear_win:
+        with st.expander("Show Detailed Yearly Breakdown & Charts"):
+            display_df = results_df.copy()
+            principal_col_label = (
+                "Principal Forgone"
+                if monthly_df["MonthlySurplus"].sum() >= 0
+                else "Salary Gain"
+            )
+            display_df[principal_col_label] = display_df[principal_col_label].map(
+                format_currency_compact
+            )
+            display_df["Opportunity Cost (Invested Surplus)"] = display_df[
+                "Opportunity Cost (Invested Surplus)"
+            ].map(format_currency_compact)
+            vested_equity_label = (
+                "Vested Equity (Post-Dilution)"
+                if equity_type == EquityType.RSU
+                else "Vested Options (%)"
+            )
+            display_df[vested_equity_label] = results_df["Vested Equity (%)"].map(
+                lambda x: f"{x:.2f}%"
+            )
+            display_df[breakeven_label] = display_df["Breakeven Value"].map(
+                lambda x: format_currency_compact(
+                    x, add_sar=(equity_type == EquityType.RSU)
+                )
+            )
+            display_df.sort_index(inplace=True)
+            columns_to_display = [
+                principal_col_label,
+                "Opportunity Cost (Invested Surplus)",
+                vested_equity_label,
+                breakeven_label,
+            ]
+            st.dataframe(
+                display_df[columns_to_display].rename(
+                    columns={vested_equity_label: "Vested Equity"}
+                ),
+                use_container_width=True,
+            )
+            c1, c2 = st.columns(2)
+            with c1:
+                fig1 = px.bar(
+                    results_df,
+                    x="Year",
+                    y=[principal_col_label, "Investment Returns"],
+                    title="<b>Salary Change & Investment Returns</b>",
+                    barmode="stack",
+                )
+                st.plotly_chart(fig1, use_container_width=True)
+            with c2:
+                breakeven_data = results_df[
+                    results_df["Breakeven Value"] != float("inf")
+                ].copy()
+                if not breakeven_data.empty:
+                    if equity_type == EquityType.RSU:
+                        y_axis_label = "Valuation (Millions SAR)"
+                        breakeven_data["y_values"] = (
+                            breakeven_data["Breakeven Value"] / 1e6
+                        )
+                    else:
+                        y_axis_label = "Price per Share (SAR)"
+                        breakeven_data["y_values"] = breakeven_data["Breakeven Value"]
+                    fig2 = px.line(
+                        breakeven_data,
+                        x="Year",
+                        y="y_values",
+                        title=f"<b>Required {breakeven_label.split('(')[0]} to Break Even</b>",
+                        labels={"y_values": y_axis_label},
+                        markers=True,
+                    )
+                    st.plotly_chart(fig2, use_container_width=True)
+    else:
         st.info(
-            "This plot shows a smoothed curve of the outcome distribution, making it easier to see where the most likely results are concentrated."
+            "ℹ️ The detailed breakdown is hidden as the higher total salary makes this a clear choice."
         )
-        fig_dist = ff.create_distplot(
-            [net_outcomes],
-            group_labels=["Net Outcome"],
-            show_rug=False,
-            bin_size=(net_outcomes.max() - net_outcomes.min()) / 100,
-        )
-        fig_dist.update_layout(
-            title_text="Probability Density Function (PDF) of Net Outcomes",
-            xaxis_title="Net Outcome (SAR)",
-            yaxis_title="Density",
-        )
-        st.plotly_chart(fig_dist, use_container_width=True)
 
-    with tabs[2]:
-        st.subheader("Box Plot of Net Outcomes")
-        fig_box = px.box(
-            y=net_outcomes,
-            title="Range and Quartiles of Net Outcomes",
-            labels={"y": "Net Outcome (SAR)"},
-            points="outliers",
-        )
-        st.plotly_chart(fig_box, use_container_width=True)
-
-    with tabs[3]:
-        st.subheader("Cumulative Probability (ECDF)")
+with tab2:
+    st.header("🎲 Monte Carlo Simulation")
+    run_simulation = st.checkbox(
+        "Run Simulation",
+        help="Enable to run a Monte Carlo simulation to understand the range of potential outcomes.",
+    )
+    sim_param_configs = {}
+    if run_simulation:
         st.info(
             """
-        **How to read this chart:** This plot shows the probability that your net outcome will be *less than or equal to* a certain value.
-        For example, find a value on the x-axis (e.g., 10M SAR). The corresponding y-axis value (e.g., 0.6) means there is a 60% chance your outcome will be 10M SAR or less.
-        """
+            **How the Simulation Works:**
+            Instead of a single guess, this simulation explores thousands of possibilities.
+            - **Startup Valuations** and similar variables are modeled using a **PERT distribution**, which creates a smooth curve based on your min, max, and most likely estimates.
+            - **Investment Returns (ROI)** are modeled using a **Normal distribution**, a standard for financial returns.
+            - **Startup Failure** is modeled as a binary event; in a set percentage of simulations, the equity value will be zero.
+            """
         )
-        fig_ecdf = px.ecdf(
-            net_outcomes,
-            title="Probability of Achieving a Certain Net Outcome",
-            labels={"x": "Net Outcome (SAR)", "y": "Cumulative Probability"},
-        )
-        st.plotly_chart(fig_ecdf, use_container_width=True)
-
-    with tabs[4]:
-        st.subheader("Valuation vs. Net Outcome")
-        x_label = (
-            "Exit Valuation (SAR)"
-            if equity_type == EquityType.RSU
-            else "Exit Price per Share (SAR)"
-        )
-        if (
-            "valuation" not in sim_param_configs
-            and "yearly_valuation" not in sim_param_configs
-        ):
-            st.warning(
-                "Enable 'Exit Valuation/Price' in the simulation variables to see this plot."
-            )
-        else:
-            scatter_df = pd.DataFrame(
-                {
-                    "SimulatedValuation": sim_results["simulated_valuations"],
-                    "NetOutcome": net_outcomes,
-                }
-            )
-            fig_scatter = px.scatter(
-                scatter_df,
-                x="SimulatedValuation",
-                y="NetOutcome",
-                title=f"Impact of {x_label} on Net Outcome",
-                labels={
-                    "SimulatedValuation": x_label,
-                    "NetOutcome": "Net Outcome (SAR)",
-                },
-                trendline="ols",
-                opacity=0.3,
-            )
-            st.plotly_chart(fig_scatter, use_container_width=True)
-
-    with tabs[5]:
-        st.subheader("Detailed Statistics")
-        stats_df = pd.DataFrame(net_outcomes, columns=["Net Outcome"])
-        # Custom formatter to handle 'count' separately
-        formatters = {
-            col: (lambda x: f"{x:,.0f}")
-            if col == "count"
-            else (lambda x: format_currency_compact(x, add_sar=True))
-            for col in ["Net Outcome"]
-        }
-        # Apply formatting to the description
-        described_df = stats_df.describe(percentiles=[0.05, 0.25, 0.5, 0.75, 0.95])
-        described_df.loc["count", "Net Outcome"] = int(
-            described_df.loc["count", "Net Outcome"]
-        )
-        st.dataframe(
-            described_df.style.format(
-                {
-                    "Net Outcome": lambda x: f"{x:,.0f}"
-                    if isinstance(x, int)
-                    else format_currency_compact(x, add_sar=True)
-                }
-            )
+        num_simulations = st.slider(
+            "Number of Simulations", 100, 10000, 1000, 100, key="num_simulations"
         )
 
-    if len(sim_variables) >= 2:
-        with tabs[6]:
-            st.subheader("Sensitivity Analysis (Tornado Chart)")
-            st.info(
-                "This chart shows how much each variable, from its low end (10th percentile) to its high end (90th percentile), impacts the final net outcome. The most influential variables are at the top."
+        failure_probability = (
+            st.slider(
+                "Risk of Complete Failure (%)",
+                0.0,
+                100.0,
+                25.0,
+                1.0,
+                help="The probability that the startup fails, resulting in a total loss of equity. Modeled using a Bernoulli distribution (a random chance).",
             )
-            with st.spinner("Running sensitivity analysis..."):
-                sensitivity_results = calculations.run_sensitivity_analysis(
-                    base_params=base_params, sim_param_configs=sim_param_configs
-                )
+            / 100.0
+        )
 
-                fig_tornado = px.bar(
-                    sensitivity_results,
-                    x="Impact",
-                    y="Variable",
-                    orientation="h",
-                    title="Impact of Variables on Net Outcome",
-                    labels={"Impact": "Range of Net Outcome (SAR)"},
-                )
-                fig_tornado.update_layout(yaxis={"categoryorder": "total ascending"})
-                st.plotly_chart(fig_tornado, use_container_width=True)
-
-
-# --- Detailed Breakdown Section ---
-if not is_clear_win:
-    with st.expander("Show Detailed Yearly Breakdown & Charts"):
-        display_df = results_df.copy()
-        principal_col_label = (
-            "Principal Forgone"
-            if monthly_df["MonthlySurplus"].sum() >= 0
-            else "Salary Gain"
-        )
-        display_df[principal_col_label] = display_df[principal_col_label].map(
-            format_currency_compact
-        )
-        display_df["Opportunity Cost (Invested Surplus)"] = display_df[
-            "Opportunity Cost (Invested Surplus)"
-        ].map(format_currency_compact)
-        vested_equity_label = (
-            "Vested Equity (Post-Dilution)"
-            if equity_type == EquityType.RSU
-            else "Vested Options (%)"
-        )
-        display_df[vested_equity_label] = results_df["Vested Equity (%)"].map(
-            lambda x: f"{x:.2f}%"
-        )
-        display_df[breakeven_label] = display_df["Breakeven Value"].map(
-            lambda x: format_currency_compact(
-                x, add_sar=(equity_type == EquityType.RSU)
-            )
-        )
-        display_df.sort_index(inplace=True)
-        columns_to_display = [
-            principal_col_label,
-            "Opportunity Cost (Invested Surplus)",
-            vested_equity_label,
-            breakeven_label,
+        sim_options = [
+            "Exit Valuation/Price",
+            "Annual ROI",
+            "Salary Growth Rate",
+            "Exit Year",
         ]
-        st.dataframe(
-            display_df[columns_to_display].rename(
-                columns={vested_equity_label: "Vested Equity"}
-            ),
-            use_container_width=True,
+        if equity_type == EquityType.RSU:
+            sim_options.append("Total Dilution")
+
+        sim_variables = st.multiselect(
+            "Select variables to simulate",
+            options=sim_options,
+            default=["Exit Valuation/Price", "Annual ROI"],
         )
-        c1, c2 = st.columns(2)
-        with c1:
-            fig1 = px.bar(
-                results_df,
-                x="Year",
-                y=[principal_col_label, "Investment Returns"],
-                title="<b>Salary Change & Investment Returns</b>",
-                barmode="stack",
-            )
-            st.plotly_chart(fig1, use_container_width=True)
-        with c2:
-            breakeven_data = results_df[
-                results_df["Breakeven Value"] != float("inf")
-            ].copy()
-            if not breakeven_data.empty:
-                if equity_type == EquityType.RSU:
-                    y_axis_label = "Valuation (Millions SAR)"
-                    breakeven_data["y_values"] = breakeven_data["Breakeven Value"] / 1e6
-                else:
-                    y_axis_label = "Price per Share (SAR)"
-                    breakeven_data["y_values"] = breakeven_data["Breakeven Value"]
-                fig2 = px.line(
-                    breakeven_data,
-                    x="Year",
-                    y="y_values",
-                    title=f"<b>Required {breakeven_label.split('(')[0]} to Break Even</b>",
-                    labels={"y_values": y_axis_label},
-                    markers=True,
+
+        def create_sim_sliders(
+            label,
+            min_value,
+            max_value,
+            default_range,
+            default_mode,
+            step,
+            key_prefix,
+            format_str,
+            multiplier=1.0,
+            help_text="",
+        ):
+            with st.expander(f"Configuration for {label}"):
+                range_vals = st.slider(
+                    "Range",
+                    min_value=min_value,
+                    max_value=max_value,
+                    value=default_range,
+                    step=step,
+                    key=f"{key_prefix}_range",
+                    format=format_str,
+                    help=f"The minimum and maximum possible values for {label}. {help_text}",
                 )
-                st.plotly_chart(fig2, use_container_width=True)
-else:
-    st.info(
-        "ℹ️ The detailed breakdown is hidden as the higher total salary makes this a clear choice."
-    )
+                mode_val = st.slider(
+                    "Most Likely",
+                    min_value=range_vals[0],
+                    max_value=range_vals[1],
+                    value=default_mode,
+                    step=step,
+                    key=f"{key_prefix}_mode",
+                    format=format_str,
+                    help=f"The single most probable value for {label}. {help_text}",
+                )
+                return {
+                    "min_val": range_vals[0] * multiplier,
+                    "max_val": range_vals[1] * multiplier,
+                    "mode": mode_val * multiplier,
+                }
+
+        # Conditional simulation inputs
+        if "Exit Year" in sim_variables:
+            st.warning(
+                "Simulating the Exit Year is computationally intensive and will be slower."
+            )
+            sim_param_configs["exit_year"] = create_sim_sliders(
+                label="Exit Year",
+                min_value=1,
+                max_value=20,
+                default_range=(3, 10),
+                default_mode=5,
+                step=1,
+                key_prefix="exit_year",
+                format_str="%d years",
+                help_text="Modeled using a PERT distribution and rounded to the nearest year.",
+            )
+
+        if "Exit Valuation/Price" in sim_variables:
+            use_yearly_valuation = False
+            if "Exit Year" in sim_variables:
+                use_yearly_valuation = st.checkbox(
+                    "Enable Year-Dependent Valuations",
+                    help="Set different valuation ranges for different exit years.",
+                )
+
+            if use_yearly_valuation:
+                st.subheader("Year-Dependent Exit Valuation")
+                st.info(
+                    "Define valuation ranges for each potential exit year. This provides a more nuanced simulation."
+                )
+                yearly_valuation_configs = {}
+                exit_year_range_values = st.session_state.get(
+                    "exit_year_range", (exit_year, exit_year)
+                )
+                min_exit_year = int(exit_year_range_values[0])
+                max_exit_year = int(exit_year_range_values[1])
+
+                for year in range(min_exit_year, max_exit_year + 1):
+                    with st.expander(f"Valuation config for Year {year}"):
+                        if equity_type == EquityType.RSU:
+                            yearly_valuation_configs[str(year)] = {
+                                "min_val": (
+                                    st.number_input(
+                                        "Min Valuation (M SAR)",
+                                        value=float(year * 2),
+                                        key=f"min_val_{year}",
+                                    )
+                                    * 1_000_000
+                                ),
+                                "max_val": (
+                                    st.number_input(
+                                        "Max Valuation (M SAR)",
+                                        value=float(year * 20),
+                                        key=f"max_val_{year}",
+                                    )
+                                    * 1_000_000
+                                ),
+                                "mode": (
+                                    st.number_input(
+                                        "Most Likely (M SAR)",
+                                        value=float(year * 5),
+                                        key=f"mode_val_{year}",
+                                    )
+                                    * 1_000_000
+                                ),
+                            }
+                        else:
+                            yearly_valuation_configs[str(year)] = {
+                                "min_val": st.number_input(
+                                    "Min Price/Share (SAR)",
+                                    value=float(year * 2),
+                                    key=f"min_price_{year}",
+                                ),
+                                "max_val": st.number_input(
+                                    "Max Price/Share (SAR)",
+                                    value=float(year * 15),
+                                    key=f"max_price_{year}",
+                                ),
+                                "mode": st.number_input(
+                                    "Most Likely (SAR)",
+                                    value=float(year * 8),
+                                    key=f"mode_price_{year}",
+                                ),
+                            }
+                sim_param_configs["yearly_valuation"] = yearly_valuation_configs
+            else:
+                if equity_type == EquityType.RSU:
+                    sim_param_configs["valuation"] = create_sim_sliders(
+                        label="Exit Valuation",
+                        min_value=1.0,
+                        max_value=1000.0,
+                        default_range=(10.0, 100.0),
+                        default_mode=25.0,
+                        step=1.0,
+                        key_prefix="valuation",
+                        format_str="%.1fM SAR",
+                        multiplier=1_000_000.0,
+                        help_text="Modeled using a PERT distribution.",
+                    )
+                else:
+                    sim_param_configs["valuation"] = create_sim_sliders(
+                        label="Exit Price per Share",
+                        min_value=0.0,
+                        max_value=200.0,
+                        default_range=(10.0, 80.0),
+                        default_mode=50.0,
+                        step=0.5,
+                        key_prefix="price",
+                        format_str="%.2f SAR",
+                        help_text="Modeled using a PERT distribution.",
+                    )
+
+        if "Annual ROI" in sim_variables:
+            with st.expander("Configuration for Annual ROI"):
+                roi_mean = st.slider(
+                    "Average ROI (%)",
+                    min_value=0.0,
+                    max_value=25.0,
+                    value=5.4,
+                    step=0.1,
+                    key="roi_mean",
+                    help="Your best guess for the average annual return. This will be the center of the distribution.",
+                )
+                roi_std_dev = st.slider(
+                    "Volatility (Std. Dev %)",
+                    min_value=0.0,
+                    max_value=15.0,
+                    value=4.0,
+                    step=0.1,
+                    key="roi_std",
+                    help="How much you expect the annual return to vary. Higher values mean more risk and wider outcomes. Modeled using a Normal distribution.",
+                )
+                sim_param_configs["roi"] = {
+                    "mean": roi_mean / 100.0,
+                    "std_dev": roi_std_dev / 100.0,
+                }
+
+        if "Salary Growth Rate" in sim_variables:
+            sim_param_configs["salary_growth"] = create_sim_sliders(
+                label="Salary Growth Rate",
+                min_value=0.0,
+                max_value=15.0,
+                default_range=(2.0, 7.0),
+                default_mode=3.0,
+                step=0.1,
+                key_prefix="growth",
+                format_str="%.1f%%",
+                multiplier=0.01,
+                help_text="Modeled using a PERT distribution.",
+            )
+
+        if "Total Dilution" in sim_variables and equity_type == EquityType.RSU:
+            st.info(
+                "This simulation will override the detailed, round-by-round dilution modeling."
+            )
+            sim_param_configs["dilution"] = create_sim_sliders(
+                label="Total Dilution",
+                min_value=0.0,
+                max_value=90.0,
+                default_range=(30.0, 70.0),
+                default_mode=50.0,
+                step=1.0,
+                key_prefix="dilution",
+                format_str="%.1f%%",
+                multiplier=0.01,
+                help_text="Modeled using a PERT distribution.",
+            )
+
+        # --- Monte Carlo Simulation Section ---
+
+        st.divider()
+        st.header("🎲 Monte Carlo Simulation Results")
+
+        base_params = {
+            "exit_year": exit_year,
+            "current_job_monthly_salary": current_salary,
+            "startup_monthly_salary": startup_salary,
+            "current_job_salary_growth_rate": current_job_salary_growth_rate,
+            "annual_roi": annual_roi,
+            "investment_frequency": investment_frequency,
+            "startup_params": startup_params,
+            "failure_probability": failure_probability,
+        }
+
+        spinner_text = f"Running {num_simulations} simulations..."
+        if "Exit Year" in sim_variables:
+            spinner_text += " (Simulating exit year may be slower)"
+
+        with st.spinner(spinner_text):
+            sim_results = calculations.run_monte_carlo_simulation(
+                num_simulations=num_simulations,
+                base_params=base_params,
+                sim_param_configs=sim_param_configs,
+            )
+
+        net_outcomes = sim_results["net_outcomes"]
+        prob_positive_outcome = (net_outcomes > 0).sum() / len(net_outcomes)
+
+        st.subheader("Simulation Summary")
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Probability of Positive Outcome", f"{prob_positive_outcome:.2%}")
+        col2.metric(
+            "Average Net Outcome", format_currency_compact(net_outcomes.mean())
+        )
+        col3.metric(
+            "Median Net Outcome", format_currency_compact(np.median(net_outcomes))
+        )
+        col4.metric(
+            "Std. Deviation",
+            format_currency_compact(net_outcomes.std()),
+            help="A measure of the outcome's volatility. Higher means more uncertainty.",
+        )
+
+        tab_titles = [
+            "Histogram",
+            "Probability Density",
+            "Box Plot",
+            "Cumulative Probability",
+            "Scatter Plot",
+            "Statistics",
+        ]
+        if len(sim_variables) >= 2:
+            tab_titles.append("Sensitivity Analysis")
+
+        tabs = st.tabs(tab_titles)
+
+        with tabs[0]:
+            st.subheader("Distribution of Net Outcomes")
+            fig_hist = px.histogram(
+                net_outcomes,
+                nbins=100,
+                title="Frequency of Potential Net Outcomes",
+                labels={"value": "Net Outcome (SAR)"},
+            )
+            st.plotly_chart(fig_hist, use_container_width=True)
+
+        with tabs[1]:
+            st.subheader("Probability Density of Net Outcomes")
+            st.info(
+                "This plot shows a smoothed curve of the outcome distribution, making it easier to see where the most likely results are concentrated."
+            )
+            fig_dist = ff.create_distplot(
+                [net_outcomes],
+                group_labels=["Net Outcome"],
+                show_rug=False,
+                bin_size=(net_outcomes.max() - net_outcomes.min()) / 100,
+            )
+            fig_dist.update_layout(
+                title_text="Probability Density Function (PDF) of Net Outcomes",
+                xaxis_title="Net Outcome (SAR)",
+                yaxis_title="Density",
+            )
+            st.plotly_chart(fig_dist, use_container_width=True)
+
+        with tabs[2]:
+            st.subheader("Box Plot of Net Outcomes")
+            fig_box = px.box(
+                y=net_outcomes,
+                title="Range and Quartiles of Net Outcomes",
+                labels={"y": "Net Outcome (SAR)"},
+                points="outliers",
+            )
+            st.plotly_chart(fig_box, use_container_width=True)
+
+        with tabs[3]:
+            st.subheader("Cumulative Probability (ECDF)")
+            st.info(
+                """
+            **How to read this chart:** This plot shows the probability that your net outcome will be *less than or equal to* a certain value.
+            For example, find a value on the x-axis (e.g., 10M SAR). The corresponding y-axis value (e.g., 0.6) means there is a 60% chance your outcome will be 10M SAR or less.
+            """
+            )
+            fig_ecdf = px.ecdf(
+                net_outcomes,
+                title="Probability of Achieving a Certain Net Outcome",
+                labels={"x": "Net Outcome (SAR)", "y": "Cumulative Probability"},
+            )
+            st.plotly_chart(fig_ecdf, use_container_width=True)
+
+        with tabs[4]:
+            st.subheader("Valuation vs. Net Outcome")
+            x_label = (
+                "Exit Valuation (SAR)"
+                if equity_type == EquityType.RSU
+                else "Exit Price per Share (SAR)"
+            )
+            if (
+                "valuation" not in sim_param_configs
+                and "yearly_valuation" not in sim_param_configs
+            ):
+                st.warning(
+                    "Enable 'Exit Valuation/Price' in the simulation variables to see this plot."
+                )
+            else:
+                scatter_df = pd.DataFrame(
+                    {
+                        "SimulatedValuation": sim_results["simulated_valuations"],
+                        "NetOutcome": net_outcomes,
+                    }
+                )
+                fig_scatter = px.scatter(
+                    scatter_df,
+                    x="SimulatedValuation",
+                    y="NetOutcome",
+                    title=f"Impact of {x_label} on Net Outcome",
+                    labels={
+                        "SimulatedValuation": x_label,
+                        "NetOutcome": "Net Outcome (SAR)",
+                    },
+                    trendline="ols",
+                    opacity=0.3,
+                )
+                st.plotly_chart(fig_scatter, use_container_width=True)
+
+        with tabs[5]:
+            st.subheader("Detailed Statistics")
+            stats_df = pd.DataFrame(net_outcomes, columns=["Net Outcome"])
+            # Custom formatter to handle 'count' separately
+            formatters = {
+                col: (lambda x: f"{x:,.0f}")
+                if col == "count"
+                else (lambda x: format_currency_compact(x, add_sar=True))
+                for col in ["Net Outcome"]
+            }
+            # Apply formatting to the description
+            described_df = stats_df.describe(
+                percentiles=[0.05, 0.25, 0.5, 0.75, 0.95]
+            )
+            described_df.loc["count", "Net Outcome"] = int(
+                described_df.loc["count", "Net Outcome"]
+            )
+            st.dataframe(
+                described_df.style.format(
+                    {
+                        "Net Outcome": lambda x: f"{x:,.0f}"
+                        if isinstance(x, int)
+                        else format_currency_compact(x, add_sar=True)
+                    }
+                )
+            )
+
+        if len(sim_variables) >= 2:
+            with tabs[6]:
+                st.subheader("Sensitivity Analysis (Tornado Chart)")
+                st.info(
+                    "This chart shows how much each variable, from its low end (10th percentile) to its high end (90th percentile), impacts the final net outcome. The most influential variables are at the top."
+                )
+                with st.spinner("Running sensitivity analysis..."):
+                    sensitivity_results = calculations.run_sensitivity_analysis(
+                        base_params=base_params, sim_param_configs=sim_param_configs
+                    )
+
+                    fig_tornado = px.bar(
+                        sensitivity_results,
+                        x="Impact",
+                        y="Variable",
+                        orientation="h",
+                        title="Impact of Variables on Net Outcome",
+                        labels={"Impact": "Range of Net Outcome (SAR)"},
+                    )
+                    fig_tornado.update_layout(
+                        yaxis={"categoryorder": "total ascending"}
+                    )
+                    st.plotly_chart(fig_tornado, use_container_width=True)
 
 
 # --- Footer ---
