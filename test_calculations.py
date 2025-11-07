@@ -234,8 +234,9 @@ def test_salary_increase_after_funding_round():
 def test_cash_from_equity_sale_added_to_surplus():
     """
     Tests that the cash generated from selling a portion of vested equity
-    is correctly added to the 'CashFromSale' column in the monthly data grid,
-    which then gets compounded in the opportunity cost calculation.
+    is correctly tracked in the 'Cash From Sale (FV)' column, separate from
+    opportunity cost, and that this value is properly added to the final payout.
+    This cash is startup-side wealth, not foregone BigCorp earnings.
     """
     startup_params = {
         "equity_type": EquityType.RSU,
@@ -281,11 +282,10 @@ def test_cash_from_equity_sale_added_to_surplus():
         startup_params=startup_params,
     )
 
-    # Check that the opportunity cost in the final year is significantly higher
-    # due to the large cash injection.
+    # Check that the cash from sale is tracked separately in its own column
     # FV of 250k over 2 years at 5% = 250000 * (1.05)^2 = 275,625
-    # This should be on top of the normal surplus investment.
-    assert opportunity_df["Opportunity Cost (Invested Surplus)"].iloc[-1] > 275000
+    assert "Cash From Sale (FV)" in opportunity_df.columns
+    assert opportunity_df["Cash From Sale (FV)"].iloc[-1] == pytest.approx(275625, rel=0.01)
 
 
 def test_final_payout_reduced_after_equity_sale(sample_opportunity_cost_df):
