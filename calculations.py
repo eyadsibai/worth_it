@@ -69,7 +69,12 @@ def calculate_annual_opportunity_cost(
 ) -> pd.DataFrame:
     """
     Calculates the future value (opportunity cost) of the forgone surplus for each year.
-    Now includes logic to handle stock option exercise costs and cash from secondary sales.
+    Handles stock option exercise costs and tracks cash from secondary sales separately.
+    
+    Cash from equity sales is NOT included in the opportunity cost calculation because
+    it represents startup-side wealth, not foregone BigCorp earnings. Instead, it's
+    tracked in a separate "Cash From Sale (FV)" column that gets added to the final
+    payout value in calculate_startup_scenario().
     """
     if monthly_df.empty:
         return pd.DataFrame()
@@ -145,6 +150,7 @@ def calculate_annual_opportunity_cost(
     results_df[principal_col_label] = annual_surplus.cumsum()
 
     opportunity_costs = []
+    cash_from_sale_future_values = []
     monthly_roi = annual_to_monthly_roi(annual_roi)
     annual_investable_surplus = monthly_df_copy.groupby("Year")[
         "InvestableSurplus"
@@ -154,34 +160,44 @@ def calculate_annual_opportunity_cost(
 
     for year_end in results_df.index:
         current_df = monthly_df_copy[monthly_df_copy["Year"] <= year_end]
+        
+        # Calculate opportunity cost WITHOUT cash from sale
+        # (cash from sale is startup-side wealth, not foregone BigCorp earnings)
         net_monthly_cashflow = (
             current_df["InvestableSurplus"]
             - current_df["ExerciseCost"]
-            + current_df["CashFromSale"]
         )
 
         if investment_frequency == "Monthly":
             months_to_grow = (year_end * 12) - current_df.index - 1
-            fv = (net_monthly_cashflow * (1 + monthly_roi) ** months_to_grow).sum()
+            fv_opportunity = (net_monthly_cashflow * (1 + monthly_roi) ** months_to_grow).sum()
+            
+            # Calculate future value of cash from sale separately
+            cash_flow = current_df["CashFromSale"]
+            fv_cash_from_sale = (cash_flow * (1 + monthly_roi) ** months_to_grow).sum()
         else:  # Annually
             annual_net_cashflow = (
                 annual_investable_surplus.reindex(range(1, year_end + 1), fill_value=0)
                 - annual_exercise_cost.reindex(range(1, year_end + 1), fill_value=0)
-                + annual_cash_from_sale.reindex(range(1, year_end + 1), fill_value=0)
             )
             years_to_grow = year_end - annual_net_cashflow.index
-            fv = (annual_net_cashflow * (1 + annual_roi) ** years_to_grow).sum()
+            fv_opportunity = (annual_net_cashflow * (1 + annual_roi) ** years_to_grow).sum()
+            
+            # Calculate future value of cash from sale separately
+            annual_cash = annual_cash_from_sale.reindex(range(1, year_end + 1), fill_value=0)
+            fv_cash_from_sale = (annual_cash * (1 + annual_roi) ** years_to_grow).sum()
 
-        opportunity_costs.append(fv)
+        opportunity_costs.append(fv_opportunity)
+        cash_from_sale_future_values.append(fv_cash_from_sale)
 
     results_df["Opportunity Cost (Invested Surplus)"] = opportunity_costs
+    results_df["Cash From Sale (FV)"] = cash_from_sale_future_values
     results_df["Investment Returns"] = (
         results_df["Opportunity Cost (Invested Surplus)"]
         - (
             results_df[principal_col_label].clip(lower=0)
             - annual_exercise_cost.reindex(results_df.index, fill_value=0).cumsum()
         )
-        - annual_cash_from_sale.reindex(results_df.index, fill_value=0).cumsum()
     )
 
     results_df["Year"] = results_df.index
@@ -292,6 +308,11 @@ def calculate_startup_scenario(
             * (1 - total_dilution)
             * remaining_equity_factor
         )
+        
+        # Add the future value of cash from equity sales to the payout
+        # This cash is startup-side wealth, not opportunity cost
+        if "Cash From Sale (FV)" in results_df.columns:
+            final_payout_value += results_df["Cash From Sale (FV)"].iloc[-1]
 
         yearly_diluted_equity_pct = (
             initial_equity_pct * results_df["CumulativeDilution"]
