@@ -12,9 +12,9 @@
 
 ```
 worth_it/
-├── app.py                  # Streamlit UI (1011 lines) - User interface & input handling
-├── calculations.py         # Core financial logic (800+ lines) - All calculations
-├── test_calculations.py    # Unit tests (588 lines) - Pytest test suite
+├── app.py                  # Streamlit UI (1059 lines) - User interface & input handling
+├── calculations.py         # Core financial logic (781 lines) - All calculations
+├── test_calculations.py    # Unit tests (758 lines) - Pytest test suite
 ├── pyproject.toml         # Dependencies (uv package manager)
 ├── .python-version        # Python version: 3.10
 └── README.md              # Project documentation (currently empty)
