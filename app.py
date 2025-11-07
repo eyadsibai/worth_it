@@ -370,12 +370,6 @@ with tab1:
         current_job_salary_growth_rate=current_job_salary_growth_rate,
         dilution_rounds=dilution_rounds,
     )
-    opportunity_cost_df = calculations.calculate_annual_opportunity_cost(
-        monthly_df=monthly_df,
-        annual_roi=annual_roi,
-        investment_frequency=investment_frequency,
-        options_params=options_params,
-    )
     startup_params = {
         "equity_type": equity_type,
         "total_vesting_years": total_vesting_years,
@@ -384,6 +378,13 @@ with tab1:
         "options_params": options_params,
         "exit_year": exit_year,
     }
+    opportunity_cost_df = calculations.calculate_annual_opportunity_cost(
+        monthly_df=monthly_df,
+        annual_roi=annual_roi,
+        investment_frequency=investment_frequency,
+        options_params=options_params,
+        startup_params=startup_params,
+    )
     results = calculations.calculate_startup_scenario(
         opportunity_cost_df, startup_params
     )
