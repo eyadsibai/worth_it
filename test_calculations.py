@@ -319,7 +319,7 @@ def test_final_payout_reduced_after_equity_sale(sample_opportunity_cost_df):
             "target_exit_valuation": 10_000_000,
             "simulate_dilution": True,
             "dilution_rounds": [
-                {"year": 2, "percent_to_sell": 0.50} # Sell 50%
+                {"year": 2, "percent_to_sell": 0.50, "valuation_at_sale": 5_000_000} # Sell 50%
             ],
         },
         "options_params": {},

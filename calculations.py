@@ -104,7 +104,7 @@ def calculate_annual_opportunity_cost(
                 cash_from_sale = (
                     float(vested_pct_at_sale)
                     * equity_at_sale
-                    * r["valuation_at_sale"]
+                    * r.get("valuation_at_sale", 0)
                     * r["percent_to_sell"]
                 )
 
@@ -270,12 +270,11 @@ def calculate_startup_scenario(
             sorted_rounds = []
 
         # --- Account for Sold Equity ---
-        percent_sold = 0
+        remaining_equity_factor = 1.0
         for r in sorted_rounds:
             if "percent_to_sell" in r and r["percent_to_sell"] > 0:
-                percent_sold += r["percent_to_sell"]
+                remaining_equity_factor *= (1 - r["percent_to_sell"])
 
-        remaining_equity_factor = 1 - percent_sold
         final_vested_equity_pct = (
             results_df["Vested Equity (%)"].iloc[-1] / 100
         ) * initial_equity_pct
