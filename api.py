@@ -87,7 +87,7 @@ async def calculate_opportunity_cost(request: OpportunityCostRequest):
         monthly_df = pd.DataFrame(request.monthly_data)
         
         # Convert equity_type string to EquityType enum if needed
-        startup_params = request.startup_params
+        startup_params = request.startup_params.copy() if request.startup_params else None
         if startup_params and "equity_type" in startup_params:
             if isinstance(startup_params["equity_type"], str):
                 startup_params["equity_type"] = calculations.EquityType(startup_params["equity_type"])
