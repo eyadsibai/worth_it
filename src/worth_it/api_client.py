@@ -6,7 +6,9 @@ HTTP requests to the FastAPI backend instead of calling calculation
 functions directly.
 """
 
-from typing import Any, Dict, List, Optional
+from __future__ import annotations
+
+from typing import Any
 
 import pandas as pd
 import requests
@@ -19,7 +21,7 @@ from .config import settings
 class APIClient:
     """Client for communicating with the Worth It FastAPI backend."""
 
-    def __init__(self, base_url: Optional[str] = None):
+    def __init__(self, base_url: str | None = None):
         """
         Initialize the API client.
 
@@ -40,7 +42,7 @@ class APIClient:
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
 
-    def _post(self, endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _post(self, endpoint: str, data: dict[str, Any]) -> dict[str, Any]:
         """Make a POST request to the API."""
         url = f"{self.base_url}{endpoint}"
         try:
@@ -50,7 +52,7 @@ class APIClient:
         except requests.exceptions.RequestException as e:
             raise RuntimeError(f"API request failed: {e}")
 
-    def _get(self, endpoint: str) -> Dict[str, Any]:
+    def _get(self, endpoint: str) -> dict[str, Any]:
         """Make a GET request to the API."""
         url = f"{self.base_url}{endpoint}"
         try:
@@ -60,7 +62,7 @@ class APIClient:
         except requests.exceptions.RequestException as e:
             raise RuntimeError(f"API request failed: {e}")
 
-    def health_check(self) -> Dict[str, str]:
+    def health_check(self) -> dict[str, str]:
         """Check if the API is healthy."""
         return self._get("/health")
 
@@ -70,7 +72,7 @@ class APIClient:
         current_job_monthly_salary: float,
         startup_monthly_salary: float,
         current_job_salary_growth_rate: float,
-        dilution_rounds: Optional[List[Dict[str, Any]]] = None,
+        dilution_rounds: list[dict[str, Any]] | None = None,
     ) -> pd.DataFrame:
         """
         Create a DataFrame with monthly financial projections.
@@ -100,8 +102,8 @@ class APIClient:
         monthly_df: pd.DataFrame,
         annual_roi: float,
         investment_frequency: str,
-        options_params: Optional[Dict[str, Any]] = None,
-        startup_params: Optional[Dict[str, Any]] = None,
+        options_params: dict[str, Any] | None = None,
+        startup_params: dict[str, Any] | None = None,
     ) -> pd.DataFrame:
         """
         Calculate the opportunity cost of foregone salary.
@@ -127,8 +129,8 @@ class APIClient:
         return pd.DataFrame(result["data"])
 
     def calculate_startup_scenario(
-        self, opportunity_cost_df: pd.DataFrame, startup_params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, opportunity_cost_df: pd.DataFrame, startup_params: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Calculate financial outcomes for a startup equity package.
 
@@ -156,7 +158,7 @@ class APIClient:
 
     def calculate_irr(
         self, monthly_surpluses: pd.Series, final_payout_value: float
-    ) -> Optional[float]:
+    ) -> float | None:
         """
         Calculate the Internal Rate of Return (IRR).
 
@@ -176,7 +178,7 @@ class APIClient:
 
     def calculate_npv(
         self, monthly_surpluses: pd.Series, annual_roi: float, final_payout_value: float
-    ) -> Optional[float]:
+    ) -> float | None:
         """
         Calculate the Net Present Value (NPV).
 
@@ -199,9 +201,9 @@ class APIClient:
     def run_monte_carlo_simulation(
         self,
         num_simulations: int,
-        base_params: Dict[str, Any],
-        sim_param_configs: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        base_params: dict[str, Any],
+        sim_param_configs: dict[str, Any],
+    ) -> dict[str, Any]:
         """
         Run Monte Carlo simulation for probabilistic analysis.
 
@@ -227,7 +229,7 @@ class APIClient:
         }
 
     def run_sensitivity_analysis(
-        self, base_params: Dict[str, Any], sim_param_configs: Dict[str, Any]
+        self, base_params: dict[str, Any], sim_param_configs: dict[str, Any]
     ) -> pd.DataFrame:
         """
         Run sensitivity analysis to identify key variables.

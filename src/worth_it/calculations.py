@@ -6,8 +6,10 @@ scenarios (RSUs and Stock Options), dilution, IRR, NPV, and run Monte Carlo simu
 It is designed to be independent of the Streamlit UI.
 """
 
+from __future__ import annotations
+
 from enum import Enum
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 import numpy_financial as npf
@@ -239,8 +241,8 @@ def calculate_dilution_from_valuation(
 
 
 def calculate_startup_scenario(
-    opportunity_cost_df: pd.DataFrame, startup_params: Dict[str, Any]
-) -> Dict[str, Any]:
+    opportunity_cost_df: pd.DataFrame, startup_params: dict[str, Any]
+) -> dict[str, Any]:
     """
     Calculates the financial outcomes for a given startup equity package.
     This function handles both RSU and Stock Option scenarios.
@@ -471,9 +473,9 @@ def get_random_variates_pert(
 
 def run_monte_carlo_simulation(
     num_simulations: int,
-    base_params: Dict[str, Any],
-    sim_param_configs: Dict[str, Any],
-) -> Dict[str, np.ndarray]:
+    base_params: dict[str, Any],
+    sim_param_configs: dict[str, Any],
+) -> dict[str, np.ndarray]:
     """
     Prepares parameters and runs the appropriate Monte Carlo simulation.
     """
@@ -532,8 +534,8 @@ def run_monte_carlo_simulation(
 
 
 def run_monte_carlo_simulation_vectorized(
-    num_simulations: int, base_params: Dict[str, Any], sim_params: Dict[str, np.ndarray]
-) -> Dict[str, np.ndarray]:
+    num_simulations: int, base_params: dict[str, Any], sim_params: dict[str, np.ndarray]
+) -> dict[str, np.ndarray]:
     """
     Vectorized calculation for fixed exit year simulations.
     """
@@ -699,9 +701,9 @@ def run_monte_carlo_simulation_vectorized(
 
 def run_monte_carlo_simulation_iterative(
     num_simulations: int,
-    base_params: Dict[str, Any],
-    sim_param_configs: Dict[str, Any],
-) -> Dict[str, np.ndarray]:
+    base_params: dict[str, Any],
+    sim_param_configs: dict[str, Any],
+) -> dict[str, np.ndarray]:
     """
     Iterative (slower) version for when simulating the exit year.
     """

@@ -3,8 +3,9 @@ Configuration management for the Worth It application.
 Loads settings from environment variables with sensible defaults.
 """
 
+from __future__ import annotations
+
 import os
-from typing import List
 
 
 class Settings:
@@ -23,7 +24,7 @@ class Settings:
 
     # CORS Configuration
     @staticmethod
-    def get_cors_origins() -> List[str]:
+    def get_cors_origins() -> list[str]:
         """Get list of allowed CORS origins from environment."""
         default_origins = [
             "http://localhost:8501",
