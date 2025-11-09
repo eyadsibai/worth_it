@@ -50,6 +50,11 @@ monthly_df = create_monthly_data_grid(
     current_job_salary_growth_rate=0.03,
 )
 
+# Calculate opportunity cost DataFrame
+opportunity_cost_df = calculate_annual_opportunity_cost(monthly_df)
+
+# Define your startup_params dictionary as needed
+# startup_params = {...}
 # Calculate results
 results = calculate_startup_scenario(opportunity_cost_df, startup_params)
 ```
