@@ -9,3 +9,22 @@ wheels/
 # Virtual environments
 .venv
 .vscode
+venv/
+
+# Backup files
+*_original.py
+*.bak
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
