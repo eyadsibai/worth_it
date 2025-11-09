@@ -41,8 +41,13 @@ app = FastAPI(
 # Add CORS middleware to allow Streamlit to communicate with the API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
-    allow_credentials=True,
+    allow_origins=[
+        "http://localhost:8501",  # Streamlit default port
+        "http://localhost:3000",  # Alternative frontend port
+        "http://127.0.0.1:8501",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=False,  # Set to False for wildcard or True with explicit origins
     allow_methods=["*"],
     allow_headers=["*"],
 )
