@@ -70,7 +70,7 @@ pip install numpy pandas scipy numpy-financial streamlit plotly pytest pydantic 
 uvicorn api:app --host 0.0.0.0 --port 8000
 
 # Start Streamlit frontend (in separate terminal)
-uv run streamlit run app.py
+streamlit run app.py
 ```
 
 ### Testing
