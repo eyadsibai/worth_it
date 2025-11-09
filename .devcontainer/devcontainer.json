@@ -6,7 +6,8 @@
     "codespaces": {
       "openFiles": [
         "README.md",
-        "comparison_v3.py"
+        "app.py",
+        "api.py"
       ]
     },
     "vscode": {
@@ -17,17 +18,23 @@
       ]
     }
   },
-  "updateContentCommand": "[ -f packages.txt ] && sudo apt update && sudo apt upgrade -y && sudo xargs apt install -y <packages.txt; [ -f requirements.txt ] && pip3 install --user -r requirements.txt; pip3 install --user streamlit; echo '✅ Packages installed and Requirements met'",
+  "updateContentCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH=\"$HOME/.cargo/bin:$PATH\" && uv sync && echo '✅ Dependencies installed with uv'",
   "postAttachCommand": {
-    "server": "streamlit run comparison_v3.py --server.enableCORS false --server.enableXsrfProtection false"
+    "api": "uv run uvicorn api:app --host 0.0.0.0 --port 8000",
+    "frontend": "uv run streamlit run app.py --server.enableCORS false --server.enableXsrfProtection false"
   },
   "portsAttributes": {
+    "8000": {
+      "label": "API Server",
+      "onAutoForward": "notify"
+    },
     "8501": {
-      "label": "Application",
+      "label": "Streamlit App",
       "onAutoForward": "openPreview"
     }
   },
   "forwardPorts": [
+    8000,
     8501
   ]
 }

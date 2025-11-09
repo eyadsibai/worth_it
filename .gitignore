@@ -28,3 +28,14 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+coverage.xml
+
+# Environment variables
+.env
+.env.local
+
+# Ruff cache
+.ruff_cache/
+
+# MyPy cache
+.mypy_cache/

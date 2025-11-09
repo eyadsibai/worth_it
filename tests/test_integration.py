@@ -10,8 +10,8 @@ Run with: pytest test_integration.py -v
 import pytest
 from fastapi.testclient import TestClient
 
-from api import app
-from calculations import EquityType
+from worth_it.api import app
+from worth_it.calculations import EquityType
 
 
 @pytest.fixture
