@@ -185,8 +185,10 @@ async def run_monte_carlo_simulation(request: MonteCarloRequest):
     """
     try:
         # Convert equity_type string to EquityType enum if needed
-        base_params = request.base_params
+        base_params = request.base_params.copy()
         if "startup_params" in base_params and "equity_type" in base_params["startup_params"]:
+            # Also need to copy nested dict to avoid mutating the original
+            base_params["startup_params"] = base_params["startup_params"].copy()
             if isinstance(base_params["startup_params"]["equity_type"], str):
                 base_params["startup_params"]["equity_type"] = calculations.EquityType(
                     base_params["startup_params"]["equity_type"]
@@ -215,8 +217,10 @@ async def run_sensitivity_analysis(request: SensitivityAnalysisRequest):
     """
     try:
         # Convert equity_type string to EquityType enum if needed
-        base_params = request.base_params
+        base_params = request.base_params.copy()
         if "startup_params" in base_params and "equity_type" in base_params["startup_params"]:
+            # Also need to copy nested dict to avoid mutating the original
+            base_params["startup_params"] = base_params["startup_params"].copy()
             if isinstance(base_params["startup_params"]["equity_type"], str):
                 base_params["startup_params"]["equity_type"] = calculations.EquityType(
                     base_params["startup_params"]["equity_type"]
