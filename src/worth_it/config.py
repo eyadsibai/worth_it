@@ -13,7 +13,10 @@ class Settings:
     # API Configuration
     API_HOST: str = os.getenv("API_HOST", "0.0.0.0")
     API_PORT: int = int(os.getenv("API_PORT", "8000"))
-    API_BASE_URL: str = os.getenv("API_BASE_URL", f"http://localhost:{API_PORT}")
+    @property
+    def API_BASE_URL(self) -> str:
+        """Get API base URL, using API_PORT if not explicitly set."""
+        return os.getenv("API_BASE_URL", f"http://localhost:{self.API_PORT}")
 
     # Frontend Configuration
     STREAMLIT_PORT: int = int(os.getenv("STREAMLIT_PORT", "8501"))
@@ -81,7 +84,4 @@ class Settings:
 settings = Settings()
 
 # Validate on import (fails fast if misconfigured)
-try:
-    settings.validate()
-except ValueError as e:
-    print(f"⚠️  Configuration Warning: {e}")
+settings.validate()
