@@ -116,7 +116,7 @@ async def calculate_startup_scenario(request: StartupScenarioRequest):
         opportunity_cost_df = pd.DataFrame(request.opportunity_cost_data)
         
         # Convert equity_type string to EquityType enum if needed
-        startup_params = request.startup_params
+        startup_params = request.startup_params.copy()
         if "equity_type" in startup_params:
             if isinstance(startup_params["equity_type"], str):
                 startup_params["equity_type"] = calculations.EquityType(startup_params["equity_type"])
