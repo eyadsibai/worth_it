@@ -5,7 +5,6 @@ This module tests all API endpoints to ensure they properly handle
 requests and return correct responses.
 """
 
-import pytest
 from fastapi.testclient import TestClient
 
 from api import app
