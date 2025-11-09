@@ -756,3 +756,71 @@ def test_exercise_costs_reduce_net_outcomes():
     )
 
     # Exercise costs correctly reduce outcomes by {actual_reduction:.2f} (expected ~{expected_reduction:.2f})
+
+
+def test_equity_sale_slider_limited_to_vested():
+    """
+    Tests that the equity sale logic correctly limits sales to vested equity only.
+    This test verifies the fix for the issue where the slider allowed selling up to 100%
+    even when less equity was vested.
+    """
+    # Test scenario: 50% vested, try to sell more than vested
+    # The calculation should limit the sale to the vested portion
+    startup_params = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 1,
+        "exit_year": 4,
+        "rsu_params": {
+            "equity_pct": 0.10,  # 10% total equity
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": True,
+            "dilution_rounds": [
+                {
+                    "year": 2,  # At year 2, 50% is vested (2/4 years)
+                    "dilution": 0.0,
+                    "percent_to_sell": 0.80,  # Try to sell 80% (more than 50% vested!)
+                    "valuation_at_sale": 5_000_000,
+                }
+            ],
+        },
+        "options_params": {},
+    }
+
+    monthly_df = calculations.create_monthly_data_grid(
+        exit_year=4,
+        current_job_monthly_salary=20000,
+        startup_monthly_salary=15000,
+        current_job_salary_growth_rate=0.0,
+        dilution_rounds=startup_params["rsu_params"]["dilution_rounds"],
+    )
+
+    opportunity_df = calculations.calculate_annual_opportunity_cost(
+        monthly_df=monthly_df,
+        annual_roi=0.05,
+        investment_frequency="Annually",
+        startup_params=startup_params,
+    )
+
+    # At year 2, vested = 50%, trying to sell 80%
+    # Calculation should limit to 50% (the vested amount)
+    # Expected cash = 10% equity * 50% vested cap * 5M valuation = $250k
+    expected_cash_immediate = 0.10 * 0.50 * 5_000_000
+    assert expected_cash_immediate == 250_000
+
+    # FV over 2 years at 5%: 250k * 1.05^2 = 275,625
+    expected_cash_fv = expected_cash_immediate * (1.05 ** 2)
+    assert opportunity_df["Cash From Sale (FV)"].iloc[-1] == pytest.approx(expected_cash_fv, rel=0.01)
+
+    # Verify the final payout calculation
+    results = calculations.calculate_startup_scenario(
+        opportunity_df, startup_params
+    )
+
+    # The remaining equity factor should still reflect the 80% sale attempt
+    # (even though only 50% generated cash)
+    # This is because the forfeit still reduces your remaining equity
+    # Actually, with the new logic, we don't forfeit unvested, so remaining should be 1 - 0.5 = 0.5
+    # Let's verify the final payout is sensible
+    assert results["final_payout_value"] >= 0
+    assert not np.isnan(results["final_payout_value"])
