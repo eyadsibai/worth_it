@@ -251,7 +251,7 @@ def test_cash_from_equity_sale_added_to_surplus():
                 {
                     "year": 2,
                     "dilution": 0.20,
-                    "percent_to_sell": 0.50,  # Sell 50% of vested equity
+                    "percent_to_sell": 0.25,  # Sell 25% of total equity (half of vested)
                     "valuation_at_sale": 10_000_000,
                 }
             ],
@@ -262,8 +262,9 @@ def test_cash_from_equity_sale_added_to_surplus():
     # At year 2, 50% of the equity is vested (2 out of 4 years)
     # Initial equity is 10%, so vested equity is 5%
     # No dilution has occurred before the sale in year 2
-    # Cash = 5% * 10,000,000 (valuation) * 50% (percent to sell) = 250,000
-    expected_cash_from_sale = 0.05 * 10_000_000 * 0.50
+    # With new logic: selling 25% of total equity (which is less than 50% vested)
+    # Cash = 10% * 10,000,000 (valuation) * 25% (percent to sell) = 250,000
+    expected_cash_from_sale = 0.10 * 10_000_000 * 0.25
     assert expected_cash_from_sale == 250_000
 
     monthly_df = calculations.create_monthly_data_grid(

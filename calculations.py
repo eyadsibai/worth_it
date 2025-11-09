@@ -111,12 +111,14 @@ def calculate_annual_opportunity_cost(
 
                 # percent_to_sell is a percentage of remaining equity at the time of sale
                 # (after accounting for both dilution and previous equity sales)
+                # Note: We only receive cash for the vested portion; the rest (if any) is forfeited
                 equity_at_sale = initial_equity_pct * cumulative_dilution_factor * cumulative_sold_factor
+                # Ensure we only get cash for vested equity (percent_to_sell is limited by UI but we validate here too)
+                effective_sell_pct = min(float(vested_pct_at_sale), r["percent_to_sell"])
                 cash_from_sale = (
-                    float(vested_pct_at_sale)
-                    * equity_at_sale
+                    equity_at_sale
                     * r.get("valuation_at_sale", 0)
-                    * r["percent_to_sell"]
+                    * effective_sell_pct
                 )
 
                 # Handle year 0: sales at year 0 happen at month 0 (inception)
@@ -631,11 +633,13 @@ def run_monte_carlo_simulation_vectorized(
                         equity_at_sale = initial_equity_pct * cumulative_dilution_before_sale * cumulative_sold_before_sale
 
                         # Calculate cash from this sale
+                        # Note: We only receive cash for the vested portion; anything beyond that is forfeited
+                        # The UI slider limits percent_to_sell to vested_pct, but we validate here too
+                        effective_sell_pct = min(vested_pct_at_sale, r["percent_to_sell"])
                         cash_from_sale = (
-                            vested_pct_at_sale
-                            * equity_at_sale
+                            equity_at_sale
                             * r.get("valuation_at_sale", 0)
-                            * r["percent_to_sell"]
+                            * effective_sell_pct
                         )
 
                         # Calculate future value of this cash
