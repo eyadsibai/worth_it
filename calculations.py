@@ -111,7 +111,9 @@ def calculate_annual_opportunity_cost(
 
                 # percent_to_sell is a percentage of remaining equity at the time of sale
                 # (after accounting for both dilution and previous equity sales)
-                # Note: We only receive cash for the vested portion; the rest (if any) is forfeited
+                # Note: If you attempt to sell more than the vested portion, you only receive cash for the vested portion,
+                # and the unvested portion of the attempted sale is forfeited. The remaining equity is reduced by the full
+                # percent_to_sell amount, not just the vested portion that generated cash.
                 equity_at_sale = initial_equity_pct * cumulative_dilution_factor * cumulative_sold_factor
                 # Ensure we only get cash for vested equity (percent_to_sell is limited by UI but we validate here too)
                 effective_sell_pct = min(float(vested_pct_at_sale), r["percent_to_sell"])
