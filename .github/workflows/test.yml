@@ -1,0 +1,82 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+
+    - name: Install dependencies
+      run: uv sync
+
+    - name: Run unit tests
+      run: uv run pytest test_calculations.py -v --tb=short
+
+    - name: Run API tests
+      run: uv run pytest test_api.py -v --tb=short
+
+    - name: Run integration tests
+      run: uv run pytest test_integration.py -v --tb=short
+
+    - name: Run all tests with coverage
+      run: |
+        uv run pytest --cov=. --cov-report=xml --cov-report=term-missing
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Install dependencies
+      run: uv sync
+
+    - name: Check code formatting with ruff
+      run: |
+        uv pip install ruff
+        uv run ruff check . --output-format=github
+      continue-on-error: true
+
+    - name: Type check with mypy
+      run: |
+        uv pip install mypy
+        uv run mypy calculations.py api.py models.py --ignore-missing-imports
+      continue-on-error: true

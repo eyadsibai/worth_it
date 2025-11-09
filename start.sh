@@ -4,23 +4,21 @@
 echo "Starting Worth It Application..."
 echo "================================"
 
-# Check if virtual environment exists
-if [ ! -d "venv" ]; then
-    echo "Creating virtual environment..."
-    python -m venv venv
+# Check if uv is installed
+if ! command -v uv &> /dev/null; then
+    echo "uv package manager not found. Installing uv..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.cargo/bin:$PATH"
 fi
 
-# Activate virtual environment
-source venv/bin/activate 2>/dev/null || . venv/Scripts/activate 2>/dev/null
-
-# Install dependencies
-echo "Installing dependencies..."
-pip install -q numpy pandas scipy numpy-financial streamlit plotly pytest pydantic fastapi uvicorn httpx requests
+# Install/sync dependencies using uv
+echo "Installing dependencies with uv..."
+uv sync
 
 # Start FastAPI backend in background
 echo ""
 echo "Starting FastAPI backend on http://localhost:8000..."
-uvicorn api:app --host 0.0.0.0 --port 8000 &
+uv run uvicorn api:app --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!
 
 # Wait for backend to start
@@ -38,7 +36,7 @@ echo "✓ FastAPI backend is running (PID: $BACKEND_PID)"
 # Start Streamlit frontend
 echo ""
 echo "Starting Streamlit frontend on http://localhost:8501..."
-streamlit run app.py &
+uv run streamlit run app.py &
 FRONTEND_PID=$!
 
 echo ""

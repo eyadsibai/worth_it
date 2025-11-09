@@ -6,13 +6,14 @@ HTTP requests to the FastAPI backend instead of calling calculation
 functions directly.
 """
 
-import os
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+
+from config import settings
 
 
 class APIClient:
@@ -24,9 +25,9 @@ class APIClient:
 
         Args:
             base_url: Base URL of the FastAPI backend.
-                     Defaults to http://localhost:8000 or API_BASE_URL env var.
+                     Defaults to settings.API_BASE_URL.
         """
-        self.base_url = base_url or os.getenv("API_BASE_URL", "http://localhost:8000")
+        self.base_url = base_url or settings.API_BASE_URL
 
         # Create session with retry logic
         self.session = requests.Session()

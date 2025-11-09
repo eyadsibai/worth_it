@@ -11,6 +11,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 import calculations
+from config import settings
 from models import (
     DilutionFromValuationRequest,
     DilutionFromValuationResponse,
@@ -38,15 +39,10 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Add CORS middleware to allow Streamlit to communicate with the API
+# Add CORS middleware with configuration from settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8501",  # Streamlit default port
-        "http://localhost:3000",  # Alternative frontend port
-        "http://127.0.0.1:8501",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=settings.get_cors_origins(),
     allow_credentials=False,  # Set to False for wildcard or True with explicit origins
     allow_methods=["*"],
     allow_headers=["*"],
@@ -259,4 +255,13 @@ async def calculate_dilution_from_valuation(request: DilutionFromValuationReques
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    print(f"Starting API server on {settings.API_HOST}:{settings.API_PORT}")
+    print(f"Environment: {settings.ENVIRONMENT}")
+    print(f"CORS Origins: {settings.get_cors_origins()}")
+
+    uvicorn.run(
+        app,
+        host=settings.API_HOST,
+        port=settings.API_PORT,
+        log_level=settings.LOG_LEVEL.lower(),
+    )
