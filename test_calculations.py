@@ -9,7 +9,7 @@ import pytest
 
 # Assuming your calculations module is in the same directory or accessible via PYTHONPATH
 import calculations
-from app import EquityType
+from calculations import EquityType
 
 
 # --- Test Fixtures ---
