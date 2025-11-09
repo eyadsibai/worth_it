@@ -390,6 +390,14 @@ if equity_type == EquityType.RSU:
 
                             # Default to selling 10% of vested equity, but cap at available vested percentage
                             default_value = min(10.0, vested_pct_at_sale)
+                            
+                            # Clamp existing session state value to new max to avoid StreamlitAPIException
+                            # when vested percentage decreases (e.g., user changes sale year)
+                            slider_key = f"sell_pct_{series_name}"
+                            if slider_key in st.session_state:
+                                # Ensure stored value doesn't exceed new maximum
+                                st.session_state[slider_key] = min(st.session_state[slider_key], vested_pct_at_sale)
+                            
                             round_details["percent_to_sell"] = (
                                 st.slider(
                                     "Percentage of Remaining Equity to Sell (up to vested amount)",
@@ -397,7 +405,7 @@ if equity_type == EquityType.RSU:
                                     vested_pct_at_sale,  # Maximum is the vested percentage
                                     default_value,
                                     1.0,
-                                    key=f"sell_pct_{series_name}",
+                                    key=slider_key,
                                     format="%.1f%%",
                                     help=f"Percentage of your total remaining equity to sell (limited to the vested portion: {vested_pct_at_sale:.1f}%). You can only sell equity that has vested.",
                                 )
