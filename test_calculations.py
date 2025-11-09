@@ -817,10 +817,9 @@ def test_equity_sale_slider_limited_to_vested():
         opportunity_df, startup_params
     )
 
-    # The remaining equity factor should still reflect the 80% sale attempt
-    # (even though only 50% generated cash)
-    # This is because the forfeit still reduces your remaining equity
-    # Actually, with the new logic, we don't forfeit unvested, so remaining should be 1 - 0.5 = 0.5
+    # The remaining equity factor should reflect only the amount of vested equity actually sold.
+    # In this case, only 50% is vested at year 2, so only 50% can be sold, even if the attempt was to sell 80%.
+    # Unvested equity is not forfeited; the remaining equity is 1 - 0.5 = 0.5 after the sale.
     # Let's verify the final payout is sensible
     assert results["final_payout_value"] >= 0
     assert not np.isnan(results["final_payout_value"])
