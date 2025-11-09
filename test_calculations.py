@@ -803,8 +803,8 @@ def test_equity_sale_slider_limited_to_vested():
     )
 
     # At year 2, vested = 50%, trying to sell 80%
-    # Calculation should limit to 50% (the vested amount)
-    # Expected cash = 10% equity * 50% vested cap * 5M valuation = $250k
+    # Calculation should limit to 50% (the effective sell percentage: min(vested, percent_to_sell))
+    # Expected cash = 10% equity * 50% effective sell percentage (min(vested, percent_to_sell)) * 5M valuation = $250k
     expected_cash_immediate = 0.10 * 0.50 * 5_000_000
     assert expected_cash_immediate == 250_000
 
