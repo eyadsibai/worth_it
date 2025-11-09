@@ -388,17 +388,18 @@ if equity_type == EquityType.RSU:
                             else:
                                 st.info(f"📊 At year {sale_year}: **100%** of your equity is fully vested")
 
-                            # Default to selling 10% of remaining equity
+                            # Default to selling 10% of vested equity, but cap at available vested percentage
+                            default_value = min(10.0, vested_pct_at_sale)
                             round_details["percent_to_sell"] = (
                                 st.slider(
-                                    "Percentage of Remaining Equity to Sell (vested) or Forfeit (unvested)",
+                                    "Percentage of Remaining Equity to Sell (up to vested amount)",
                                     0.0,
-                                    100.0,
-                                    10.0,
+                                    vested_pct_at_sale,  # Maximum is the vested percentage
+                                    default_value,
                                     1.0,
                                     key=f"sell_pct_{series_name}",
                                     format="%.1f%%",
-                                    help=f"Percentage of remaining equity to sell. You'll receive cash only for the vested portion ({vested_pct_at_sale:.1f}%). Unvested equity will be forfeited.",
+                                    help=f"Percentage of your total remaining equity to sell (limited to the vested portion: {vested_pct_at_sale:.1f}%). You can only sell equity that has vested.",
                                 )
                                 / 100.0
                             )
