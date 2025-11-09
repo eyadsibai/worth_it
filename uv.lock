@@ -3044,7 +3044,7 @@ wheels = [
 [[package]]
 name = "worth-it"
 version = "1.0.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
     { name = "httpx" },

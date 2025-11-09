@@ -18,12 +18,12 @@ uv run pytest
 
 Run specific test file:
 ```bash
-uv run pytest test_calculations.py -v
+uv run pytest tests/test_calculations.py -v
 ```
 
 Run with coverage:
 ```bash
-uv run pytest --cov=. --cov-report=html
+uv run pytest --cov=src --cov-report=html
 ```
 
 ### Running the Application
@@ -32,21 +32,21 @@ uv run pytest --cov=. --cov-report=html
 Use the startup scripts to run both API and frontend:
 ```bash
 # Linux/Mac
-./start.sh
+./scripts/start.sh
 
 # Windows
-start.bat
+scripts\start.bat
 ```
 
 #### Option 2: Run Components Separately
 Backend API (FastAPI):
 ```bash
-uv run uvicorn api:app --reload --port 8000
+uv run uvicorn worth_it.api:app --reload --port 8000
 ```
 
 Frontend (Streamlit):
 ```bash
-uv run streamlit run app.py
+uv run streamlit run src/worth_it/app.py
 ```
 
 ### API Documentation

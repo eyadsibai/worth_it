@@ -10,9 +10,9 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-import calculations
-from config import settings
-from models import (
+from . import calculations
+from .config import settings
+from .models import (
     DilutionFromValuationRequest,
     DilutionFromValuationResponse,
     HealthCheckResponse,

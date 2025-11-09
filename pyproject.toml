@@ -1,9 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "worth-it"
 version = "1.0.0"
 description = "Startup job offer financial analyzer with Monte Carlo simulations"
 readme = "README.md"
 requires-python = ">=3.10"
+authors = [
+    {name = "Worth It Team"}
+]
+keywords = ["finance", "startup", "monte-carlo", "equity", "analysis"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
 dependencies = [
     "fastapi>=0.115.12",
     "httpx>=0.27.0",
@@ -32,8 +48,12 @@ dev = [
     "bandit>=1.7.9",
 ]
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/worth_it"]
+
 [tool.pytest.ini_options]
-testpaths = [".", "tests"]
+testpaths = ["tests"]
+pythonpath = ["src"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -44,9 +64,8 @@ addopts = [
 ]
 
 [tool.coverage.run]
-source = ["."]
+source = ["src"]
 omit = [
-    "test_*.py",
     "tests/*",
     ".venv/*",
     "venv/*",
@@ -68,6 +87,7 @@ exclude_lines = [
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+src = ["src", "tests"]
 exclude = [
     ".git",
     ".venv",
@@ -101,11 +121,12 @@ line-ending = "auto"
 
 [tool.mypy]
 python_version = "3.10"
+mypy_path = "src"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
 
 [tool.bandit]
-exclude_dirs = ["tests", "test_*.py", ".venv", "venv"]
+exclude_dirs = ["tests", ".venv", "venv"]
 skips = ["B101"]  # Skip assert_used check (needed for tests)

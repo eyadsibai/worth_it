@@ -18,7 +18,7 @@ uv sync
 # Start FastAPI backend in background
 echo ""
 echo "Starting FastAPI backend on http://localhost:8000..."
-uv run uvicorn api:app --host 0.0.0.0 --port 8000 &
+uv run uvicorn worth_it.api:app --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!
 
 # Wait for backend to start
@@ -36,7 +36,7 @@ echo "✓ FastAPI backend is running (PID: $BACKEND_PID)"
 # Start Streamlit frontend
 echo ""
 echo "Starting Streamlit frontend on http://localhost:8501..."
-uv run streamlit run app.py &
+uv run streamlit run src/worth_it/app.py &
 FRONTEND_PID=$!
 
 echo ""

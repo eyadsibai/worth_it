@@ -11,8 +11,8 @@ import plotly.express as px
 import plotly.figure_factory as ff
 import streamlit as st
 
-from api_client import api_client
-from calculations import EquityType
+from .api_client import api_client
+from .calculations import EquityType
 
 # --- Page Configuration ---
 st.set_page_config(

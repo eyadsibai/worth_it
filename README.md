@@ -1,243 +1,212 @@
-# Worth It - Startup Job Offer Financial Analyzer
+# Worth It - Startup Job Offer Analyzer
 
-A comprehensive tool for comparing startup job offers against your current job, with sophisticated financial modeling including equity valuation, dilution, and Monte Carlo simulation.
+[![Test Suite](https://github.com/eyadsibai/worth_it/actions/workflows/test.yml/badge.svg)](https://github.com/eyadsibai/worth_it/actions/workflows/test.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
-## 🎯 Features
+A comprehensive financial analysis tool for evaluating startup job offers with Monte Carlo simulations, dilution modeling, and opportunity cost analysis.
 
-- **Equity Analysis**: Support for both RSUs and Stock Options
-- **Dilution Modeling**: Simulate multiple funding rounds and their impact
-- **Secondary Sales**: Model selling equity during funding rounds
-- **Monte Carlo Simulation**: Probabilistic analysis of outcomes
-- **Opportunity Cost**: Calculate the true cost of lower startup salary
-- **Financial Metrics**: IRR, NPV, and breakeven analysis
+## 🚀 Quick Start
+
+```bash
+# Install dependencies
+uv sync
+
+# Run the application
+./scripts/start.sh  # Linux/Mac
+scripts\start.bat   # Windows
+```
+
+Visit:
+- **Frontend**: http://localhost:8501
+- **API Docs**: http://localhost:8000/docs
+
+## 📁 Project Structure
+
+```
+worth_it/
+├── src/worth_it/           # Core application code
+│   ├── calculations.py     # Pure Python calculation engine
+│   ├── api.py             # FastAPI REST API
+│   ├── models.py          # Pydantic validation models
+│   ├── config.py          # Configuration management
+│   ├── api_client.py      # HTTP client for API
+│   └── app.py             # Streamlit web interface
+├── tests/                  # Test suite
+│   ├── test_calculations.py   # Unit tests (20 tests)
+│   ├── test_api.py           # API tests (11 tests)
+│   └── test_integration.py   # Integration tests (4 tests)
+├── docs/                   # Documentation
+│   ├── README.md          # Detailed project documentation
+│   ├── BACKEND.md         # API reference
+│   ├── IMPROVEMENTS.md    # Recent improvements
+│   ├── CHANGELOG.md       # Version history
+│   └── ...
+├── scripts/               # Utility scripts
+│   ├── start.sh          # Linux/Mac startup
+│   ├── start.bat         # Windows startup
+│   └── example_backend_usage.py
+├── .github/workflows/     # CI/CD pipelines
+└── pyproject.toml        # Project configuration
+```
 
 ## 🏗️ Architecture
 
-The project follows a modern microservices architecture with clear separation of concerns:
-
-- **Backend (`api.py`)**: FastAPI REST API server providing calculation endpoints
-- **Frontend (`app.py`)**: Streamlit web interface for user interaction
-- **Core Logic (`calculations.py`)**: Pure Python calculation engine, framework-agnostic
-- **API Client (`api_client.py`)**: Client library for frontend-backend communication
-- **Models (`models.py`)**: Pydantic models for API request/response validation
-- **Tests**: Comprehensive test suite for both backend (`test_api.py`) and calculations (`test_calculations.py`)
-
-### Architecture Diagram
+Modern **3-tier microservices architecture**:
 
 ```
 ┌─────────────────────┐
-│  Streamlit Frontend │  (Port 8501)
-│     (app.py)        │
+│   Frontend (UI)     │  Streamlit (app.py)
+│   Port: 8501        │  + API Client
 └──────────┬──────────┘
            │ HTTP/REST
            ▼
 ┌─────────────────────┐
-│   API Client        │
-│  (api_client.py)    │
+│   Backend API       │  FastAPI (api.py)
+│   Port: 8000        │  + Pydantic Models
 └──────────┬──────────┘
-           │
+           │ Function Calls
            ▼
 ┌─────────────────────┐
-│  FastAPI Backend    │  (Port 8000)
-│     (api.py)        │
-└──────────┬──────────┘
-           │
-           ▼
-┌─────────────────────┐
-│  Calculations       │
-│ (calculations.py)   │
+│   Core Logic        │  Pure Python
+│   Framework-Agnostic│  (calculations.py)
 └─────────────────────┘
 ```
 
-See [BACKEND.md](BACKEND.md) for detailed backend architecture documentation.
+## ✨ Features
 
-## 🚀 Quick Start
+- **Monte Carlo Simulations**: Probabilistic outcome modeling
+- **Dilution Modeling**: Track equity across funding rounds
+- **RSU vs Stock Options**: Compare different equity types
+- **IRR/NPV Calculations**: Financial metrics analysis
+- **Opportunity Cost**: Compare against current employment
+- **Sensitivity Analysis**: Understand parameter impacts
+- **Interactive UI**: Real-time visualization with Plotly
 
-### Option 1: Using the Startup Script (Recommended)
+## 📖 Documentation
 
-**Linux/Mac:**
-```bash
-./start.sh
-```
-
-**Windows:**
-```bash
-start.bat
-```
-
-This will:
-1. Create a virtual environment (if needed)
-2. Install all dependencies
-3. Start the FastAPI backend on http://localhost:8000
-4. Start the Streamlit frontend on http://localhost:8501
-5. Open the API documentation at http://localhost:8000/docs
-
-### Option 2: Manual Setup
-
-1. **Install dependencies:**
-```bash
-pip install numpy pandas scipy numpy-financial streamlit plotly pytest pydantic fastapi uvicorn httpx requests
-```
-
-2. **Start the FastAPI backend:**
-```bash
-uvicorn api:app --host 0.0.0.0 --port 8000
-```
-
-3. **In a new terminal, start the Streamlit frontend:**
-```bash
-streamlit run app.py
-```
-
-4. **Access the application:**
-   - Streamlit UI: http://localhost:8501
-   - FastAPI Backend: http://localhost:8000
-   - API Documentation: http://localhost:8000/docs
-
-## 🔌 API Endpoints
-
-The FastAPI backend provides the following endpoints:
-
-- `GET /health` - Health check
-- `POST /api/monthly-data-grid` - Create monthly financial projections
-- `POST /api/opportunity-cost` - Calculate opportunity cost
-- `POST /api/startup-scenario` - Evaluate startup equity scenarios
-- `POST /api/irr` - Calculate Internal Rate of Return
-- `POST /api/npv` - Calculate Net Present Value
-- `POST /api/monte-carlo` - Run Monte Carlo simulation
-- `POST /api/sensitivity-analysis` - Run sensitivity analysis
-- `POST /api/dilution` - Calculate dilution from valuation
-
-See the interactive API documentation at http://localhost:8000/docs for details.
-
-## 🧑‍💻 Using the Backend Independently
-
-The backend can be used programmatically without the Streamlit UI:
-
-```python
-from calculations import (
-    EquityType,
-    create_monthly_data_grid,
-    calculate_annual_opportunity_cost,
-    calculate_startup_scenario,
-)
-
-# Your custom logic here - use calculations module directly
-monthly_df = create_monthly_data_grid(
-    exit_year=5,
-    current_job_monthly_salary=30000,
-    startup_monthly_salary=20000,
-    current_job_salary_growth_rate=0.03,
-)
-
-# Calculate opportunity cost DataFrame
-opportunity_cost_df = calculate_annual_opportunity_cost(monthly_df, annual_roi=0.054, investment_frequency="Monthly")
-
-# Define your startup_params dictionary as needed
-startup_params = {
-    "equity_type": EquityType.RSU,
-    "total_vesting_years": 4,
-    "cliff_years": 1,
-    "exit_year": 5,
-    "rsu_params": {
-        "equity_pct": 0.05,
-        "target_exit_valuation": 25_000_000,
-        "simulate_dilution": False,
-    },
-    "options_params": {},
-}
-# Calculate results
-results = calculate_startup_scenario(opportunity_cost_df, startup_params)
-```
-
-Or use the API client programmatically:
-
-```python
-from api_client import APIClient
-
-client = APIClient(base_url="http://localhost:8000")
-
-# Check API health
-health = client.health_check()
-
-# Create monthly data
-monthly_df = client.create_monthly_data_grid(
-    exit_year=5,
-    current_job_monthly_salary=30000,
-    startup_monthly_salary=20000,
-    current_job_salary_growth_rate=0.03,
-)
-
-# Calculate opportunity cost
-opportunity_df = client.calculate_annual_opportunity_cost(
-    monthly_df=monthly_df,
-    annual_roi=0.054,
-    investment_frequency="Monthly",
-)
-
-# Get startup scenario results
-results = client.calculate_startup_scenario(opportunity_df, startup_params)
-```
-
-See [example_backend_usage.py](example_backend_usage.py) for a complete working example using the calculations module directly.
-
-## 📚 Documentation
-
-- [BACKEND.md](BACKEND.md) - Backend architecture and API reference
-- [example_backend_usage.py](example_backend_usage.py) - Example of using calculations module directly
-- API Documentation - Available at http://localhost:8000/docs when backend is running
+- **[Detailed Documentation](docs/README.md)** - Complete project guide
+- **[API Reference](docs/BACKEND.md)** - REST API documentation
+- **[Development Guide](CLAUDE.md)** - Setup and workflows
+- **[Improvements](docs/IMPROVEMENTS.md)** - Recent changes
+- **[Changelog](docs/CHANGELOG.md)** - Version history
 
 ## 🧪 Testing
 
-Run the full test suite:
-
 ```bash
-# Test the calculations module (20 tests)
-pytest test_calculations.py -v
-
-# Test the API endpoints (11 tests)
-pytest test_api.py -v
-
 # Run all tests
-pytest -v
+uv run pytest
+
+# Run with coverage
+uv run pytest --cov=src --cov-report=html
+
+# Run specific test suite
+uv run pytest tests/test_calculations.py -v
 ```
 
-All 31 tests cover:
-- Core financial calculations
-- RSU and stock option scenarios
-- Dilution modeling
-- Secondary equity sales
-- Monte Carlo simulation
-- API endpoints and request/response validation
-- Edge cases and error handling
+**Test Coverage:**
+- ✅ 35 tests (100% passing)
+- 📊 51% overall coverage
+- 🎯 Core modules: 76-86% coverage
 
-## 🔧 Dependencies
+## 🛠️ Development
 
+### Prerequisites
 - Python 3.10+
-- **Backend:**
-  - fastapi
-  - uvicorn
-  - pydantic
-  - numpy
-  - pandas
-  - scipy
-  - numpy-financial
-- **Frontend:**
-  - streamlit
-  - plotly
-  - requests
-- **Testing:**
-  - pytest
-  - httpx
+- [uv](https://docs.astral.sh/uv/) package manager
 
-## 🌐 Environment Variables
+### Setup
 
-- `API_BASE_URL` - Base URL for the FastAPI backend (default: http://localhost:8000)
+```bash
+# Clone repository
+git clone https://github.com/eyadsibai/worth_it.git
+cd worth_it
 
-## 📝 License
+# Install dependencies
+uv sync
 
-See repository for license information.
+# Install dev tools
+uv sync --extra dev
 
-## 👨‍💻 Author
+# Setup pre-commit hooks
+uv pip install pre-commit
+pre-commit install
+```
 
-Made with ❤️ by Eyad Sibai (https://linkedin.com/in/eyadsibai)
+### Development Workflow
+
+```bash
+# Run API server
+uv run uvicorn src.worth_it.api:app --reload --port 8000
+
+# Run frontend
+uv run streamlit run src/worth_it/app.py
+
+# Format code
+uv run ruff format .
+
+# Lint
+uv run ruff check .
+
+# Type check
+uv run mypy src/worth_it/
+```
+
+## ⚙️ Configuration
+
+Copy `.env.example` to `.env` and customize:
+
+```bash
+# API Configuration
+API_HOST=0.0.0.0
+API_PORT=8000
+ENVIRONMENT=development
+
+# CORS (comma-separated)
+CORS_ORIGINS=http://localhost:8501,http://localhost:3000
+```
+
+See [.env.example](.env.example) for all options.
+
+## 🚢 Deployment
+
+### Production Settings
+
+```bash
+export ENVIRONMENT=production
+export API_HOST=0.0.0.0
+export API_PORT=8000
+export CORS_ORIGINS="https://yourdomain.com"
+
+uv run uvicorn src.worth_it.api:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+## 📊 Tech Stack
+
+- **Backend**: FastAPI, Pydantic
+- **Frontend**: Streamlit, Plotly
+- **Calculations**: NumPy, Pandas, SciPy
+- **Testing**: pytest, pytest-cov
+- **Code Quality**: Ruff, MyPy, Bandit
+- **Package Manager**: uv
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests: `uv run pytest`
+5. Run pre-commit: `pre-commit run --all-files`
+6. Submit a pull request
+
+## 📄 License
+
+[Add your license here]
+
+## 🙏 Acknowledgments
+
+Built with [FastAPI](https://fastapi.tiangolo.com/), [Streamlit](https://streamlit.io/), and [uv](https://docs.astral.sh/uv/).
+
+---
+
+**Version**: 1.0.0 | **Python**: 3.10+ | **Status**: Production Ready

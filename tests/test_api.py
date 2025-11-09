@@ -7,7 +7,7 @@ requests and return correct responses.
 
 from fastapi.testclient import TestClient
 
-from api import app
+from worth_it.api import app
 
 client = TestClient(app)
 
