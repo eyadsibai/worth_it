@@ -5,8 +5,6 @@ This module handles the user interface and input gathering.
 All financial calculations are delegated to the 'calculations' module.
 """
 
-from enum import Enum
-
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -14,18 +12,12 @@ import plotly.figure_factory as ff
 import streamlit as st
 
 import calculations
+from calculations import EquityType
 
 # --- Page Configuration ---
 st.set_page_config(
     layout="wide", page_title="Job Offer Financial Comparison", page_icon="⚖️"
 )
-
-
-class EquityType(str, Enum):
-    """Enum for different types of equity."""
-
-    RSU = "Equity (RSUs)"
-    STOCK_OPTIONS = "Stock Options"
 
 
 def format_currency_compact(num: float, add_sar=True) -> str:
