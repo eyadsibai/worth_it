@@ -31,13 +31,22 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Debug - Show workflow actor
+        run: |
+          echo "Workflow triggered by: ${{ github.actor }}"
+          echo "Event name: ${{ github.event_name }}"
+          echo "Trusted bots: claude[bot]"
+
       - name: Run Claude Code Review
         id: claude-review
         uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Allow claude[bot] GitHub App to trigger this workflow
+          # Reference: https://github.com/eyadsibai/worth_it/actions/runs/19214920478/job/54922754327
+          # Workflow file at failing run: https://github.com/eyadsibai/worth_it/blob/fefb9c8d8053afa48af2d7dcde30c86fdc50bb23/.github/workflows/claude-code-review.yml
           trusted_bots: |
-            claude
+            claude[bot]
 
           # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4.1)
           # model: "claude-opus-4-1-20250805"
