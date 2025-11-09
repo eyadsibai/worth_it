@@ -2,7 +2,7 @@
 Streamlit app for comparing a startup job offer against your current job.
 
 This module handles the user interface and input gathering.
-All financial calculations are delegated to the FastAPI backend via API calls.
+All financial calculations are delegated to the 'calculations' module.
 """
 
 import numpy as np
@@ -11,7 +11,7 @@ import plotly.express as px
 import plotly.figure_factory as ff
 import streamlit as st
 
-from api_client import api_client
+import calculations
 from calculations import EquityType
 
 # --- Page Configuration ---
@@ -340,7 +340,7 @@ if equity_type == EquityType.RSU:
                         )
                         round_details[
                             "dilution"
-                        ] = api_client.calculate_dilution_from_valuation(
+                        ] = calculations.calculate_dilution_from_valuation(
                             pre_money_M * 1e6, raised_M * 1e6
                         )
                         post_money_valuation = (pre_money_M + raised_M) * 1e6
@@ -501,7 +501,7 @@ tab1, tab2 = st.tabs(["Single Scenario Analysis", "Monte Carlo Simulation"])
 
 with tab1:
     # --- Core Logic Execution ---
-    monthly_df = api_client.create_monthly_data_grid(
+    monthly_df = calculations.create_monthly_data_grid(
         exit_year=exit_year,
         current_job_monthly_salary=current_salary,
         startup_monthly_salary=startup_salary,
@@ -509,21 +509,21 @@ with tab1:
         dilution_rounds=dilution_rounds,
     )
     startup_params = {
-        "equity_type": equity_type.value,
+        "equity_type": equity_type,
         "total_vesting_years": total_vesting_years,
         "cliff_years": cliff_years,
         "rsu_params": rsu_params,
         "options_params": options_params,
         "exit_year": exit_year,
     }
-    opportunity_cost_df = api_client.calculate_annual_opportunity_cost(
+    opportunity_cost_df = calculations.calculate_annual_opportunity_cost(
         monthly_df=monthly_df,
         annual_roi=annual_roi,
         investment_frequency=investment_frequency,
         options_params=options_params,
         startup_params=startup_params,
     )
-    results = api_client.calculate_startup_scenario(
+    results = calculations.calculate_startup_scenario(
         opportunity_cost_df, startup_params
     )
     results_df = results["results_df"]
@@ -534,10 +534,10 @@ with tab1:
     total_dilution = results.get("total_dilution")
     diluted_equity_pct = results.get("diluted_equity_pct")
     net_outcome = final_payout_value - final_opportunity_cost
-    irr_value = api_client.calculate_irr(
+    irr_value = calculations.calculate_irr(
         monthly_df["MonthlySurplus"], final_payout_value
     )
-    npv_value = api_client.calculate_npv(
+    npv_value = calculations.calculate_npv(
         monthly_df["MonthlySurplus"], annual_roi, final_payout_value
     )
 
@@ -954,13 +954,7 @@ with tab2:
             "current_job_salary_growth_rate": current_job_salary_growth_rate,
             "annual_roi": annual_roi,
             "investment_frequency": investment_frequency,
-            "startup_params": {
-                "equity_type": startup_params["equity_type"],
-                "total_vesting_years": startup_params["total_vesting_years"],
-                "cliff_years": startup_params["cliff_years"],
-                "rsu_params": startup_params["rsu_params"],
-                "options_params": startup_params["options_params"],
-            },
+            "startup_params": startup_params,
             "failure_probability": failure_probability,
         }
 
@@ -969,7 +963,7 @@ with tab2:
             spinner_text += " (Simulating exit year may be slower)"
 
         with st.spinner(spinner_text):
-            sim_results = api_client.run_monte_carlo_simulation(
+            sim_results = calculations.run_monte_carlo_simulation(
                 num_simulations=num_simulations,
                 base_params=base_params,
                 sim_param_configs=sim_param_configs,
@@ -1128,7 +1122,7 @@ with tab2:
                     "This chart shows how much each variable, from its low end (10th percentile) to its high end (90th percentile), impacts the final net outcome. The most influential variables are at the top."
                 )
                 with st.spinner("Running sensitivity analysis..."):
-                    sensitivity_results = api_client.run_sensitivity_analysis(
+                    sensitivity_results = calculations.run_sensitivity_analysis(
                         base_params=base_params, sim_param_configs=sim_param_configs
                     )
 
