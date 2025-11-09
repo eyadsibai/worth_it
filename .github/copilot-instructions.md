@@ -44,30 +44,30 @@ The project follows a modern microservices architecture with clear separation of
 - **`models.py`**: Pydantic models for API request/response validation
 - **`test_calculations.py`**: Unit tests for calculations module (20 tests)
 - **`test_api.py`**: API endpoint tests (11 tests)
-- **`test_integration.py`**: Integration tests (9 scenarios)
+- **`test_integration.py`**: Integration tests (4 tests)
 
 ## Development Workflow
 
 ### Prerequisites
 
-This project uses **`uv`** for Python package management. **NEVER use `pip` or `python` directly**.
+This project uses **`pip`** for Python package management. Follow the provided scripts (e.g., `start.sh`) for setup and dependency installation.
 
 ### Setup
 
 ```bash
-# Install dependencies
-uv sync
-
 # Run the application (starts both backend and frontend)
 ./start.sh  # Linux/Mac
 start.bat   # Windows
+
+# Or manually install dependencies
+pip install numpy pandas scipy numpy-financial streamlit plotly pytest pydantic fastapi uvicorn httpx requests
 ```
 
 ### Running Services
 
 ```bash
 # Start FastAPI backend
-uv run uvicorn api:app --host 0.0.0.0 --port 8000
+uvicorn api:app --host 0.0.0.0 --port 8000
 
 # Start Streamlit frontend (in separate terminal)
 streamlit run app.py
@@ -77,30 +77,26 @@ streamlit run app.py
 
 ```bash
 # Run all tests
-uv run pytest -v
+pytest -v
 
 # Test calculations module only
-uv run pytest test_calculations.py -v
+pytest test_calculations.py -v
 
 # Test API endpoints only
-uv run pytest test_api.py -v
+pytest test_api.py -v
 
 # Test specific function
-uv run pytest test_calculations.py::test_name
+pytest test_calculations.py::test_name
 ```
 
 ### Important Commands
 
 ✅ **Use these:**
-- `uv run pytest` - Runs tests with proper environment
-- `uv run streamlit` - Runs Streamlit app with proper environment
-- `uv sync` - Installs/updates dependencies
-- `uv add <package>` - Add a new dependency
-
-❌ **Don't use:**
-- `python -m pytest` - May use wrong Python/packages
-- `pip install` - Bypasses uv's environment management
-- `streamlit run` directly - May miss dependencies
+- `pytest` - Runs tests
+- `streamlit run app.py` - Runs Streamlit app
+- `uvicorn api:app` - Runs FastAPI backend
+- `pip install <package>` - Install a new dependency
+- `./start.sh` (or `start.bat`) - Start both services together
 
 ## Coding Standards
 
@@ -183,13 +179,12 @@ vested_pct = np.where(
 
 ### Test Organization
 
-- **Core Functions** (7 tests): Basic building blocks
-- **RSU Scenarios** (3 tests): RSU calculations with/without dilution
-- **Stock Options** (1 test): Options valuation
-- **Advanced Features** (7 tests): Salary increases, equity sales
-- **Monte Carlo** (6 tests): Vectorized and iterative simulations
+- **Core Functions** (6 tests): Basic building blocks (monthly data grid, opportunity cost, IRR, NPV, startup scenarios)
+- **RSU & Options Tests** (2 tests): RSU and stock options calculations
+- **Advanced Features** (7 tests): Salary increases, equity sales, edge cases
+- **Monte Carlo** (5 tests): Vectorized and iterative simulations
 - **API Tests** (11 tests): All API endpoints
-- **Integration Tests** (9 tests): Full stack validation
+- **Integration Tests** (4 tests): Full stack validation
 
 ### When to Add Tests
 
@@ -209,14 +204,14 @@ vested_pct = np.where(
 ```bash
 # 1. Make changes to calculations.py or api.py
 # 2. Run tests
-uv run pytest -v
+pytest -v
 
 # 3. If tests fail, debug
-uv run pytest test_calculations.py::test_name -v -s
+pytest test_calculations.py::test_name -v -s
 
 # 4. If you changed behavior, update/add tests
 # 5. Re-run all tests
-uv run pytest -v
+pytest -v
 ```
 
 ## API Endpoints
@@ -237,15 +232,11 @@ See interactive API documentation at http://localhost:8000/docs when backend is 
 
 ## Common Pitfalls to Avoid
 
-### 1. Wrong Package Manager
-❌ Using `pip install` or `python -m` commands
-✅ Always use `uv run` and `uv sync`
-
-### 2. Breaking Separation of Concerns
+### 1. Breaking Separation of Concerns
 ❌ Adding calculations to `app.py`
 ✅ Keep all calculation logic in `calculations.py`
 
-### 3. Missing Monte Carlo Parameter Passing
+### 2. Missing Monte Carlo Parameter Passing
 ```python
 # ❌ WRONG (old bug)
 opportunity_cost_df = calculate_annual_opportunity_cost(
@@ -260,7 +251,7 @@ opportunity_cost_df = calculate_annual_opportunity_cost(
 )
 ```
 
-### 4. Sales After Exit Year
+### 3. Sales After Exit Year
 Sales occurring after the exit year must be ignored:
 
 ```python
@@ -268,7 +259,7 @@ if r["year"] <= exit_year:  # ✅ Include sales AT exit year
     # Process sale
 ```
 
-### 5. NumPy Broadcasting
+### 4. NumPy Broadcasting
 Be careful with array shapes in Monte Carlo simulations:
 
 ```python
@@ -324,7 +315,7 @@ Calculates future value of salary difference if invested at current job.
 ### Before Starting
 
 1. **Read existing tests** - They document expected behavior
-2. **Run tests to establish baseline**: `uv run pytest -v`
+2. **Run tests to establish baseline**: `pytest -v`
 3. **Understand the data flow** - Trace through the calculation chain
 
 ### Development Workflow
@@ -362,7 +353,7 @@ All changes should maintain or improve documentation:
 
 - **README.md**: Project overview and quick start
 - **BACKEND.md**: Backend architecture and API reference
-- **AGENT.md**: Comprehensive AI agent guide
+- **AGENT.md**: Legacy AI agent guide (predates FastAPI backend; see BACKEND.md for current architecture)
 - **TESTING.md**: Testing and validation summary
 - **Code comments**: Explain "why", not "what"
 - **Docstrings**: Document parameters, return values, and examples
@@ -396,7 +387,7 @@ All changes should maintain or improve documentation:
 
 When working on this repository:
 
-- ✅ **Always use `uv`** for all Python operations
+- ✅ **Use standard Python tools** (`pip`, `pytest`, `streamlit`, `uvicorn`)
 - ✅ **Keep calculations separate** from UI code
 - ✅ **Write tests first** or alongside code changes
 - ✅ **Run tests frequently** to catch issues early
