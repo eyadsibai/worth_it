@@ -117,7 +117,7 @@ export default function Home() {
       startup_params:
         equityDetails.equity_type === "RSU"
           ? {
-              equity_type: "RSU",
+              equity_type: "Equity (RSUs)",
               total_equity_grant_pct: equityDetails.total_equity_grant_pct / 100,
               vesting_period: equityDetails.vesting_period,
               cliff_period: equityDetails.cliff_period,
@@ -138,7 +138,7 @@ export default function Home() {
               exit_valuation: equityDetails.exit_valuation,
             }
           : {
-              equity_type: "STOCK_OPTIONS",
+              equity_type: "Stock Options",
               num_options: equityDetails.num_options,
               strike_price: equityDetails.strike_price,
               vesting_period: equityDetails.vesting_period,
@@ -268,7 +268,7 @@ export default function Home() {
                 startup_monthly_salary: equityDetails.monthly_salary,
                 current_job_salary_growth_rate: currentJob.annual_salary_growth_rate / 100,
                 equity_params: equityDetails.equity_type === "RSU" ? {
-                  equity_type: "RSU",
+                  equity_type: "Equity (RSUs)",
                   total_equity_grant_pct: equityDetails.total_equity_grant_pct / 100,
                   vesting_period: equityDetails.vesting_period,
                   cliff_period: equityDetails.cliff_period,
@@ -286,7 +286,7 @@ export default function Home() {
                     : [],
                   exit_valuation: equityDetails.exit_valuation,
                 } : {
-                  equity_type: "STOCK_OPTIONS",
+                  equity_type: "Stock Options",
                   num_options: equityDetails.num_options,
                   strike_price: equityDetails.strike_price,
                   vesting_period: equityDetails.vesting_period,

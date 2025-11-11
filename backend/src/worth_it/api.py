@@ -5,6 +5,7 @@ enabling the frontend to communicate with the backend via HTTP and WebSocket.
 """
 
 import json
+import logging
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -31,6 +32,9 @@ from worth_it.models import (
     StartupScenarioRequest,
     StartupScenarioResponse,
 )
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Create FastAPI app
 app = FastAPI(
@@ -287,7 +291,7 @@ async def websocket_monte_carlo(websocket: WebSocket):
         })
 
     except WebSocketDisconnect:
-        pass
+        logger.info("WebSocket client disconnected during Monte Carlo simulation")
     except Exception as e:
         try:
             await websocket.send_json({
@@ -295,12 +299,12 @@ async def websocket_monte_carlo(websocket: WebSocket):
                 "message": str(e),
             })
         except Exception:
-            pass
+            logger.error("Failed to send error message to WebSocket client")
     finally:
         try:
             await websocket.close()
         except Exception:
-            pass
+            logger.error("Failed to close WebSocket connection")
 
 
 @app.post("/api/sensitivity-analysis", response_model=SensitivityAnalysisResponse)
