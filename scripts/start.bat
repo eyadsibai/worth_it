@@ -41,7 +41,7 @@ REM Start FastAPI backend in background
 echo.
 echo Starting FastAPI backend on http://localhost:8000...
 cd /d "%PROJECT_ROOT%\backend"
-start "Worth It Backend" /B uv run uvicorn worth_it.api:app --reload --port 8000
+start "Worth It Backend" uv run uvicorn worth_it.api:app --host 0.0.0.0 --reload --port 8000
 
 REM Wait for backend to start
 timeout /t 3 /nobreak > nul

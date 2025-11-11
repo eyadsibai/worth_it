@@ -37,7 +37,7 @@ npm install
 echo ""
 echo "Starting FastAPI backend on http://localhost:8000..."
 cd "$PROJECT_ROOT/backend"
-uv run uvicorn worth_it.api:app --reload --port 8000 &
+uv run uvicorn worth_it.api:app --host 0.0.0.0 --reload --port 8000 &
 BACKEND_PID=$!
 
 # Wait for backend to start
