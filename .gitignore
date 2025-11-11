@@ -39,3 +39,6 @@ coverage.xml
 
 # MyPy cache
 .mypy_cache/
+
+
+node_modules
