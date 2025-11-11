@@ -20,7 +20,7 @@ interface RSUFormProps {
 
 export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
   const form = useForm<RSUForm>({
-    resolver: zodResolver(RSUFormSchema),
+    resolver: zodResolver(RSUFormSchema) as any,
     defaultValues: {
       equity_type: "RSU" as const,
       monthly_salary: defaultValues?.monthly_salary ?? 0,
@@ -112,7 +112,7 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
         />
 
         <FormField
-          control={form.control}
+          control={form.control as any}
           name="simulate_dilution"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
