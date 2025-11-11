@@ -25,16 +25,31 @@ class Settings:
     # CORS Configuration
     @staticmethod
     def get_cors_origins() -> list[str]:
-        """Get list of allowed CORS origins from environment."""
+        """Get list of allowed CORS origins from environment.
+
+        In production, set CORS_ORIGINS environment variable with comma-separated list:
+        CORS_ORIGINS="https://app.example.com,https://preview-*.vercel.app"
+        """
+        # Default origins for local development
         default_origins = [
-            "http://localhost:8501",
-            "http://localhost:3000",
-            "http://127.0.0.1:8501",
+            "http://localhost:3000",      # Next.js default port
+            "http://localhost:8501",      # Legacy Streamlit port
             "http://127.0.0.1:3000",
+            "http://127.0.0.1:8501",
         ]
+
         env_origins = os.getenv("CORS_ORIGINS", "")
         if env_origins:
-            return [origin.strip() for origin in env_origins.split(",")]
+            # In production, use environment-specified origins
+            origins = [origin.strip() for origin in env_origins.split(",")]
+            return origins
+
+        # In development, add potential Vercel preview URLs
+        if Settings.ENVIRONMENT.lower() == "development":
+            return default_origins + [
+                "https://localhost:3000",
+            ]
+
         return default_origins
 
     # Environment

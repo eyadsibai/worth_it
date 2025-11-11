@@ -1,212 +1,140 @@
-# Worth It - Startup Job Offer Analyzer
+# Worth It - Job Offer Financial Analyzer
 
 [![Test Suite](https://github.com/eyadsibai/worth_it/actions/workflows/test.yml/badge.svg)](https://github.com/eyadsibai/worth_it/actions/workflows/test.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Next.js 16](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
 
-A comprehensive financial analysis tool for evaluating startup job offers with Monte Carlo simulations, dilution modeling, and opportunity cost analysis.
+Modern financial analysis tool for evaluating startup job offers with real-time calculations, Monte Carlo simulations, and interactive visualizations.
 
 ## 🚀 Quick Start
 
+**Backend:**
 ```bash
-# Install dependencies
+cd backend
 uv sync
+uv run uvicorn worth_it.api:app --reload --port 8000
+```
 
-# Run the application
-./scripts/start.sh  # Linux/Mac
-scripts\start.bat   # Windows
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 Visit:
-- **Frontend**: http://localhost:8501
+- **Frontend**: http://localhost:3000
 - **API Docs**: http://localhost:8000/docs
 
-## 📁 Project Structure
+## 📁 Monorepo Structure
 
 ```
 worth_it/
-├── src/worth_it/           # Core application code
-│   ├── calculations.py     # Pure Python calculation engine
-│   ├── api.py             # FastAPI REST API
-│   ├── models.py          # Pydantic validation models
-│   ├── config.py          # Configuration management
-│   ├── api_client.py      # HTTP client for API
-│   └── app.py             # Streamlit web interface
-├── tests/                  # Test suite
-│   ├── test_calculations.py   # Unit tests (20 tests)
-│   ├── test_api.py           # API tests (11 tests)
-│   └── test_integration.py   # Integration tests (4 tests)
-├── docs/                   # Documentation
-│   ├── README.md          # Detailed project documentation
-│   ├── BACKEND.md         # API reference
-│   ├── IMPROVEMENTS.md    # Recent improvements
-│   ├── CHANGELOG.md       # Version history
-│   └── ...
-├── scripts/               # Utility scripts
-│   ├── start.sh          # Linux/Mac startup
-│   ├── start.bat         # Windows startup
-│   └── example_backend_usage.py
-├── .github/workflows/     # CI/CD pipelines
-└── pyproject.toml        # Project configuration
+├── backend/                    # FastAPI Python backend
+│   ├── src/worth_it/          # Core application code
+│   │   ├── calculations.py    # Financial calculations
+│   │   ├── api.py             # REST API + WebSocket
+│   │   ├── models.py          # Pydantic models
+│   │   └── config.py          # Configuration
+│   ├── tests/                 # Test suite (35 tests)
+│   ├── pyproject.toml         # Python dependencies
+│   └── README.md              # Backend docs
+├── frontend/                   # Next.js React frontend
+│   ├── app/                   # Next.js pages
+│   ├── components/            # React components
+│   │   ├── charts/           # Recharts visualizations
+│   │   ├── forms/            # Form components
+│   │   └── results/          # Results dashboard
+│   ├── lib/                   # Utilities
+│   │   ├── api-client.ts     # Type-safe API client
+│   │   └── schemas.ts        # Zod validation
+│   ├── package.json           # Node dependencies
+│   └── README.md              # Frontend docs
+├── scripts/                    # Utility scripts
+└── README.md                   # This file
 ```
 
 ## 🏗️ Architecture
 
-Modern **3-tier microservices architecture**:
+**3-Tier Design:**
 
 ```
-┌─────────────────────┐
-│   Frontend (UI)     │  Streamlit (app.py)
-│   Port: 8501        │  + API Client
-└──────────┬──────────┘
-           │ HTTP/REST
-           ▼
-┌─────────────────────┐
-│   Backend API       │  FastAPI (api.py)
-│   Port: 8000        │  + Pydantic Models
-└──────────┬──────────┘
-           │ Function Calls
-           ▼
-┌─────────────────────┐
-│   Core Logic        │  Pure Python
-│   Framework-Agnostic│  (calculations.py)
-└─────────────────────┘
+┌──────────────────────────┐
+│  Next.js Frontend (3000) │  shadcn/ui + Recharts
+│  TanStack Query + Zod    │  WebSocket for live updates
+└────────────┬─────────────┘
+             │ REST + WebSocket
+             ▼
+┌──────────────────────────┐
+│  FastAPI Backend (8000)  │  9 REST endpoints + WS
+│  Pydantic Models         │  Real-time Monte Carlo
+└────────────┬─────────────┘
+             │ Pure Functions
+             ▼
+┌──────────────────────────┐
+│  Core Calculations       │  NumPy + Pandas
+│  Framework-Agnostic      │  35 unit tests
+└──────────────────────────┘
 ```
 
 ## ✨ Features
 
-- **Monte Carlo Simulations**: Probabilistic outcome modeling
-- **Dilution Modeling**: Track equity across funding rounds
-- **RSU vs Stock Options**: Compare different equity types
-- **IRR/NPV Calculations**: Financial metrics analysis
-- **Opportunity Cost**: Compare against current employment
-- **Sensitivity Analysis**: Understand parameter impacts
-- **Interactive UI**: Real-time visualization with Plotly
+- **Real-time Calculations**: Instant scenario analysis as you type
+- **Monte Carlo Simulations**: WebSocket-powered probabilistic modeling
+- **7 Interactive Visualizations**: Histogram, ECDF, Box Plot, Scatter, PDF, Stats, Summary
+- **Dilution Modeling**: Track equity across 6 funding rounds
+- **RSU vs Stock Options**: Compare different equity compensation types
+- **Dark Mode**: Beautiful UI that adapts to your preference
+- **Type-Safe**: Full TypeScript + Zod validation on frontend, Pydantic on backend
 
 ## 📖 Documentation
 
-- **[Detailed Documentation](docs/README.md)** - Complete project guide
-- **[API Reference](docs/BACKEND.md)** - REST API documentation
-- **[Development Guide](CLAUDE.md)** - Setup and workflows
-- **[Improvements](docs/IMPROVEMENTS.md)** - Recent changes
-- **[Changelog](docs/CHANGELOG.md)** - Version history
+- **[Backend README](backend/README.md)** - Backend API documentation
+- **[Frontend README](frontend/README.md)** - Frontend development guide
+- **[Development Guide](CLAUDE.md)** - Setup and workflows for Claude Code
 
 ## 🧪 Testing
 
+**Backend:**
 ```bash
-# Run all tests
-uv run pytest
-
-# Run with coverage
-uv run pytest --cov=src --cov-report=html
-
-# Run specific test suite
-uv run pytest tests/test_calculations.py -v
+cd backend
+uv run pytest                          # Run all 35 tests
+uv run pytest --cov=src --cov-report  # With coverage
 ```
 
-**Test Coverage:**
-- ✅ 35 tests (100% passing)
-- 📊 51% overall coverage
-- 🎯 Core modules: 76-86% coverage
-
-## 🛠️ Development
-
-### Prerequisites
-- Python 3.10+
-- [uv](https://docs.astral.sh/uv/) package manager
-
-### Setup
-
+**Frontend:**
 ```bash
-# Clone repository
-git clone https://github.com/eyadsibai/worth_it.git
-cd worth_it
-
-# Install dependencies
-uv sync
-
-# Install dev tools
-uv sync --extra dev
-
-# Setup pre-commit hooks
-uv pip install pre-commit
-pre-commit install
+cd frontend
+npm run type-check  # TypeScript validation
+npm run lint        # ESLint
 ```
 
-### Development Workflow
+## 🛠️ Tech Stack
 
-```bash
-# Run API server
-uv run uvicorn src.worth_it.api:app --reload --port 8000
+**Backend:**
+- FastAPI + Pydantic + WebSocket
+- NumPy, Pandas, SciPy for calculations
+- pytest with 35 tests (51% coverage)
+- uv for dependency management
 
-# Run frontend
-uv run streamlit run src/worth_it/app.py
-
-# Format code
-uv run ruff format .
-
-# Lint
-uv run ruff check .
-
-# Type check
-uv run mypy src/worth_it/
-```
-
-## ⚙️ Configuration
-
-Copy `.env.example` to `.env` and customize:
-
-```bash
-# API Configuration
-API_HOST=0.0.0.0
-API_PORT=8000
-ENVIRONMENT=development
-
-# CORS (comma-separated)
-CORS_ORIGINS=http://localhost:8501,http://localhost:3000
-```
-
-See [.env.example](.env.example) for all options.
-
-## 🚢 Deployment
-
-### Production Settings
-
-```bash
-export ENVIRONMENT=production
-export API_HOST=0.0.0.0
-export API_PORT=8000
-export CORS_ORIGINS="https://yourdomain.com"
-
-uv run uvicorn src.worth_it.api:app --host 0.0.0.0 --port 8000 --workers 4
-```
-
-## 📊 Tech Stack
-
-- **Backend**: FastAPI, Pydantic
-- **Frontend**: Streamlit, Plotly
-- **Calculations**: NumPy, Pandas, SciPy
-- **Testing**: pytest, pytest-cov
-- **Code Quality**: Ruff, MyPy, Bandit
-- **Package Manager**: uv
+**Frontend:**
+- Next.js 16 + TypeScript + Turbopack
+- shadcn/ui (Radix UI + Tailwind CSS)
+- React Hook Form + Zod + TanStack Query
+- Recharts for data visualization
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run tests: `uv run pytest`
-5. Run pre-commit: `pre-commit run --all-files`
-6. Submit a pull request
+4. Run tests (backend: `cd backend && uv run pytest`)
+5. Submit a pull request
 
 ## 📄 License
 
-[Add your license here]
-
-## 🙏 Acknowledgments
-
-Built with [FastAPI](https://fastapi.tiangolo.com/), [Streamlit](https://streamlit.io/), and [uv](https://docs.astral.sh/uv/).
+MIT License - See LICENSE file for details
 
 ---
 
-**Version**: 1.0.0 | **Python**: 3.10+ | **Status**: Production Ready
+**Monorepo** | **Python 3.10+** | **Node 18+** | **Production Ready**

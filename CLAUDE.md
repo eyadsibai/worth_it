@@ -1,167 +1,258 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Development guide for Claude Code when working on the Worth It monorepo.
 
-## Development Commands
+## Monorepo Structure
 
-### Installing Dependencies
-This project uses [uv](https://docs.astral.sh/uv/) for fast, reliable dependency management:
+```
+worth_it/
+├── backend/          # FastAPI Python backend
+└── frontend/         # Next.js TypeScript frontend
+```
+
+## Quick Start
+
+**Backend:**
 ```bash
+cd backend
 uv sync
-```
-
-### Testing & Code Quality
-
-**IMPORTANT**: Always run both linting and tests before committing changes.
-
-#### Linting
-Check code quality with ruff:
-```bash
-uv run ruff check src/ tests/
-```
-
-Auto-fix issues:
-```bash
-uv run ruff check --fix src/ tests/
-```
-
-Auto-fix including unsafe fixes (whitespace, etc.):
-```bash
-uv run ruff check --fix --unsafe-fixes src/ tests/
-```
-
-#### Running Tests
-Run all tests:
-```bash
-uv run pytest
-```
-
-Run specific test file:
-```bash
-uv run pytest tests/test_calculations.py -v
-```
-
-Run with coverage:
-```bash
-uv run pytest --cov=src --cov-report=html
-```
-
-#### Type Checking
-Check type annotations with pyright:
-```bash
-uv run pyright src/
-```
-
-#### Pre-Commit Checklist
-Before committing or creating a PR, always run:
-```bash
-# 1. Lint and auto-fix
-uv run ruff check --fix --unsafe-fixes src/ tests/
-
-# 2. Run all tests
-uv run pytest -v
-
-# 3. Verify no linting errors remain
-uv run ruff check src/ tests/
-
-# 4. Check type annotations
-uv run pyright src/
-```
-
-### Running the Application
-
-#### Option 1: Full Stack (Recommended)
-Use the startup scripts to run both API and frontend:
-```bash
-# Linux/Mac
-./scripts/start.sh
-
-# Windows
-scripts\start.bat
-```
-
-#### Option 2: Run Components Separately
-Backend API (FastAPI):
-```bash
 uv run uvicorn worth_it.api:app --reload --port 8000
 ```
 
-Frontend (Streamlit):
+**Frontend:**
 ```bash
-uv run streamlit run src/worth_it/app.py
+cd frontend
+npm install
+npm run dev
 ```
 
-### API Documentation
-Once the API is running, visit:
-- Interactive docs: http://localhost:8000/docs
-- OpenAPI schema: http://localhost:8000/openapi.json
+## Backend Development
+
+### Dependencies
+Install with uv:
+```bash
+cd backend
+uv sync
+```
+
+### Testing & Quality
+**IMPORTANT**: Always run tests and linting before committing.
+
+```bash
+# Lint and auto-fix
+uv run ruff check --fix --unsafe-fixes src/ tests/
+
+# Run all tests
+uv run pytest -v
+
+# Type check
+uv run pyright src/
+
+# Coverage
+uv run pytest --cov=src --cov-report=html
+```
+
+### Running the API
+```bash
+# Development
+uv run uvicorn worth_it.api:app --reload --port 8000
+
+# Production
+uv run uvicorn worth_it.api:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+Visit http://localhost:8000/docs for API documentation.
+
+### Project Structure
+```
+backend/
+├── src/worth_it/
+│   ├── calculations.py    # Core financial calculations (framework-agnostic)
+│   ├── api.py            # FastAPI endpoints + WebSocket
+│   ├── models.py         # Pydantic validation models
+│   └── config.py         # Configuration management
+└── tests/
+    ├── test_calculations.py  # Unit tests (20 tests)
+    ├── test_api.py          # API tests (11 tests)
+    └── test_integration.py  # Integration tests (4 tests)
+```
+
+## Frontend Development
+
+### Dependencies
+Install with npm:
+```bash
+cd frontend
+npm install
+```
+
+### Testing & Quality
+```bash
+# TypeScript type checking (REQUIRED before committing)
+npm run type-check
+
+# ESLint (REQUIRED before committing)
+npm run lint
+
+# Auto-fix linting issues
+npm run lint -- --fix
+```
+
+### Running the Frontend
+```bash
+# Development server (with Turbopack)
+npm run dev
+
+# Production build
+npm run build
+npm run start
+```
+
+Visit http://localhost:3000 once running.
+
+### Project Structure
+```
+frontend/
+├── app/                      # Next.js App Router pages
+├── components/
+│   ├── charts/              # Recharts visualizations
+│   ├── forms/               # React Hook Form components
+│   ├── layout/              # Layout components (Header, Sidebar)
+│   ├── results/             # Results dashboard
+│   └── ui/                  # shadcn/ui base components
+└── lib/
+    ├── api-client.ts        # Type-safe API client with TanStack Query
+    └── schemas.ts           # Zod validation schemas (match backend Pydantic)
+```
 
 ## Architecture
 
-This is a startup job offer financial analyzer built with a modern **3-tier microservices architecture**:
+### 3-Tier Design
+
+**Layer 1: Frontend (Next.js)**
+- User interface with shadcn/ui components
+- Real-time form validation with Zod
+- TanStack Query for API state management
+- WebSocket connection for Monte Carlo progress
+
+**Layer 2: Backend API (FastAPI)**
+- 9 REST endpoints for calculations
+- 1 WebSocket endpoint for Monte Carlo simulations
+- Pydantic models for request/response validation
+- CORS configured for frontend
+
+**Layer 3: Core Logic (Pure Python)**
+- Framework-agnostic financial calculations
+- Functions in `calculations.py`
+- Can be used standalone without web frameworks
+- Covered by 20 unit tests
+
+### Data Flow
 
 ```
-┌─────────────────────┐
-│   Frontend (UI)     │  Streamlit (app.py)
-│   Port: 8501        │  + API Client (api_client.py)
-└──────────┬──────────┘
-           │ HTTP/REST
-           ▼
-┌─────────────────────┐
-│   Backend API       │  FastAPI (api.py)
-│   Port: 8000        │  + Pydantic Models (models.py)
-└──────────┬──────────┘
-           │ Function Calls
-           ▼
-┌─────────────────────┐
-│   Core Logic        │  Pure Python (calculations.py)
-│   Framework-Agnostic│  No dependencies on web frameworks
-└─────────────────────┘
+User Input → React Forms (Zod validation)
+    ↓
+TanStack Query → HTTP Request
+    ↓
+FastAPI Endpoint → Pydantic validation
+    ↓
+Core Calculations → Pure Python functions
+    ↓
+JSON Response ← Pydantic serialization
+    ↓
+React State Update ← TanStack Query cache
+    ↓
+Recharts Visualization
 ```
 
-### Layer 1: Core Logic (`calculations.py`)
-- **Pure Python module** with no framework dependencies
-- Contains all financial calculation functions:
-  - Equity analysis (RSUs vs Stock Options via `EquityType` enum)
-  - Dilution modeling across funding rounds
-  - Monte Carlo simulations (vectorized & iterative)
-  - IRR/NPV calculations
-  - Opportunity cost analysis
-  - Sensitivity analysis
-- **Framework-agnostic**: Can be used with Flask, FastAPI, CLI tools, notebooks, etc.
-- See `example_backend_usage.py` for standalone usage patterns
+## Common Tasks
 
-### Layer 2: REST API (`api.py` + `models.py`)
-- **FastAPI** server exposing 9 RESTful endpoints
-- **Pydantic validation** for all requests/responses
-- CORS middleware for cross-origin requests
-- Automatic OpenAPI/Swagger documentation
-- Error handling and type conversion
-- Runs on port 8000 by default
+### Adding a New API Endpoint
 
-### Layer 3: Frontend (`app.py` + `api_client.py`)
-- **Streamlit web interface** consuming the REST API
-- **API Client** with retry logic and error handling
-- Handles user input and visualization only
-- Uses Plotly for interactive charts
-- No calculation logic - purely presentation layer
-- Runs on port 8501 by default
+1. **Define Pydantic models** in `backend/src/worth_it/models.py`
+2. **Implement calculation** in `backend/src/worth_it/calculations.py`
+3. **Create endpoint** in `backend/src/worth_it/api.py`
+4. **Add tests** in `backend/tests/test_api.py`
+5. **Update Zod schema** in `frontend/lib/schemas.ts`
+6. **Add API client method** in `frontend/lib/api-client.ts`
 
-### Key Data Flow
-1. User interacts with Streamlit UI ([app.py](app.py))
-2. UI makes HTTP requests via API Client ([api_client.py](api_client.py))
-3. FastAPI receives and validates request ([api.py](api.py), [models.py](models.py))
-4. Core calculation functions process data ([calculations.py](calculations.py))
-5. Results flow back through API → Client → UI
+### Adding a New Form Component
 
-### Testing Strategy
-- **Unit Tests** ([test_calculations.py](test_calculations.py)): 20 tests for core logic
-- **API Tests** ([test_api.py](test_api.py)): 11 tests for REST endpoints
-- **Integration Tests** ([test_integration.py](test_integration.py)): 9 end-to-end tests
-- 40 total tests covering edge cases, RSU/options, dilution, Monte Carlo
-- 100% pass rate with comprehensive coverage
+1. **Create Zod schema** in `frontend/lib/schemas.ts`
+2. **Build form component** in `frontend/components/forms/`
+3. **Use React Hook Form** with `zodResolver`
+4. **Add to main page** in `frontend/app/page.tsx`
+5. **Run type-check**: `npm run type-check`
+
+### Adding a New Chart
+
+1. **Create chart component** in `frontend/components/charts/`
+2. **Use Recharts** components (BarChart, LineChart, etc.)
+3. **Add to results dashboard** in `frontend/components/results/`
+4. **Test with real data**
+
+## Pre-Commit Checklist
+
+**Backend:**
+- [ ] `cd backend && uv run ruff check --fix --unsafe-fixes src/ tests/`
+- [ ] `cd backend && uv run pytest -v`
+- [ ] `cd backend && uv run pyright src/`
+
+**Frontend:**
+- [ ] `cd frontend && npm run type-check`
+- [ ] `cd frontend && npm run lint`
+
+## Configuration
+
+**Backend** (`.env` in backend/):
+```bash
+API_HOST=0.0.0.0
+API_PORT=8000
+ENVIRONMENT=development
+CORS_ORIGINS=http://localhost:3000
+LOG_LEVEL=INFO
+```
+
+**Frontend** (`.env.local` in frontend/):
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+## Troubleshooting
+
+**Backend not starting?**
+- Check Python version: `python --version` (need 3.10+)
+- Reinstall dependencies: `cd backend && uv sync`
+- Check port 8000 is free: `lsof -i :8000`
+
+**Frontend not starting?**
+- Check Node version: `node --version` (need 18+)
+- Clear Next.js cache: `rm -rf frontend/.next`
+- Reinstall dependencies: `cd frontend && rm -rf node_modules && npm install`
+
+**WebSocket not connecting?**
+- Backend must be running on port 8000
+- Check CORS settings in `backend/src/worth_it/config.py`
+- Check browser console for connection errors
 
 ## Important Files
-- `BACKEND.md` - Detailed backend architecture and API reference
-- `example_backend_usage.py` - Complete working example of using calculations independently
-- `pyproject.toml` - Dependencies and project configuration
+
+- `backend/src/worth_it/api.py` - All API endpoints
+- `backend/src/worth_it/calculations.py` - Core calculation logic
+- `frontend/lib/api-client.ts` - API client with React Query hooks
+- `frontend/lib/schemas.ts` - Zod schemas (must match backend Pydantic models)
+- `frontend/app/page.tsx` - Main application page
+
+## Testing Philosophy
+
+- **Backend**: Unit tests for calculations, API tests for endpoints, integration tests for full workflows
+- **Frontend**: TypeScript for compile-time safety, Zod for runtime validation
+- **E2E**: Playwright tests (to be added)
+
+## Resources
+
+- **Backend API Docs**: http://localhost:8000/docs (when running)
+- **Frontend**: http://localhost:3000 (when running)
+- **shadcn/ui**: https://ui.shadcn.com/
+- **TanStack Query**: https://tanstack.com/query/latest
+- **FastAPI**: https://fastapi.tiangolo.com/

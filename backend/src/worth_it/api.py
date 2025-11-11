@@ -1,12 +1,14 @@
 """FastAPI backend for the Worth It application.
 
 This module provides REST API endpoints for all financial calculation functions,
-enabling the Streamlit frontend to communicate with the backend via HTTP instead
-of direct function calls.
+enabling the frontend to communicate with the backend via HTTP and WebSocket.
 """
 
+import json
+import logging
+
 import pandas as pd
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from worth_it import calculations
@@ -30,6 +32,9 @@ from worth_it.models import (
     StartupScenarioRequest,
     StartupScenarioResponse,
 )
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 # Create FastAPI app
 app = FastAPI(
@@ -204,6 +209,102 @@ async def run_monte_carlo_simulation(request: MonteCarloRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.websocket("/ws/monte-carlo")
+async def websocket_monte_carlo(websocket: WebSocket):
+    """WebSocket endpoint for Monte Carlo simulation with progress updates.
+
+    Receives simulation parameters and sends progress updates as the simulation runs.
+    This provides real-time feedback for long-running simulations.
+
+    Message format:
+    - Input (JSON): Same as MonteCarloRequest
+    - Output (JSON):
+        - {"type": "progress", "current": N, "total": TOTAL, "percentage": PCT}
+        - {"type": "complete", "net_outcomes": [...], "simulated_valuations": [...]}
+        - {"type": "error", "message": "..."}
+    """
+    await websocket.accept()
+
+    try:
+        # Receive simulation parameters
+        data = await websocket.receive_text()
+        request_data = json.loads(data)
+
+        # Validate request using Pydantic model
+        request = MonteCarloRequest(**request_data)
+
+        # Convert equity_type string to EquityType enum if needed
+        base_params = request.base_params.copy()
+        if (
+            "startup_params" in base_params
+            and "equity_type" in base_params["startup_params"]
+        ):
+            base_params["startup_params"] = base_params["startup_params"].copy()
+            if isinstance(base_params["startup_params"]["equity_type"], str):
+                base_params["startup_params"]["equity_type"] = calculations.EquityType(
+                    base_params["startup_params"]["equity_type"],
+                )
+
+        # Send initial progress
+        await websocket.send_json({
+            "type": "progress",
+            "current": 0,
+            "total": request.num_simulations,
+            "percentage": 0,
+        })
+
+        # Run simulation in batches to send progress updates
+        batch_size = max(100, request.num_simulations // 20)  # Send ~20 updates
+        all_net_outcomes = []
+        all_simulated_valuations = []
+
+        for i in range(0, request.num_simulations, batch_size):
+            current_batch_size = min(batch_size, request.num_simulations - i)
+
+            # Run batch simulation
+            results = calculations.run_monte_carlo_simulation(
+                num_simulations=current_batch_size,
+                base_params=base_params,
+                sim_param_configs=request.sim_param_configs,
+            )
+
+            all_net_outcomes.extend(results["net_outcomes"].tolist())
+            all_simulated_valuations.extend(results["simulated_valuations"].tolist())
+
+            # Send progress update
+            completed = i + current_batch_size
+            percentage = (completed / request.num_simulations) * 100
+            await websocket.send_json({
+                "type": "progress",
+                "current": completed,
+                "total": request.num_simulations,
+                "percentage": round(percentage, 2),
+            })
+
+        # Send final results
+        await websocket.send_json({
+            "type": "complete",
+            "net_outcomes": all_net_outcomes,
+            "simulated_valuations": all_simulated_valuations,
+        })
+
+    except WebSocketDisconnect:
+        logger.info("WebSocket client disconnected during Monte Carlo simulation")
+    except Exception as e:
+        try:
+            await websocket.send_json({
+                "type": "error",
+                "message": str(e),
+            })
+        except Exception:
+            logger.error("Failed to send error message to WebSocket client")
+    finally:
+        try:
+            await websocket.close()
+        except Exception:
+            logger.error("Failed to close WebSocket connection")
 
 
 @app.post("/api/sensitivity-analysis", response_model=SensitivityAnalysisResponse)
