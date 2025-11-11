@@ -13,15 +13,13 @@ import { RSUFormSchema } from "@/lib/schemas";
 import type { RSUForm, DilutionRoundForm } from "@/lib/schemas";
 import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 
-type RSUFormData = z.infer<typeof RSUFormSchema>;
-
 interface RSUFormProps {
-  defaultValues?: Partial<RSUFormData>;
-  onChange?: (data: RSUFormData) => void;
+  defaultValues?: Partial<RSUForm>;
+  onChange?: (data: RSUForm) => void;
 }
 
 export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
-  const form = useForm<RSUFormData>({
+  const form = useForm<RSUForm>({
     resolver: zodResolver(RSUFormSchema),
     defaultValues: {
       equity_type: "RSU" as const,
@@ -46,7 +44,7 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
   const watchedValues = form.watch();
   useDeepCompareEffect(() => {
     if (form.formState.isValid && onChange) {
-      onChange(watchedValues as RSUFormData);
+      onChange(watchedValues as RSUForm);
     }
   }, [watchedValues, form.formState.isValid, onChange]);
 
