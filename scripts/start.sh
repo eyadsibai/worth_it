@@ -1,8 +1,12 @@
 #!/bin/bash
-# Startup script for running both FastAPI backend and Streamlit frontend
+# Startup script for running both FastAPI backend and Next.js frontend (monorepo)
 
-echo "Starting Worth It Application..."
-echo "================================"
+echo "Starting Worth It Application (Monorepo)..."
+echo "============================================"
+
+# Get script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Check if uv is installed
 if ! command -v uv &> /dev/null; then
@@ -11,14 +15,29 @@ if ! command -v uv &> /dev/null; then
     export PATH="$HOME/.cargo/bin:$PATH"
 fi
 
-# Install/sync dependencies using uv
-echo "Installing dependencies with uv..."
+# Check if npm is installed
+if ! command -v npm &> /dev/null; then
+    echo "ERROR: npm not found. Please install Node.js from https://nodejs.org/"
+    exit 1
+fi
+
+# Install backend dependencies
+echo ""
+echo "Installing backend dependencies with uv..."
+cd "$PROJECT_ROOT/backend"
 uv sync
+
+# Install frontend dependencies
+echo ""
+echo "Installing frontend dependencies with npm..."
+cd "$PROJECT_ROOT/frontend"
+npm install
 
 # Start FastAPI backend in background
 echo ""
 echo "Starting FastAPI backend on http://localhost:8000..."
-uv run uvicorn worth_it.api:app --host 0.0.0.0 --port 8000 &
+cd "$PROJECT_ROOT/backend"
+uv run uvicorn worth_it.api:app --reload --port 8000 &
 BACKEND_PID=$!
 
 # Wait for backend to start
@@ -33,20 +52,21 @@ fi
 
 echo "✓ FastAPI backend is running (PID: $BACKEND_PID)"
 
-# Start Streamlit frontend
+# Start Next.js frontend
 echo ""
-echo "Starting Streamlit frontend on http://localhost:8501..."
-uv run streamlit run src/worth_it/app.py &
+echo "Starting Next.js frontend on http://localhost:3000..."
+cd "$PROJECT_ROOT/frontend"
+npm run dev &
 FRONTEND_PID=$!
 
 echo ""
-echo "================================"
+echo "============================================"
 echo "Application is running!"
-echo "================================"
+echo "============================================"
 echo ""
 echo "FastAPI Backend:  http://localhost:8000"
 echo "API Docs:         http://localhost:8000/docs"
-echo "Streamlit UI:     http://localhost:8501"
+echo "Next.js Frontend: http://localhost:3000"
 echo ""
 echo "Press Ctrl+C to stop both services"
 echo ""
@@ -57,6 +77,8 @@ cleanup() {
     echo "Shutting down services..."
     kill $BACKEND_PID 2>/dev/null
     kill $FRONTEND_PID 2>/dev/null
+    # Kill any remaining Next.js processes
+    pkill -f "next dev" 2>/dev/null
     echo "Services stopped."
     exit 0
 }

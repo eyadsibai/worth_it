@@ -2,17 +2,28 @@
 Example demonstrating how to use the calculations backend independently.
 
 This example shows how the backend can be used with any frontend framework
-(Flask, FastAPI, Django, CLI, etc.) without requiring Streamlit.
+(Flask, FastAPI, Django, CLI, etc.) without requiring a web frontend.
+
+Usage:
+    cd backend
+    uv run python ../scripts/example_backend_usage.py
 """
 
-from calculations import (
-    EquityType,
+import sys
+from pathlib import Path
+
+# Add backend/src to Python path for imports
+backend_src = Path(__file__).parent.parent / "backend" / "src"
+sys.path.insert(0, str(backend_src))
+
+from worth_it.calculations import (
     create_monthly_data_grid,
     calculate_annual_opportunity_cost,
     calculate_startup_scenario,
     calculate_irr,
     calculate_npv,
 )
+from worth_it.models import EquityType
 
 
 def analyze_job_offer():
