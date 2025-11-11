@@ -12,9 +12,10 @@ import { OpportunityCostChart } from "@/components/charts/opportunity-cost-chart
 interface ScenarioResultsProps {
   results: StartupScenarioResponse;
   isLoading?: boolean;
+  monteCarloContent?: React.ReactNode;
 }
 
-export function ScenarioResults({ results, isLoading }: ScenarioResultsProps) {
+export function ScenarioResults({ results, isLoading, monteCarloContent }: ScenarioResultsProps) {
   if (isLoading) {
     return (
       <Card>
@@ -144,6 +145,7 @@ export function ScenarioResults({ results, isLoading }: ScenarioResultsProps) {
             <TabsList>
               <TabsTrigger value="table">Yearly Breakdown</TabsTrigger>
               <TabsTrigger value="charts">Charts</TabsTrigger>
+              {monteCarloContent && <TabsTrigger value="monte-carlo">Monte Carlo</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="table" className="space-y-4">
@@ -215,6 +217,12 @@ export function ScenarioResults({ results, isLoading }: ScenarioResultsProps) {
                 </div>
               </div>
             </TabsContent>
+
+            {monteCarloContent && (
+              <TabsContent value="monte-carlo" className="space-y-6">
+                {monteCarloContent}
+              </TabsContent>
+            )}
           </Tabs>
         </CardContent>
       </Card>

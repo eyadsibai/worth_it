@@ -62,7 +62,7 @@ export function NumberInputField({
                 min={min}
                 max={max}
                 step={step}
-                className={prefix ? "pl-8" : suffix ? "pr-12" : ""}
+                className={prefix ? "pl-12" : suffix ? "pr-12" : ""}
                 {...field}
                 value={field.value ?? ""}
                 onChange={(e) => {
