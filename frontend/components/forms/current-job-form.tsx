@@ -34,12 +34,16 @@ export function CurrentJobFormComponent({
     if (form.formState.isValid && onChange) {
       onChange(watchedValues as CurrentJobForm);
     }
-  }, [watchedValues, form.formState.isValid, onChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(watchedValues), form.formState.isValid]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Current Job</CardTitle>
+    <Card className="glass-card animate-slide-up border-l-4 border-l-chart-2/50">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full bg-chart-2"></div>
+          Current Job
+        </CardTitle>
         <CardDescription>Your current employment details</CardDescription>
       </CardHeader>
       <CardContent>
@@ -67,9 +71,12 @@ export function CurrentJobFormComponent({
               formatValue={(value) => `${value.toFixed(1)}%`}
             />
 
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-              <h4 className="font-medium text-sm">Salary Surplus Investment</h4>
-              <p className="text-sm text-muted-foreground">
+            <div className="space-y-4 p-4 border rounded-lg bg-gradient-to-br from-muted/30 to-muted/50">
+              <h4 className="font-semibold text-sm flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-chart-3"></div>
+                Salary Surplus Investment
+              </h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 If your startup salary is lower, the difference will be invested
               </p>
 

@@ -94,8 +94,8 @@ export default function Home() {
           ? {
               num_options: equityDetails.num_options,
               strike_price: equityDetails.strike_price,
-              vesting_period: equityDetails.vesting_period,
-              cliff_period: equityDetails.cliff_period,
+              total_vesting_years: equityDetails.vesting_period,
+              cliff_years: equityDetails.cliff_period,
               exercise_strategy: equityDetails.exercise_strategy,
               exercise_year: equityDetails.exercise_year,
               exit_price_per_share: equityDetails.exit_price_per_share,
@@ -118,31 +118,33 @@ export default function Home() {
         equityDetails.equity_type === "RSU"
           ? {
               equity_type: "Equity (RSUs)",
-              total_equity_grant_pct: equityDetails.total_equity_grant_pct / 100,
-              vesting_period: equityDetails.vesting_period,
-              cliff_period: equityDetails.cliff_period,
-              simulate_dilution: equityDetails.simulate_dilution,
-              dilution_rounds: equityDetails.simulate_dilution
-                ? equityDetails.dilution_rounds
-                    .filter((r) => r.enabled)
-                    .map((r) => ({
-                      round_name: r.round_name,
-                      round_type: r.round_type,
-                      year: r.year,
-                      dilution_pct: r.dilution_pct ? r.dilution_pct / 100 : undefined,
-                      pre_money_valuation: r.pre_money_valuation,
-                      amount_raised: r.amount_raised,
-                      salary_change: r.salary_change,
-                    }))
-                : [],
-              exit_valuation: equityDetails.exit_valuation,
+              total_vesting_years: equityDetails.vesting_period,
+              cliff_years: equityDetails.cliff_period,
+              rsu_params: {
+                equity_pct: equityDetails.total_equity_grant_pct / 100,
+                target_exit_valuation: equityDetails.exit_valuation,
+                simulate_dilution: equityDetails.simulate_dilution,
+                dilution_rounds: equityDetails.simulate_dilution
+                  ? equityDetails.dilution_rounds
+                      .filter((r) => r.enabled)
+                      .map((r) => ({
+                        round_name: r.round_name,
+                        round_type: r.round_type,
+                        year: r.year,
+                        dilution_pct: r.dilution_pct ? r.dilution_pct / 100 : undefined,
+                        pre_money_valuation: r.pre_money_valuation,
+                        amount_raised: r.amount_raised,
+                        salary_change: r.salary_change,
+                      }))
+                  : [],
+              },
             }
           : {
               equity_type: "Stock Options",
               num_options: equityDetails.num_options,
               strike_price: equityDetails.strike_price,
-              vesting_period: equityDetails.vesting_period,
-              cliff_period: equityDetails.cliff_period,
+              total_vesting_years: equityDetails.vesting_period,
+              cliff_years: equityDetails.cliff_period,
               exercise_strategy: equityDetails.exercise_strategy,
               exercise_year: equityDetails.exercise_year,
               exit_price_per_share: equityDetails.exit_price_per_share,
@@ -168,64 +170,60 @@ export default function Home() {
             onRSUChange={handleRSUChange}
             onStockOptionsChange={handleStockOptionsChange}
           />
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Coming Soon</CardTitle>
-              <CardDescription>Additional features</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
-                <li>Detailed dilution rounds configuration</li>
-                <li>Monte Carlo simulation settings</li>
-                <li>Results dashboard with charts</li>
-              </ul>
-            </CardContent>
-          </Card>
         </div>
       }
     >
-      <div className="container py-8 space-y-6">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">
+      <div className="container py-8 space-y-8">
+        {/* Hero Section */}
+        <div className="space-y-4 animate-fade-in">
+          <h1 className="text-5xl font-bold tracking-tight gradient-text">
             Job Offer Financial Analyzer
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
             Analyze startup job offers with comprehensive financial modeling including equity,
             dilution, and Monte Carlo simulations
           </p>
         </div>
 
         {/* API Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle>API Connection Status</CardTitle>
+        <Card className="glass-card animate-slide-up border-l-4 border-l-accent/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-accent animate-pulse"></div>
+              API Connection Status
+            </CardTitle>
             <CardDescription>Backend health check</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading && (
-              <div className="flex items-center space-x-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Checking connection...</span>
+              <div className="flex items-center space-x-3 py-2">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <span className="font-medium">Checking connection...</span>
               </div>
             )}
 
             {isError && (
-              <div className="flex items-center space-x-2 text-destructive">
-                <XCircle className="h-4 w-4" />
-                <span>Error: {error?.message || "Failed to connect to API"}</span>
+              <div className="flex items-center space-x-3 py-2 text-destructive">
+                <XCircle className="h-5 w-5" />
+                <span className="font-medium">Error: {error?.message || "Failed to connect to API"}</span>
               </div>
             )}
 
             {data && (
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2 text-green-600 dark:text-green-400">
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span>Connected to API</span>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3 py-1">
+                  <CheckCircle2 className="h-5 w-5 text-accent" />
+                  <span className="font-semibold text-accent-foreground">Connected to API</span>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  <p>Status: {data.status}</p>
-                  <p>Version: {data.version}</p>
+                <div className="grid grid-cols-2 gap-4 p-3 bg-muted/30 rounded-lg">
+                  <div className="text-sm">
+                    <p className="font-medium text-muted-foreground">Status:</p>
+                    <p className="font-semibold capitalize">{data.status}</p>
+                  </div>
+                  <div className="text-sm">
+                    <p className="font-medium text-muted-foreground">Version:</p>
+                    <p className="font-semibold">{data.version}</p>
+                  </div>
                 </div>
               </div>
             )}
@@ -234,86 +232,109 @@ export default function Home() {
 
         {/* Results Dashboard */}
         {!hasRequiredData && (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">
-                Fill out all forms in the sidebar to see your analysis results
-              </p>
+          <Card className="glass-card animate-scale-in">
+            <CardContent className="py-16 text-center">
+              <div className="space-y-4">
+                <div className="h-12 w-12 mx-auto bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center">
+                  <div className="h-6 w-6 bg-gradient-to-br from-primary to-accent rounded-full opacity-70"></div>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">Ready for Analysis</h3>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                    Fill out all forms in the sidebar to see your comprehensive financial analysis and visualizations
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
 
         {hasRequiredData && !startupScenarioMutation.data && isCalculating && (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <div className="flex flex-col items-center gap-4">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-muted-foreground">Calculating your scenario...</p>
+          <Card className="glass-card animate-scale-in">
+            <CardContent className="py-16 text-center">
+              <div className="flex flex-col items-center gap-6">
+                <div className="relative">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                  <div className="absolute inset-0 h-12 w-12 rounded-full bg-primary/10 animate-ping"></div>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">Analyzing Your Scenario</h3>
+                  <p className="text-muted-foreground">Running financial calculations and projections...</p>
+                </div>
               </div>
             </CardContent>
           </Card>
         )}
 
         {startupScenarioMutation.data && (
-          <ScenarioResults results={startupScenarioMutation.data} isLoading={isCalculating} />
+          <ScenarioResults 
+            results={startupScenarioMutation.data} 
+            isLoading={isCalculating}
+            monteCarloContent={hasRequiredData ? (
+              <div className="space-y-6">
+                <MonteCarloFormComponent
+                  baseParams={{
+                    exit_year: globalSettings.exit_year,
+                    current_job_monthly_salary: currentJob.monthly_salary,
+                    startup_monthly_salary: equityDetails.monthly_salary,
+                    current_job_salary_growth_rate: currentJob.annual_salary_growth_rate / 100,
+                    equity_params: equityDetails.equity_type === "RSU" ? {
+                      equity_type: "Equity (RSUs)",
+                      total_equity_grant_pct: equityDetails.total_equity_grant_pct / 100,
+                      total_vesting_years: equityDetails.vesting_period,
+                      cliff_years: equityDetails.cliff_period,
+                      simulate_dilution: equityDetails.simulate_dilution,
+                      dilution_rounds: equityDetails.simulate_dilution
+                        ? equityDetails.dilution_rounds.filter((r) => r.enabled).map((r) => ({
+                            round_name: r.round_name,
+                            round_type: r.round_type,
+                            year: r.year,
+                            dilution_pct: r.dilution_pct ? r.dilution_pct / 100 : undefined,
+                            pre_money_valuation: r.pre_money_valuation,
+                            amount_raised: r.amount_raised,
+                            salary_change: r.salary_change,
+                          }))
+                        : [],
+                      exit_valuation: equityDetails.exit_valuation,
+                    } : {
+                      equity_type: "Stock Options",
+                      num_options: equityDetails.num_options,
+                      strike_price: equityDetails.strike_price,
+                      total_vesting_years: equityDetails.vesting_period,
+                      cliff_years: equityDetails.cliff_period,
+                      exercise_strategy: equityDetails.exercise_strategy,
+                      exercise_year: equityDetails.exercise_year,
+                      exit_price_per_share: equityDetails.exit_price_per_share,
+                    },
+                  }}
+                  onComplete={setMonteCarloResults}
+                />
+
+                {monteCarloResults && (
+                  <MonteCarloVisualizations
+                    netOutcomes={monteCarloResults.net_outcomes}
+                    simulatedValuations={monteCarloResults.simulated_valuations}
+                  />
+                )}
+              </div>
+            ) : undefined}
+          />
         )}
 
-        {/* Monte Carlo Simulation */}
-        {startupScenarioMutation.data && hasRequiredData && (
-          <div className="space-y-6">
-            <MonteCarloFormComponent
-              baseParams={{
-                exit_year: globalSettings.exit_year,
-                current_job_monthly_salary: currentJob.monthly_salary,
-                startup_monthly_salary: equityDetails.monthly_salary,
-                current_job_salary_growth_rate: currentJob.annual_salary_growth_rate / 100,
-                equity_params: equityDetails.equity_type === "RSU" ? {
-                  equity_type: "Equity (RSUs)",
-                  total_equity_grant_pct: equityDetails.total_equity_grant_pct / 100,
-                  vesting_period: equityDetails.vesting_period,
-                  cliff_period: equityDetails.cliff_period,
-                  simulate_dilution: equityDetails.simulate_dilution,
-                  dilution_rounds: equityDetails.simulate_dilution
-                    ? equityDetails.dilution_rounds.filter((r) => r.enabled).map((r) => ({
-                        round_name: r.round_name,
-                        round_type: r.round_type,
-                        year: r.year,
-                        dilution_pct: r.dilution_pct ? r.dilution_pct / 100 : undefined,
-                        pre_money_valuation: r.pre_money_valuation,
-                        amount_raised: r.amount_raised,
-                        salary_change: r.salary_change,
-                      }))
-                    : [],
-                  exit_valuation: equityDetails.exit_valuation,
-                } : {
-                  equity_type: "Stock Options",
-                  num_options: equityDetails.num_options,
-                  strike_price: equityDetails.strike_price,
-                  vesting_period: equityDetails.vesting_period,
-                  cliff_period: equityDetails.cliff_period,
-                  exercise_strategy: equityDetails.exercise_strategy,
-                  exercise_year: equityDetails.exercise_year,
-                  exit_price_per_share: equityDetails.exit_price_per_share,
-                },
-              }}
-              onComplete={setMonteCarloResults}
-            />
-
-            {monteCarloResults && (
-              <MonteCarloVisualizations
-                netOutcomes={monteCarloResults.net_outcomes}
-                simulatedValuations={monteCarloResults.simulated_valuations}
-              />
-            )}
-          </div>
-        )}
 
         {startupScenarioMutation.isError && (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <div className="flex flex-col items-center gap-4 text-destructive">
-                <XCircle className="h-8 w-8" />
-                <p>Error calculating scenario: {startupScenarioMutation.error?.message}</p>
+          <Card className="glass-card border-destructive/20 animate-scale-in">
+            <CardContent className="py-16 text-center">
+              <div className="flex flex-col items-center gap-6">
+                <div className="h-12 w-12 bg-destructive/10 rounded-full flex items-center justify-center">
+                  <XCircle className="h-6 w-6 text-destructive" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg text-destructive">Calculation Error</h3>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                    {startupScenarioMutation.error?.message || "An error occurred during scenario calculation"}
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>

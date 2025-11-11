@@ -188,11 +188,11 @@ export const DilutionRoundFormSchema = z.object({
   round_name: z.string(),
   round_type: RoundTypeEnum,
   year: z.number().min(0).max(20),
-  dilution_pct: z.number().min(0).max(100).optional(),
-  pre_money_valuation: z.number().min(0).optional(),
-  amount_raised: z.number().min(0).optional(),
-  salary_change: z.number().optional(),
-  enabled: z.boolean().default(false),
+  dilution_pct: z.number().min(0).max(100),
+  pre_money_valuation: z.number().min(0),
+  amount_raised: z.number().min(0),
+  salary_change: z.number(),
+  enabled: z.boolean(),
 });
 export type DilutionRoundForm = z.infer<typeof DilutionRoundFormSchema>;
 

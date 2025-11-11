@@ -31,12 +31,16 @@ export function GlobalSettingsFormComponent({
     if (form.formState.isValid && onChange) {
       onChange(watchedValues as GlobalSettingsForm);
     }
-  }, [watchedValues, form.formState.isValid, onChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(watchedValues), form.formState.isValid]);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Global Settings</CardTitle>
+    <Card className="glass-card animate-slide-up border-l-4 border-l-primary/30">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full bg-primary"></div>
+          Global Settings
+        </CardTitle>
         <CardDescription>Configure the analysis timeframe</CardDescription>
       </CardHeader>
       <CardContent>

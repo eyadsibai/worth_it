@@ -8,19 +8,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } fr
 import { NumberInputField, SliderField } from "./form-fields";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import type { RSUForm } from "@/lib/schemas";
+import { DilutionRoundFormComponent } from "./dilution-round-form";
+import { RSUFormSchema } from "@/lib/schemas";
+import type { RSUForm, DilutionRoundForm } from "@/lib/schemas";
 
-// Simplified schema for the form (without the full dilution rounds complexity)
-const RSUFormSimplifiedSchema = z.object({
-  monthly_salary: z.number().min(0),
-  total_equity_grant_pct: z.number().min(0).max(100),
-  vesting_period: z.number().int().min(1).max(10),
-  cliff_period: z.number().int().min(0).max(5),
-  exit_valuation: z.number().min(0),
-  simulate_dilution: z.boolean(),
-});
-
-type RSUFormSimplified = z.infer<typeof RSUFormSimplifiedSchema>;
+type RSUFormData = z.infer<typeof RSUFormSchema>;
 
 interface RSUFormProps {
   defaultValues?: Partial<RSUForm>;
@@ -28,15 +20,24 @@ interface RSUFormProps {
 }
 
 export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
-  const form = useForm<RSUFormSimplified>({
-    resolver: zodResolver(RSUFormSimplifiedSchema),
+  const form = useForm<RSUFormData>({
+    resolver: zodResolver(RSUFormSchema) as any,
     defaultValues: {
+      equity_type: "RSU" as const,
       monthly_salary: defaultValues?.monthly_salary ?? 0,
       total_equity_grant_pct: defaultValues?.total_equity_grant_pct ?? 0,
       vesting_period: defaultValues?.vesting_period ?? 4,
       cliff_period: defaultValues?.cliff_period ?? 1,
       exit_valuation: defaultValues?.exit_valuation ?? 0,
       simulate_dilution: defaultValues?.simulate_dilution ?? false,
+      dilution_rounds: defaultValues?.dilution_rounds ?? [
+        { round_name: "Pre-Seed", round_type: "SAFE_NOTE" as const, year: 0, enabled: false, dilution_pct: 10, pre_money_valuation: 5000000, amount_raised: 500000, salary_change: 0 },
+        { round_name: "Seed", round_type: "SAFE_NOTE" as const, year: 1, enabled: false, dilution_pct: 15, pre_money_valuation: 8000000, amount_raised: 1500000, salary_change: 0 },
+        { round_name: "Series A", round_type: "PRICED_ROUND" as const, year: 2, enabled: false, dilution_pct: 20, pre_money_valuation: 15000000, amount_raised: 5000000, salary_change: 0 },
+        { round_name: "Series B", round_type: "PRICED_ROUND" as const, year: 3, enabled: false, dilution_pct: 18, pre_money_valuation: 40000000, amount_raised: 10000000, salary_change: 0 },
+        { round_name: "Series C", round_type: "PRICED_ROUND" as const, year: 4, enabled: false, dilution_pct: 15, pre_money_valuation: 80000000, amount_raised: 15000000, salary_change: 0 },
+        { round_name: "Series D", round_type: "PRICED_ROUND" as const, year: 5, enabled: false, dilution_pct: 12, pre_money_valuation: 150000000, amount_raised: 20000000, salary_change: 0 },
+      ],
     },
     mode: "onChange",
   });
@@ -44,20 +45,10 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
   const watchedValues = form.watch();
   React.useEffect(() => {
     if (form.formState.isValid && onChange) {
-      // Convert to full RSUForm type
-      const fullData: RSUForm = {
-        equity_type: "RSU",
-        monthly_salary: watchedValues.monthly_salary,
-        total_equity_grant_pct: watchedValues.total_equity_grant_pct,
-        vesting_period: watchedValues.vesting_period,
-        cliff_period: watchedValues.cliff_period,
-        exit_valuation: watchedValues.exit_valuation,
-        simulate_dilution: watchedValues.simulate_dilution,
-        dilution_rounds: [], // TODO: Add dilution rounds
-      };
-      onChange(fullData);
+      onChange(watchedValues as RSUForm);
     }
-  }, [watchedValues, form.formState.isValid, onChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(watchedValues), form.formState.isValid]);
 
   const simulateDilution = form.watch("simulate_dilution");
 
@@ -123,7 +114,7 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
         />
 
         <FormField
-          control={form.control}
+          control={form.control as any}
           name="simulate_dilution"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
@@ -141,28 +132,25 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
         />
 
         {simulateDilution && (
-          <Accordion type="single" collapsible className="w-full">
+          <Accordion type="single" collapsible className="w-full" defaultValue="dilution-rounds">
             <AccordionItem value="dilution-rounds">
               <AccordionTrigger>Funding Rounds Configuration</AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-4 p-4">
                   <p className="text-sm text-muted-foreground">
-                    Configure up to 6 funding rounds (Pre-Seed through Series D).
-                    Detailed round configuration coming soon.
+                    Configure funding rounds that will dilute your equity. Each round can include dilution percentage, valuation, amount raised, and salary changes.
                   </p>
-                  {/* TODO: Add detailed funding round forms */}
-                  <div className="space-y-2">
-                    {["Pre-Seed", "Seed", "Series A", "Series B", "Series C", "Series D"].map(
-                      (round) => (
-                        <div
-                          key={round}
-                          className="flex items-center justify-between p-3 border rounded-lg bg-muted/50"
-                        >
-                          <span className="text-sm font-medium">{round}</span>
-                          <span className="text-xs text-muted-foreground">Not configured</span>
-                        </div>
-                      )
-                    )}
+                  
+                  <div className="space-y-3">
+                    {(watchedValues.dilution_rounds as DilutionRoundForm[])?.map((round, index) => (
+                      <DilutionRoundFormComponent
+                        key={`${round.round_name}-${index}`}
+                        form={form}
+                        roundIndex={index}
+                        roundName={round.round_name}
+                        canRemove={false}
+                      />
+                    ))}
                   </div>
                 </div>
               </AccordionContent>

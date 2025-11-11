@@ -55,7 +55,8 @@ export function StockOptionsFormComponent({
       };
       onChange(fullData);
     }
-  }, [watchedValues, form.formState.isValid, onChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(watchedValues), form.formState.isValid]);
 
   const exerciseStrategy = form.watch("exercise_strategy");
 
