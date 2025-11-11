@@ -16,8 +16,8 @@ import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 type RSUFormData = z.infer<typeof RSUFormSchema>;
 
 interface RSUFormProps {
-  defaultValues?: Partial<RSUForm>;
-  onChange?: (data: RSUForm) => void;
+  defaultValues?: Partial<RSUFormData>;
+  onChange?: (data: RSUFormData) => void;
 }
 
 export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
@@ -46,7 +46,7 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
   const watchedValues = form.watch();
   useDeepCompareEffect(() => {
     if (form.formState.isValid && onChange) {
-      onChange(watchedValues as RSUForm);
+      onChange(watchedValues as RSUFormData);
     }
   }, [watchedValues, form.formState.isValid, onChange]);
 

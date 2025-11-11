@@ -60,7 +60,7 @@ interface PertDistribution {
 type SimParamConfig = NormalDistribution | PertDistribution;
 
 interface MonteCarloFormComponentProps {
-  baseParams: Record<string, any>; // TODO: Define proper type based on backend API contract
+  baseParams: Record<string, unknown>;
   onComplete?: (results: { net_outcomes: number[]; simulated_valuations: number[] }) => void;
 }
 
@@ -131,6 +131,7 @@ export function MonteCarloFormComponent({
     // ROI (normal distribution)
     if (data.roi_enabled) {
       sim_param_configs.roi = {
+        type: "normal",
         mean: data.roi_mean / 100,
         std_dev: data.roi_std / 100,
       };
