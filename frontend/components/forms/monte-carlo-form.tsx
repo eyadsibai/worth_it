@@ -43,9 +43,24 @@ const MonteCarloFormSchema = z.object({
 
 type MonteCarloForm = z.infer<typeof MonteCarloFormSchema>;
 
+// Type definitions for Monte Carlo simulation parameters
+interface NormalDistribution {
+  type: "normal";
+  mean: number;
+  std?: number;
+  std_dev?: number;
+}
+
+interface PertDistribution {
+  min_val: number;
+  mode: number;
+  max_val: number;
+}
+
+type SimParamConfig = NormalDistribution | PertDistribution;
+
 interface MonteCarloFormComponentProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  baseParams: Record<string, any>;
+  baseParams: Record<string, any>; // TODO: Define proper type based on backend API contract
   onComplete?: (results: { net_outcomes: number[]; simulated_valuations: number[] }) => void;
 }
 
@@ -95,7 +110,7 @@ export function MonteCarloFormComponent({
   }, [monteCarloMutation.data, onComplete]);
 
   const onSubmit = (data: MonteCarloForm) => {
-    const sim_param_configs: Record<string, any> = {};
+    const sim_param_configs: Record<string, SimParamConfig> = {};
 
     // Exit Valuation (always enabled as normal distribution)
     sim_param_configs.exit_valuation = {

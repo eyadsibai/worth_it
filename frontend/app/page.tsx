@@ -27,20 +27,21 @@ export default function Home() {
     simulated_valuations: number[];
   } | null>(null);
 
+  // useState setters are stable, but using functional updates for best practices
   const handleGlobalSettingsChange = React.useCallback((data: GlobalSettingsForm) => {
-    setGlobalSettings(data);
+    setGlobalSettings(() => data);
   }, []);
 
   const handleCurrentJobChange = React.useCallback((data: CurrentJobForm) => {
-    setCurrentJob(data);
+    setCurrentJob(() => data);
   }, []);
 
   const handleRSUChange = React.useCallback((data: RSUForm) => {
-    setEquityDetails(data);
+    setEquityDetails(() => data);
   }, []);
 
   const handleStockOptionsChange = React.useCallback((data: StockOptionsForm) => {
-    setEquityDetails(data);
+    setEquityDetails(() => data);
   }, []);
 
   // Check if we have all required data
@@ -78,6 +79,7 @@ export default function Home() {
     };
 
     monthlyDataMutation.mutate(monthlyDataRequest);
+    // monthlyDataMutation.mutate is stable (TanStack Query) and doesn't need to be in deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [globalSettings, currentJob, equityDetails, hasRequiredData]);
 
@@ -105,6 +107,7 @@ export default function Home() {
     };
 
     opportunityCostMutation.mutate(opportunityCostRequest);
+    // opportunityCostMutation.mutate is stable (TanStack Query) and doesn't need to be in deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthlyDataMutation.data]);
 
@@ -152,6 +155,7 @@ export default function Home() {
     };
 
     startupScenarioMutation.mutate(startupScenarioRequest);
+    // startupScenarioMutation.mutate is stable (TanStack Query) and doesn't need to be in deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opportunityCostMutation.data]);
 
@@ -307,7 +311,9 @@ export default function Home() {
                       exit_price_per_share: equityDetails.exit_price_per_share,
                     },
                   }}
-                  onComplete={setMonteCarloResults}
+                  onComplete={React.useCallback((results: { net_outcomes: number[]; simulated_valuations: number[] }) => {
+                    setMonteCarloResults(results);
+                  }, [])}
                 />
 
                 {monteCarloResults && (

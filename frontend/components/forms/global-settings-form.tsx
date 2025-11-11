@@ -7,6 +7,7 @@ import { GlobalSettingsFormSchema, type GlobalSettingsForm } from "@/lib/schemas
 import { Form } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SliderField } from "./form-fields";
+import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 
 interface GlobalSettingsFormProps {
   defaultValues?: Partial<GlobalSettingsForm>;
@@ -27,12 +28,11 @@ export function GlobalSettingsFormComponent({
 
   // Watch for changes and notify parent
   const watchedValues = form.watch();
-  React.useEffect(() => {
+  useDeepCompareEffect(() => {
     if (form.formState.isValid && onChange) {
       onChange(watchedValues as GlobalSettingsForm);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(watchedValues), form.formState.isValid]);
+  }, [watchedValues, form.formState.isValid, onChange]);
 
   return (
     <Card className="glass-card animate-slide-up border-l-4 border-l-primary/30">

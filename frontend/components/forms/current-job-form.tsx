@@ -7,6 +7,7 @@ import { CurrentJobFormSchema, type CurrentJobForm } from "@/lib/schemas";
 import { Form } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NumberInputField, SliderField, SelectField } from "./form-fields";
+import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 
 interface CurrentJobFormProps {
   defaultValues?: Partial<CurrentJobForm>;
@@ -30,12 +31,11 @@ export function CurrentJobFormComponent({
 
   // Watch for changes and notify parent
   const watchedValues = form.watch();
-  React.useEffect(() => {
+  useDeepCompareEffect(() => {
     if (form.formState.isValid && onChange) {
       onChange(watchedValues as CurrentJobForm);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(watchedValues), form.formState.isValid]);
+  }, [watchedValues, form.formState.isValid, onChange]);
 
   return (
     <Card className="glass-card animate-slide-up border-l-4 border-l-chart-2/50">

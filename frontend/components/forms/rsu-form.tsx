@@ -11,6 +11,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { DilutionRoundFormComponent } from "./dilution-round-form";
 import { RSUFormSchema } from "@/lib/schemas";
 import type { RSUForm, DilutionRoundForm } from "@/lib/schemas";
+import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 
 type RSUFormData = z.infer<typeof RSUFormSchema>;
 
@@ -21,7 +22,7 @@ interface RSUFormProps {
 
 export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
   const form = useForm<RSUFormData>({
-    resolver: zodResolver(RSUFormSchema) as any,
+    resolver: zodResolver(RSUFormSchema),
     defaultValues: {
       equity_type: "RSU" as const,
       monthly_salary: defaultValues?.monthly_salary ?? 0,
@@ -43,12 +44,11 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
   });
 
   const watchedValues = form.watch();
-  React.useEffect(() => {
+  useDeepCompareEffect(() => {
     if (form.formState.isValid && onChange) {
       onChange(watchedValues as RSUForm);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(watchedValues), form.formState.isValid]);
+  }, [watchedValues, form.formState.isValid, onChange]);
 
   const simulateDilution = form.watch("simulate_dilution");
 
@@ -114,7 +114,7 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
         />
 
         <FormField
-          control={form.control as any}
+          control={form.control}
           name="simulate_dilution"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
