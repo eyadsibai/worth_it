@@ -3,33 +3,61 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    paths:
+      - "backend/**/*.py"
+      - "backend/pyproject.toml"
+      - "backend/tests/**"
+      - "frontend/**/*.ts"
+      - "frontend/**/*.tsx"
+      - "frontend/**/*.js"
+      - "frontend/**/*.jsx"
+      - "frontend/package.json"
+      - ".github/workflows/**"
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-    
+    # Skip review for WIP, draft PRs, or when explicitly disabled
+    if: |
+      !contains(github.event.pull_request.title, '[skip-review]') &&
+      !contains(github.event.pull_request.title, '[WIP]') &&
+      github.event.pull_request.draft == false
+
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
       issues: write
       id-token: write
-    
+      actions: read
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install backend dependencies
+        run: cd backend && uv sync
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
 
       - name: Run Claude Code Review
         id: claude-review
@@ -37,42 +65,67 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
-          # Optional: Specify model (defaults to Claude Sonnet 4, uncomment for Claude Opus 4.1)
-          # model: "claude-opus-4-1-20250805"
+          # Use Sonnet 4 for fast, thorough reviews
+          model: "claude-sonnet-4-5-20250929"
 
-          # Direct prompt for automated review (no @claude mention needed)
+          # Monorepo-aware review prompt
           direct_prompt: |
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
-            
-            Be constructive and helpful in your feedback.
+            Review this PR for the Worth It monorepo (FastAPI backend + Next.js frontend).
 
-          # Optional: Use sticky comments to make Claude reuse the same comment on subsequent pushes to the same PR
+            ## Review Focus Areas
+
+            ### Backend (Python/FastAPI) - `backend/`
+            - **API Design**: RESTful patterns, endpoint naming, HTTP methods
+            - **Security**: Input validation (Pydantic), authentication, SQL injection prevention
+            - **Type Safety**: Proper Pydantic models, type hints, mypy compliance
+            - **Error Handling**: Proper HTTP status codes, error messages
+            - **Performance**: Database queries, async/await usage, caching
+            - **Testing**: Unit tests coverage, edge cases, integration tests
+            - **Code Quality**: PEP 8 compliance (ruff), docstrings
+
+            ### Frontend (TypeScript/Next.js) - `frontend/`
+            - **Type Safety**: Proper TypeScript usage, Zod validation
+            - **React Best Practices**: Hooks usage, component composition, memoization
+            - **Performance**: Code splitting, lazy loading, re-renders
+            - **Accessibility**: ARIA labels, keyboard navigation, semantic HTML
+            - **UI/UX**: shadcn/ui patterns, responsive design, dark mode support
+            - **State Management**: TanStack Query patterns, cache invalidation
+            - **Testing**: Component coverage, user interactions
+
+            ### General
+            - **Architecture**: Separation of concerns (3-tier: UI → API → Logic)
+            - **Data Flow**: API contracts match between backend and frontend
+            - **Documentation**: Clear comments, README updates if needed
+            - **Security**: No secrets in code, proper CORS, XSS prevention
+
+            ## Testing
+            Run tests when reviewing code changes:
+            - Backend: `cd backend && uv run pytest -v`
+            - Frontend: `cd frontend && npm run type-check && npm run lint`
+
+            Be thorough but constructive. Prioritize security and correctness over style.
+
+          # Enable sticky comments for cleaner PR experience
           use_sticky_comment: true
-          
-          # Optional: Customize review based on file types
-          # direct_prompt: |
-          #   Review this PR focusing on:
-          #   - For TypeScript files: Type safety and proper interface usage
-          #   - For API endpoints: Security, input validation, and error handling
-          #   - For React components: Performance, accessibility, and best practices
-          #   - For tests: Coverage, edge cases, and test quality
-          
-          # Optional: Different prompts for different authors
-          # direct_prompt: |
-          #   ${{ github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR' && 
-          #   'Welcome! Please review this PR from a first-time contributor. Be encouraging and provide detailed explanations for any suggestions.' ||
-          #   'Please provide a thorough code review focusing on our coding standards and best practices.' }}
-          
-          # Allow Claude to run tests and linting for both backend and frontend
-          allowed_tools: "Bash(cd backend && uv run pytest:*),Bash(cd backend && uv run ruff check:*),Bash(cd backend && uv run mypy:*),Bash(cd frontend && npm run type-check:*),Bash(cd frontend && npm run lint:*),Bash(cd frontend && npm run build:*)"
-          
-          # Optional: Skip review for certain conditions
-          # if: |
-          #   !contains(github.event.pull_request.title, '[skip-review]') &&
-          #   !contains(github.event.pull_request.title, '[WIP]')
+
+          # Allow Claude to run comprehensive tests
+          allowed_tools: "Bash(cd backend && uv run pytest:*),Bash(cd backend && uv run ruff check:*),Bash(cd backend && uv run ruff format:*),Bash(cd backend && uv run mypy:*),Bash(cd backend && uv sync:*),Bash(cd frontend && npm run type-check:*),Bash(cd frontend && npm run lint:*),Bash(cd frontend && npm run build:*),Bash(cd frontend && npm ci:*)"
+
+          # Custom instructions for this project
+          custom_instructions: |
+            This is a monorepo with:
+            - Backend: FastAPI + Pydantic + WebSocket (Python 3.13, uv package manager)
+            - Frontend: Next.js 16 + shadcn/ui + TanStack Query (TypeScript, Turbopack)
+
+            Key patterns:
+            - Backend follows 3-tier architecture: calculations.py (pure) → api.py (FastAPI) → models.py (Pydantic)
+            - Frontend uses Zod for validation, matching backend Pydantic models
+            - Real-time features use WebSocket (Monte Carlo simulations)
+            - All financial calculations are in pure Python (framework-agnostic)
+
+            Testing standards:
+            - Backend: 35+ tests, pytest, 50%+ coverage required
+            - Frontend: TypeScript strict mode, no ESLint errors
+
+            When reviewing, check both backend and frontend if changes affect the API contract.
 
