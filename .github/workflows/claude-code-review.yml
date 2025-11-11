@@ -62,7 +62,7 @@ jobs:
         uses: anthropics/claude-code-action@beta
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-
+          allowed_bots: "*"
           # Use Sonnet 4 for fast, thorough reviews
           model: "claude-sonnet-4-5-20250929"
 
