@@ -18,8 +18,6 @@ jobs:
   claude-review:
     # Skip review for WIP, draft PRs, or when explicitly disabled
     if: |
-      !contains(github.event.pull_request.title, '[skip-review]') &&
-      !contains(github.event.pull_request.title, '[WIP]') &&
       github.event.pull_request.draft == false
 
     runs-on: ubuntu-latest
@@ -28,13 +26,13 @@ jobs:
       pull-requests: write
       issues: write
       id-token: write
-      actions: read
+      actions: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Set up Python
         uses: actions/setup-python@v5
