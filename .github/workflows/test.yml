@@ -7,8 +7,11 @@ on:
     branches: [ master, main, develop ]
 
 jobs:
-  test:
+  backend-test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
 
     strategy:
       matrix:
@@ -47,12 +50,15 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
-        file: ./coverage.xml
+        file: ./backend/coverage.xml
         fail_ci_if_error: false
         token: ${{ secrets.CODECOV_TOKEN }}
 
-  lint:
+  backend-lint:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
 
     steps:
     - name: Checkout code
@@ -76,3 +82,33 @@ jobs:
     - name: Type check with mypy
       run: uv run mypy src/worth_it/calculations.py src/worth_it/api.py src/worth_it/models.py --ignore-missing-imports
       continue-on-error: true
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Type check
+      run: npm run type-check
+
+    - name: Lint
+      run: npm run lint
+      continue-on-error: true
+
+    - name: Build
+      run: npm run build
