@@ -27,21 +27,21 @@ export default function Home() {
     simulated_valuations: number[];
   } | null>(null);
 
-  const handleGlobalSettingsChange = (data: GlobalSettingsForm) => {
+  const handleGlobalSettingsChange = React.useCallback((data: GlobalSettingsForm) => {
     setGlobalSettings(data);
-  };
+  }, []);
 
-  const handleCurrentJobChange = (data: CurrentJobForm) => {
+  const handleCurrentJobChange = React.useCallback((data: CurrentJobForm) => {
     setCurrentJob(data);
-  };
+  }, []);
 
-  const handleRSUChange = (data: RSUForm) => {
+  const handleRSUChange = React.useCallback((data: RSUForm) => {
     setEquityDetails(data);
-  };
+  }, []);
 
-  const handleStockOptionsChange = (data: StockOptionsForm) => {
+  const handleStockOptionsChange = React.useCallback((data: StockOptionsForm) => {
     setEquityDetails(data);
-  };
+  }, []);
 
   // Check if we have all required data
   const hasRequiredData = globalSettings && currentJob && equityDetails;
