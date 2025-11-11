@@ -1,5 +1,4 @@
-"""
-FastAPI backend for the Worth It application.
+"""FastAPI backend for the Worth It application.
 
 This module provides REST API endpoints for all financial calculation functions,
 enabling the Streamlit frontend to communicate with the backend via HTTP instead
@@ -10,9 +9,9 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import calculations
-from .config import settings
-from .models import (
+from worth_it import calculations
+from worth_it.config import settings
+from worth_it.models import (
     DilutionFromValuationRequest,
     DilutionFromValuationResponse,
     HealthCheckResponse,
@@ -57,8 +56,7 @@ async def health_check():
 
 @app.post("/api/monthly-data-grid", response_model=MonthlyDataGridResponse)
 async def create_monthly_data_grid(request: MonthlyDataGridRequest):
-    """
-    Create a DataFrame with monthly financial projections.
+    """Create a DataFrame with monthly financial projections.
 
     This endpoint creates a monthly data grid showing salary differences,
     surplus calculations, and cash flows over the analysis period.
@@ -71,28 +69,28 @@ async def create_monthly_data_grid(request: MonthlyDataGridRequest):
             current_job_salary_growth_rate=request.current_job_salary_growth_rate,
             dilution_rounds=request.dilution_rounds,
         )
-        return MonthlyDataGridResponse(data=df.to_dict(orient="records"))
+        return MonthlyDataGridResponse(data=df.to_dict(orient="records"))  # type: ignore[arg-type]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/opportunity-cost", response_model=OpportunityCostResponse)
 async def calculate_opportunity_cost(request: OpportunityCostRequest):
-    """
-    Calculate the opportunity cost of foregone salary.
+    """Calculate the opportunity cost of foregone salary.
 
     This endpoint calculates the future value of the salary difference
     between current job and startup job, accounting for investment returns.
     """
     try:
         monthly_df = pd.DataFrame(request.monthly_data)
-        
+
         # Convert equity_type string to EquityType enum if needed
         startup_params = request.startup_params.copy() if request.startup_params else None
-        if startup_params and "equity_type" in startup_params:
-            if isinstance(startup_params["equity_type"], str):
-                startup_params["equity_type"] = calculations.EquityType(startup_params["equity_type"])
-        
+        if startup_params and "equity_type" in startup_params and isinstance(startup_params["equity_type"], str):
+            startup_params["equity_type"] = calculations.EquityType(
+                startup_params["equity_type"],
+            )
+
         df = calculations.calculate_annual_opportunity_cost(
             monthly_df=monthly_df,
             annual_roi=request.annual_roi,
@@ -100,30 +98,30 @@ async def calculate_opportunity_cost(request: OpportunityCostRequest):
             options_params=request.options_params,
             startup_params=startup_params,
         )
-        return OpportunityCostResponse(data=df.to_dict(orient="records"))
+        return OpportunityCostResponse(data=df.to_dict(orient="records"))  # type: ignore[arg-type]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/startup-scenario", response_model=StartupScenarioResponse)
 async def calculate_startup_scenario(request: StartupScenarioRequest):
-    """
-    Calculate financial outcomes for a startup equity package.
+    """Calculate financial outcomes for a startup equity package.
 
     This endpoint evaluates both RSU and Stock Option scenarios,
     including dilution effects and breakeven analysis.
     """
     try:
         opportunity_cost_df = pd.DataFrame(request.opportunity_cost_data)
-        
+
         # Convert equity_type string to EquityType enum if needed
         startup_params = request.startup_params.copy()
-        if "equity_type" in startup_params:
-            if isinstance(startup_params["equity_type"], str):
-                startup_params["equity_type"] = calculations.EquityType(startup_params["equity_type"])
-        
+        if "equity_type" in startup_params and isinstance(startup_params["equity_type"], str):
+            startup_params["equity_type"] = calculations.EquityType(
+                startup_params["equity_type"],
+            )
+
         results = calculations.calculate_startup_scenario(
-            opportunity_cost_df, startup_params
+            opportunity_cost_df, startup_params,
         )
 
         # Convert DataFrame to dict
@@ -139,13 +137,12 @@ async def calculate_startup_scenario(request: StartupScenarioRequest):
             diluted_equity_pct=results.get("diluted_equity_pct"),
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/irr", response_model=IRRResponse)
 async def calculate_irr(request: IRRRequest):
-    """
-    Calculate the Internal Rate of Return (IRR).
+    """Calculate the Internal Rate of Return (IRR).
 
     This endpoint computes the annualized IRR based on monthly cash flows
     and the final equity payout.
@@ -155,13 +152,12 @@ async def calculate_irr(request: IRRRequest):
         irr = calculations.calculate_irr(monthly_surpluses, request.final_payout_value)
         return IRRResponse(irr=irr if pd.notna(irr) else None)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/npv", response_model=NPVResponse)
 async def calculate_npv(request: NPVRequest):
-    """
-    Calculate the Net Present Value (NPV).
+    """Calculate the Net Present Value (NPV).
 
     This endpoint computes the NPV of the investment decision,
     accounting for the time value of money.
@@ -169,17 +165,16 @@ async def calculate_npv(request: NPVRequest):
     try:
         monthly_surpluses = pd.Series(request.monthly_surpluses)
         npv = calculations.calculate_npv(
-            monthly_surpluses, request.annual_roi, request.final_payout_value
+            monthly_surpluses, request.annual_roi, request.final_payout_value,
         )
         return NPVResponse(npv=npv if pd.notna(npv) else None)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/monte-carlo", response_model=MonteCarloResponse)
 async def run_monte_carlo_simulation(request: MonteCarloRequest):
-    """
-    Run Monte Carlo simulation for probabilistic analysis.
+    """Run Monte Carlo simulation for probabilistic analysis.
 
     This endpoint performs thousands of simulations with varying parameters
     to understand the range of potential outcomes.
@@ -187,14 +182,17 @@ async def run_monte_carlo_simulation(request: MonteCarloRequest):
     try:
         # Convert equity_type string to EquityType enum if needed
         base_params = request.base_params.copy()
-        if "startup_params" in base_params and "equity_type" in base_params["startup_params"]:
+        if (
+            "startup_params" in base_params
+            and "equity_type" in base_params["startup_params"]
+        ):
             # Also need to copy nested dict to avoid mutating the original
             base_params["startup_params"] = base_params["startup_params"].copy()
             if isinstance(base_params["startup_params"]["equity_type"], str):
                 base_params["startup_params"]["equity_type"] = calculations.EquityType(
-                    base_params["startup_params"]["equity_type"]
+                    base_params["startup_params"]["equity_type"],
                 )
-        
+
         results = calculations.run_monte_carlo_simulation(
             num_simulations=request.num_simulations,
             base_params=base_params,
@@ -205,13 +203,12 @@ async def run_monte_carlo_simulation(request: MonteCarloRequest):
             simulated_valuations=results["simulated_valuations"].tolist(),
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/sensitivity-analysis", response_model=SensitivityAnalysisResponse)
 async def run_sensitivity_analysis(request: SensitivityAnalysisRequest):
-    """
-    Run sensitivity analysis to identify key variables.
+    """Run sensitivity analysis to identify key variables.
 
     This endpoint analyzes how each variable impacts the final outcome
     to identify the most influential factors.
@@ -219,45 +216,43 @@ async def run_sensitivity_analysis(request: SensitivityAnalysisRequest):
     try:
         # Convert equity_type string to EquityType enum if needed
         base_params = request.base_params.copy()
-        if "startup_params" in base_params and "equity_type" in base_params["startup_params"]:
+        if (
+            "startup_params" in base_params
+            and "equity_type" in base_params["startup_params"]
+        ):
             # Also need to copy nested dict to avoid mutating the original
             base_params["startup_params"] = base_params["startup_params"].copy()
             if isinstance(base_params["startup_params"]["equity_type"], str):
                 base_params["startup_params"]["equity_type"] = calculations.EquityType(
-                    base_params["startup_params"]["equity_type"]
+                    base_params["startup_params"]["equity_type"],
                 )
-        
+
         df = calculations.run_sensitivity_analysis(
-            base_params=base_params, sim_param_configs=request.sim_param_configs
+            base_params=base_params, sim_param_configs=request.sim_param_configs,
         )
-        return SensitivityAnalysisResponse(data=df.to_dict(orient="records"))
+        return SensitivityAnalysisResponse(data=df.to_dict(orient="records"))  # type: ignore[arg-type]
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.post("/api/dilution", response_model=DilutionFromValuationResponse)
 async def calculate_dilution_from_valuation(request: DilutionFromValuationRequest):
-    """
-    Calculate dilution percentage from fundraising round.
+    """Calculate dilution percentage from fundraising round.
 
     This endpoint computes how much ownership dilution occurs
     based on pre-money valuation and amount raised.
     """
     try:
         dilution = calculations.calculate_dilution_from_valuation(
-            request.pre_money_valuation, request.amount_raised
+            request.pre_money_valuation, request.amount_raised,
         )
         return DilutionFromValuationResponse(dilution=dilution)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 if __name__ == "__main__":
     import uvicorn
-
-    print(f"Starting API server on {settings.API_HOST}:{settings.API_PORT}")
-    print(f"Environment: {settings.ENVIRONMENT}")
-    print(f"CORS Origins: {settings.get_cors_origins()}")
 
     uvicorn.run(
         app,

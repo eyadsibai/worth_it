@@ -34,7 +34,7 @@ def create_monthly_data_grid(
     current_job_monthly_salary: float,
     startup_monthly_salary: float,
     current_job_salary_growth_rate: float,
-    dilution_rounds: list = None,
+    dilution_rounds: list | None = None,
 ) -> pd.DataFrame:
     """
     Creates a DataFrame with one row per month, calculating salaries, surplus,
@@ -75,13 +75,13 @@ def calculate_annual_opportunity_cost(
     monthly_df: pd.DataFrame,
     annual_roi: float,
     investment_frequency: str,
-    options_params: Dict = None,
-    startup_params: Dict = None,
+    options_params: dict | None = None,
+    startup_params: dict | None = None,
 ) -> pd.DataFrame:
     """
     Calculates the future value (opportunity cost) of the forgone surplus for each year.
     Handles stock option exercise costs and tracks cash from secondary sales separately.
-    
+
     Cash from equity sales is NOT included in the opportunity cost calculation because
     it represents startup-side wealth, not foregone BigCorp earnings. Instead, it's
     tracked in a separate "Cash From Sale (FV)" column that gets added to the final
@@ -93,7 +93,9 @@ def calculate_annual_opportunity_cost(
     monthly_df_copy = monthly_df.copy()
 
     # --- Handle Cash from Equity Sales ---
-    if startup_params and startup_params.get("equity_type").value == "Equity (RSUs)":
+    equity_type = startup_params.get("equity_type") if startup_params else None
+    if equity_type and equity_type.value == "Equity (RSUs)":
+        assert startup_params is not None  # For type checker
         rsu_params = startup_params["rsu_params"]
         dilution_rounds = rsu_params.get("dilution_rounds", [])
         initial_equity_pct = rsu_params.get("equity_pct", 0)
@@ -296,12 +298,43 @@ def calculate_startup_scenario(
             sorted_rounds = sorted(
                 rsu_params["dilution_rounds"], key=lambda r: r["year"]
             )
+
+            # Handle SAFE note conversion timing
+            # SAFE notes don't dilute immediately - they convert at the next priced round
+
+            # First, determine conversion timing for SAFE notes
+            safe_conversion_year = {}  # Map SAFE rounds to their conversion year
+            for r in sorted_rounds:
+                if r.get("is_safe_note", False):
+                    # Find the next priced round after this SAFE
+                    conversion_year = None
+                    for future_round in sorted_rounds:
+                        if (not future_round.get("is_safe_note", False) and
+                            future_round["year"] >= r["year"]):
+                            conversion_year = future_round["year"]
+                            break
+                    safe_conversion_year[id(r)] = conversion_year
+
+            # Now calculate yearly dilution factors
             yearly_dilution_factors = []
             for year in results_df.index:
                 cumulative_dilution_factor = 1.0
+
+                # Apply dilution from all rounds that should affect this year
                 for r in sorted_rounds:
-                    if r["year"] <= year:
-                        cumulative_dilution_factor *= 1 - r.get("dilution", 0)
+                    is_safe = r.get("is_safe_note", False)
+                    dilution = r.get("dilution", 0)
+
+                    if is_safe:
+                        # SAFE: only dilutes at conversion year
+                        conversion_year = safe_conversion_year.get(id(r))
+                        if conversion_year is not None and year >= conversion_year:
+                            cumulative_dilution_factor *= (1 - dilution)
+                    else:
+                        # Priced round: dilutes at its own year
+                        if r["year"] <= year:
+                            cumulative_dilution_factor *= (1 - dilution)
+
                 yearly_dilution_factors.append(cumulative_dilution_factor)
 
             results_df["CumulativeDilution"] = yearly_dilution_factors
@@ -332,7 +365,7 @@ def calculate_startup_scenario(
             * (1 - total_dilution)
             * remaining_equity_factor
         )
-        
+
         # Add the future value of cash from equity sales to the payout
         # This cash is startup-side wealth, not opportunity cost
         if "Cash From Sale (FV)" in results_df.columns:
@@ -450,7 +483,7 @@ def calculate_npv(
 
 
 def get_random_variates_pert(
-    num_simulations: int, config: Dict, default_val: float
+    num_simulations: int, config: dict, default_val: float
 ) -> np.ndarray:
     """Generates random numbers based on a PERT distribution."""
     if not config:
@@ -709,7 +742,7 @@ def run_monte_carlo_simulation_iterative(
     """
     sim_params = {}
     sim_params["exit_year"] = get_random_variates_pert(
-        num_simulations, sim_param_configs.get("exit_year"), base_params["exit_year"]
+        num_simulations, sim_param_configs.get("exit_year"), base_params["exit_year"]  # type: ignore[arg-type]
     ).astype(int)
 
     if "yearly_valuation" in sim_param_configs:
@@ -740,11 +773,11 @@ def run_monte_carlo_simulation_iterative(
 
     sim_params["salary_growth"] = get_random_variates_pert(
         num_simulations,
-        sim_param_configs.get("salary_growth"),
+        sim_param_configs.get("salary_growth"),  # type: ignore[arg-type]
         base_params["current_job_salary_growth_rate"],
     )
     sim_params["dilution"] = get_random_variates_pert(
-        num_simulations, sim_param_configs.get("dilution"), np.nan
+        num_simulations, sim_param_configs.get("dilution"), np.nan  # type: ignore[arg-type]
     )
 
     net_outcomes = []
@@ -812,7 +845,7 @@ def run_monte_carlo_simulation_iterative(
 
 
 def run_sensitivity_analysis(
-    base_params: Dict, sim_param_configs: Dict
+    base_params: dict, sim_param_configs: dict
 ) -> pd.DataFrame:
     """Runs a sensitivity analysis on simulated variables."""
     impacts = []

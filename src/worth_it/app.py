@@ -11,8 +11,8 @@ import plotly.express as px
 import plotly.figure_factory as ff
 import streamlit as st
 
-from .api_client import api_client
-from .calculations import EquityType
+from worth_it.api_client import api_client
+from worth_it.calculations import EquityType
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -20,7 +20,7 @@ st.set_page_config(
 )
 
 
-def format_currency_compact(num: float, add_sar=True) -> str:
+def format_currency_compact(num: float | None, add_sar=True) -> str:
     """Formats a currency value into a compact string with K/M abbreviations."""
     if pd.isna(num) or num == float("inf"):
         return "N/A"
@@ -258,6 +258,11 @@ if equity_type == EquityType.RSU:
         st.sidebar.info(
             "Model the dilutive effect of future funding rounds on your equity."
         )
+        st.sidebar.warning(
+            "⚠️ **SAFE Notes**: If your Pre-Seed/Seed rounds are SAFE notes, mark them as such below. "
+            "SAFE notes don't dilute immediately - they convert at the next priced round (typically Series A). "
+            "Salaries typically don't change at SAFE rounds, only at priced rounds."
+        )
         dilution_method = st.sidebar.radio(
             "Dilution Calculation Method",
             ("By Percentage", "By Valuation"),
@@ -279,6 +284,28 @@ if equity_type == EquityType.RSU:
                     key=f"enable_{series_name}",
                 ):
                     round_details = {}
+
+                    # Round Type Selection (SAFE vs Priced)
+                    is_safe_note = False
+                    if series_name in ["Pre-Seed", "Seed"]:
+                        round_type = st.radio(
+                            f"{series_name} Round Type",
+                            ["SAFE Note", "Priced Round"],
+                            index=0 if series_name == "Pre-Seed" else 1,
+                            key=f"round_type_{series_name}",
+                            help="SAFE notes defer dilution until conversion at the next priced round. Priced rounds dilute immediately."
+                        )
+                        is_safe_note = (round_type == "SAFE Note")
+                        round_details["is_safe_note"] = is_safe_note
+
+                        if is_safe_note:
+                            st.info(
+                                "💡 This SAFE will convert at the next **priced round** (typically Series A). "
+                                "You won't experience dilution until that conversion happens."
+                            )
+                    else:
+                        round_details["is_safe_note"] = False
+
                     round_details["year"] = st.number_input(
                         f"Year of {series_name}",
                         min_value=0,  # Allow year 0 for pre-seed
@@ -286,29 +313,34 @@ if equity_type == EquityType.RSU:
                         value=max(0, i),  # Pre-seed at year 0, others later
                         step=1,
                         key=f"year_{series_name}",
-                        help="Year when this funding round occurs. Pre-seed can be at year 0 (before you join or at start).",
+                        help="Year when this funding round occurs. Pre-seed can be at year 0 (before you join or at start)." +
+                             (" For SAFE notes, this is when the SAFE is issued (conversion happens at next priced round)." if is_safe_note else ""),
                     )
 
-                    # Salary Change Option
-                    change_salary = st.checkbox(
-                        "💰 Change Salary After This Round?",
-                        value=False,
-                        key=f"change_salary_{series_name}",
-                        help="Check if your salary will increase after this funding round."
-                    )
-
-                    if change_salary:
-                        round_details["new_salary"] = st.number_input(
-                            "New Monthly Salary (SAR)",
-                            min_value=0,
-                            value=int(startup_salary * 1.2),  # Suggest 20% increase
-                            step=1000,
-                            key=f"new_salary_{series_name}",
-                            help="Your new monthly salary after this funding round.",
-                        )
-                    else:
-                        # Keep current salary (set to 0 to indicate no change)
+                    # Salary Change Option (only for Series A and beyond)
+                    if series_name in ["Pre-Seed", "Seed"]:
+                        # Salaries don't change at Pre-Seed/Seed rounds
                         round_details["new_salary"] = 0
+                    else:
+                        change_salary = st.checkbox(
+                            "💰 Change Salary After This Round?",
+                            value=False,
+                            key=f"change_salary_{series_name}",
+                            help="Check if your salary will increase after this funding round."
+                        )
+
+                        if change_salary:
+                            round_details["new_salary"] = st.number_input(
+                                "New Monthly Salary (SAR)",
+                                min_value=0,
+                                value=int(startup_salary * 1.2),  # Suggest 20% increase
+                                step=1000,
+                                key=f"new_salary_{series_name}",
+                                help="Your new monthly salary after this funding round.",
+                            )
+                        else:
+                            # Keep current salary (set to 0 to indicate no change)
+                            round_details["new_salary"] = 0
 
                     post_money_valuation = None
                     if dilution_method == "By Percentage":
@@ -382,14 +414,14 @@ if equity_type == EquityType.RSU:
 
                             # Default to selling 10% of vested equity, but cap at available vested percentage
                             default_value = min(10.0, vested_pct_at_sale)
-                            
+
                             # Clamp existing session state value to new max to avoid StreamlitAPIException
                             # when vested percentage decreases (e.g., user changes sale year)
                             slider_key = f"sell_pct_{series_name}"
                             if slider_key in st.session_state:
                                 # Ensure stored value doesn't exceed new maximum
                                 st.session_state[slider_key] = min(st.session_state[slider_key], vested_pct_at_sale)
-                            
+
                             round_details["percent_to_sell"] = (
                                 st.slider(
                                     "Percentage of Remaining Equity to Sell (up to vested amount)",

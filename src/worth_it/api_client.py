@@ -15,7 +15,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from .config import settings
+from worth_it.config import settings
 
 
 class APIClient:
@@ -50,7 +50,7 @@ class APIClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(f"API request failed: {e}")
+            raise RuntimeError(f"API request failed: {e}") from e
 
     def _get(self, endpoint: str) -> dict[str, Any]:
         """Make a GET request to the API."""
@@ -60,7 +60,7 @@ class APIClient:
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(f"API request failed: {e}")
+            raise RuntimeError(f"API request failed: {e}") from e
 
     def health_check(self) -> dict[str, str]:
         """Check if the API is healthy."""

@@ -128,3 +128,22 @@ ignore_missing_imports = true
 [tool.bandit]
 exclude_dirs = ["tests", ".venv", "venv"]
 skips = ["B101"]  # Skip assert_used check (needed for tests)
+
+[tool.pyright]
+include = ["src"]
+exclude = ["**/__pycache__", "**/.venv"]
+reportMissingImports = true
+reportMissingTypeStubs = false
+pythonVersion = "3.13"
+pythonPlatform = "Darwin"
+typeCheckingMode = "basic"
+reportOptionalOperand = "warning"
+reportOptionalMemberAccess = "warning"
+reportPossiblyUnboundVariable = "warning"
+reportIndexIssue = "warning"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.407",
+    "ruff>=0.14.4",
+]

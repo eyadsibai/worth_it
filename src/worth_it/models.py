@@ -1,5 +1,4 @@
-"""
-Pydantic models for API request/response validation.
+"""Pydantic models for API request/response validation.
 
 This module defines the data models used for communication between
 the Streamlit frontend and the FastAPI backend.
@@ -10,7 +9,6 @@ from __future__ import annotations
 from typing import Any
 
 from pydantic import BaseModel, Field
-
 
 # --- Request Models ---
 
@@ -128,7 +126,7 @@ class MonteCarloResponse(BaseModel):
 class SensitivityAnalysisResponse(BaseModel):
     """Response model for sensitivity analysis."""
 
-    data: list[dict[str, Any]]
+    data: list[dict[str, Any]] | None
 
 
 class DilutionFromValuationResponse(BaseModel):

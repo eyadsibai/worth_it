@@ -128,7 +128,6 @@ def test_calculate_startup_scenario_options(sample_opportunity_cost_df):
         },
     }
     results = calculations.calculate_startup_scenario(sample_opportunity_cost_df, startup_params)
-    results_df = results["results_df"]
     assert results["payout_label"] == "Your Options Value"
     final_vested_options = 10000
     expected_payout = (10.0 - 1.0) * final_vested_options

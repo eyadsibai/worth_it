@@ -10,7 +10,27 @@ This project uses [uv](https://docs.astral.sh/uv/) for fast, reliable dependency
 uv sync
 ```
 
-### Testing
+### Testing & Code Quality
+
+**IMPORTANT**: Always run both linting and tests before committing changes.
+
+#### Linting
+Check code quality with ruff:
+```bash
+uv run ruff check src/ tests/
+```
+
+Auto-fix issues:
+```bash
+uv run ruff check --fix src/ tests/
+```
+
+Auto-fix including unsafe fixes (whitespace, etc.):
+```bash
+uv run ruff check --fix --unsafe-fixes src/ tests/
+```
+
+#### Running Tests
 Run all tests:
 ```bash
 uv run pytest
@@ -24,6 +44,28 @@ uv run pytest tests/test_calculations.py -v
 Run with coverage:
 ```bash
 uv run pytest --cov=src --cov-report=html
+```
+
+#### Type Checking
+Check type annotations with pyright:
+```bash
+uv run pyright src/
+```
+
+#### Pre-Commit Checklist
+Before committing or creating a PR, always run:
+```bash
+# 1. Lint and auto-fix
+uv run ruff check --fix --unsafe-fixes src/ tests/
+
+# 2. Run all tests
+uv run pytest -v
+
+# 3. Verify no linting errors remain
+uv run ruff check src/ tests/
+
+# 4. Check type annotations
+uv run pyright src/
 ```
 
 ### Running the Application

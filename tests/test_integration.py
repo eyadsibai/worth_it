@@ -197,5 +197,5 @@ def test_sensitivity_analysis(client):
 if __name__ == "__main__":
     """Allow running as a script for manual testing."""
     import sys
-    
+
     sys.exit(pytest.main([__file__, "-v"]))
