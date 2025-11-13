@@ -1,0 +1,43 @@
+name: Playwright PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - "playwright/**"
+
+jobs:
+  playwright-review:
+    runs-on: ubuntu-latest
+    environment: pr-action
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true # Enables tracking comments
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            This PR modifies critical playwright files.
+
+            Please provide a playwright-focused review with emphasis on:
+            - Playwright best practices
+            - Playwright code quality
+            - Playwright code structure
+            - Playwright code readability
+
+            Note: The PR branch is already checked out.
+
+            Post detailed playwright findings as PR comments.
+
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*)"
