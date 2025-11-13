@@ -87,9 +87,6 @@ test.describe('Complete RSU Scenario Analysis', () => {
     const exitYearSlider = page.locator('input[name="exit_year"]');
     await exitYearSlider.fill('7');
     
-    // Wait a bit for recalculation
-    await page.waitForTimeout(2000);
-    
     // Results should still be visible (potentially updated)
     await expect(page.locator(SELECTORS.results.scenarioResults)).toBeVisible();
   });
@@ -100,7 +97,7 @@ test.describe('Complete RSU Scenario Analysis', () => {
     await helpers.completeRSUScenario();
     
     // Wait for results to be fully rendered
-    await page.waitForTimeout(2000);
+    await expect(page.locator(SELECTORS.results.scenarioResults)).toBeVisible();
     
     // Take screenshot
     await page.screenshot({

@@ -26,10 +26,7 @@ test.describe('Stock Options Form', () => {
   test('should display Stock Options-specific fields', async ({ page, helpers }) => {
     await helpers.selectStockOptionsEquityType();
     
-    // Wait for form to appear
-    await page.waitForTimeout(500);
-    
-    // Verify Stock Options-specific fields are visible
+    // Wait for Stock Options form fields to appear
     await expect(page.getByText(/Number of Options/i)).toBeVisible();
     await expect(page.getByText(/Strike Price/i)).toBeVisible();
     await expect(page.getByText(/Exit Price Per Share/i)).toBeVisible();
@@ -54,10 +51,12 @@ test.describe('Stock Options Form', () => {
 
   test('should allow setting vesting and cliff periods for options', async ({ page, helpers }) => {
     await helpers.selectStockOptionsEquityType();
-    await page.waitForTimeout(500);
+    
+    // Wait for vesting slider to appear
+    const vestingSlider = page.locator(SELECTORS.stockOptions.vestingPeriodSlider);
+    await vestingSlider.waitFor({ state: 'visible' });
     
     // Set vesting period
-    const vestingSlider = page.locator(SELECTORS.stockOptions.vestingPeriodSlider);
     await vestingSlider.fill('4');
     await expect(vestingSlider).toHaveValue('4');
     
@@ -69,7 +68,6 @@ test.describe('Stock Options Form', () => {
 
   test('should allow selecting exercise strategy', async ({ page, helpers }) => {
     await helpers.selectStockOptionsEquityType();
-    await page.waitForTimeout(500);
     
     // Find and click the exercise strategy combobox
     const strategySection = page.getByText('Exercise Strategy').locator('..');
@@ -86,12 +84,10 @@ test.describe('Stock Options Form', () => {
   test('should switch between RSU and Stock Options', async ({ page, helpers }) => {
     // Start with RSU
     await helpers.selectRSUEquityType();
-    await page.waitForTimeout(500);
     await expect(page.getByText(/Total Equity Grant/i)).toBeVisible();
     
     // Switch to Stock Options
     await helpers.selectStockOptionsEquityType();
-    await page.waitForTimeout(500);
     await expect(page.getByText(/Number of Options/i)).toBeVisible();
     
     // Verify RSU fields are no longer visible

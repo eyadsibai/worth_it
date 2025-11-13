@@ -135,7 +135,7 @@ See [playwright/README.md](playwright/README.md) for detailed E2E testing docume
 
 **E2E Testing:**
 - Playwright for automated browser testing
-- 59 end-to-end tests covering full user flows
+- 56 end-to-end tests covering full user flows
 - Automated CI/CD integration
 
 ## 🤝 Contributing

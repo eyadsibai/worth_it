@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/base';
-import { SELECTORS, TIMEOUTS } from '../utils/test-data';
+import { SELECTORS } from '../utils/test-data';
 
 /**
  * Test Suite: API Health and Basic Page Load

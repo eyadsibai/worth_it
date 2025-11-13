@@ -62,7 +62,8 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  // Uncomment the following when testing locally or in CI with proper Python 3.13+
+  // NOTE: Uncomment when testing locally or in CI with Python 3.13+
+  // The backend command requires Python 3.13+ (use 'python3.13' explicitly if needed)
   // webServer: [
   //   {
   //     command: 'cd backend && python3 -m uvicorn worth_it.api:app --host 0.0.0.0 --port 8000',

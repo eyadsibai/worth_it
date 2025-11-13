@@ -1,5 +1,6 @@
 import { Page, expect } from '@playwright/test';
 import { TEST_DATA, SELECTORS, TIMEOUTS } from './test-data';
+import path from 'path';
 
 /**
  * Helper class for common page interactions in Worth It tests
@@ -83,10 +84,7 @@ export class WorthItHelpers {
     // First select RSU type
     await this.selectRSUEquityType();
 
-    // Wait a bit for the form to appear
-    await this.page.waitForTimeout(500);
-
-    // Monthly Salary
+    // Wait for RSU Monthly Salary input to appear
     const salaryInput = this.page.locator('input[name="monthly_salary"]').last();
     await salaryInput.waitFor({ state: 'visible' });
     await salaryInput.fill(params.monthlySalary.toString());
@@ -124,10 +122,7 @@ export class WorthItHelpers {
     // First select Stock Options type
     await this.selectStockOptionsEquityType();
 
-    // Wait a bit for the form to appear
-    await this.page.waitForTimeout(500);
-
-    // Monthly Salary
+    // Wait for Stock Options Monthly Salary input to appear
     const salaryInput = this.page.locator('input[name="monthly_salary"]').last();
     await salaryInput.waitFor({ state: 'visible' });
     await salaryInput.fill(params.monthlySalary.toString());
@@ -206,9 +201,6 @@ export class WorthItHelpers {
     // Find theme toggle button
     const themeToggle = this.page.locator(SELECTORS.themeToggle).first();
     await themeToggle.click();
-    
-    // Wait for theme to change
-    await this.page.waitForTimeout(500);
   }
 
   /**
@@ -216,7 +208,7 @@ export class WorthItHelpers {
    */
   async screenshot(name: string) {
     await this.page.screenshot({
-      path: `playwright/screenshots/${name}.png`,
+      path: path.join(__dirname, '..', 'screenshots', `${name}.png`),
       fullPage: true,
     });
   }
@@ -225,7 +217,8 @@ export class WorthItHelpers {
    * Verify API is healthy
    */
   async verifyAPIHealth() {
-    const response = await this.page.request.get('http://localhost:8000/health');
+    const apiUrl = process.env.API_BASE_URL || 'http://localhost:8000';
+    const response = await this.page.request.get(`${apiUrl}/health`);
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
     expect(data.status).toBe('healthy');

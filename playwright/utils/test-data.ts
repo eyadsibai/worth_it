@@ -130,6 +130,9 @@ export const SELECTORS = {
   },
 
   // Theme Toggle
+  // NOTE: This selector assumes the theme toggle button has an aria-label containing "theme".
+  // If the frontend implementation changes, update this selector to match the actual UI element.
+  // Tests relying on this selector may fail silently if it does not match any element.
   themeToggle: 'button[aria-label*="theme"]',
 };
 

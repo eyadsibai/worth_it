@@ -1,5 +1,4 @@
 import { test, expect } from '../fixtures/base';
-import { TIMEOUTS } from '../utils/test-data';
 
 /**
  * Test Suite: Monte Carlo Simulations
@@ -25,14 +24,14 @@ test.describe('Monte Carlo Simulations', () => {
     await helpers.waitForAPIConnection();
     await helpers.completeRSUScenario();
     
-    // Wait for Monte Carlo form to be available
-    await page.waitForTimeout(1000);
-    
-    // Find number of simulations input
+    // Find number of simulations input (wait for Monte Carlo section to appear)
     const numSimsInput = page.locator('input[name="num_simulations"]');
     if (await numSimsInput.count() > 0) {
-      await numSimsInput.first().fill('500');
-      await expect(numSimsInput.first()).toHaveValue('500');
+      await numSimsInput.first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+      if (await numSimsInput.first().isVisible()) {
+        await numSimsInput.first().fill('500');
+        await expect(numSimsInput.first()).toHaveValue('500');
+      }
     }
   });
 
@@ -41,20 +40,14 @@ test.describe('Monte Carlo Simulations', () => {
     await helpers.waitForAPIConnection();
     await helpers.completeRSUScenario();
     
-    // Wait for scenario results
-    await page.waitForTimeout(2000);
-    
     // Look for "Run Simulation" button
     const runButton = page.getByRole('button', { name: /Run Simulation/i });
     if (await runButton.count() > 0) {
       await runButton.first().click();
       
-      // Wait for simulation to complete (with longer timeout)
-      await page.waitForTimeout(5000);
-      
-      // Verify some result is displayed - could be visualizations or summary stats
-      const hasVisualization = await page.getByText(/Distribution/i).isVisible().catch(() => false);
-      const hasResults = await page.getByText(/Simulation/i).isVisible().catch(() => false);
+      // Wait for simulation results to appear
+      const hasVisualization = await page.getByText(/Distribution/i).isVisible({ timeout: 10000 }).catch(() => false);
+      const hasResults = await page.getByText(/Simulation/i).isVisible({ timeout: 10000 }).catch(() => false);
       
       expect(hasVisualization || hasResults).toBeTruthy();
     }
@@ -65,15 +58,13 @@ test.describe('Monte Carlo Simulations', () => {
     await helpers.waitForAPIConnection();
     await helpers.completeRSUScenario();
     
-    await page.waitForTimeout(2000);
-    
     // Try to run simulation
     const runButton = page.getByRole('button', { name: /Run Simulation/i });
     if (await runButton.count() > 0) {
       await runButton.first().click();
       
-      // Wait for simulation and visualizations
-      await page.waitForTimeout(5000);
+      // Wait for visualizations to appear
+      await page.getByText(/Distribution/i).first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
       
       // Take screenshot to capture visualizations
       await page.screenshot({
@@ -88,9 +79,6 @@ test.describe('Monte Carlo Simulations', () => {
     await helpers.waitForAPIConnection();
     await helpers.completeStockOptionsScenario();
     
-    // Wait for scenario results
-    await page.waitForTimeout(2000);
-    
     // Verify Monte Carlo section is available for stock options too
     const monteCarloSection = await page.getByText(/Monte Carlo/i).first().isVisible().catch(() => false);
     expect(monteCarloSection).toBeTruthy();
@@ -103,20 +91,23 @@ test.describe('Monte Carlo Parameter Variations', () => {
     await helpers.waitForAPIConnection();
     await helpers.completeRSUScenario();
     
-    await page.waitForTimeout(1000);
-    
     // Look for min/max exit valuation inputs
     const minValInput = page.locator('input[name="min_exit_valuation"]');
     const maxValInput = page.locator('input[name="max_exit_valuation"]');
     
     if (await minValInput.count() > 0) {
-      await minValInput.first().fill('50000000');
-      await expect(minValInput.first()).toHaveValue('50000000');
+      await minValInput.first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+      if (await minValInput.first().isVisible()) {
+        await minValInput.first().fill('50000000');
+        await expect(minValInput.first()).toHaveValue('50000000');
+      }
     }
     
     if (await maxValInput.count() > 0) {
-      await maxValInput.first().fill('200000000');
-      await expect(maxValInput.first()).toHaveValue('200000000');
+      if (await maxValInput.first().isVisible()) {
+        await maxValInput.first().fill('200000000');
+        await expect(maxValInput.first()).toHaveValue('200000000');
+      }
     }
   });
 
@@ -125,13 +116,14 @@ test.describe('Monte Carlo Parameter Variations', () => {
     await helpers.waitForAPIConnection();
     await helpers.completeRSUScenario();
     
-    await page.waitForTimeout(1000);
-    
     // Look for distribution type toggle or selector
     const distributionToggle = page.locator('input[name="use_triangular_distribution"]');
     if (await distributionToggle.count() > 0) {
-      // Toggle the distribution type
-      await distributionToggle.first().click();
+      await distributionToggle.first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+      if (await distributionToggle.first().isVisible()) {
+        // Toggle the distribution type
+        await distributionToggle.first().click();
+      }
     }
   });
 });

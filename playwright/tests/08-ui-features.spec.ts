@@ -13,10 +13,6 @@ test.describe('Theme and UI Features', () => {
   test('should have theme toggle button', async ({ page }) => {
     await page.goto('/');
     
-    // Look for theme toggle - it might be in a navigation or header
-    const themeButton = page.locator('button').filter({ hasText: /theme|dark|light/i }).first();
-    const anyThemeButton = page.getByRole('button').filter({ has: page.locator('svg') });
-    
     // At least some buttons should exist
     const buttonCount = await page.getByRole('button').count();
     expect(buttonCount).toBeGreaterThan(0);
@@ -41,9 +37,17 @@ test.describe('Theme and UI Features', () => {
       if (hasIcon && (!text || text.trim().length === 0)) {
         // This might be the theme toggle
         await button.click();
-        await page.waitForTimeout(500);
         
-        // Check if class changed
+        // Check if class changed (wait for DOM to update)
+        await page.waitForFunction(
+          (oldClass) => {
+            const newClass = document.documentElement.className;
+            return newClass !== oldClass;
+          },
+          initialClass,
+          { timeout: 2000 }
+        ).catch(() => {});
+        
         const newClass = await html.getAttribute('class') || '';
         
         // Either dark was added/removed or light was added/removed
@@ -118,11 +122,8 @@ test.describe('Error Handling and Edge Cases', () => {
     // Rapidly change exit year
     const exitYearSlider = page.locator('input[name="exit_year"]');
     await exitYearSlider.fill('3');
-    await page.waitForTimeout(100);
     await exitYearSlider.fill('5');
-    await page.waitForTimeout(100);
     await exitYearSlider.fill('7');
-    await page.waitForTimeout(100);
     await exitYearSlider.fill('5');
     
     // App should remain stable

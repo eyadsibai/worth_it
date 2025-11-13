@@ -31,10 +31,7 @@ test.describe('RSU Equity Form', () => {
   test('should display RSU-specific fields when RSU is selected', async ({ page, helpers }) => {
     await helpers.selectRSUEquityType();
     
-    // Wait for RSU form to appear
-    await page.waitForTimeout(500);
-    
-    // Verify RSU-specific fields are visible
+    // Wait for RSU form fields to appear
     await expect(page.getByText(/Total Equity Grant/i)).toBeVisible();
     await expect(page.getByText(/Exit Valuation/i)).toBeVisible();
     await expect(page.getByText(/Simulate Dilution/i)).toBeVisible();
@@ -54,10 +51,10 @@ test.describe('RSU Equity Form', () => {
 
   test('should allow enabling dilution simulation', async ({ page, helpers }) => {
     await helpers.selectRSUEquityType();
-    await page.waitForTimeout(500);
     
     // Find and click the dilution toggle
     const dilutionToggle = page.locator(SELECTORS.rsu.simulateDilutionToggle);
+    await dilutionToggle.waitFor({ state: 'visible' });
     await dilutionToggle.click();
     
     // Verify toggle is checked
@@ -66,17 +63,14 @@ test.describe('RSU Equity Form', () => {
 
   test('should display dilution rounds when simulation is enabled', async ({ page, helpers }) => {
     await helpers.selectRSUEquityType();
-    await page.waitForTimeout(500);
     
     // Enable dilution simulation
     const dilutionToggle = page.locator(SELECTORS.rsu.simulateDilutionToggle);
+    await dilutionToggle.waitFor({ state: 'visible' });
     const isChecked = await dilutionToggle.getAttribute('data-state') === 'checked';
     if (!isChecked) {
       await dilutionToggle.click();
     }
-    
-    // Wait a bit for the dilution rounds section to appear
-    await page.waitForTimeout(500);
     
     // Verify dilution rounds section is visible
     await expect(page.getByText(/Dilution Rounds/i)).toBeVisible();
@@ -84,10 +78,12 @@ test.describe('RSU Equity Form', () => {
 
   test('should allow setting vesting and cliff periods', async ({ page, helpers }) => {
     await helpers.selectRSUEquityType();
-    await page.waitForTimeout(500);
+    
+    // Wait for vesting period slider to appear
+    const vestingSlider = page.locator(SELECTORS.rsu.vestingPeriodSlider);
+    await vestingSlider.waitFor({ state: 'visible' });
     
     // Set vesting period
-    const vestingSlider = page.locator(SELECTORS.rsu.vestingPeriodSlider);
     await vestingSlider.fill('4');
     await expect(vestingSlider).toHaveValue('4');
     

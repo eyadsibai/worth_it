@@ -55,10 +55,10 @@ test.describe('Complete Stock Options Scenario Analysis', () => {
     
     // Select Stock Options and fill form
     await helpers.selectStockOptionsEquityType();
-    await page.waitForTimeout(500);
     
-    // Fill in basic fields
+    // Fill in basic fields - wait for salary input to be visible
     const salaryInput = page.locator('input[name="monthly_salary"]').last();
+    await salaryInput.waitFor({ state: 'visible' });
     await salaryInput.fill('12500');
     
     const numOptionsInput = page.locator('input[name="num_options"]');
@@ -92,22 +92,16 @@ test.describe('Complete Stock Options Scenario Analysis', () => {
     const resultsSelector = page.locator(SELECTORS.results.scenarioResults);
     await expect(resultsSelector).toBeVisible();
     
-    // Get some metric value (we'll just verify it changes or recalculates)
-    await page.waitForTimeout(1000);
-    
     // Now switch to RSU
     await helpers.selectRSUEquityType();
-    await page.waitForTimeout(500);
     
-    // Fill RSU form
+    // Fill RSU form - wait for equity input to appear
     const equityInput = page.locator('input[name="total_equity_grant_pct"]');
+    await equityInput.waitFor({ state: 'visible' });
     await equityInput.fill('0.5');
     
     const valuationInput = page.locator('input[name="exit_valuation"]');
     await valuationInput.fill('100000000');
-    
-    // Wait for recalculation
-    await page.waitForTimeout(2000);
     
     // Results should still be visible
     await expect(resultsSelector).toBeVisible();
@@ -119,7 +113,7 @@ test.describe('Complete Stock Options Scenario Analysis', () => {
     await helpers.completeStockOptionsScenario();
     
     // Wait for results to be fully rendered
-    await page.waitForTimeout(2000);
+    await expect(page.locator(SELECTORS.results.scenarioResults)).toBeVisible();
     
     // Take screenshot
     await page.screenshot({
