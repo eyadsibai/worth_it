@@ -784,8 +784,8 @@ def run_monte_carlo_simulation_iterative(
         num_simulations, sim_param_configs.get("dilution"), np.nan  # type: ignore[arg-type]
     )
 
-    net_outcomes: list[float] = []
-    final_opportunity_costs: list[float] = []
+    net_outcomes_list: list[float] = []
+    final_opportunity_costs_list: list[float] = []
     for i in range(num_simulations):
         exit_year_sim = int(sim_params["exit_year"][i])
 
@@ -825,16 +825,16 @@ def run_monte_carlo_simulation_iterative(
             options_params=sim_startup_params.get("options_params"),
             startup_params=sim_startup_params,
         )
-        final_opportunity_costs.append(
+        final_opportunity_costs_list.append(
             opportunity_cost_df["Opportunity Cost (Invested Surplus)"].iloc[-1]
         )
 
         results = calculate_startup_scenario(opportunity_cost_df, sim_startup_params)
         net_outcome = results["final_payout_value"] - results["final_opportunity_cost"]
-        net_outcomes.append(net_outcome)
+        net_outcomes_list.append(net_outcome)
 
-    net_outcomes = np.array(net_outcomes)
-    final_opportunity_costs = np.array(final_opportunity_costs)
+    net_outcomes: np.ndarray = np.array(net_outcomes_list)
+    final_opportunity_costs: np.ndarray = np.array(final_opportunity_costs_list)
 
     # Incorporate failure probability
     failure_mask = (
