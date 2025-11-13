@@ -16,13 +16,6 @@ on:
 
 jobs:
   claude-review:
-    # Skip review for WIP, draft PRs, or when explicitly disabled
-    # Also skip for bot users (like Copilot) to avoid permission check issues
-    if: |
-      github.event.pull_request.draft == false &&
-      github.actor != 'Copilot' &&
-      !contains(github.actor, '[bot]')
-
     runs-on: ubuntu-latest
     permissions:
       contents: write
