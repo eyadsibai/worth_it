@@ -73,15 +73,13 @@ jobs:
       uses: astral-sh/setup-uv@v5
 
     - name: Install dependencies
-      run: uv sync
+      run: uv sync --extra dev --group dev
 
     - name: Check code formatting with ruff
       run: uv run ruff check . --output-format=github
-      continue-on-error: true
 
     - name: Type check with mypy
       run: uv run mypy src/worth_it/calculations.py src/worth_it/api.py src/worth_it/models.py --ignore-missing-imports
-      continue-on-error: true
 
   frontend-test:
     runs-on: ubuntu-latest
