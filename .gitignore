@@ -40,5 +40,10 @@ coverage.xml
 # MyPy cache
 .mypy_cache/
 
+# Playwright
+/playwright-report/
+/playwright/.cache/
+/test-results/
+playwright/screenshots/*.png
 
 node_modules
