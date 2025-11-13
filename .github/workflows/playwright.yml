@@ -34,7 +34,7 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12'
+        python-version: '3.13'
 
     - name: Install root dependencies
       run: npm ci
@@ -51,6 +51,20 @@ jobs:
       run: |
         cd backend
         pip install .
+
+    - name: Start Backend Server
+      run: |
+        cd backend
+        python3 -m uvicorn worth_it.api:app --host 0.0.0.0 --port 8000 &
+        sleep 10
+        curl http://localhost:8000/health || echo "Backend not ready yet"
+
+    - name: Start Frontend Server
+      run: |
+        cd frontend
+        npm run dev &
+        sleep 15
+        curl http://localhost:3000 || echo "Frontend not ready yet"
 
     - name: Run Playwright tests
       run: npm run test:e2e

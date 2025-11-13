@@ -30,8 +30,9 @@ playwright/
 ## Prerequisites
 
 1. **Node.js**: Version 18 or higher
-2. **Backend**: Python backend must be runnable on port 8000
-3. **Frontend**: Next.js frontend must be runnable on port 3000
+2. **Python**: Version 3.13 or higher (for backend)
+3. **Backend**: Python backend must be runnable on port 8000
+4. **Frontend**: Next.js frontend must be runnable on port 3000
 
 ## Installation
 
@@ -46,6 +47,30 @@ npx playwright install chromium
 ```
 
 ## Running Tests
+
+⚠️ **Important**: Before running tests, you need to start both the backend and frontend servers manually.
+
+### Start the Servers
+
+**Terminal 1 - Backend:**
+```bash
+cd backend
+# Ensure Python 3.13+ is installed
+python3 -m uvicorn worth_it.api:app --host 0.0.0.0 --port 8000
+```
+
+**Terminal 2 - Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+**Terminal 3 - Run Tests:**
+```bash
+# Wait for both servers to be ready, then run tests
+npm run test:e2e
+```
 
 ### Run All Tests
 

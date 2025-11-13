@@ -1,6 +1,20 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
+ * Playwright Configuration for Worth It E2E Tests
+ * 
+ * NOTE: The webServer configuration is commented out below.
+ * You need to manually start the backend and frontend servers before running tests:
+ * 
+ * Terminal 1 (Backend): cd backend && python3 -m uvicorn worth_it.api:app --port 8000
+ * Terminal 2 (Frontend): cd frontend && npm run dev
+ * Terminal 3 (Tests): npm run test:e2e
+ * 
+ * Alternatively, uncomment the webServer configuration to have Playwright
+ * automatically start the servers (requires Python 3.13+).
+ */
+
+/**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
  */
@@ -48,18 +62,19 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: [
-    {
-      command: 'cd backend && python3 -m uvicorn worth_it.api:app --host 0.0.0.0 --port 8000',
-      url: 'http://localhost:8000/health',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
-    },
-    {
-      command: 'cd frontend && npm run dev',
-      url: 'http://localhost:3000',
-      reuseExistingServer: !process.env.CI,
-      timeout: 120 * 1000,
-    },
-  ],
+  // Uncomment the following when testing locally or in CI with proper Python 3.13+
+  // webServer: [
+  //   {
+  //     command: 'cd backend && python3 -m uvicorn worth_it.api:app --host 0.0.0.0 --port 8000',
+  //     url: 'http://localhost:8000/health',
+  //     reuseExistingServer: !process.env.CI,
+  //     timeout: 120 * 1000,
+  //   },
+  //   {
+  //     command: 'cd frontend && npm run dev',
+  //     url: 'http://localhost:3000',
+  //     reuseExistingServer: !process.env.CI,
+  //     timeout: 120 * 1000,
+  //   },
+  // ],
 });
