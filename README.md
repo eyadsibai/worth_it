@@ -109,6 +109,16 @@ npm run type-check  # TypeScript validation
 npm run lint        # ESLint
 ```
 
+**E2E Tests (Playwright):**
+```bash
+npm run test:e2e        # Run all E2E tests
+npm run test:e2e:ui     # Run tests in UI mode
+npm run test:e2e:headed # Run tests with visible browser
+npm run test:e2e:report # View test report
+```
+
+See [playwright/README.md](playwright/README.md) for detailed E2E testing documentation.
+
 ## 🛠️ Tech Stack
 
 **Backend:**
@@ -123,12 +133,20 @@ npm run lint        # ESLint
 - React Hook Form + Zod + TanStack Query
 - Recharts for data visualization
 
+**E2E Testing:**
+- Playwright for automated browser testing
+- 56 end-to-end tests covering full user flows
+- Automated CI/CD integration
+
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run tests (backend: `cd backend && uv run pytest`)
+4. Run tests:
+   - Backend: `cd backend && uv run pytest`
+   - Frontend: `cd frontend && npm run type-check && npm run lint`
+   - E2E: `npm run test:e2e`
 5. Submit a pull request
 
 ## 📄 License
