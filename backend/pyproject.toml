@@ -38,13 +38,7 @@ dependencies = [
     "watchdog>=6.0.0",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pre-commit>=4.0.0",
-    "ruff>=0.6.0",
-    "mypy>=1.11.0",
-    "bandit>=1.7.9",
-]
+
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/worth_it"]
@@ -144,6 +138,9 @@ reportIndexIssue = "warning"
 
 [dependency-groups]
 dev = [
-    "pyright>=1.1.407",
+    "pre-commit>=4.0.0",
     "ruff>=0.14.4",
+    "mypy>=1.11.0",
+    "bandit>=1.7.9",
+    "pyright>=1.1.407",
 ]
