@@ -24,9 +24,12 @@ class EquityType(str, Enum):
     STOCK_OPTIONS = "Stock Options"
 
 
-def annual_to_monthly_roi(annual_roi: float) -> float:
+def annual_to_monthly_roi(annual_roi: float | np.ndarray) -> float | np.ndarray:
     """Converts an annual Return on Investment (ROI) to its monthly equivalent."""
-    return (1 + annual_roi) ** (1 / 12) - 1
+    result = (1 + annual_roi) ** (1 / 12) - 1
+    if isinstance(annual_roi, float):
+        return float(result)
+    return result
 
 
 def create_monthly_data_grid(
@@ -444,20 +447,20 @@ def calculate_irr(monthly_surpluses: pd.Series, final_payout_value: float) -> fl
     """
     cash_flows = -monthly_surpluses.copy()
     if len(cash_flows) == 0:
-        return np.nan
+        return float(np.nan)
 
     cash_flows.iloc[-1] += final_payout_value
 
     if not (any(cash_flows > 0) and any(cash_flows < 0)):
-        return np.nan
+        return float(np.nan)
 
     try:
         monthly_irr = npf.irr(cash_flows)
         if pd.isna(monthly_irr):
-            return np.nan
-        return ((1 + monthly_irr) ** 12 - 1) * 100
+            return float(np.nan)
+        return float(((1 + monthly_irr) ** 12 - 1) * 100)
     except (ValueError, TypeError):
-        return np.nan
+        return float(np.nan)
 
 
 def calculate_npv(
@@ -468,18 +471,18 @@ def calculate_npv(
     """
     monthly_roi = annual_to_monthly_roi(annual_roi)
     if pd.isna(monthly_roi) or monthly_roi <= -1:
-        return np.nan
+        return float(np.nan)
 
     cash_flows = -monthly_surpluses.copy()
     if len(cash_flows) == 0:
-        return np.nan
+        return float(np.nan)
 
     cash_flows.iloc[-1] += final_payout_value
 
     try:
-        return npf.npv(monthly_roi, cash_flows)
+        return float(npf.npv(monthly_roi, cash_flows))
     except (ValueError, TypeError):
-        return np.nan
+        return float(np.nan)
 
 
 def get_random_variates_pert(
@@ -499,9 +502,10 @@ def get_random_variates_pert(
     alpha = 1 + gamma * (mode - min_val) / (max_val - min_val)
     beta = 1 + gamma * (max_val - mode) / (max_val - min_val)
 
-    return stats.beta.rvs(
+    result: np.ndarray = stats.beta.rvs(
         a=alpha, b=beta, scale=(max_val - min_val), loc=min_val, size=num_simulations
     )
+    return result
 
 
 def run_monte_carlo_simulation(
@@ -634,7 +638,7 @@ def run_monte_carlo_simulation_vectorized(
         rsu_params = startup_params["rsu_params"]
 
         if "dilution" in sim_params and not np.all(np.isnan(sim_params["dilution"])):
-            cumulative_dilution = 1 - sim_params["dilution"]
+            cumulative_dilution: float | np.ndarray = 1 - sim_params["dilution"]
         else:
             cumulative_dilution = 1.0
             if rsu_params.get("simulate_dilution") and rsu_params.get(
@@ -780,8 +784,8 @@ def run_monte_carlo_simulation_iterative(
         num_simulations, sim_param_configs.get("dilution"), np.nan  # type: ignore[arg-type]
     )
 
-    net_outcomes = []
-    final_opportunity_costs = []
+    net_outcomes: list[float] = []
+    final_opportunity_costs: list[float] = []
     for i in range(num_simulations):
         exit_year_sim = int(sim_params["exit_year"][i])
 
