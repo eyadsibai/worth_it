@@ -79,17 +79,10 @@ test.describe('RSU Equity Form', () => {
   test('should allow setting vesting and cliff periods', async ({ page, helpers }) => {
     await helpers.selectRSUEquityType();
     
-    // Wait for vesting period slider to appear
-    const vestingSlider = page.locator(SELECTORS.rsu.vestingPeriodSlider);
-    await vestingSlider.waitFor({ state: 'visible' });
+    // Set vesting period (Radix UI Slider: min=1, step=1)
+    await helpers.setSliderValue('Vesting Period', 4, 1, 1);
     
-    // Set vesting period
-    await vestingSlider.fill('4');
-    await expect(vestingSlider).toHaveValue('4');
-    
-    // Set cliff period
-    const cliffSlider = page.locator(SELECTORS.rsu.cliffPeriodSlider);
-    await cliffSlider.fill('1');
-    await expect(cliffSlider).toHaveValue('1');
+    // Set cliff period (Radix UI Slider: min=0, step=1)
+    await helpers.setSliderValue('Cliff Period', 1, 0, 1);
   });
 });

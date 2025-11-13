@@ -83,9 +83,8 @@ test.describe('Complete RSU Scenario Analysis', () => {
       timeout: TIMEOUTS.calculation,
     });
     
-    // Change exit year
-    const exitYearSlider = page.locator('input[name="exit_year"]');
-    await exitYearSlider.fill('7');
+    // Change exit year using Radix UI Slider (min=1, step=1)
+    await helpers.setSliderValue('Exit Year', 7, 1, 1);
     
     // Results should still be visible (potentially updated)
     await expect(page.locator(SELECTORS.results.scenarioResults)).toBeVisible();

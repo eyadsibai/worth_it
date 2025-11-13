@@ -75,7 +75,10 @@ export const TEST_DATA = {
 export const SELECTORS = {
   // Global Settings Form
   globalSettings: {
-    exitYearSlider: 'input[name="exit_year"]',
+    // Radix UI Slider renders as div[role="slider"], not input
+    // We target the slider by finding the FormItem containing the "Exit Year" label
+    exitYearSlider: '[role="slider"]',
+    exitYearLabel: 'text=Exit Year',
     exitYearValue: 'text=/Exit Year:/i',
   },
 
@@ -98,8 +101,11 @@ export const SELECTORS = {
   rsu: {
     equityGrantInput: 'input[name="total_equity_grant_pct"]',
     exitValuationInput: 'input[name="exit_valuation"]',
-    vestingPeriodSlider: 'input[name="vesting_period"]',
-    cliffPeriodSlider: 'input[name="cliff_period"]',
+    // Radix UI Sliders render as div[role="slider"], not input elements
+    vestingPeriodLabel: 'text=Vesting Period',
+    vestingPeriodSlider: '[role="slider"]',
+    cliffPeriodLabel: 'text=Cliff Period',
+    cliffPeriodSlider: '[role="slider"]',
     simulateDilutionToggle: 'button[role="switch"]',
   },
 
@@ -108,8 +114,11 @@ export const SELECTORS = {
     numOptionsInput: 'input[name="num_options"]',
     strikePriceInput: 'input[name="strike_price"]',
     exitPriceInput: 'input[name="exit_price_per_share"]',
-    vestingPeriodSlider: 'input[name="vesting_period"]',
-    cliffPeriodSlider: 'input[name="cliff_period"]',
+    // Radix UI Sliders render as div[role="slider"], not input elements
+    vestingPeriodLabel: 'text=Vesting Period',
+    vestingPeriodSlider: '[role="slider"]',
+    cliffPeriodLabel: 'text=Cliff Period',
+    cliffPeriodSlider: '[role="slider"]',
     exerciseStrategySelect: 'button[role="combobox"]',
   },
 

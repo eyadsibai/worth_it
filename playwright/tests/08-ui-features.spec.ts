@@ -119,15 +119,17 @@ test.describe('Error Handling and Edge Cases', () => {
     await page.goto('/');
     await helpers.waitForAPIConnection();
     
-    // Rapidly change exit year
-    const exitYearSlider = page.locator('input[name="exit_year"]');
-    await exitYearSlider.fill('3');
-    await exitYearSlider.fill('5');
-    await exitYearSlider.fill('7');
-    await exitYearSlider.fill('5');
+    // Rapidly change exit year using Radix UI Slider
+    await helpers.setSliderValue('Exit Year', 3, 1, 1);
+    await helpers.setSliderValue('Exit Year', 5, 1, 1);
+    await helpers.setSliderValue('Exit Year', 7, 1, 1);
+    await helpers.setSliderValue('Exit Year', 5, 1, 1);
     
-    // App should remain stable
-    await expect(exitYearSlider).toHaveValue('5');
+    // App should remain stable - verify final value
+    const label = page.getByText('Exit Year', { exact: true });
+    const formItem = label.locator('..').locator('..');
+    const slider = formItem.locator('[role="slider"]');
+    await expect(slider).toHaveAttribute('aria-valuenow', '5');
   });
 });
 

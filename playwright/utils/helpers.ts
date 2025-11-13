@@ -18,18 +18,41 @@ export class WorthItHelpers {
   }
 
   /**
+   * Set a Radix UI slider value by label
+   * Radix UI sliders don't use input elements, so we need keyboard interaction
+   */
+  async setSliderValue(labelText: string, targetValue: number, min: number = 0, step: number = 1) {
+    // Find the label
+    const label = this.page.getByText(labelText, { exact: true });
+    await label.waitFor({ state: 'visible' });
+    
+    // Find the slider within the same FormItem
+    const formItem = label.locator('..').locator('..');
+    const slider = formItem.locator('[role="slider"]');
+    await slider.waitFor({ state: 'visible' });
+    
+    // Focus and set to minimum first
+    await slider.focus();
+    await slider.press('Home');
+    
+    // Calculate steps needed
+    const steps = Math.round((targetValue - min) / step);
+    
+    // Use ArrowRight to increment
+    for (let i = 0; i < steps; i++) {
+      await slider.press('ArrowRight');
+    }
+    
+    // Verify the value was set
+    await expect(slider).toHaveAttribute('aria-valuenow', targetValue.toString());
+  }
+
+  /**
    * Fill in the global settings form
    */
   async fillGlobalSettings(exitYear: number = TEST_DATA.globalSettings.exitYear) {
-    // Wait for the slider to be visible
-    const slider = this.page.locator(SELECTORS.globalSettings.exitYearSlider);
-    await slider.waitFor({ state: 'visible' });
-    
-    // Set the exit year value
-    await slider.fill(exitYear.toString());
-    
-    // Verify the value was set
-    await expect(slider).toHaveValue(exitYear.toString());
+    // Set the exit year slider (min=1, step=1 from form config)
+    await this.setSliderValue('Exit Year', exitYear, 1, 1);
   }
 
   /**
@@ -97,13 +120,11 @@ export class WorthItHelpers {
     const valuationInput = this.page.locator(SELECTORS.rsu.exitValuationInput);
     await valuationInput.fill(params.exitValuation.toString());
 
-    // Vesting Period
-    const vestingSlider = this.page.locator(SELECTORS.rsu.vestingPeriodSlider);
-    await vestingSlider.fill(params.vestingPeriod.toString());
+    // Vesting Period (Radix UI Slider: min=1, step=1)
+    await this.setSliderValue('Vesting Period', params.vestingPeriod, 1, 1);
 
-    // Cliff Period
-    const cliffSlider = this.page.locator(SELECTORS.rsu.cliffPeriodSlider);
-    await cliffSlider.fill(params.cliffPeriod.toString());
+    // Cliff Period (Radix UI Slider: min=0, step=1)
+    await this.setSliderValue('Cliff Period', params.cliffPeriod, 0, 1);
 
     // Simulate Dilution toggle if needed
     if (params.simulateDilution) {
@@ -139,13 +160,11 @@ export class WorthItHelpers {
     const exitPriceInput = this.page.locator(SELECTORS.stockOptions.exitPriceInput);
     await exitPriceInput.fill(params.exitPricePerShare.toString());
 
-    // Vesting Period
-    const vestingSlider = this.page.locator(SELECTORS.stockOptions.vestingPeriodSlider);
-    await vestingSlider.fill(params.vestingPeriod.toString());
+    // Vesting Period (Radix UI Slider: min=1, step=1)
+    await this.setSliderValue('Vesting Period', params.vestingPeriod, 1, 1);
 
-    // Cliff Period
-    const cliffSlider = this.page.locator(SELECTORS.stockOptions.cliffPeriodSlider);
-    await cliffSlider.fill(params.cliffPeriod.toString());
+    // Cliff Period (Radix UI Slider: min=0, step=1)
+    await this.setSliderValue('Cliff Period', params.cliffPeriod, 0, 1);
 
     // Exercise Strategy - use combobox
     const strategySection = this.page.getByText('Exercise Strategy').locator('..');
