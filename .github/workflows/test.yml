@@ -81,6 +81,9 @@ jobs:
     - name: Type check with mypy
       run: uv run mypy src/worth_it/calculations.py src/worth_it/api.py src/worth_it/models.py --ignore-missing-imports
 
+    - name: Type check with pyright
+      run: uv run pyright src/worth_it/calculations.py src/worth_it/api.py src/worth_it/models.py
+
   frontend-test:
     runs-on: ubuntu-latest
     defaults:
@@ -106,7 +109,6 @@ jobs:
 
     - name: Lint
       run: npm run lint
-      continue-on-error: true
 
     - name: Build
       run: npm run build

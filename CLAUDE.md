@@ -35,6 +35,13 @@ cd backend
 uv sync
 ```
 
+**Backend Dependency Management:**
+- **Main dependencies**: Defined in `[project.dependencies]` in `pyproject.toml`
+- **Dev dependencies**: Defined in `[dependency-groups].dev` (uv-specific pattern, preferred over `[project.optional-dependencies]`)
+- **Install with dev dependencies**: `uv sync --group dev`
+
+The `[dependency-groups]` pattern is a uv-specific feature that provides a cleaner way to manage development dependencies compared to the traditional `[project.optional-dependencies]` approach.
+
 ### Testing & Quality
 **IMPORTANT**: Always run tests and linting before committing.
 
