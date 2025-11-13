@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from "@/components/ui/form";
 import { NumberInputField, SliderField } from "./form-fields";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,6 +19,7 @@ interface RSUFormProps {
 
 export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
   const form = useForm<RSUForm>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(RSUFormSchema) as any,
     defaultValues: {
       equity_type: "RSU" as const,
@@ -112,6 +112,7 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
         />
 
         <FormField
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           control={form.control as any}
           name="simulate_dilution"
           render={({ field }) => (

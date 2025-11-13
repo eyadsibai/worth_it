@@ -44,6 +44,10 @@ export default function Home() {
     setEquityDetails(() => data);
   }, []);
 
+  const handleMonteCarloComplete = React.useCallback((results: { net_outcomes: number[]; simulated_valuations: number[] }) => {
+    setMonteCarloResults(results);
+  }, []);
+
   // Check if we have all required data
   const hasRequiredData = globalSettings && currentJob && equityDetails;
 
@@ -311,9 +315,7 @@ export default function Home() {
                       exit_price_per_share: equityDetails.exit_price_per_share,
                     },
                   }}
-                  onComplete={React.useCallback((results: { net_outcomes: number[]; simulated_valuations: number[] }) => {
-                    setMonteCarloResults(results);
-                  }, [])}
+                  onComplete={handleMonteCarloComplete}
                 />
 
                 {monteCarloResults && (
