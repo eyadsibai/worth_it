@@ -135,6 +135,7 @@ reportOptionalOperand = "warning"
 reportOptionalMemberAccess = "warning"
 reportPossiblyUnboundVariable = "warning"
 reportIndexIssue = "warning"
+reportAssignmentType = "warning"
 
 [dependency-groups]
 dev = [
