@@ -228,7 +228,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 ## Troubleshooting
 
 **Backend not starting?**
-- Check Python version: `python --version` (need 3.10+)
+- Check Python version: `python --version` (need 3.13+)
 - Reinstall dependencies: `cd backend && uv sync`
 - Check port 8000 is free: `lsof -i :8000`
 
