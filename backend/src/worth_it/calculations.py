@@ -98,7 +98,10 @@ def calculate_annual_opportunity_cost(
     # --- Handle Cash from Equity Sales ---
     equity_type = startup_params.get("equity_type") if startup_params else None
     if equity_type and equity_type.value == "Equity (RSUs)":
-        assert startup_params is not None  # For type checker
+        # Explicit type guard - startup_params cannot be None here since we accessed
+        # equity_type from it, but we need this for the type checker
+        if startup_params is None:
+            raise ValueError("startup_params cannot be None when equity_type is RSU")
         rsu_params = startup_params["rsu_params"]
         dilution_rounds = rsu_params.get("dilution_rounds", [])
         initial_equity_pct = rsu_params.get("equity_pct", 0)
