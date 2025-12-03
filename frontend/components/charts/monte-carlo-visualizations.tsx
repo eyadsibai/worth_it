@@ -24,7 +24,19 @@ interface MonteCarloVisualizationsProps {
   simulatedValuations: number[];
 }
 
-export function MonteCarloVisualizations({
+// Format currency with compact notation (e.g., SAR 10K)
+// Moved outside component to avoid recreation on each render
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat("en-SA", {
+    style: "currency",
+    currency: "SAR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+    notation: "compact",
+  }).format(value);
+};
+
+export const MonteCarloVisualizations = React.memo(function MonteCarloVisualizations({
   netOutcomes,
   simulatedValuations,
 }: MonteCarloVisualizationsProps) {
@@ -73,7 +85,6 @@ export function MonteCarloVisualizations({
   }, [netOutcomes]);
 
   // Prepare ECDF data
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const ecdfData = React.useMemo(() => {
     const sorted = [...netOutcomes].sort((a, b) => a - b);
     return sorted.map((value, index) => ({
@@ -103,16 +114,6 @@ export function MonteCarloVisualizations({
       { name: "Max", value: stats.max },
     ];
   }, [stats]);
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-SA", {
-      style: "currency",
-      currency: "SAR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-      notation: "compact",
-    }).format(value);
-  };
 
   return (
     <Card>
@@ -522,4 +523,6 @@ export function MonteCarloVisualizations({
       </CardContent>
     </Card>
   );
-}
+});
+
+MonteCarloVisualizations.displayName = "MonteCarloVisualizations";

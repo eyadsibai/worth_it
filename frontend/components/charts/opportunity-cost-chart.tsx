@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import {
   LineChart,
   Line,
@@ -17,22 +18,29 @@ interface OpportunityCostChartProps {
   data: Array<Record<string, any>>;
 }
 
-export function OpportunityCostChart({ data }: OpportunityCostChartProps) {
-  const chartData = data.map((row) => ({
-    year: `Year ${row.year || 0}`,
-    opportunityCost: row.cumulative_opportunity_cost || 0,
-    monthlySurplus: (row.monthly_surplus || 0) * 12, // Convert to annual
-  }));
+// Format currency with compact notation (e.g., SAR 10K)
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat("en-SA", {
+    style: "currency",
+    currency: "SAR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+    notation: "compact",
+  }).format(value);
+};
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-SA", {
-      style: "currency",
-      currency: "SAR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-      notation: "compact",
-    }).format(value);
-  };
+export const OpportunityCostChart = React.memo(function OpportunityCostChart({
+  data
+}: OpportunityCostChartProps) {
+  // Memoize the data transformation to avoid recalculating on every render
+  const chartData = React.useMemo(() =>
+    data.map((row) => ({
+      year: `Year ${row.year || 0}`,
+      opportunityCost: row.cumulative_opportunity_cost || 0,
+      monthlySurplus: (row.monthly_surplus || 0) * 12, // Convert to annual
+    })),
+    [data]
+  );
 
   return (
     <ResponsiveContainer width="100%" height={400}>
@@ -87,4 +95,6 @@ export function OpportunityCostChart({ data }: OpportunityCostChartProps) {
       </LineChart>
     </ResponsiveContainer>
   );
-}
+});
+
+OpportunityCostChart.displayName = "OpportunityCostChart";
