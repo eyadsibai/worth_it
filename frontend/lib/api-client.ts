@@ -260,6 +260,25 @@ export function useMonteCarloWebSocket(): MonteCarloWSResult {
 
   const wsRef = useRef<WebSocket | null>(null);
 
+  // Refs to track current state values for use in WebSocket event handlers
+  // This prevents stale closure issues where handlers capture outdated state
+  const isRunningRef = useRef(isRunning);
+  const resultRef = useRef(result);
+  const errorRef = useRef(error);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    isRunningRef.current = isRunning;
+  }, [isRunning]);
+
+  useEffect(() => {
+    resultRef.current = result;
+  }, [result]);
+
+  useEffect(() => {
+    errorRef.current = error;
+  }, [error]);
+
   const cancel = useCallback(() => {
     if (wsRef.current) {
       wsRef.current.close();
@@ -334,12 +353,13 @@ export function useMonteCarloWebSocket(): MonteCarloWSResult {
 
     ws.onclose = () => {
       setIsConnected(false);
-      if (isRunning && !result && !error) {
+      // Use refs to access current state values, avoiding stale closure issues
+      if (isRunningRef.current && !resultRef.current && !errorRef.current) {
         setError("Connection closed unexpectedly");
         setIsRunning(false);
       }
     };
-  }, [isRunning, result, error]);
+  }, []); // Empty deps - callback is now stable since we use refs for state access
 
   // Cleanup on unmount
   useEffect(() => {
