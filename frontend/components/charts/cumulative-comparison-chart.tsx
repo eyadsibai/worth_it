@@ -10,6 +10,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { formatCurrencyCompact } from "@/lib/utils";
 
 interface CumulativeComparisonChartProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,16 +24,6 @@ export function CumulativeComparisonChart({ data }: CumulativeComparisonChartPro
     currentJob: row.current_job_monthly_salary || 0,
     opportunityCost: row.cumulative_opportunity_cost || 0,
   }));
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-SA", {
-      style: "currency",
-      currency: "SAR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-      notation: "compact",
-    }).format(value);
-  };
 
   return (
     <ResponsiveContainer width="100%" height={400}>
@@ -54,10 +45,10 @@ export function CumulativeComparisonChart({ data }: CumulativeComparisonChartPro
         <YAxis
           className="text-xs"
           tick={{ fill: "currentColor" }}
-          tickFormatter={formatCurrency}
+          tickFormatter={formatCurrencyCompact}
         />
         <Tooltip
-          formatter={(value: number) => formatCurrency(value)}
+          formatter={(value: number) => formatCurrencyCompact(value)}
           contentStyle={{
             backgroundColor: "hsl(var(--background))",
             border: "1px solid hsl(var(--border))",

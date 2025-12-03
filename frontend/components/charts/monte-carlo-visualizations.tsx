@@ -18,6 +18,7 @@ import {
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatCurrencyCompact } from "@/lib/utils";
 
 interface MonteCarloVisualizationsProps {
   netOutcomes: number[];
@@ -58,7 +59,7 @@ export function MonteCarloVisualizations({
     const histogram = Array.from({ length: bins }, (_, i) => ({
       bin: min + i * binWidth,
       count: 0,
-      label: formatCurrency(min + i * binWidth),
+      label: formatCurrencyCompact(min + i * binWidth),
     }));
 
     netOutcomes.forEach((value) => {
@@ -79,7 +80,7 @@ export function MonteCarloVisualizations({
     return sorted.map((value, index) => ({
       value,
       probability: ((index + 1) / sorted.length) * 100,
-      label: formatCurrency(value),
+      label: formatCurrencyCompact(value),
     }));
   }, [netOutcomes]);
 
@@ -103,16 +104,6 @@ export function MonteCarloVisualizations({
       { name: "Max", value: stats.max },
     ];
   }, [stats]);
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-SA", {
-      style: "currency",
-      currency: "SAR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-      notation: "compact",
-    }).format(value);
-  };
 
   return (
     <Card>
@@ -241,11 +232,11 @@ export function MonteCarloVisualizations({
                     type="number"
                     className="text-xs"
                     tick={{ fill: "currentColor" }}
-                    tickFormatter={formatCurrency}
+                    tickFormatter={formatCurrencyCompact}
                   />
                   <YAxis type="category" dataKey="name" className="text-xs" tick={{ fill: "currentColor" }} />
                   <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
+                    formatter={(value: number) => formatCurrencyCompact(value)}
                     contentStyle={{
                       backgroundColor: "hsl(var(--background))",
                       border: "1px solid hsl(var(--border))",
@@ -275,7 +266,7 @@ export function MonteCarloVisualizations({
                     name="Valuation"
                     className="text-xs"
                     tick={{ fill: "currentColor" }}
-                    tickFormatter={formatCurrency}
+                    tickFormatter={formatCurrencyCompact}
                     label={{ value: "Exit Valuation", position: "insideBottom", offset: -5 }}
                   />
                   <YAxis
@@ -284,12 +275,12 @@ export function MonteCarloVisualizations({
                     name="Outcome"
                     className="text-xs"
                     tick={{ fill: "currentColor" }}
-                    tickFormatter={formatCurrency}
+                    tickFormatter={formatCurrencyCompact}
                     label={{ value: "Net Outcome", angle: -90, position: "insideLeft" }}
                   />
                   <Tooltip
                     cursor={{ strokeDasharray: "3 3" }}
-                    formatter={(value: number) => formatCurrency(value)}
+                    formatter={(value: number) => formatCurrencyCompact(value)}
                     contentStyle={{
                       backgroundColor: "hsl(var(--background))",
                       border: "1px solid hsl(var(--border))",
@@ -319,55 +310,55 @@ export function MonteCarloVisualizations({
                     <tr className="border-t">
                       <td className="px-4 py-3 text-sm">Mean</td>
                       <td className="px-4 py-3 text-right text-sm font-medium">
-                        {formatCurrency(stats.mean)}
+                        {formatCurrencyCompact(stats.mean)}
                       </td>
                     </tr>
                     <tr className="border-t bg-muted/50">
                       <td className="px-4 py-3 text-sm">Median (50th percentile)</td>
                       <td className="px-4 py-3 text-right text-sm font-medium">
-                        {formatCurrency(stats.median)}
+                        {formatCurrencyCompact(stats.median)}
                       </td>
                     </tr>
                     <tr className="border-t">
                       <td className="px-4 py-3 text-sm">Standard Deviation</td>
                       <td className="px-4 py-3 text-right text-sm font-medium">
-                        {formatCurrency(stats.std)}
+                        {formatCurrencyCompact(stats.std)}
                       </td>
                     </tr>
                     <tr className="border-t bg-muted/50">
                       <td className="px-4 py-3 text-sm">Minimum</td>
                       <td className="px-4 py-3 text-right text-sm font-medium">
-                        {formatCurrency(stats.min)}
+                        {formatCurrencyCompact(stats.min)}
                       </td>
                     </tr>
                     <tr className="border-t">
                       <td className="px-4 py-3 text-sm">10th Percentile</td>
                       <td className="px-4 py-3 text-right text-sm font-medium">
-                        {formatCurrency(stats.p10)}
+                        {formatCurrencyCompact(stats.p10)}
                       </td>
                     </tr>
                     <tr className="border-t bg-muted/50">
                       <td className="px-4 py-3 text-sm">25th Percentile (Q1)</td>
                       <td className="px-4 py-3 text-right text-sm font-medium">
-                        {formatCurrency(stats.p25)}
+                        {formatCurrencyCompact(stats.p25)}
                       </td>
                     </tr>
                     <tr className="border-t">
                       <td className="px-4 py-3 text-sm">75th Percentile (Q3)</td>
                       <td className="px-4 py-3 text-right text-sm font-medium">
-                        {formatCurrency(stats.p75)}
+                        {formatCurrencyCompact(stats.p75)}
                       </td>
                     </tr>
                     <tr className="border-t bg-muted/50">
                       <td className="px-4 py-3 text-sm">90th Percentile</td>
                       <td className="px-4 py-3 text-right text-sm font-medium">
-                        {formatCurrency(stats.p90)}
+                        {formatCurrencyCompact(stats.p90)}
                       </td>
                     </tr>
                     <tr className="border-t">
                       <td className="px-4 py-3 text-sm">Maximum</td>
                       <td className="px-4 py-3 text-right text-sm font-medium">
-                        {formatCurrency(stats.max)}
+                        {formatCurrencyCompact(stats.max)}
                       </td>
                     </tr>
                     <tr className="border-t bg-muted/50">
@@ -436,7 +427,7 @@ export function MonteCarloVisualizations({
                   <Card>
                     <CardHeader className="pb-3">
                       <CardDescription>Expected Value</CardDescription>
-                      <CardTitle className="text-2xl">{formatCurrency(stats.mean)}</CardTitle>
+                      <CardTitle className="text-2xl">{formatCurrencyCompact(stats.mean)}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <p className="text-xs text-muted-foreground">
@@ -462,7 +453,7 @@ export function MonteCarloVisualizations({
                   <Card>
                     <CardHeader className="pb-3">
                       <CardDescription>Risk (Std Dev)</CardDescription>
-                      <CardTitle className="text-2xl">{formatCurrency(stats.std)}</CardTitle>
+                      <CardTitle className="text-2xl">{formatCurrencyCompact(stats.std)}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <p className="text-xs text-muted-foreground">
@@ -477,16 +468,16 @@ export function MonteCarloVisualizations({
                 <h3 className="text-lg font-semibold mb-2">Key Insights</h3>
                 <div className="space-y-2 text-sm">
                   <p>
-                    • <strong>Best Case (90th percentile):</strong> {formatCurrency(stats.p90)}
+                    • <strong>Best Case (90th percentile):</strong> {formatCurrencyCompact(stats.p90)}
                   </p>
                   <p>
-                    • <strong>Median Scenario:</strong> {formatCurrency(stats.median)}
+                    • <strong>Median Scenario:</strong> {formatCurrencyCompact(stats.median)}
                   </p>
                   <p>
-                    • <strong>Worst Case (10th percentile):</strong> {formatCurrency(stats.p10)}
+                    • <strong>Worst Case (10th percentile):</strong> {formatCurrencyCompact(stats.p10)}
                   </p>
                   <p>
-                    • <strong>Range:</strong> {formatCurrency(stats.min)} to {formatCurrency(stats.max)}
+                    • <strong>Range:</strong> {formatCurrencyCompact(stats.min)} to {formatCurrencyCompact(stats.max)}
                   </p>
                 </div>
               </div>

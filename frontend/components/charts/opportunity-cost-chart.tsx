@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
+import { formatCurrencyCompact } from "@/lib/utils";
 
 interface OpportunityCostChartProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,16 +24,6 @@ export function OpportunityCostChart({ data }: OpportunityCostChartProps) {
     opportunityCost: row.cumulative_opportunity_cost || 0,
     monthlySurplus: (row.monthly_surplus || 0) * 12, // Convert to annual
   }));
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-SA", {
-      style: "currency",
-      currency: "SAR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-      notation: "compact",
-    }).format(value);
-  };
 
   return (
     <ResponsiveContainer width="100%" height={400}>
@@ -54,10 +45,10 @@ export function OpportunityCostChart({ data }: OpportunityCostChartProps) {
         <YAxis
           className="text-xs"
           tick={{ fill: "currentColor" }}
-          tickFormatter={formatCurrency}
+          tickFormatter={formatCurrencyCompact}
         />
         <Tooltip
-          formatter={(value: number) => formatCurrency(value)}
+          formatter={(value: number) => formatCurrencyCompact(value)}
           contentStyle={{
             backgroundColor: "hsl(var(--background))",
             border: "1px solid hsl(var(--border))",
