@@ -266,7 +266,7 @@ async def websocket_monte_carlo(websocket: WebSocket):
     - Output (JSON):
         - {"type": "progress", "current": N, "total": TOTAL, "percentage": PCT}
         - {"type": "complete", "net_outcomes": [...], "simulated_valuations": [...]}
-        - {"type": "error", "message": "..."}
+        - {"type": "error", "message": "...", "error_type": "json_parse_error"|"validation_error"|"calculation_error"}
     """
     await websocket.accept()
 
