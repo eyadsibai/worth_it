@@ -77,8 +77,8 @@ def calculate_annual_opportunity_cost(
     monthly_df: pd.DataFrame,
     annual_roi: float,
     investment_frequency: str,
-    options_params: dict | None = None,
-    startup_params: dict | None = None,
+    options_params: dict[str, Any] | None = None,
+    startup_params: dict[str, Any] | None = None,
 ) -> pd.DataFrame:
     """
     Calculates the future value (opportunity cost) of the forgone surplus for each year.

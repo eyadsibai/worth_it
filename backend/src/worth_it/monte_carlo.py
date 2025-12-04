@@ -24,7 +24,7 @@ from worth_it.calculations import (
 
 
 def get_random_variates_pert(
-    num_simulations: int, config: dict | None, default_val: float
+    num_simulations: int, config: dict[str, Any] | None, default_val: float
 ) -> np.ndarray:
     """
     Generates random numbers based on a PERT distribution.
@@ -419,7 +419,9 @@ def run_monte_carlo_simulation_iterative(
     }
 
 
-def run_sensitivity_analysis(base_params: dict, sim_param_configs: dict) -> pd.DataFrame:
+def run_sensitivity_analysis(
+    base_params: dict[str, Any], sim_param_configs: dict[str, Any]
+) -> pd.DataFrame:
     """
     Runs a sensitivity analysis on simulated variables.
 

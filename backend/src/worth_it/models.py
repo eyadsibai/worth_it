@@ -10,6 +10,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from worth_it.types import DilutionRound
+
 # --- Request Models ---
 
 
@@ -20,24 +22,26 @@ class MonthlyDataGridRequest(BaseModel):
     current_job_monthly_salary: float = Field(..., ge=0)
     startup_monthly_salary: float = Field(..., ge=0)
     current_job_salary_growth_rate: float = Field(..., ge=0, le=1)
-    dilution_rounds: list[dict[str, Any]] | None = None
+    dilution_rounds: list[DilutionRound] | None = None
 
 
 class OpportunityCostRequest(BaseModel):
     """Request model for calculating opportunity cost."""
 
-    monthly_data: list[dict[str, Any]]
+    monthly_data: list[dict[str, Any]]  # MonthlyDataRow - kept flexible for dynamic columns
     annual_roi: float = Field(..., ge=0, le=1)
     investment_frequency: str = Field(..., pattern="^(Monthly|Annually)$")
-    options_params: dict[str, Any] | None = None
-    startup_params: dict[str, Any] | None = None
+    options_params: dict[str, Any] | None = None  # OptionsParams - kept flexible for API
+    startup_params: dict[str, Any] | None = None  # StartupParams - kept flexible for API
 
 
 class StartupScenarioRequest(BaseModel):
     """Request model for calculating startup scenario."""
 
-    opportunity_cost_data: list[dict[str, Any]]
-    startup_params: dict[str, Any]
+    opportunity_cost_data: list[
+        dict[str, Any]
+    ]  # OpportunityCostRow - kept flexible for dynamic columns
+    startup_params: dict[str, Any]  # StartupParams - kept flexible for API
 
 
 class IRRRequest(BaseModel):
@@ -59,15 +63,15 @@ class MonteCarloRequest(BaseModel):
     """Request model for Monte Carlo simulation."""
 
     num_simulations: int = Field(..., ge=1, le=10000)
-    base_params: dict[str, Any]
-    sim_param_configs: dict[str, Any]
+    base_params: dict[str, Any]  # BaseParams - kept flexible for dynamic structure
+    sim_param_configs: dict[str, Any]  # SimParamConfigs - kept flexible for dynamic structure
 
 
 class SensitivityAnalysisRequest(BaseModel):
     """Request model for sensitivity analysis."""
 
-    base_params: dict[str, Any]
-    sim_param_configs: dict[str, Any]
+    base_params: dict[str, Any]  # BaseParams - kept flexible for dynamic structure
+    sim_param_configs: dict[str, Any]  # SimParamConfigs - kept flexible for dynamic structure
 
 
 class DilutionFromValuationRequest(BaseModel):
@@ -83,19 +87,19 @@ class DilutionFromValuationRequest(BaseModel):
 class MonthlyDataGridResponse(BaseModel):
     """Response model for monthly data grid."""
 
-    data: list[dict[str, Any]]
+    data: list[dict[str, Any]]  # MonthlyDataRow - kept flexible for dynamic columns
 
 
 class OpportunityCostResponse(BaseModel):
     """Response model for opportunity cost calculation."""
 
-    data: list[dict[str, Any]]
+    data: list[dict[str, Any]]  # OpportunityCostRow - kept flexible for dynamic columns
 
 
 class StartupScenarioResponse(BaseModel):
     """Response model for startup scenario calculation."""
 
-    results_df: list[dict[str, Any]]
+    results_df: list[dict[str, Any]]  # StartupScenarioResultRow - kept flexible for dynamic columns
     final_payout_value: float
     final_opportunity_cost: float
     payout_label: str
@@ -126,7 +130,7 @@ class MonteCarloResponse(BaseModel):
 class SensitivityAnalysisResponse(BaseModel):
     """Response model for sensitivity analysis."""
 
-    data: list[dict[str, Any]] | None
+    data: list[dict[str, Any]] | None  # Sensitivity analysis has dynamic structure
 
 
 class DilutionFromValuationResponse(BaseModel):
