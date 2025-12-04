@@ -4,7 +4,7 @@ import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, DollarSign, Calendar, Percent } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
 import type { StartupScenarioResponse } from "@/lib/schemas";
 import { CumulativeComparisonChart } from "@/components/charts/cumulative-comparison-chart";
 import { OpportunityCostChart } from "@/components/charts/opportunity-cost-chart";
@@ -34,83 +34,79 @@ export function ScenarioResults({ results, isLoading, monteCarloContent }: Scena
   const isPositive = netBenefit >= 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Key Metrics Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
         {/* Final Payout */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Final Payout</CardDescription>
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-              <CardTitle className="text-2xl">
+        <Card className="editorial-card">
+          <CardHeader className="pb-2 pt-4">
+            <CardDescription className="text-xs uppercase tracking-wide font-medium">Final Payout</CardDescription>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <div className="flex items-baseline gap-2">
+              <CardTitle className="text-2xl font-display data-highlight">
                 {formatCurrency(results.final_payout_value)}
               </CardTitle>
             </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">{results.payout_label}</p>
+            <p className="text-xs text-muted-foreground mt-1">{results.payout_label}</p>
           </CardContent>
         </Card>
 
         {/* Opportunity Cost */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Opportunity Cost</CardDescription>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <CardTitle className="text-2xl">
+        <Card className="editorial-card">
+          <CardHeader className="pb-2 pt-4">
+            <CardDescription className="text-xs uppercase tracking-wide font-medium">Opportunity Cost</CardDescription>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <div className="flex items-baseline gap-2">
+              <CardTitle className="text-2xl font-display data-highlight">
                 {formatCurrency(results.final_opportunity_cost)}
               </CardTitle>
             </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              From current job alternative
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">From current job alternative</p>
           </CardContent>
         </Card>
 
         {/* Net Benefit */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Net Benefit</CardDescription>
+        <Card className={`editorial-card ${isPositive ? "border-accent/40" : "border-destructive/40"}`}>
+          <CardHeader className="pb-2 pt-4">
+            <CardDescription className="text-xs uppercase tracking-wide font-medium">Net Benefit</CardDescription>
+          </CardHeader>
+          <CardContent className="pb-4">
             <div className="flex items-center gap-2">
               {isPositive ? (
-                <TrendingUp className="h-4 w-4 text-green-600" />
+                <TrendingUp className="h-4 w-4 text-accent" />
               ) : (
-                <TrendingDown className="h-4 w-4 text-red-600" />
+                <TrendingDown className="h-4 w-4 text-destructive" />
               )}
-              <CardTitle
-                className={`text-2xl ${
-                  isPositive ? "text-green-600" : "text-red-600"
-                }`}
-              >
+              <CardTitle className={`text-2xl font-display data-highlight ${isPositive ? "text-accent" : "text-destructive"}`}>
                 {formatCurrency(netBenefit)}
               </CardTitle>
             </div>
-          </CardHeader>
-          <CardContent>
-            <Badge variant={isPositive ? "default" : "destructive"}>
-              {isPositive ? "Worth It" : "Not Worth It"}
-            </Badge>
+            <div className="mt-2">
+              <Badge
+                variant={isPositive ? "default" : "destructive"}
+                className={isPositive ? "bg-accent/15 text-accent hover:bg-accent/20 border-accent/30" : ""}
+              >
+                {isPositive ? "Worth It" : "Not Worth It"}
+              </Badge>
+            </div>
           </CardContent>
         </Card>
 
         {/* Dilution (if applicable) */}
         {results.total_dilution !== null && results.total_dilution !== undefined && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardDescription>Total Dilution</CardDescription>
-              <div className="flex items-center gap-2">
-                <Percent className="h-4 w-4 text-muted-foreground" />
-                <CardTitle className="text-2xl">
+          <Card className="editorial-card">
+            <CardHeader className="pb-2 pt-4">
+              <CardDescription className="text-xs uppercase tracking-wide font-medium">Total Dilution</CardDescription>
+            </CardHeader>
+            <CardContent className="pb-4">
+              <div className="flex items-baseline gap-2">
+                <CardTitle className="text-2xl font-display data-highlight">
                   {(results.total_dilution * 100).toFixed(2)}%
                 </CardTitle>
               </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground mt-1">
                 Final equity: {((results.diluted_equity_pct || 0) * 100).toFixed(2)}%
               </p>
             </CardContent>
@@ -118,75 +114,75 @@ export function ScenarioResults({ results, isLoading, monteCarloContent }: Scena
         )}
 
         {/* Break-Even */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Break-Even Point</CardDescription>
-            <CardTitle className="text-2xl">
+        <Card className="editorial-card">
+          <CardHeader className="pb-2 pt-4">
+            <CardDescription className="text-xs uppercase tracking-wide font-medium">Break-Even</CardDescription>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <CardTitle className="text-xl font-display">
               {results.breakeven_label}
             </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              Required to match opportunity cost
+            <p className="text-xs text-muted-foreground mt-1">
+              Required to match cost
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Detailed Results Tabs */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Detailed Analysis</CardTitle>
-          <CardDescription>
+      <Card className="editorial-card">
+        <CardHeader className="pb-4">
+          <CardTitle className="font-display text-xl">Detailed Analysis</CardTitle>
+          <CardDescription className="text-sm">
             Explore yearly breakdown and visualizations
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="table">
-            <TabsList>
-              <TabsTrigger value="table">Yearly Breakdown</TabsTrigger>
-              <TabsTrigger value="charts">Charts</TabsTrigger>
-              {monteCarloContent && <TabsTrigger value="monte-carlo">Monte Carlo</TabsTrigger>}
+          <Tabs defaultValue="table" className="w-full">
+            <TabsList className="mb-4 bg-muted/50">
+              <TabsTrigger value="table" className="text-sm">Yearly Breakdown</TabsTrigger>
+              <TabsTrigger value="charts" className="text-sm">Charts</TabsTrigger>
+              {monteCarloContent && <TabsTrigger value="monte-carlo" className="text-sm">Monte Carlo</TabsTrigger>}
             </TabsList>
 
             <TabsContent value="table" className="space-y-4">
-              <div className="rounded-md border">
-                <div className="max-h-[600px] overflow-auto">
+              <div className="rounded-lg border border-border/60 overflow-hidden">
+                <div className="max-h-[500px] overflow-auto">
                   <table className="w-full">
-                    <thead className="sticky top-0 bg-muted">
+                    <thead className="sticky top-0 bg-muted/80 backdrop-blur-sm">
                       <tr>
-                        <th className="px-4 py-3 text-left text-sm font-medium">Year</th>
-                        <th className="px-4 py-3 text-right text-sm font-medium">
-                          Startup Salary
+                        <th className="px-4 py-3 text-left text-xs uppercase tracking-wide font-medium text-muted-foreground">Year</th>
+                        <th className="px-4 py-3 text-right text-xs uppercase tracking-wide font-medium text-muted-foreground">
+                          Startup
                         </th>
-                        <th className="px-4 py-3 text-right text-sm font-medium">
-                          Current Job Salary
+                        <th className="px-4 py-3 text-right text-xs uppercase tracking-wide font-medium text-muted-foreground">
+                          Current Job
                         </th>
-                        <th className="px-4 py-3 text-right text-sm font-medium">
+                        <th className="px-4 py-3 text-right text-xs uppercase tracking-wide font-medium text-muted-foreground">
                           Difference
                         </th>
-                        <th className="px-4 py-3 text-right text-sm font-medium">
-                          Cumulative Opportunity Cost
+                        <th className="px-4 py-3 text-right text-xs uppercase tracking-wide font-medium text-muted-foreground">
+                          Cumulative Cost
                         </th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-border/40">
                       {results.results_df.map((row, idx) => (
                         <tr
                           key={idx}
-                          className="border-t transition-colors hover:bg-muted/50"
+                          className="transition-colors hover:bg-muted/30"
                         >
-                          <td className="px-4 py-3 text-sm">{row.year || idx + 1}</td>
-                          <td className="px-4 py-3 text-right text-sm">
+                          <td className="px-4 py-3 text-sm font-medium">{row.year || idx + 1}</td>
+                          <td className="px-4 py-3 text-right text-sm data-highlight">
                             {formatCurrency(row.startup_monthly_salary || 0)}
                           </td>
-                          <td className="px-4 py-3 text-right text-sm">
+                          <td className="px-4 py-3 text-right text-sm data-highlight">
                             {formatCurrency(row.current_job_monthly_salary || 0)}
                           </td>
-                          <td className="px-4 py-3 text-right text-sm">
+                          <td className={`px-4 py-3 text-right text-sm data-highlight ${(row.monthly_surplus || 0) >= 0 ? "text-accent" : "text-destructive"}`}>
                             {formatCurrency(row.monthly_surplus || 0)}
                           </td>
-                          <td className="px-4 py-3 text-right text-sm">
+                          <td className="px-4 py-3 text-right text-sm data-highlight text-muted-foreground">
                             {formatCurrency(row.cumulative_opportunity_cost || 0)}
                           </td>
                         </tr>
@@ -197,23 +193,29 @@ export function ScenarioResults({ results, isLoading, monteCarloContent }: Scena
               </div>
             </TabsContent>
 
-            <TabsContent value="charts" className="space-y-6">
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold">Salary Comparison</h3>
-                <p className="text-sm text-muted-foreground">
-                  Monthly salary comparison between startup and current job over time
-                </p>
-                <div className="rounded-lg border bg-card p-4">
+            <TabsContent value="charts" className="space-y-8">
+              <div className="space-y-3">
+                <div>
+                  <h3 className="text-base font-display">Salary Comparison</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Monthly salary comparison over time
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border/60 bg-card p-5">
                   <CumulativeComparisonChart data={results.results_df} />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold">Opportunity Cost Analysis</h3>
-                <p className="text-sm text-muted-foreground">
-                  Cumulative opportunity cost and annual surplus/deficit over time
-                </p>
-                <div className="rounded-lg border bg-card p-4">
+              <div className="section-divider" />
+
+              <div className="space-y-3">
+                <div>
+                  <h3 className="text-base font-display">Opportunity Cost Analysis</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Cumulative opportunity cost and annual surplus/deficit
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border/60 bg-card p-5">
                   <OpportunityCostChart data={results.results_df} />
                 </div>
               </div>

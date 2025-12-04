@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { AppShell } from "@/components/layout/app-shell";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useHealthCheck, useCalculateStartupScenario, useCreateMonthlyDataGrid, useCalculateOpportunityCost } from "@/lib/api-client";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { GlobalSettingsFormComponent } from "@/components/forms/global-settings-form";
@@ -193,55 +193,52 @@ export default function Home() {
     >
       <div className="container py-8 space-y-8">
         {/* Hero Section */}
-        <div className="space-y-4 animate-fade-in">
-          <h1 className="text-5xl font-bold tracking-tight gradient-text">
-            Job Offer Financial Analyzer
+        <div className="space-y-4">
+          <h1 className="text-4xl md:text-5xl font-display tracking-tight text-foreground animate-fade-in">
+            Job Offer{" "}
+            <span className="gradient-gold">Financial Analyzer</span>
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
+          <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed animate-fade-in delay-75">
             Analyze startup job offers with comprehensive financial modeling including equity,
             dilution, and Monte Carlo simulations
           </p>
+          <div className="section-divider animate-fade-in delay-150" />
         </div>
 
         {/* API Status */}
-        <Card className="glass-card animate-slide-up border-l-4 border-l-accent/30">
+        <Card className="editorial-card animate-slide-up delay-225">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-accent animate-pulse"></div>
-              API Connection Status
+            <CardTitle className="text-base font-medium flex items-center gap-3">
+              <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-accent/10">
+                <div className="h-2 w-2 rounded-full bg-accent animate-pulse"></div>
+              </div>
+              <span>System Status</span>
             </CardTitle>
-            <CardDescription>Backend health check</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading && (
               <div className="flex items-center space-x-3 py-2">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <span className="font-medium">Checking connection...</span>
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Checking connection...</span>
               </div>
             )}
 
             {isError && (
               <div className="flex items-center space-x-3 py-2 text-destructive">
-                <XCircle className="h-5 w-5" />
-                <span className="font-medium">Error: {error?.message || "Failed to connect to API"}</span>
+                <XCircle className="h-4 w-4" />
+                <span className="text-sm font-medium">Error: {error?.message || "Failed to connect to API"}</span>
               </div>
             )}
 
             {data && (
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3 py-1">
-                  <CheckCircle2 className="h-5 w-5 text-accent" />
-                  <span className="font-semibold text-accent-foreground">Connected to API</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle2 className="h-4 w-4 text-accent" />
+                  <span className="text-sm font-medium">Connected</span>
                 </div>
-                <div className="grid grid-cols-2 gap-4 p-3 bg-muted/30 rounded-lg">
-                  <div className="text-sm">
-                    <p className="font-medium text-muted-foreground">Status:</p>
-                    <p className="font-semibold capitalize">{data.status}</p>
-                  </div>
-                  <div className="text-sm">
-                    <p className="font-medium text-muted-foreground">Version:</p>
-                    <p className="font-semibold">{data.version}</p>
-                  </div>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span className="capitalize">{data.status}</span>
+                  <span className="font-mono text-xs bg-muted/50 px-2 py-0.5 rounded">v{data.version}</span>
                 </div>
               </div>
             )}
@@ -250,16 +247,16 @@ export default function Home() {
 
         {/* Results Dashboard */}
         {!hasDebouncedData && (
-          <Card className="glass-card animate-scale-in">
-            <CardContent className="py-16 text-center">
-              <div className="space-y-4">
-                <div className="h-12 w-12 mx-auto bg-gradient-to-br from-primary/20 to-accent/20 rounded-full flex items-center justify-center">
-                  <div className="h-6 w-6 bg-gradient-to-br from-primary to-accent rounded-full opacity-70"></div>
+          <Card className="editorial-card animate-scale-in delay-300">
+            <CardContent className="py-20 text-center">
+              <div className="space-y-6 max-w-sm mx-auto">
+                <div className="h-16 w-16 mx-auto bg-gradient-to-br from-accent/10 to-gold/10 rounded-2xl flex items-center justify-center border border-accent/20">
+                  <div className="h-3 w-3 rounded-full bg-accent/60"></div>
                 </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">Ready for Analysis</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto">
-                    Fill out all forms in the sidebar to see your comprehensive financial analysis and visualizations
+                <div className="space-y-3">
+                  <h3 className="font-display text-xl text-foreground">Ready for Analysis</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Complete the forms in the sidebar to generate your comprehensive financial analysis and visualizations.
                   </p>
                 </div>
               </div>
@@ -268,16 +265,17 @@ export default function Home() {
         )}
 
         {hasDebouncedData && !startupScenarioMutation.data && isCalculating && (
-          <Card className="glass-card animate-scale-in">
-            <CardContent className="py-16 text-center">
-              <div className="flex flex-col items-center gap-6">
+          <Card className="editorial-card animate-scale-in">
+            <CardContent className="py-20 text-center">
+              <div className="flex flex-col items-center gap-8">
                 <div className="relative">
-                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                  <div className="absolute inset-0 h-12 w-12 rounded-full bg-primary/10 animate-ping"></div>
+                  <div className="h-16 w-16 rounded-2xl bg-accent/10 flex items-center justify-center">
+                    <Loader2 className="h-7 w-7 animate-spin text-accent" />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-lg">Analyzing Your Scenario</h3>
-                  <p className="text-muted-foreground">Running financial calculations and projections...</p>
+                <div className="space-y-2 max-w-sm">
+                  <h3 className="font-display text-xl text-foreground">Analyzing Scenario</h3>
+                  <p className="text-sm text-muted-foreground">Running financial calculations and projections...</p>
                 </div>
               </div>
             </CardContent>
@@ -341,15 +339,15 @@ export default function Home() {
 
 
         {startupScenarioMutation.isError && (
-          <Card className="glass-card border-destructive/20 animate-scale-in">
+          <Card className="editorial-card border-destructive/30 animate-scale-in">
             <CardContent className="py-16 text-center">
-              <div className="flex flex-col items-center gap-6">
-                <div className="h-12 w-12 bg-destructive/10 rounded-full flex items-center justify-center">
+              <div className="flex flex-col items-center gap-6 max-w-sm mx-auto">
+                <div className="h-14 w-14 bg-destructive/10 rounded-2xl flex items-center justify-center border border-destructive/20">
                   <XCircle className="h-6 w-6 text-destructive" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-lg text-destructive">Calculation Error</h3>
-                  <p className="text-muted-foreground max-w-md mx-auto">
+                  <h3 className="font-display text-xl text-destructive">Calculation Error</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
                     {startupScenarioMutation.error?.message || "An error occurred during scenario calculation"}
                   </p>
                 </div>

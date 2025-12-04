@@ -9,15 +9,15 @@ interface SidebarProps {
 
 export function Sidebar({ children }: SidebarProps) {
   return (
-    <aside className="w-full md:w-96 border-r bg-muted/10">
+    <aside className="w-full md:w-[420px] border-r border-border/50 bg-sidebar">
       <div className="h-full flex flex-col">
-        <div className="p-4 border-b">
-          <h2 className="text-lg font-semibold">Configuration</h2>
-          <p className="text-sm text-muted-foreground">
-            Enter your job offer details
+        <div className="px-5 py-4 border-b border-border/50">
+          <h2 className="text-base font-display">Configuration</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Enter your job offer details below
           </p>
         </div>
-        <ScrollArea className="flex-1 p-4">{children}</ScrollArea>
+        <ScrollArea className="flex-1 px-5 py-4">{children}</ScrollArea>
       </div>
     </aside>
   );
