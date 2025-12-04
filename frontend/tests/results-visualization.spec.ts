@@ -174,9 +174,10 @@ test.describe('Results Visualization UI/UX', () => {
     // Click calculate and immediately check for loading state
     const calculatePromise = page.getByRole('button', { name: /calculate/i }).click();
     
-    // Check for loading indicators
-    const loadingIndicator = page.locator('[class*="loading"], [class*="spinner"], [aria-busy="true"]');
-    
+    // Check for loading indicators (capture for potential future assertions)
+    const _loadingIndicator = page.locator('[class*="loading"], [class*="spinner"], [aria-busy="true"]');
+    void _loadingIndicator; // Available for future loading state assertions
+
     await calculatePromise;
     
     // Loading indicator might appear briefly

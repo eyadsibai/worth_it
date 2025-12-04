@@ -68,8 +68,14 @@ test.describe('Accessibility Tests', () => {
   test('should support keyboard navigation', async ({ page }) => {
     // Test tab navigation
     await page.keyboard.press('Tab');
-    
-    let activeElement = await page.evaluate(() => {
+
+    type ActiveElementInfo = {
+      tagName: string;
+      type: string | null;
+      role: string | null;
+    } | null;
+
+    let activeElement: ActiveElementInfo = await page.evaluate(() => {
       const el = document.activeElement;
       return el ? {
         tagName: el.tagName.toLowerCase(),
@@ -77,15 +83,19 @@ test.describe('Accessibility Tests', () => {
         role: el.getAttribute('role')
       } : null;
     });
-    
+
     expect(activeElement).toBeTruthy();
-    
+
     // Tab through several elements
     for (let i = 0; i < 5; i++) {
       await page.keyboard.press('Tab');
       activeElement = await page.evaluate(() => {
         const el = document.activeElement;
-        return el ? el.tagName.toLowerCase() : null;
+        return el ? {
+          tagName: el.tagName.toLowerCase(),
+          type: el.getAttribute('type'),
+          role: el.getAttribute('role')
+        } : null;
       });
       expect(activeElement).toBeTruthy();
     }
@@ -111,8 +121,8 @@ test.describe('Accessibility Tests', () => {
       };
       
       const elements = document.querySelectorAll('button, a, [role="button"], [role="link"]');
-      const results = [];
-      
+      const results: Array<{ element: string; contrast: number; sufficient: boolean }> = [];
+
       elements.forEach(el => {
         const styles = window.getComputedStyle(el);
         const bg = styles.backgroundColor;
