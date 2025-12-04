@@ -48,10 +48,18 @@ test.describe('Performance Tests', () => {
 
   test('should have good Core Web Vitals', async ({ page }) => {
     await page.goto('/');
-    
+
+    interface WebVitalsMetrics {
+      lcp: number;
+      fid: number;
+      cls: number;
+      fcp: number;
+      ttfb: number;
+    }
+
     // Measure Core Web Vitals
     const metrics = await page.evaluate(() => {
-      return new Promise((resolve) => {
+      return new Promise<WebVitalsMetrics>((resolve) => {
         let lcp = 0;
         let fid = 0;
         let cls = 0;
@@ -66,15 +74,20 @@ test.describe('Performance Tests', () => {
         }).observe({ type: 'largest-contentful-paint', buffered: true });
         
         // First Input Delay (simulated)
-        window.addEventListener('click', (e) => {
+        window.addEventListener('click', () => {
           fid = performance.now();
         }, { once: true });
         
         // Cumulative Layout Shift
+        interface LayoutShiftEntry extends PerformanceEntry {
+          hadRecentInput: boolean;
+          value: number;
+        }
         new PerformanceObserver((entryList) => {
           for (const entry of entryList.getEntries()) {
-            if (!(entry as any).hadRecentInput) {
-              cls += (entry as any).value;
+            const layoutShift = entry as LayoutShiftEntry;
+            if (!layoutShift.hadRecentInput) {
+              cls += layoutShift.value;
             }
           }
         }).observe({ type: 'layout-shift', buffered: true });
@@ -87,9 +100,9 @@ test.describe('Performance Tests', () => {
           }
         }
         
-        const navEntries = performance.getEntriesByType('navigation');
+        const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
         if (navEntries.length > 0) {
-          ttfb = (navEntries[0] as any).responseStart;
+          ttfb = navEntries[0].responseStart;
         }
         
         // Wait a bit for metrics to be collected
@@ -162,11 +175,20 @@ test.describe('Performance Tests', () => {
 
   test('should not have memory leaks', async ({ page }) => {
     await page.goto('/');
-    
+
+    interface PerformanceWithMemory extends Performance {
+      memory?: {
+        usedJSHeapSize: number;
+        totalJSHeapSize: number;
+        jsHeapSizeLimit: number;
+      };
+    }
+
     // Get initial memory usage
     const initialMemory = await page.evaluate(() => {
-      if ('memory' in performance) {
-        return (performance as any).memory.usedJSHeapSize;
+      const perf = performance as PerformanceWithMemory;
+      if (perf.memory) {
+        return perf.memory.usedJSHeapSize;
       }
       return 0;
     });
@@ -190,15 +212,23 @@ test.describe('Performance Tests', () => {
     
     // Force garbage collection if available
     await page.evaluate(() => {
-      if (typeof (global as any).gc === 'function') {
-        (global as any).gc();
+      interface GlobalWithGC {
+        gc?: () => void;
+      }
+      const globalWithGC = globalThis as GlobalWithGC;
+      if (typeof globalWithGC.gc === 'function') {
+        globalWithGC.gc();
       }
     });
     
     // Check memory after interactions
     const finalMemory = await page.evaluate(() => {
-      if ('memory' in performance) {
-        return (performance as any).memory.usedJSHeapSize;
+      interface PerformanceWithMemory extends Performance {
+        memory?: { usedJSHeapSize: number };
+      }
+      const perf = performance as PerformanceWithMemory;
+      if (perf.memory) {
+        return perf.memory.usedJSHeapSize;
       }
       return 0;
     });
@@ -255,7 +285,6 @@ test.describe('Performance Tests', () => {
     
     // Measure JavaScript execution time
     const metrics = await page.evaluate(() => {
-      const entries = performance.getEntriesByType('measure');
       const scripts = performance.getEntriesByType('resource')
         .filter(entry => entry.name.includes('.js'));
       
@@ -284,8 +313,7 @@ test.describe('Performance Tests', () => {
     
     page.on('response', response => {
       const url = response.url();
-      const headers = response.headers();
-      
+
       // Check for render-blocking CSS in head
       if (url.includes('.css') && !url.includes('async')) {
         renderBlockingResources.push(url);
@@ -297,7 +325,7 @@ test.describe('Performance Tests', () => {
     
     // Check for render-blocking scripts
     const blockingScripts = await page.evaluate(() => {
-      const scripts = document.querySelectorAll('script:not([async]):not([defer])');
+      const scripts = document.querySelectorAll<HTMLScriptElement>('script:not([async]):not([defer])');
       return Array.from(scripts)
         .filter(s => s.src && !s.src.includes('_next'))
         .length;
