@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form } from "@/components/ui/form";
 import { NumberInputField, SliderField, SelectField } from "./form-fields";
+import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 import type { StockOptionsForm } from "@/lib/schemas";
 
 // Simplified schema for the form
@@ -47,7 +48,7 @@ export function StockOptionsFormComponent({
   });
 
   const watchedValues = form.watch();
-  React.useEffect(() => {
+  useDeepCompareEffect(() => {
     if (form.formState.isValid && onChange) {
       const fullData: StockOptionsForm = {
         equity_type: "STOCK_OPTIONS",
@@ -55,8 +56,7 @@ export function StockOptionsFormComponent({
       };
       onChange(fullData);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(watchedValues), form.formState.isValid]);
+  }, [watchedValues, form.formState.isValid, onChange]);
 
   const exerciseStrategy = form.watch("exercise_strategy");
 
