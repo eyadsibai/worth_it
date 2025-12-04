@@ -2,14 +2,14 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * Playwright Configuration for Worth It E2E Tests
- * 
+ *
  * NOTE: The webServer configuration is commented out below.
  * You need to manually start the backend and frontend servers before running tests:
- * 
+ *
  * Terminal 1 (Backend): cd backend && python3 -m uvicorn worth_it.api:app --port 8000
  * Terminal 2 (Frontend): cd frontend && npm run dev
  * Terminal 3 (Tests): npm run test:e2e
- * 
+ *
  * Alternatively, uncomment the webServer configuration to have Playwright
  * automatically start the servers (requires Python 3.13+).
  */

@@ -25,24 +25,24 @@ export class WorthItHelpers {
     // Find the label
     const label = this.page.getByText(labelText, { exact: true });
     await label.waitFor({ state: 'visible' });
-    
+
     // Find the slider within the same FormItem
     const formItem = label.locator('..').locator('..');
     const slider = formItem.locator('[role="slider"]');
     await slider.waitFor({ state: 'visible' });
-    
+
     // Focus and set to minimum first
     await slider.focus();
     await slider.press('Home');
-    
+
     // Calculate steps needed
     const steps = Math.round((targetValue - min) / step);
-    
+
     // Use ArrowRight to increment
     for (let i = 0; i < steps; i++) {
       await slider.press('ArrowRight');
     }
-    
+
     // Verify the value was set
     await expect(slider).toHaveAttribute('aria-valuenow', targetValue.toString());
   }
@@ -77,7 +77,7 @@ export class WorthItHelpers {
     const frequencySection = this.page.getByText('Investment Frequency').locator('..');
     const combobox = frequencySection.locator('button[role="combobox"]').first();
     await combobox.click();
-    
+
     // Wait for dropdown and select the option
     await this.page.getByRole('option', { name: params.investmentFrequency }).click();
   }

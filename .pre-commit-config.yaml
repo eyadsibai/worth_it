@@ -1,11 +1,11 @@
 # Pre-commit hooks for code quality
-# Install: uv pip install pre-commit && pre-commit install
-# Run manually: pre-commit run --all-files
+# Install: uv run --with pre-commit pre-commit install
+# Run manually: uv run --with pre-commit pre-commit run --all-files
 
 repos:
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -18,31 +18,61 @@ repos:
       - id: detect-private-key
       - id: mixed-line-ending
 
-  # Python code formatting with ruff
+  # Python code formatting with ruff (matches CI: ruff check .)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.0
+    rev: v0.14.7
     hooks:
-      # Linter
+      # Linter - auto-fix issues before commit
       - id: ruff
         args: [--fix]
+        files: ^backend/
       # Formatter
       - id: ruff-format
+        files: ^backend/
 
-  # Type checking with mypy
+  # Type checking with mypy (matches CI files)
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.0
+    rev: v1.19.0
     hooks:
       - id: mypy
         additional_dependencies:
           - types-requests
           - pandas-stubs
-        args: [--ignore-missing-imports, --no-strict-optional]
-        files: ^(calculations|api|models|config|api_client)\.py$
+        args: [--ignore-missing-imports]
+        files: ^backend/src/worth_it/(calculations|api|models)\.py$
+
+  # Type checking with pyright (matches CI)
+  - repo: local
+    hooks:
+      - id: pyright
+        name: pyright
+        entry: bash -c 'cd backend && uv run pyright src/worth_it/calculations.py src/worth_it/api.py src/worth_it/models.py'
+        language: system
+        files: ^backend/src/worth_it/(calculations|api|models)\.py$
+        pass_filenames: false
 
   # Security checks
   - repo: https://github.com/pycqa/bandit
-    rev: 1.7.9
+    rev: 1.9.2
     hooks:
       - id: bandit
-        args: ['-c', 'pyproject.toml']
+        args: ['-c', 'backend/pyproject.toml']
         additional_dependencies: ['bandit[toml]']
+        files: ^backend/
+
+  # Frontend linting (matches CI: npm run lint)
+  - repo: local
+    hooks:
+      - id: frontend-lint
+        name: frontend eslint
+        entry: bash -c 'cd frontend && npm run lint'
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
+
+      - id: frontend-typecheck
+        name: frontend typecheck
+        entry: bash -c 'cd frontend && npm run type-check'
+        language: system
+        files: ^frontend/.*\.(ts|tsx)$
+        pass_filenames: false

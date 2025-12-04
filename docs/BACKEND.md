@@ -84,7 +84,7 @@ The application now uses a **microservices architecture** with FastAPI as the ba
 - **`test_calculations.py`**: Backend logic tests (20 tests)
   - Tests only import from `calculations.py`
   - No dependency on API or frontend code
-  
+
 - **`test_api.py`**: API endpoint tests (11 tests)
   - Tests all API endpoints
   - Validates request/response handling
@@ -381,7 +381,7 @@ See `example_backend_usage.py` for a complete example.
 # Test calculations module
 pytest test_calculations.py -v
 
-# Test API endpoints  
+# Test API endpoints
 pytest test_api.py -v
 
 # Run all tests

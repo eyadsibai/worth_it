@@ -126,4 +126,3 @@ jobs:
             - Frontend: TypeScript strict mode, no ESLint errors
 
             When reviewing, check both backend and frontend if changes affect the API contract.
-

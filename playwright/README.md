@@ -311,7 +311,7 @@ test.describe('My Feature', () => {
   test('should do something', async ({ page, helpers }) => {
     await page.goto('/');
     await helpers.waitForAPIConnection();
-    
+
     // Your test logic here
     await expect(page.getByText('Something')).toBeVisible();
   });
@@ -324,7 +324,7 @@ test.describe('My Feature', () => {
 test('complete scenario', async ({ page, helpers }) => {
   await page.goto('/');
   await helpers.completeRSUScenario();
-  
+
   // Verify results
   await expect(page.locator('[data-testid="results"]')).toBeVisible();
 });

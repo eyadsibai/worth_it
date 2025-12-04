@@ -232,7 +232,7 @@ export function MonteCarloFormComponent({
                     </div>
                   )}
                 />
-                
+
                 <CollapsibleContent className="space-y-4">
                   <div className="grid grid-cols-3 gap-4">
                     <NumberInputField
@@ -246,7 +246,7 @@ export function MonteCarloFormComponent({
                       suffix="%"
                       placeholder="2"
                     />
-                    
+
                     <NumberInputField
                       form={form}
                       name="growth_rate_mode"
@@ -258,7 +258,7 @@ export function MonteCarloFormComponent({
                       suffix="%"
                       placeholder="5"
                     />
-                    
+
                     <NumberInputField
                       form={form}
                       name="growth_rate_max"
@@ -291,7 +291,7 @@ export function MonteCarloFormComponent({
                     </div>
                   )}
                 />
-                
+
                 <CollapsibleContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <NumberInputField
@@ -305,7 +305,7 @@ export function MonteCarloFormComponent({
                       suffix="%"
                       placeholder="7"
                     />
-                    
+
                     <NumberInputField
                       form={form}
                       name="roi_std"
@@ -338,7 +338,7 @@ export function MonteCarloFormComponent({
                     </div>
                   )}
                 />
-                
+
                 <CollapsibleContent className="space-y-4">
                   <div className="grid grid-cols-3 gap-4">
                     <NumberInputField
@@ -352,7 +352,7 @@ export function MonteCarloFormComponent({
                       suffix=" yrs"
                       placeholder="3"
                     />
-                    
+
                     <NumberInputField
                       form={form}
                       name="exit_year_mode"
@@ -364,7 +364,7 @@ export function MonteCarloFormComponent({
                       suffix=" yrs"
                       placeholder="5"
                     />
-                    
+
                     <NumberInputField
                       form={form}
                       name="exit_year_max"
@@ -397,7 +397,7 @@ export function MonteCarloFormComponent({
                     </div>
                   )}
                 />
-                
+
                 <CollapsibleContent className="space-y-4">
                   <div className="grid grid-cols-3 gap-4">
                     <NumberInputField
@@ -411,7 +411,7 @@ export function MonteCarloFormComponent({
                       suffix="%"
                       placeholder="10"
                     />
-                    
+
                     <NumberInputField
                       form={form}
                       name="dilution_mode"
@@ -423,7 +423,7 @@ export function MonteCarloFormComponent({
                       suffix="%"
                       placeholder="25"
                     />
-                    
+
                     <NumberInputField
                       form={form}
                       name="dilution_max"
@@ -453,7 +453,7 @@ export function MonteCarloFormComponent({
                 </p>
               </div>
             )}
-            
+
             {isComplete && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">

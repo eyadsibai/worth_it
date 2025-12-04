@@ -29,7 +29,7 @@ echo ""
 if [ -z "$frontend_running" ] || [ -z "$backend_running" ]; then
     echo "Starting servers..."
     echo ""
-    
+
     # Start backend
     if [ -z "$backend_running" ]; then
         echo "Starting backend API..."
@@ -38,7 +38,7 @@ if [ -z "$frontend_running" ] || [ -z "$backend_running" ]; then
         BACKEND_PID=$!
         sleep 3
     fi
-    
+
     # Start frontend
     if [ -z "$frontend_running" ]; then
         echo "Starting frontend..."
@@ -47,7 +47,7 @@ if [ -z "$frontend_running" ] || [ -z "$backend_running" ]; then
         FRONTEND_PID=$!
         sleep 5
     fi
-    
+
     echo ""
 fi
 

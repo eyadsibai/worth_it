@@ -12,8 +12,9 @@ class Settings:
     """Application settings loaded from environment variables."""
 
     # API Configuration
-    API_HOST: str = os.getenv("API_HOST", "0.0.0.0")
+    API_HOST: str = os.getenv("API_HOST", "0.0.0.0")  # nosec B104 - intentional for container/docker binding
     API_PORT: int = int(os.getenv("API_PORT", "8000"))
+
     @property
     def API_BASE_URL(self) -> str:
         """Get API base URL, using API_PORT if not explicitly set."""
@@ -32,8 +33,8 @@ class Settings:
         """
         # Default origins for local development
         default_origins = [
-            "http://localhost:3000",      # Next.js default port
-            "http://localhost:8501",      # Legacy Streamlit port
+            "http://localhost:3000",  # Next.js default port
+            "http://localhost:8501",  # Legacy Streamlit port
             "http://127.0.0.1:3000",
             "http://127.0.0.1:8501",
         ]
@@ -84,13 +85,19 @@ class Settings:
             errors.append(f"Invalid API_PORT: {cls.API_PORT}. Must be between 1 and 65535.")
 
         if cls.STREAMLIT_PORT < 1 or cls.STREAMLIT_PORT > 65535:
-            errors.append(f"Invalid STREAMLIT_PORT: {cls.STREAMLIT_PORT}. Must be between 1 and 65535.")
+            errors.append(
+                f"Invalid STREAMLIT_PORT: {cls.STREAMLIT_PORT}. Must be between 1 and 65535."
+            )
 
         if cls.MAX_SIMULATIONS < 1 or cls.MAX_SIMULATIONS > 100000:
-            errors.append(f"Invalid MAX_SIMULATIONS: {cls.MAX_SIMULATIONS}. Must be between 1 and 100000.")
+            errors.append(
+                f"Invalid MAX_SIMULATIONS: {cls.MAX_SIMULATIONS}. Must be between 1 and 100000."
+            )
 
         if cls.LOG_LEVEL not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
-            errors.append(f"Invalid LOG_LEVEL: {cls.LOG_LEVEL}. Must be one of DEBUG, INFO, WARNING, ERROR, CRITICAL.")
+            errors.append(
+                f"Invalid LOG_LEVEL: {cls.LOG_LEVEL}. Must be one of DEBUG, INFO, WARNING, ERROR, CRITICAL."
+            )
 
         if errors:
             raise ValueError("Configuration validation failed:\n" + "\n".join(errors))

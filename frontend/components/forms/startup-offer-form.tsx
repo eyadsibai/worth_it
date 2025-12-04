@@ -30,13 +30,13 @@ export function StartupOfferFormComponent({
       <CardContent>
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "rsu" | "options")}>
           <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-lg">
-            <TabsTrigger 
-              value="rsu" 
+            <TabsTrigger
+              value="rsu"
               className="data-[state=active]:bg-card data-[state=active]:text-card-foreground data-[state=active]:shadow-sm transition-all"
             >
               RSUs
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="options"
               className="data-[state=active]:bg-card data-[state=active]:text-card-foreground data-[state=active]:shadow-sm transition-all"
             >

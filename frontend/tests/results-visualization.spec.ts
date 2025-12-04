@@ -4,7 +4,7 @@ test.describe('Results Visualization UI/UX', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-    
+
     // Fill in form with test data to get results
     await page.getByLabel(/hourly wage/i).fill('30');
     await page.getByLabel(/hours per week/i).fill('40');
@@ -16,18 +16,18 @@ test.describe('Results Visualization UI/UX', () => {
     await page.getByLabel(/monthly gas cost/i).fill('120');
     await page.getByLabel(/monthly maintenance/i).fill('50');
     await page.getByLabel(/monthly parking/i).fill('100');
-    
+
     // Calculate results
     await page.getByRole('button', { name: /calculate total cost/i }).click();
-    await page.waitForSelector('[data-testid="results-section"], .results-container, [class*="result"]', { 
-      timeout: 10000 
+    await page.waitForSelector('[data-testid="results-section"], .results-container, [class*="result"]', {
+      timeout: 10000
     });
   });
 
   test('should display total cost summary', async ({ page }) => {
     // Check for main cost display
     await expect(page.getByText(/total cost/i).first()).toBeVisible();
-    
+
     // Should show dollar amount
     const costPattern = /\$[\d,]+\.?\d*/;
     await expect(page.getByText(costPattern).first()).toBeVisible();
@@ -37,7 +37,7 @@ test.describe('Results Visualization UI/UX', () => {
     // Check for chart elements (svg or canvas)
     const chart = page.locator('svg.recharts-surface, canvas, [class*="chart"]').first();
     await expect(chart).toBeVisible();
-    
+
     // Check for chart legend
     const legend = page.locator('.recharts-legend, [class*="legend"]').first();
     if (await legend.isVisible()) {
@@ -50,7 +50,7 @@ test.describe('Results Visualization UI/UX', () => {
     // Look for hours worked display
     const hoursText = page.getByText(/hours/i);
     await expect(hoursText.first()).toBeVisible();
-    
+
     // Should show a numeric value for hours
     const hoursPattern = /\d+\.?\d*\s*hours?/i;
     await expect(page.getByText(hoursPattern).first()).toBeVisible();
@@ -59,7 +59,7 @@ test.describe('Results Visualization UI/UX', () => {
   test('should show monthly payment breakdown', async ({ page }) => {
     // Check for monthly payment information
     await expect(page.getByText(/monthly/i).first()).toBeVisible();
-    
+
     // Verify individual cost components are shown
     const costComponents = ['insurance', 'gas', 'maintenance', 'parking'];
     for (const component of costComponents) {
@@ -76,7 +76,7 @@ test.describe('Results Visualization UI/UX', () => {
     if (await chart.isVisible()) {
       // Hover over chart area to trigger tooltip
       await chart.hover({ position: { x: 100, y: 100 } });
-      
+
       // Check for tooltip
       const tooltip = page.locator('.recharts-tooltip, [role="tooltip"], [class*="tooltip"]');
       if (await tooltip.isVisible({ timeout: 2000 })) {
@@ -90,21 +90,21 @@ test.describe('Results Visualization UI/UX', () => {
     const initialCost = await page.locator('[data-testid*="total"], [class*="total"]')
       .first()
       .textContent();
-    
+
     // Change a value
     await page.getByLabel(/purchase price/i).fill('30000');
-    
+
     // Recalculate
     await page.getByRole('button', { name: /calculate/i }).click();
-    
+
     // Wait for update
     await page.waitForTimeout(1000);
-    
+
     // Get new total cost
     const updatedCost = await page.locator('[data-testid*="total"], [class*="total"]')
       .first()
       .textContent();
-    
+
     // Costs should be different
     expect(initialCost).not.toBe(updatedCost);
   });
@@ -115,7 +115,7 @@ test.describe('Results Visualization UI/UX', () => {
     if (await comparisonText.isVisible()) {
       await expect(comparisonText.first()).toBeVisible();
     }
-    
+
     // Check for percentage or ratio displays
     const percentPattern = /\d+\.?\d*%/;
     const percentText = page.getByText(percentPattern);
@@ -130,10 +130,10 @@ test.describe('Results Visualization UI/UX', () => {
     if (await printButton.isVisible()) {
       // Test print CSS by emulating print media
       await page.emulateMedia({ media: 'print' });
-      
+
       // Results should still be visible
       await expect(page.locator('[data-testid="results-section"], .results-container, [class*="result"]').first()).toBeVisible();
-      
+
       // Reset media
       await page.emulateMedia({ media: 'screen' });
     }
@@ -143,10 +143,10 @@ test.describe('Results Visualization UI/UX', () => {
     // Test with very expensive car
     await page.getByLabel(/purchase price/i).fill('100000');
     await page.getByRole('button', { name: /calculate/i }).click();
-    
+
     // Wait for results
     await page.waitForTimeout(1000);
-    
+
     // Should format large numbers with commas
     const largeNumberPattern = /\$\d{1,3}(,\d{3})+\.?\d*/;
     await expect(page.getByText(largeNumberPattern).first()).toBeVisible();
@@ -157,29 +157,29 @@ test.describe('Results Visualization UI/UX', () => {
     await page.keyboard.press('Tab');
     await page.keyboard.press('Tab');
     await page.keyboard.press('Tab');
-    
+
     // Check if focused element is within results
     const focusedElement = await page.evaluate(() => {
       const el = document.activeElement;
       return el ? el.tagName.toLowerCase() : null;
     });
-    
+
     expect(focusedElement).toBeTruthy();
   });
 
   test('should show loading state during calculation', async ({ page }) => {
     // Start fresh calculation
     await page.getByLabel(/purchase price/i).fill('35000');
-    
+
     // Click calculate and immediately check for loading state
     const calculatePromise = page.getByRole('button', { name: /calculate/i }).click();
-    
+
     // Check for loading indicators (capture for potential future assertions)
     const _loadingIndicator = page.locator('[class*="loading"], [class*="spinner"], [aria-busy="true"]');
     void _loadingIndicator; // Available for future loading state assertions
 
     await calculatePromise;
-    
+
     // Loading indicator might appear briefly
     // This test may need adjustment based on actual implementation
   });
@@ -187,17 +187,17 @@ test.describe('Results Visualization UI/UX', () => {
   test('should display error states gracefully', async ({ page }) => {
     // Clear required field
     await page.getByLabel(/hourly wage/i).clear();
-    
+
     // Try to calculate
     await page.getByRole('button', { name: /calculate/i }).click();
-    
+
     // Should show validation error, not break the UI
     await expect(page.getByText(/required|error|invalid/i).first()).toBeVisible();
-    
+
     // UI should remain functional
     await page.getByLabel(/hourly wage/i).fill('30');
     await page.getByRole('button', { name: /calculate/i }).click();
-    
+
     // Should work after fixing error
     await expect(page.locator('[data-testid="results-section"], .results-container, [class*="result"]').first()).toBeVisible({ timeout: 10000 });
   });
