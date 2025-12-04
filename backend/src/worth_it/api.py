@@ -72,6 +72,7 @@ def convert_equity_type_in_params(params: dict | None) -> dict | None:
 
     return result
 
+
 # Create FastAPI app
 app = FastAPI(
     title="Worth It API",
@@ -96,7 +97,10 @@ async def validation_error_handler(request: Request, exc: ValidationError) -> JS
     logger.warning(f"Validation error on {request.url.path}: {exc}")
     return JSONResponse(
         status_code=400,
-        content={"error": "validation_error", "message": "Invalid input. Please check your request and try again."},
+        content={
+            "error": "validation_error",
+            "message": "Invalid input. Please check your request and try again.",
+        },
     )
 
 
@@ -191,7 +195,8 @@ async def calculate_startup_scenario(request: StartupScenarioRequest):
         startup_params = convert_equity_type_in_params(request.startup_params)
 
         results = calculations.calculate_startup_scenario(
-            opportunity_cost_df, startup_params,
+            opportunity_cost_df,
+            startup_params,
         )
 
         # Convert DataFrame to dict
@@ -235,7 +240,9 @@ async def calculate_npv(request: NPVRequest):
     try:
         monthly_surpluses = pd.Series(request.monthly_surpluses)
         npv = calculations.calculate_npv(
-            monthly_surpluses, request.annual_roi, request.final_payout_value,
+            monthly_surpluses,
+            request.annual_roi,
+            request.final_payout_value,
         )
         return NPVResponse(npv=npv if pd.notna(npv) else None)
     except (ValueError, TypeError) as e:
@@ -291,12 +298,14 @@ async def websocket_monte_carlo(websocket: WebSocket):
         base_params = convert_equity_type_in_params(request.base_params)
 
         # Send initial progress
-        await websocket.send_json({
-            "type": "progress",
-            "current": 0,
-            "total": request.num_simulations,
-            "percentage": 0,
-        })
+        await websocket.send_json(
+            {
+                "type": "progress",
+                "current": 0,
+                "total": request.num_simulations,
+                "percentage": 0,
+            }
+        )
 
         # Run simulation in batches to send progress updates
         batch_size = max(100, request.num_simulations // 20)  # Send ~20 updates
@@ -319,19 +328,23 @@ async def websocket_monte_carlo(websocket: WebSocket):
             # Send progress update
             completed = i + current_batch_size
             percentage = (completed / request.num_simulations) * 100
-            await websocket.send_json({
-                "type": "progress",
-                "current": completed,
-                "total": request.num_simulations,
-                "percentage": round(percentage, 2),
-            })
+            await websocket.send_json(
+                {
+                    "type": "progress",
+                    "current": completed,
+                    "total": request.num_simulations,
+                    "percentage": round(percentage, 2),
+                }
+            )
 
         # Send final results
-        await websocket.send_json({
-            "type": "complete",
-            "net_outcomes": all_net_outcomes,
-            "simulated_valuations": all_simulated_valuations,
-        })
+        await websocket.send_json(
+            {
+                "type": "complete",
+                "net_outcomes": all_net_outcomes,
+                "simulated_valuations": all_simulated_valuations,
+            }
+        )
 
     except WebSocketDisconnect:
         logger.info("WebSocket client disconnected during Monte Carlo simulation")
@@ -339,20 +352,24 @@ async def websocket_monte_carlo(websocket: WebSocket):
         # Known calculation errors - log and send sanitized message
         logger.error(f"Calculation error in WebSocket Monte Carlo: {e}", exc_info=True)
         try:
-            await websocket.send_json({
-                "type": "error",
-                "message": "Invalid parameters for simulation",
-            })
+            await websocket.send_json(
+                {
+                    "type": "error",
+                    "message": "Invalid parameters for simulation",
+                }
+            )
         except Exception:
             logger.error("Failed to send error message to WebSocket client")
     except Exception as e:
         # Unexpected errors - log full details but send generic message
         logger.exception(f"Unexpected error in WebSocket Monte Carlo: {e}")
         try:
-            await websocket.send_json({
-                "type": "error",
-                "message": "An unexpected error occurred during simulation",
-            })
+            await websocket.send_json(
+                {
+                    "type": "error",
+                    "message": "An unexpected error occurred during simulation",
+                }
+            )
         except Exception:
             logger.error("Failed to send error message to WebSocket client")
     finally:
@@ -373,7 +390,8 @@ async def run_sensitivity_analysis(request: SensitivityAnalysisRequest):
         base_params = convert_equity_type_in_params(request.base_params)
 
         df = calculations.run_sensitivity_analysis(
-            base_params=base_params, sim_param_configs=request.sim_param_configs,
+            base_params=base_params,
+            sim_param_configs=request.sim_param_configs,
         )
         return SensitivityAnalysisResponse(data=df.to_dict(orient="records"))  # type: ignore[arg-type]
     except (ValueError, TypeError, KeyError) as e:
@@ -389,7 +407,8 @@ async def calculate_dilution_from_valuation(request: DilutionFromValuationReques
     """
     try:
         dilution = calculations.calculate_dilution_from_valuation(
-            request.pre_money_valuation, request.amount_raised,
+            request.pre_money_valuation,
+            request.amount_raised,
         )
         return DilutionFromValuationResponse(dilution=dilution)
     except (ValueError, ZeroDivisionError) as e:
