@@ -408,9 +408,9 @@ def calculate_startup_scenario(
             np.inf,  # Breakeven not achievable when no options are vested
         )
         results_df["Breakeven Value"] = np.where(
-            np.isinf(breakeven_price_above_strike),
+            vested_options_series > 0,
+            (opportunity_cost / vested_options_series) + strike_price,
             np.inf,
-            breakeven_price_above_strike + strike_price,
         )
 
         output.update(
