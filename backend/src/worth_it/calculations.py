@@ -156,7 +156,18 @@ def calculate_annual_opportunity_cost(
     results_df = pd.DataFrame(
         index=pd.RangeIndex(1, monthly_df_copy["Year"].max() + 1, name="Year")
     )
+
+    # Add yearly salary aggregates for display in the frontend table
+    annual_startup_salary = monthly_df_copy.groupby("Year")["StartupSalary"].sum()
+    annual_current_job_salary = monthly_df_copy.groupby("Year")["CurrentJobSalary"].sum()
     annual_surplus = monthly_df_copy.groupby("Year")["MonthlySurplus"].sum()
+
+    results_df["StartupSalary"] = annual_startup_salary
+    results_df["CurrentJobSalary"] = annual_current_job_salary
+    results_df["MonthlySurplus"] = (
+        annual_surplus  # Yearly surplus (misleading name kept for compat)
+    )
+
     principal_col_label = "Principal Forgone" if annual_surplus.sum() >= 0 else "Salary Gain"
 
     results_df[principal_col_label] = annual_surplus.cumsum()

@@ -201,8 +201,29 @@ async def calculate_startup_scenario(request: StartupScenarioRequest):
             startup_params,
         )
 
-        # Convert DataFrame to dict
-        results_df_dict = results["results_df"].to_dict(orient="records")
+        # Convert DataFrame to dict with frontend-expected column names
+        results_df = results["results_df"]
+
+        # Map backend column names to frontend-expected snake_case names
+        column_mapping = {
+            "Year": "year",
+            "StartupSalary": "startup_monthly_salary",
+            "CurrentJobSalary": "current_job_monthly_salary",
+            "MonthlySurplus": "monthly_surplus",
+            "Opportunity Cost (Invested Surplus)": "cumulative_opportunity_cost",
+            "Principal Forgone": "principal_forgone",
+            "Salary Gain": "salary_gain",
+            "Cash From Sale (FV)": "cash_from_sale_fv",
+            "Investment Returns": "investment_returns",
+            "Vested Equity (%)": "vested_equity_pct",
+            "CumulativeDilution": "cumulative_dilution",
+            "Breakeven Value": "breakeven_value",
+        }
+
+        # Rename columns that exist in the DataFrame
+        rename_cols = {k: v for k, v in column_mapping.items() if k in results_df.columns}
+        results_df_renamed = results_df.rename(columns=rename_cols)
+        results_df_dict = results_df_renamed.to_dict(orient="records")
 
         return StartupScenarioResponse(
             results_df=results_df_dict,

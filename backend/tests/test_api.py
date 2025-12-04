@@ -115,6 +115,76 @@ def test_startup_scenario_rsu():
     assert data["payout_label"] == "Your Equity Value (Post-Dilution)"
 
 
+def test_startup_scenario_results_df_column_names():
+    """Test that results_df returns snake_case column names expected by frontend."""
+    # Setup data
+    monthly_request = {
+        "exit_year": 4,
+        "current_job_monthly_salary": 15000,
+        "startup_monthly_salary": 10000,
+        "current_job_salary_growth_rate": 0.0,
+        "dilution_rounds": None,
+    }
+    monthly_response = client.post("/api/monthly-data-grid", json=monthly_request)
+    monthly_data = monthly_response.json()["data"]
+
+    startup_params = {
+        "equity_type": "Equity (RSUs)",
+        "total_vesting_years": 4,
+        "cliff_years": 1,
+        "exit_year": 4,
+        "rsu_params": {
+            "equity_pct": 0.05,
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": False,
+        },
+        "options_params": {},
+    }
+
+    opp_request = {
+        "monthly_data": monthly_data,
+        "annual_roi": 0.05,
+        "investment_frequency": "Annually",
+        "options_params": None,
+        "startup_params": startup_params,
+    }
+    opp_response = client.post("/api/opportunity-cost", json=opp_request)
+    opp_data = opp_response.json()["data"]
+
+    # Calculate scenario
+    scenario_request = {
+        "opportunity_cost_data": opp_data,
+        "startup_params": startup_params,
+    }
+    response = client.post("/api/startup-scenario", json=scenario_request)
+    assert response.status_code == 200
+    data = response.json()
+
+    # Verify results_df has the expected snake_case column names
+    results_df = data["results_df"]
+    assert len(results_df) == 4  # 4 years
+
+    # Check first row has expected columns
+    first_row = results_df[0]
+    expected_columns = [
+        "year",
+        "startup_monthly_salary",
+        "current_job_monthly_salary",
+        "monthly_surplus",
+        "cumulative_opportunity_cost",
+    ]
+    for col in expected_columns:
+        assert col in first_row, f"Missing expected column: {col}"
+
+    # Verify the values are correct (not zeros)
+    assert first_row["year"] == 1
+    # Yearly totals: 12 months * monthly_salary
+    assert first_row["startup_monthly_salary"] == 10000 * 12  # 120,000
+    assert first_row["current_job_monthly_salary"] == 15000 * 12  # 180,000
+    assert first_row["monthly_surplus"] == (15000 - 10000) * 12  # 60,000 per year
+    assert first_row["cumulative_opportunity_cost"] > 0  # Should be positive
+
+
 def test_startup_scenario_options():
     """Test calculating startup scenario with stock options."""
     # Setup data
