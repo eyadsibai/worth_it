@@ -395,3 +395,135 @@ def test_error_messages_do_not_expose_implementation_details():
         assert "ZeroDivisionError" not in data["message"]
         assert "division" not in data["message"].lower()
         assert "zero" not in data["message"].lower()
+
+
+# --- WebSocket Tests ---
+class TestWebSocketMonteCarlo:
+    """Tests for the /ws/monte-carlo WebSocket endpoint."""
+
+    @staticmethod
+    def _get_valid_request():
+        """Get a valid Monte Carlo request payload."""
+        return {
+            "num_simulations": 20,
+            "base_params": {
+                "exit_year": 3,
+                "current_job_monthly_salary": 10000,
+                "startup_monthly_salary": 8000,
+                "current_job_salary_growth_rate": 0.03,
+                "annual_roi": 0.05,
+                "investment_frequency": "Annually",
+                "startup_params": {
+                    "equity_type": "Equity (RSUs)",
+                    "total_vesting_years": 4,
+                    "cliff_years": 1,
+                    "rsu_params": {
+                        "equity_pct": 0.05,
+                        "target_exit_valuation": 20_000_000,
+                        "simulate_dilution": False,
+                    },
+                    "options_params": {},
+                },
+                "failure_probability": 0.0,
+            },
+            "sim_param_configs": {
+                "valuation": {"min_val": 10_000_000, "max_val": 30_000_000, "mode": 20_000_000},
+                "roi": {"mean": 0.05, "std_dev": 0.02},
+            },
+        }
+
+    def test_websocket_connection(self):
+        """Test that WebSocket connection can be established."""
+        with client.websocket_connect("/ws/monte-carlo") as websocket:
+            # Connection established successfully
+            assert websocket is not None
+
+    def test_websocket_receives_progress_and_complete(self):
+        """Test that WebSocket receives progress updates and completion message."""
+        with client.websocket_connect("/ws/monte-carlo") as websocket:
+            websocket.send_json(self._get_valid_request())
+
+            messages = []
+            while True:
+                msg = websocket.receive_json()
+                messages.append(msg)
+                if msg.get("type") == "complete":
+                    break
+                # Prevent infinite loop
+                if len(messages) > 100:
+                    break
+
+            # Should have at least one message (complete)
+            assert len(messages) >= 1
+
+            # Last message should be complete
+            complete_msg = messages[-1]
+            assert complete_msg["type"] == "complete"
+            # Results are at top level, not nested under "result"
+            assert "net_outcomes" in complete_msg
+            assert "simulated_valuations" in complete_msg
+
+    def test_websocket_progress_message_format(self):
+        """Test that progress messages have correct format."""
+        with client.websocket_connect("/ws/monte-carlo") as websocket:
+            request = self._get_valid_request()
+            request["num_simulations"] = 100  # More simulations for progress updates
+            websocket.send_json(request)
+
+            progress_messages = []
+            while True:
+                msg = websocket.receive_json()
+                if msg.get("type") == "progress":
+                    progress_messages.append(msg)
+                elif msg.get("type") == "complete":
+                    break
+                if len(progress_messages) > 50:
+                    break
+
+            # Should have progress messages for larger simulations
+            if progress_messages:
+                progress_msg = progress_messages[0]
+                # Progress uses 'current' field
+                assert "current" in progress_msg
+                assert "total" in progress_msg
+                assert "percentage" in progress_msg
+                assert progress_msg["current"] >= 0
+                assert progress_msg["total"] > 0
+
+    def test_websocket_invalid_json(self):
+        """Test that invalid JSON triggers error response."""
+        with client.websocket_connect("/ws/monte-carlo") as websocket:
+            websocket.send_text("invalid json {{{")
+            msg = websocket.receive_json()
+            assert msg["type"] == "error"
+            assert "message" in msg
+
+    def test_websocket_validation_error(self):
+        """Test that invalid request parameters trigger error response."""
+        with client.websocket_connect("/ws/monte-carlo") as websocket:
+            invalid_request = {"num_simulations": -1}  # Invalid
+            websocket.send_json(invalid_request)
+            msg = websocket.receive_json()
+            assert msg["type"] == "error"
+            assert "message" in msg
+
+    def test_websocket_complete_result_format(self):
+        """Test that complete message has correct result format."""
+        with client.websocket_connect("/ws/monte-carlo") as websocket:
+            websocket.send_json(self._get_valid_request())
+
+            # Get to complete message
+            complete_msg = None
+            for _ in range(100):
+                msg = websocket.receive_json()
+                if msg.get("type") == "complete":
+                    complete_msg = msg
+                    break
+
+            assert complete_msg is not None
+
+            # Verify result structure - data is at top level, not nested under "result"
+            assert isinstance(complete_msg["net_outcomes"], list)
+            assert isinstance(complete_msg["simulated_valuations"], list)
+            assert len(complete_msg["net_outcomes"]) == 20  # num_simulations
+            assert len(complete_msg["simulated_valuations"]) == 20
