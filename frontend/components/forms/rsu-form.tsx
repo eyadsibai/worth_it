@@ -11,6 +11,7 @@ import { DilutionRoundFormComponent } from "./dilution-round-form";
 import { RSUFormSchema } from "@/lib/schemas";
 import type { RSUForm, DilutionRoundForm } from "@/lib/schemas";
 import { useDeepCompareEffect } from "@/lib/use-deep-compare";
+import { DEFAULT_DILUTION_ROUNDS } from "@/lib/constants/funding-rounds";
 
 interface RSUFormProps {
   defaultValues?: Partial<RSUForm>;
@@ -29,14 +30,7 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
       cliff_period: defaultValues?.cliff_period ?? 1,
       exit_valuation: defaultValues?.exit_valuation ?? 0,
       simulate_dilution: defaultValues?.simulate_dilution ?? false,
-      dilution_rounds: defaultValues?.dilution_rounds ?? [
-        { round_name: "Pre-Seed", round_type: "SAFE_NOTE" as const, year: 0, enabled: false, dilution_pct: 10, pre_money_valuation: 5000000, amount_raised: 500000, salary_change: 0 },
-        { round_name: "Seed", round_type: "SAFE_NOTE" as const, year: 1, enabled: false, dilution_pct: 15, pre_money_valuation: 8000000, amount_raised: 1500000, salary_change: 0 },
-        { round_name: "Series A", round_type: "PRICED_ROUND" as const, year: 2, enabled: false, dilution_pct: 20, pre_money_valuation: 15000000, amount_raised: 5000000, salary_change: 0 },
-        { round_name: "Series B", round_type: "PRICED_ROUND" as const, year: 3, enabled: false, dilution_pct: 18, pre_money_valuation: 40000000, amount_raised: 10000000, salary_change: 0 },
-        { round_name: "Series C", round_type: "PRICED_ROUND" as const, year: 4, enabled: false, dilution_pct: 15, pre_money_valuation: 80000000, amount_raised: 15000000, salary_change: 0 },
-        { round_name: "Series D", round_type: "PRICED_ROUND" as const, year: 5, enabled: false, dilution_pct: 12, pre_money_valuation: 150000000, amount_raised: 20000000, salary_change: 0 },
-      ],
+      dilution_rounds: defaultValues?.dilution_rounds ?? DEFAULT_DILUTION_ROUNDS,
     },
     mode: "onChange",
   });
