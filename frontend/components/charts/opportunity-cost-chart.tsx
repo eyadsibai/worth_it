@@ -12,22 +12,12 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
+import { formatCurrencyCompact } from "@/lib/format-utils";
 
 interface OpportunityCostChartProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: Array<Record<string, any>>;
 }
-
-// Format currency with compact notation (e.g., SAR 10K)
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("en-SA", {
-    style: "currency",
-    currency: "SAR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-    notation: "compact",
-  }).format(value);
-};
 
 export const OpportunityCostChart = React.memo(function OpportunityCostChart({
   data
@@ -63,10 +53,10 @@ export const OpportunityCostChart = React.memo(function OpportunityCostChart({
         <YAxis
           className="text-xs"
           tick={{ fill: "currentColor" }}
-          tickFormatter={formatCurrency}
+          tickFormatter={formatCurrencyCompact}
         />
         <Tooltip
-          formatter={(value: number) => formatCurrency(value)}
+          formatter={(value: number) => formatCurrencyCompact(value)}
           contentStyle={{
             backgroundColor: "hsl(var(--background))",
             border: "1px solid hsl(var(--border))",

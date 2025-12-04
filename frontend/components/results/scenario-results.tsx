@@ -8,6 +8,7 @@ import { TrendingUp, TrendingDown, DollarSign, Calendar, Percent } from "lucide-
 import type { StartupScenarioResponse } from "@/lib/schemas";
 import { CumulativeComparisonChart } from "@/components/charts/cumulative-comparison-chart";
 import { OpportunityCostChart } from "@/components/charts/opportunity-cost-chart";
+import { formatCurrency } from "@/lib/format-utils";
 
 interface ScenarioResultsProps {
   results: StartupScenarioResponse;
@@ -228,13 +229,4 @@ export function ScenarioResults({ results, isLoading, monteCarloContent }: Scena
       </Card>
     </div>
   );
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("en-SA", {
-    style: "currency",
-    currency: "SAR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
 }
