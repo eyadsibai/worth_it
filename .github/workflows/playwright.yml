@@ -2,7 +2,7 @@ name: Playwright Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ master, main, develop ]
     paths:
       - 'frontend/**'
       - 'backend/**'
@@ -10,7 +10,7 @@ on:
       - 'playwright.config.ts'
       - 'package.json'
   pull_request:
-    branches: [ main, develop ]
+    branches: [ master, main, develop ]
     paths:
       - 'frontend/**'
       - 'backend/**'
@@ -47,15 +47,20 @@ jobs:
         cd frontend
         npm ci
 
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+
     - name: Install Backend dependencies
       run: |
         cd backend
-        pip install .
+        uv sync
 
     - name: Start Backend Server
       run: |
         cd backend
-        python3 -m uvicorn worth_it.api:app --host 0.0.0.0 --port 8000 &
+        uv run uvicorn worth_it.api:app --host 0.0.0.0 --port 8000 &
         # Wait for backend to be ready
         for i in {1..30}; do
           if curl -s http://localhost:8000/health > /dev/null; then
