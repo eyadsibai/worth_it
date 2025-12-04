@@ -43,7 +43,8 @@ export const CumulativeComparisonChart = React.memo(function CumulativeCompariso
   );
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
+    <div role="img" aria-label="Bar chart comparing startup salary and current job salary over years">
+        <ResponsiveContainer width="100%" height={400}>
       <BarChart
         data={chartData}
         margin={{
@@ -87,6 +88,7 @@ export const CumulativeComparisonChart = React.memo(function CumulativeCompariso
         />
       </BarChart>
     </ResponsiveContainer>
+      </div>
   );
 });
 

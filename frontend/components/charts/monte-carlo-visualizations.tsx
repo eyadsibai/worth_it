@@ -142,7 +142,8 @@ export const MonteCarloVisualizations = React.memo(function MonteCarloVisualizat
               <p className="text-sm text-muted-foreground mb-4">
                 Frequency distribution showing how often different outcomes occur
               </p>
-              <ResponsiveContainer width="100%" height={400}>
+              <div role="img" aria-label="Histogram showing distribution of net outcomes from Monte Carlo simulation">
+                <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={histogramData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis
@@ -176,6 +177,7 @@ export const MonteCarloVisualizations = React.memo(function MonteCarloVisualizat
                   <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
                 </BarChart>
               </ResponsiveContainer>
+              </div>
             </div>
           </TabsContent>
 
@@ -186,7 +188,8 @@ export const MonteCarloVisualizations = React.memo(function MonteCarloVisualizat
               <p className="text-sm text-muted-foreground mb-4">
                 Probability that outcome is less than or equal to a given value
               </p>
-              <ResponsiveContainer width="100%" height={400}>
+              <div role="img" aria-label="Cumulative distribution line chart showing probability of outcomes">
+                <ResponsiveContainer width="100%" height={400}>
                 <LineChart data={ecdfData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis
@@ -225,6 +228,7 @@ export const MonteCarloVisualizations = React.memo(function MonteCarloVisualizat
                   />
                 </LineChart>
               </ResponsiveContainer>
+              </div>
             </div>
           </TabsContent>
 
@@ -235,7 +239,8 @@ export const MonteCarloVisualizations = React.memo(function MonteCarloVisualizat
               <p className="text-sm text-muted-foreground mb-4">
                 Visual summary of distribution showing quartiles and extremes
               </p>
-              <ResponsiveContainer width="100%" height={400}>
+              <div role="img" aria-label="Horizontal bar chart showing outcome percentiles from minimum to maximum">
+                <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={boxPlotData} layout="horizontal">
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis
@@ -257,6 +262,7 @@ export const MonteCarloVisualizations = React.memo(function MonteCarloVisualizat
                   <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
                 </BarChart>
               </ResponsiveContainer>
+              </div>
             </div>
           </TabsContent>
 
@@ -267,7 +273,8 @@ export const MonteCarloVisualizations = React.memo(function MonteCarloVisualizat
               <p className="text-sm text-muted-foreground mb-4">
                 Relationship between simulated valuations and net outcomes
               </p>
-              <ResponsiveContainer width="100%" height={400}>
+              <div role="img" aria-label="Scatter plot showing relationship between exit valuations and net outcomes">
+                <ResponsiveContainer width="100%" height={400}>
                 <ScatterChart>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis
@@ -301,6 +308,7 @@ export const MonteCarloVisualizations = React.memo(function MonteCarloVisualizat
                   <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
                 </ScatterChart>
               </ResponsiveContainer>
+              </div>
             </div>
           </TabsContent>
 
@@ -390,7 +398,8 @@ export const MonteCarloVisualizations = React.memo(function MonteCarloVisualizat
               <p className="text-sm text-muted-foreground mb-4">
                 Smooth approximation of the probability distribution
               </p>
-              <ResponsiveContainer width="100%" height={400}>
+              <div role="img" aria-label="Probability density function line chart showing smooth approximation of outcome distribution">
+                <ResponsiveContainer width="100%" height={400}>
                 <LineChart data={histogramData}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis
@@ -425,6 +434,7 @@ export const MonteCarloVisualizations = React.memo(function MonteCarloVisualizat
                   <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
                 </LineChart>
               </ResponsiveContainer>
+              </div>
             </div>
           </TabsContent>
 

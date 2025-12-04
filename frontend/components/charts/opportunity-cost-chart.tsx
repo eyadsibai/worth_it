@@ -43,7 +43,8 @@ export const OpportunityCostChart = React.memo(function OpportunityCostChart({
   );
 
   return (
-    <ResponsiveContainer width="100%" height={400}>
+    <div role="img" aria-label="Line chart showing cumulative opportunity cost and annual surplus over time">
+        <ResponsiveContainer width="100%" height={400}>
       <LineChart
         data={chartData}
         margin={{
@@ -94,6 +95,7 @@ export const OpportunityCostChart = React.memo(function OpportunityCostChart({
         />
       </LineChart>
     </ResponsiveContainer>
+      </div>
   );
 });
 
