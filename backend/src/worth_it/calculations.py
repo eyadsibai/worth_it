@@ -9,6 +9,7 @@ It is designed to be independent of the Streamlit UI.
 from __future__ import annotations
 
 from enum import Enum
+from typing import Any
 
 import numpy as np
 import numpy_financial as npf
@@ -76,8 +77,8 @@ def calculate_annual_opportunity_cost(
     monthly_df: pd.DataFrame,
     annual_roi: float,
     investment_frequency: str,
-    options_params: dict | None = None,
-    startup_params: dict | None = None,
+    options_params: dict[str, Any] | None = None,
+    startup_params: dict[str, Any] | None = None,
 ) -> pd.DataFrame:
     """
     Calculates the future value (opportunity cost) of the forgone surplus for each year.
@@ -248,7 +249,9 @@ def calculate_dilution_from_valuation(pre_money_valuation: float, amount_raised:
     return amount_raised / post_money_valuation
 
 
-def calculate_startup_scenario(opportunity_cost_df: pd.DataFrame, startup_params: dict) -> dict:
+def calculate_startup_scenario(
+    opportunity_cost_df: pd.DataFrame, startup_params: dict[str, Any]
+) -> dict[str, Any]:
     """
     Calculates the financial outcomes for a given startup equity package.
     This function handles both RSU and Stock Option scenarios.

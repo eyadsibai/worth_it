@@ -8,6 +8,8 @@ simulations, and sensitivity analysis.
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -22,7 +24,7 @@ from worth_it.calculations import (
 
 
 def get_random_variates_pert(
-    num_simulations: int, config: dict | None, default_val: float
+    num_simulations: int, config: dict[str, Any] | None, default_val: float
 ) -> np.ndarray:
     """
     Generates random numbers based on a PERT distribution.
@@ -60,8 +62,8 @@ def get_random_variates_pert(
 
 def run_monte_carlo_simulation(
     num_simulations: int,
-    base_params: dict,
-    sim_param_configs: dict,
+    base_params: dict[str, Any],
+    sim_param_configs: dict[str, Any],
 ) -> dict[str, np.ndarray]:
     """
     Prepares parameters and runs the appropriate Monte Carlo simulation.
@@ -126,7 +128,7 @@ def run_monte_carlo_simulation(
 
 
 def run_monte_carlo_simulation_vectorized(
-    num_simulations: int, base_params: dict, sim_params: dict[str, np.ndarray]
+    num_simulations: int, base_params: dict[str, Any], sim_params: dict[str, np.ndarray]
 ) -> dict[str, np.ndarray]:
     """
     Vectorized Monte Carlo simulation for fixed exit year scenarios.
@@ -306,8 +308,8 @@ def run_monte_carlo_simulation_vectorized(
 
 def run_monte_carlo_simulation_iterative(
     num_simulations: int,
-    base_params: dict,
-    sim_param_configs: dict,
+    base_params: dict[str, Any],
+    sim_param_configs: dict[str, Any],
 ) -> dict[str, np.ndarray]:
     """
     Iterative Monte Carlo simulation for variable exit year scenarios.
@@ -323,7 +325,7 @@ def run_monte_carlo_simulation_iterative(
     Returns:
         Dictionary with 'net_outcomes' and 'simulated_valuations' arrays
     """
-    sim_params: dict = {}
+    sim_params: dict[str, Any] = {}
     sim_params["exit_year"] = get_random_variates_pert(
         num_simulations, sim_param_configs.get("exit_year"), base_params["exit_year"]
     ).astype(int)
@@ -417,7 +419,9 @@ def run_monte_carlo_simulation_iterative(
     }
 
 
-def run_sensitivity_analysis(base_params: dict, sim_param_configs: dict) -> pd.DataFrame:
+def run_sensitivity_analysis(
+    base_params: dict[str, Any], sim_param_configs: dict[str, Any]
+) -> pd.DataFrame:
     """
     Runs a sensitivity analysis on simulated variables.
 
