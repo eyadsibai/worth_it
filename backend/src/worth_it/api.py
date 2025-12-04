@@ -38,6 +38,40 @@ from worth_it.models import (
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
+def convert_equity_type_in_params(params: dict | None) -> dict | None:
+    """Convert string equity_type to EquityType enum in params dict.
+
+    Handles both direct equity_type and nested startup_params.equity_type.
+    Returns a copy of the dict to avoid mutating the original.
+
+    Args:
+        params: Dictionary that may contain equity_type as string
+
+    Returns:
+        Copy of params with equity_type converted to enum, or None if input is None
+    """
+    if params is None:
+        return None
+
+    result = params.copy()
+
+    # Direct equity_type conversion
+    if "equity_type" in result and isinstance(result["equity_type"], str):
+        result["equity_type"] = calculations.EquityType(result["equity_type"])
+
+    # Nested startup_params.equity_type conversion
+    if "startup_params" in result and result["startup_params"]:
+        result["startup_params"] = result["startup_params"].copy()
+        if "equity_type" in result["startup_params"] and isinstance(
+            result["startup_params"]["equity_type"], str
+        ):
+            result["startup_params"]["equity_type"] = calculations.EquityType(
+                result["startup_params"]["equity_type"]
+            )
+
+    return result
+
 # Create FastAPI app
 app = FastAPI(
     title="Worth It API",
@@ -131,13 +165,7 @@ async def calculate_opportunity_cost(request: OpportunityCostRequest):
     """
     try:
         monthly_df = pd.DataFrame(request.monthly_data)
-
-        # Convert equity_type string to EquityType enum if needed
-        startup_params = request.startup_params.copy() if request.startup_params else None
-        if startup_params and "equity_type" in startup_params and isinstance(startup_params["equity_type"], str):
-            startup_params["equity_type"] = calculations.EquityType(
-                startup_params["equity_type"],
-            )
+        startup_params = convert_equity_type_in_params(request.startup_params)
 
         df = calculations.calculate_annual_opportunity_cost(
             monthly_df=monthly_df,
@@ -160,13 +188,7 @@ async def calculate_startup_scenario(request: StartupScenarioRequest):
     """
     try:
         opportunity_cost_df = pd.DataFrame(request.opportunity_cost_data)
-
-        # Convert equity_type string to EquityType enum if needed
-        startup_params = request.startup_params.copy()
-        if "equity_type" in startup_params and isinstance(startup_params["equity_type"], str):
-            startup_params["equity_type"] = calculations.EquityType(
-                startup_params["equity_type"],
-            )
+        startup_params = convert_equity_type_in_params(request.startup_params)
 
         results = calculations.calculate_startup_scenario(
             opportunity_cost_df, startup_params,
@@ -228,18 +250,7 @@ async def run_monte_carlo_simulation(request: MonteCarloRequest):
     to understand the range of potential outcomes.
     """
     try:
-        # Convert equity_type string to EquityType enum if needed
-        base_params = request.base_params.copy()
-        if (
-            "startup_params" in base_params
-            and "equity_type" in base_params["startup_params"]
-        ):
-            # Also need to copy nested dict to avoid mutating the original
-            base_params["startup_params"] = base_params["startup_params"].copy()
-            if isinstance(base_params["startup_params"]["equity_type"], str):
-                base_params["startup_params"]["equity_type"] = calculations.EquityType(
-                    base_params["startup_params"]["equity_type"],
-                )
+        base_params = convert_equity_type_in_params(request.base_params)
 
         results = calculations.run_monte_carlo_simulation(
             num_simulations=request.num_simulations,
@@ -277,18 +288,7 @@ async def websocket_monte_carlo(websocket: WebSocket):
 
         # Validate request using Pydantic model
         request = MonteCarloRequest(**request_data)
-
-        # Convert equity_type string to EquityType enum if needed
-        base_params = request.base_params.copy()
-        if (
-            "startup_params" in base_params
-            and "equity_type" in base_params["startup_params"]
-        ):
-            base_params["startup_params"] = base_params["startup_params"].copy()
-            if isinstance(base_params["startup_params"]["equity_type"], str):
-                base_params["startup_params"]["equity_type"] = calculations.EquityType(
-                    base_params["startup_params"]["equity_type"],
-                )
+        base_params = convert_equity_type_in_params(request.base_params)
 
         # Send initial progress
         await websocket.send_json({
@@ -370,18 +370,7 @@ async def run_sensitivity_analysis(request: SensitivityAnalysisRequest):
     to identify the most influential factors.
     """
     try:
-        # Convert equity_type string to EquityType enum if needed
-        base_params = request.base_params.copy()
-        if (
-            "startup_params" in base_params
-            and "equity_type" in base_params["startup_params"]
-        ):
-            # Also need to copy nested dict to avoid mutating the original
-            base_params["startup_params"] = base_params["startup_params"].copy()
-            if isinstance(base_params["startup_params"]["equity_type"], str):
-                base_params["startup_params"]["equity_type"] = calculations.EquityType(
-                    base_params["startup_params"]["equity_type"],
-                )
+        base_params = convert_equity_type_in_params(request.base_params)
 
         df = calculations.run_sensitivity_analysis(
             base_params=base_params, sim_param_configs=request.sim_param_configs,
