@@ -227,9 +227,7 @@ def calculate_annual_opportunity_cost(
     return results_df
 
 
-def calculate_dilution_from_valuation(
-    pre_money_valuation: float, amount_raised: float
-) -> float:
+def calculate_dilution_from_valuation(pre_money_valuation: float, amount_raised: float) -> float:
     """
     Calculate dilution percentage from a funding round.
 
@@ -244,9 +242,7 @@ def calculate_dilution_from_valuation(
         ValueError: If pre_money_valuation <= 0 or amount_raised < 0
     """
     if pre_money_valuation <= 0:
-        raise ValueError(
-            f"pre_money_valuation must be positive, got {pre_money_valuation}"
-        )
+        raise ValueError(f"pre_money_valuation must be positive, got {pre_money_valuation}")
     if amount_raised < 0:
         raise ValueError(f"amount_raised cannot be negative, got {amount_raised}")
 
@@ -421,7 +417,7 @@ def calculate_startup_scenario(
         # Calculate breakeven price per share: (opportunity_cost / vested_options) + strike_price
         # When vested_options is 0, breakeven is infinite (not achievable)
         opportunity_cost = results_df["Opportunity Cost (Invested Surplus)"]
-        breakeven_price_above_strike = np.where(
+        np.where(
             vested_options_series > 0,
             opportunity_cost / vested_options_series,
             np.inf,  # Breakeven not achievable when no options are vested
