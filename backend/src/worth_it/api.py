@@ -8,11 +8,13 @@ import json
 import logging
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from worth_it import calculations
 from worth_it.config import settings
+from worth_it.exceptions import CalculationError, ValidationError, WorthItError
 from worth_it.models import (
     DilutionFromValuationRequest,
     DilutionFromValuationResponse,
@@ -53,6 +55,47 @@ app.add_middleware(
 )
 
 
+# Global exception handlers - provide sanitized error messages to clients
+@app.exception_handler(ValidationError)
+async def validation_error_handler(request: Request, exc: ValidationError) -> JSONResponse:
+    """Handle validation errors with 400 status code."""
+    logger.warning(f"Validation error on {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=400,
+        content={"error": "validation_error", "message": str(exc)},
+    )
+
+
+@app.exception_handler(CalculationError)
+async def calculation_error_handler(request: Request, exc: CalculationError) -> JSONResponse:
+    """Handle calculation errors with 400 status code."""
+    logger.error(f"Calculation error on {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=400,
+        content={"error": "calculation_error", "message": str(exc)},
+    )
+
+
+@app.exception_handler(WorthItError)
+async def worthit_error_handler(request: Request, exc: WorthItError) -> JSONResponse:
+    """Handle any other WorthIt errors with 500 status code."""
+    logger.error(f"Application error on {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"error": "application_error", "message": "An application error occurred"},
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Handle unexpected errors - log full details but return sanitized message."""
+    logger.exception(f"Unexpected error on {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"error": "internal_error", "message": "An unexpected error occurred"},
+    )
+
+
 @app.get("/health", response_model=HealthCheckResponse)
 async def health_check():
     """Health check endpoint to verify API is running."""
@@ -75,8 +118,8 @@ async def create_monthly_data_grid(request: MonthlyDataGridRequest):
             dilution_rounds=request.dilution_rounds,
         )
         return MonthlyDataGridResponse(data=df.to_dict(orient="records"))  # type: ignore[arg-type]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    except (ValueError, TypeError) as e:
+        raise CalculationError(f"Invalid parameters for monthly data grid: {e}") from e
 
 
 @app.post("/api/opportunity-cost", response_model=OpportunityCostResponse)
@@ -104,8 +147,8 @@ async def calculate_opportunity_cost(request: OpportunityCostRequest):
             startup_params=startup_params,
         )
         return OpportunityCostResponse(data=df.to_dict(orient="records"))  # type: ignore[arg-type]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    except (ValueError, TypeError) as e:
+        raise CalculationError(f"Invalid parameters for opportunity cost: {e}") from e
 
 
 @app.post("/api/startup-scenario", response_model=StartupScenarioResponse)
@@ -141,8 +184,8 @@ async def calculate_startup_scenario(request: StartupScenarioRequest):
             total_dilution=results.get("total_dilution"),
             diluted_equity_pct=results.get("diluted_equity_pct"),
         )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    except (ValueError, TypeError, KeyError) as e:
+        raise CalculationError(f"Invalid parameters for startup scenario: {e}") from e
 
 
 @app.post("/api/irr", response_model=IRRResponse)
@@ -156,8 +199,8 @@ async def calculate_irr(request: IRRRequest):
         monthly_surpluses = pd.Series(request.monthly_surpluses)
         irr = calculations.calculate_irr(monthly_surpluses, request.final_payout_value)
         return IRRResponse(irr=irr if pd.notna(irr) else None)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    except (ValueError, TypeError) as e:
+        raise CalculationError(f"Invalid parameters for IRR calculation: {e}") from e
 
 
 @app.post("/api/npv", response_model=NPVResponse)
@@ -173,8 +216,8 @@ async def calculate_npv(request: NPVRequest):
             monthly_surpluses, request.annual_roi, request.final_payout_value,
         )
         return NPVResponse(npv=npv if pd.notna(npv) else None)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    except (ValueError, TypeError) as e:
+        raise CalculationError(f"Invalid parameters for NPV calculation: {e}") from e
 
 
 @app.post("/api/monte-carlo", response_model=MonteCarloResponse)
@@ -207,8 +250,8 @@ async def run_monte_carlo_simulation(request: MonteCarloRequest):
             net_outcomes=results["net_outcomes"].tolist(),
             simulated_valuations=results["simulated_valuations"].tolist(),
         )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    except (ValueError, TypeError, KeyError) as e:
+        raise CalculationError(f"Invalid parameters for Monte Carlo simulation: {e}") from e
 
 
 @app.websocket("/ws/monte-carlo")
@@ -292,11 +335,23 @@ async def websocket_monte_carlo(websocket: WebSocket):
 
     except WebSocketDisconnect:
         logger.info("WebSocket client disconnected during Monte Carlo simulation")
-    except Exception as e:
+    except (ValueError, TypeError, KeyError) as e:
+        # Known calculation errors - log and send sanitized message
+        logger.error(f"Calculation error in WebSocket Monte Carlo: {e}", exc_info=True)
         try:
             await websocket.send_json({
                 "type": "error",
-                "message": str(e),
+                "message": f"Calculation error: {e}",
+            })
+        except Exception:
+            logger.error("Failed to send error message to WebSocket client")
+    except Exception as e:
+        # Unexpected errors - log full details but send generic message
+        logger.exception(f"Unexpected error in WebSocket Monte Carlo: {e}")
+        try:
+            await websocket.send_json({
+                "type": "error",
+                "message": "An unexpected error occurred during simulation",
             })
         except Exception:
             logger.error("Failed to send error message to WebSocket client")
@@ -332,8 +387,8 @@ async def run_sensitivity_analysis(request: SensitivityAnalysisRequest):
             base_params=base_params, sim_param_configs=request.sim_param_configs,
         )
         return SensitivityAnalysisResponse(data=df.to_dict(orient="records"))  # type: ignore[arg-type]
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    except (ValueError, TypeError, KeyError) as e:
+        raise CalculationError(f"Invalid parameters for sensitivity analysis: {e}") from e
 
 
 @app.post("/api/dilution", response_model=DilutionFromValuationResponse)
@@ -348,8 +403,8 @@ async def calculate_dilution_from_valuation(request: DilutionFromValuationReques
             request.pre_money_valuation, request.amount_raised,
         )
         return DilutionFromValuationResponse(dilution=dilution)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    except (ValueError, ZeroDivisionError) as e:
+        raise CalculationError(f"Invalid parameters for dilution calculation: {e}") from e
 
 
 if __name__ == "__main__":
