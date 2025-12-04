@@ -110,7 +110,24 @@ npm run lint
 
 # Auto-fix linting issues
 npm run lint -- --fix
+
+# Run unit tests
+npm run test:unit
+
+# Run unit tests with coverage
+npm run test:unit:coverage
+
+# Run unit tests in watch mode (during development)
+npm run test:unit:watch
 ```
+
+**Total: 146 frontend unit tests** covering:
+- Zod schemas (64 tests)
+- useDeepCompare hook (20 tests)
+- export-utils (20 tests)
+- API client & WebSocket hooks (17 tests)
+- utils/cn function (13 tests)
+- useDebounce hook (12 tests)
 
 ### Running the Frontend
 ```bash
@@ -127,6 +144,15 @@ Visit http://localhost:3000 once running.
 ### Project Structure
 ```
 frontend/
+├── __tests__/                # Unit tests (Vitest + React Testing Library)
+│   ├── lib/                 # Tests for lib/ modules
+│   │   ├── api-client.test.ts
+│   │   ├── export-utils.test.ts
+│   │   ├── hooks/use-debounce.test.ts
+│   │   ├── schemas.test.ts
+│   │   ├── use-deep-compare.test.ts
+│   │   └── utils.test.ts
+│   └── setup.ts             # Test setup (jsdom, mocks)
 ├── app/                      # Next.js App Router pages
 ├── components/
 │   ├── charts/              # Recharts visualizations
@@ -135,11 +161,12 @@ frontend/
 │   ├── layout/              # Layout components (Header, Sidebar)
 │   ├── results/             # Results dashboard
 │   └── ui/                  # shadcn/ui base components
-└── lib/
-    ├── api-client.ts        # Type-safe API client with TanStack Query
-    ├── schemas.ts           # Zod validation schemas (match backend Pydantic)
-    ├── hooks/               # Custom React hooks (use-debounce, etc.)
-    └── providers.tsx        # TanStack Query, Theme providers
+├── lib/
+│   ├── api-client.ts        # Type-safe API client with TanStack Query
+│   ├── schemas.ts           # Zod validation schemas (match backend Pydantic)
+│   ├── hooks/               # Custom React hooks (use-debounce, etc.)
+│   └── providers.tsx        # TanStack Query, Theme providers
+└── vitest.config.ts          # Vitest configuration with coverage thresholds
 ```
 
 ## Architecture
@@ -218,6 +245,7 @@ Recharts Visualization
 **Frontend:**
 - [ ] `cd frontend && npm run type-check`
 - [ ] `cd frontend && npm run lint`
+- [ ] `cd frontend && npm run test:unit`
 
 ## Configuration
 
@@ -264,12 +292,29 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 - `frontend/lib/api-client.ts` - API client with React Query hooks
 - `frontend/lib/schemas.ts` - Zod schemas (must match backend Pydantic models)
 - `frontend/app/page.tsx` - Main application page
+- `frontend/vitest.config.ts` - Unit test configuration and coverage thresholds
 
 ## Testing Philosophy
 
-- **Backend**: Unit tests for calculations, API tests for endpoints, integration tests for full workflows
-- **Frontend**: TypeScript for compile-time safety, Zod for runtime validation
+- **Backend**: Unit tests for calculations, API tests for endpoints, integration tests for full workflows (~50 tests)
+- **Frontend**: Unit tests with Vitest + React Testing Library (146 tests), TypeScript for compile-time safety, Zod for runtime validation
 - **E2E**: Playwright tests for end-to-end browser testing
+
+### Frontend Unit Testing
+
+Uses **Vitest** with **React Testing Library** and **@vitest/coverage-v8**.
+
+**Coverage thresholds** (enforced in CI):
+- Lines: 70%
+- Functions: 65%
+- Branches: 70%
+- Statements: 70%
+
+**Test patterns**:
+- Place tests in `frontend/__tests__/` mirroring the source structure
+- Use `.test.ts` or `.test.tsx` suffix
+- Mock external dependencies (fetch, WebSocket, localStorage)
+- Test hooks with `@testing-library/react` `renderHook`
 
 ## E2E Testing with Playwright
 
