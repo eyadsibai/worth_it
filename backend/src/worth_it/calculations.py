@@ -486,7 +486,7 @@ def calculate_npv(
 
 
 def get_random_variates_pert(
-    num_simulations: int, config: dict, default_val: float
+    num_simulations: int, config: dict | None, default_val: float
 ) -> np.ndarray:
     """Generates random numbers based on a PERT distribution."""
     if not config:
@@ -746,7 +746,7 @@ def run_monte_carlo_simulation_iterative(
     """
     sim_params = {}
     sim_params["exit_year"] = get_random_variates_pert(
-        num_simulations, sim_param_configs.get("exit_year"), base_params["exit_year"]  # type: ignore[arg-type]
+        num_simulations, sim_param_configs.get("exit_year"), base_params["exit_year"]
     ).astype(int)
 
     if "yearly_valuation" in sim_param_configs:
@@ -777,11 +777,11 @@ def run_monte_carlo_simulation_iterative(
 
     sim_params["salary_growth"] = get_random_variates_pert(
         num_simulations,
-        sim_param_configs.get("salary_growth"),  # type: ignore[arg-type]
+        sim_param_configs.get("salary_growth"),
         base_params["current_job_salary_growth_rate"],
     )
     sim_params["dilution"] = get_random_variates_pert(
-        num_simulations, sim_param_configs.get("dilution"), np.nan  # type: ignore[arg-type]
+        num_simulations, sim_param_configs.get("dilution"), np.nan
     )
 
     net_outcomes_list: list[float] = []
