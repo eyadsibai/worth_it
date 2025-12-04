@@ -1,18 +1,21 @@
 name: Claude Code Review
 
+# Disabled: Workflow temporarily disabled to reduce CI noise
+# To re-enable, uncomment the pull_request trigger below
 on:
-  pull_request:
-    types: [opened, synchronize]
-    paths:
-      - "backend/**/*.py"
-      - "backend/pyproject.toml"
-      - "backend/tests/**"
-      - "frontend/**/*.ts"
-      - "frontend/**/*.tsx"
-      - "frontend/**/*.js"
-      - "frontend/**/*.jsx"
-      - "frontend/package.json"
-      - ".github/workflows/**"
+  workflow_dispatch: # Manual trigger only
+  # pull_request:
+  #   types: [opened, synchronize]
+  #   paths:
+  #     - "backend/**/*.py"
+  #     - "backend/pyproject.toml"
+  #     - "backend/tests/**"
+  #     - "frontend/**/*.ts"
+  #     - "frontend/**/*.tsx"
+  #     - "frontend/**/*.js"
+  #     - "frontend/**/*.jsx"
+  #     - "frontend/package.json"
+  #     - ".github/workflows/**"
 
 jobs:
   claude-review:
