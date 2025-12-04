@@ -1,22 +1,21 @@
 name: Playwright Tests
 
+# Disabled automatic runs to reduce CI costs
+# Run locally instead: npm run test:e2e
+# Or trigger manually from GitHub Actions tab
 on:
-  push:
-    branches: [ master, main, develop ]
-    paths:
-      - 'frontend/**'
-      - 'backend/**'
-      - 'playwright/**'
-      - 'playwright.config.ts'
-      - 'package.json'
-  pull_request:
-    branches: [ master, main, develop ]
-    paths:
-      - 'frontend/**'
-      - 'backend/**'
-      - 'playwright/**'
-      - 'playwright.config.ts'
-      - 'package.json'
+  workflow_dispatch:
+    inputs:
+      browser:
+        description: 'Browser to test'
+        required: false
+        default: 'chromium'
+        type: choice
+        options:
+          - chromium
+          - firefox
+          - webkit
+          - all
 
 jobs:
   test:
