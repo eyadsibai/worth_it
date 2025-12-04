@@ -365,12 +365,14 @@ def calculate_startup_scenario(
         yearly_diluted_equity_pct = initial_equity_pct * results_df["CumulativeDilution"]
         breakeven_vesting_pct = (results_df["Vested Equity (%)"] / 100) * yearly_diluted_equity_pct
 
-        breakeven_value_series = (
-            results_df["Opportunity Cost (Invested Surplus)"]
-            .divide(breakeven_vesting_pct)
-            .replace([np.inf, -np.inf], 0)
+        # Calculate breakeven value: opportunity_cost / vesting_pct
+        # When vesting_pct is 0, breakeven is infinite (not achievable)
+        opportunity_cost = results_df["Opportunity Cost (Invested Surplus)"]
+        results_df["Breakeven Value"] = np.where(
+            breakeven_vesting_pct > 0,
+            opportunity_cost / breakeven_vesting_pct,
+            np.inf,  # Breakeven not achievable when no equity is vested
         )
-        results_df["Breakeven Value"] = breakeven_value_series.replace(0, np.inf)
 
         results_df["Vested Equity (%)"] = (
             (results_df["Vested Equity (%)"] / 100) * yearly_diluted_equity_pct * 100
@@ -397,13 +399,18 @@ def calculate_startup_scenario(
             * vested_options_series.iloc[-1]
         )
 
-        breakeven_price = (
-            results_df["Opportunity Cost (Invested Surplus)"]
-            .divide(vested_options_series)
-            .replace([np.inf, -np.inf], 0)
+        # Calculate breakeven price per share: (opportunity_cost / vested_options) + strike_price
+        # When vested_options is 0, breakeven is infinite (not achievable)
+        opportunity_cost = results_df["Opportunity Cost (Invested Surplus)"]
+        breakeven_price_above_strike = np.where(
+            vested_options_series > 0,
+            opportunity_cost / vested_options_series,
+            np.inf,  # Breakeven not achievable when no options are vested
         )
-        results_df["Breakeven Value"] = (breakeven_price + strike_price).replace(
-            strike_price, np.inf
+        results_df["Breakeven Value"] = np.where(
+            np.isinf(breakeven_price_above_strike),
+            np.inf,
+            breakeven_price_above_strike + strike_price,
         )
 
         output.update(
