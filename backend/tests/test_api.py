@@ -288,3 +288,97 @@ def test_invalid_request():
     }
     response = client.post("/api/monthly-data-grid", json=request_data)
     assert response.status_code == 422  # Validation error
+
+
+def test_calculation_error_returns_sanitized_message():
+    """Test that CalculationError returns 400 with sanitized message."""
+    # Use monkey patching to force a calculation error
+    from unittest.mock import patch
+    from worth_it import calculations
+
+    with patch.object(
+        calculations, "calculate_dilution_from_valuation", side_effect=ValueError("Internal error: NoneType object")
+    ):
+        request_data = {
+            "pre_money_valuation": 10000000,
+            "amount_raised": 1000000,
+        }
+        response = client.post("/api/dilution", json=request_data)
+        assert response.status_code == 400
+        data = response.json()
+        assert data["error"] == "calculation_error"
+        assert data["message"] == "Invalid calculation parameters"
+        # Verify no Python internals are exposed
+        assert "NoneType" not in data["message"]
+        assert "ValueError" not in data["message"]
+        assert "Internal error" not in data["message"]
+
+
+def test_invalid_parameters_trigger_calculation_error():
+    """Test that invalid calculation parameters return sanitized error."""
+    # Use monkey patching to force a TypeError
+    from unittest.mock import patch
+    from worth_it import calculations
+
+    with patch.object(
+        calculations, "calculate_irr", side_effect=TypeError("'NoneType' object is not iterable")
+    ):
+        request_data = {
+            "monthly_surpluses": [100] * 12,
+            "final_payout_value": 1000,
+        }
+        response = client.post("/api/irr", json=request_data)
+        assert response.status_code == 400
+        data = response.json()
+        assert data["error"] == "calculation_error"
+        # Verify the message is sanitized
+        assert data["message"] == "Invalid calculation parameters"
+        # No Python exception details
+        assert "NoneType" not in data["message"]
+        assert "TypeError" not in data["message"]
+        assert "iterable" not in data["message"]
+
+
+def test_error_messages_do_not_expose_implementation_details():
+    """Test that error responses don't leak implementation details."""
+    # Use monkey patching to test various error scenarios
+    from unittest.mock import patch
+    from worth_it import calculations
+
+    # Test ValueError (caught by dilution endpoint)
+    with patch.object(calculations, "calculate_dilution_from_valuation", side_effect=ValueError("'key' not found in dict")):
+        request_data = {
+            "pre_money_valuation": 10000000,
+            "amount_raised": 1000000,
+        }
+        response = client.post("/api/dilution", json=request_data)
+        assert response.status_code == 400
+        data = response.json()
+
+        # Verify sanitized message
+        assert data["error"] == "calculation_error"
+        assert data["message"] == "Invalid calculation parameters"
+
+        # Verify no implementation details leaked
+        assert "ValueError" not in data["message"]
+        assert "key" not in data["message"].lower()
+        assert "dict" not in data["message"].lower()
+
+    # Test ZeroDivisionError (caught by dilution endpoint)
+    with patch.object(calculations, "calculate_dilution_from_valuation", side_effect=ZeroDivisionError("division by zero")):
+        request_data = {
+            "pre_money_valuation": 10000000,
+            "amount_raised": 1000000,
+        }
+        response = client.post("/api/dilution", json=request_data)
+        assert response.status_code == 400
+        data = response.json()
+
+        # Verify sanitized message
+        assert data["error"] == "calculation_error"
+        assert data["message"] == "Invalid calculation parameters"
+
+        # Verify no implementation details leaked
+        assert "ZeroDivisionError" not in data["message"]
+        assert "division" not in data["message"].lower()
+        assert "zero" not in data["message"].lower()

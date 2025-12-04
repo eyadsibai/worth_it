@@ -8,8 +8,6 @@ proper error handling without exposing implementation details.
 class WorthItError(Exception):
     """Base exception for all Worth It application errors."""
 
-    pass
-
 
 class CalculationError(WorthItError):
     """Raised when a financial calculation fails.
@@ -18,8 +16,6 @@ class CalculationError(WorthItError):
     in the calculation logic (e.g., division by zero, negative values).
     """
 
-    pass
-
 
 class ValidationError(WorthItError):
     """Raised when input validation fails.
@@ -27,5 +23,3 @@ class ValidationError(WorthItError):
     This is raised when the input data doesn't meet the expected
     format or constraints, separate from Pydantic validation.
     """
-
-    pass
