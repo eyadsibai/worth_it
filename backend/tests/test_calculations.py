@@ -837,3 +837,42 @@ def test_equity_sale_slider_limited_to_vested():
     # Let's verify the final payout is sensible
     assert results["final_payout_value"] >= 0
     assert not np.isnan(results["final_payout_value"])
+
+
+# --- Tests for calculate_dilution_from_valuation ---
+class TestCalculateDilutionFromValuation:
+    """Tests for the dilution calculation function."""
+
+    def test_normal_dilution_calculation(self):
+        """Test standard dilution calculation."""
+        # $10M pre-money + $2M raised = $12M post-money
+        # Dilution = $2M / $12M = 16.67%
+        dilution = calculations.calculate_dilution_from_valuation(10_000_000, 2_000_000)
+        assert dilution == pytest.approx(0.1667, rel=0.01)
+
+    def test_zero_amount_raised_returns_zero(self):
+        """Test that zero investment means zero dilution."""
+        dilution = calculations.calculate_dilution_from_valuation(10_000_000, 0)
+        assert dilution == 0.0
+
+    def test_large_raise_high_dilution(self):
+        """Test high dilution scenario (equal pre-money and raise)."""
+        # $5M pre-money + $5M raised = $10M post-money
+        # Dilution = $5M / $10M = 50%
+        dilution = calculations.calculate_dilution_from_valuation(5_000_000, 5_000_000)
+        assert dilution == pytest.approx(0.5, rel=0.01)
+
+    def test_zero_pre_money_raises_error(self):
+        """Test that zero pre-money valuation raises ValueError."""
+        with pytest.raises(ValueError, match="pre_money_valuation must be positive"):
+            calculations.calculate_dilution_from_valuation(0, 1_000_000)
+
+    def test_negative_pre_money_raises_error(self):
+        """Test that negative pre-money valuation raises ValueError."""
+        with pytest.raises(ValueError, match="pre_money_valuation must be positive"):
+            calculations.calculate_dilution_from_valuation(-100_000, 1_000_000)
+
+    def test_negative_amount_raised_raises_error(self):
+        """Test that negative amount raised raises ValueError."""
+        with pytest.raises(ValueError, match="amount_raised cannot be negative"):
+            calculations.calculate_dilution_from_valuation(10_000_000, -100_000)
