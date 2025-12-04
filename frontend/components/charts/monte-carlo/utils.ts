@@ -2,15 +2,10 @@
  * Shared utility functions for Monte Carlo visualizations
  */
 
-export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("en-SA", {
-    style: "currency",
-    currency: "SAR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-    notation: "compact",
-  }).format(value);
-}
+import { formatCurrencyCompact } from "@/lib/format-utils";
+
+// Re-export for backward compatibility
+export { formatCurrencyCompact as formatCurrency };
 
 /**
  * Common chart tooltip style configuration
