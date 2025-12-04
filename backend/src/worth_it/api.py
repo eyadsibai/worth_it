@@ -44,6 +44,25 @@ from worth_it.monte_carlo import (
 # Configure logging
 logger = logging.getLogger(__name__)
 
+
+def convert_equity_type_to_enum(params: dict) -> None:
+    """Convert equity_type string to EquityType enum in startup_params.
+
+    This function modifies the params dict in-place, converting the equity_type
+    field from a string to a calculations.EquityType enum if needed.
+
+    Args:
+        params: Dictionary containing startup_params with potential string equity_type
+    """
+    if "startup_params" in params and "equity_type" in params["startup_params"]:
+        # Copy nested dict to avoid mutating the original
+        params["startup_params"] = params["startup_params"].copy()
+        if isinstance(params["startup_params"]["equity_type"], str):
+            params["startup_params"]["equity_type"] = calculations.EquityType(
+                params["startup_params"]["equity_type"],
+            )
+
+
 # Create FastAPI app
 app = FastAPI(
     title="Worth It API",
@@ -143,14 +162,10 @@ async def calculate_opportunity_cost(request: OpportunityCostRequest):
 
         # Convert equity_type string to EquityType enum if needed
         startup_params = request.startup_params.copy() if request.startup_params else None
-        if (
-            startup_params
-            and "equity_type" in startup_params
-            and isinstance(startup_params["equity_type"], str)
-        ):
-            startup_params["equity_type"] = calculations.EquityType(
-                startup_params["equity_type"],
-            )
+        if startup_params and "equity_type" in startup_params:
+            params_wrapper = {"startup_params": startup_params}
+            convert_equity_type_to_enum(params_wrapper)
+            startup_params = params_wrapper["startup_params"]
 
         df = calculations.calculate_annual_opportunity_cost(
             monthly_df=monthly_df,
@@ -176,10 +191,10 @@ async def calculate_startup_scenario(request: StartupScenarioRequest):
 
         # Convert equity_type string to EquityType enum if needed
         startup_params = request.startup_params.copy()
-        if "equity_type" in startup_params and isinstance(startup_params["equity_type"], str):
-            startup_params["equity_type"] = calculations.EquityType(
-                startup_params["equity_type"],
-            )
+        if "equity_type" in startup_params:
+            params_wrapper = {"startup_params": startup_params}
+            convert_equity_type_to_enum(params_wrapper)
+            startup_params = params_wrapper["startup_params"]
 
         results = calculations.calculate_startup_scenario(
             opportunity_cost_df,
@@ -246,13 +261,7 @@ async def run_monte_carlo(request: MonteCarloRequest):
     try:
         # Convert equity_type string to EquityType enum if needed
         base_params = request.base_params.copy()
-        if "startup_params" in base_params and "equity_type" in base_params["startup_params"]:
-            # Also need to copy nested dict to avoid mutating the original
-            base_params["startup_params"] = base_params["startup_params"].copy()
-            if isinstance(base_params["startup_params"]["equity_type"], str):
-                base_params["startup_params"]["equity_type"] = calculations.EquityType(
-                    base_params["startup_params"]["equity_type"],
-                )
+        convert_equity_type_to_enum(base_params)
 
         results = mc_run_simulation(
             num_simulations=request.num_simulations,
@@ -392,13 +401,7 @@ async def run_sensitivity(request: SensitivityAnalysisRequest):
     try:
         # Convert equity_type string to EquityType enum if needed
         base_params = request.base_params.copy()
-        if "startup_params" in base_params and "equity_type" in base_params["startup_params"]:
-            # Also need to copy nested dict to avoid mutating the original
-            base_params["startup_params"] = base_params["startup_params"].copy()
-            if isinstance(base_params["startup_params"]["equity_type"], str):
-                base_params["startup_params"]["equity_type"] = calculations.EquityType(
-                    base_params["startup_params"]["equity_type"],
-                )
+        convert_equity_type_to_enum(base_params)
 
         df = mc_sensitivity_analysis(
             base_params=base_params,
