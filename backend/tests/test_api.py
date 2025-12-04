@@ -597,3 +597,42 @@ class TestWebSocketMonteCarlo:
             assert isinstance(complete_msg["simulated_valuations"], list)
             assert len(complete_msg["net_outcomes"]) == 20  # num_simulations
             assert len(complete_msg["simulated_valuations"]) == 20
+
+
+class TestRateLimiting:
+    """Test rate limiting functionality.
+
+    Note: These tests verify rate limiting configuration is correct.
+    Rate limiting is disabled during normal test runs (via conftest.py)
+    to prevent test interference. These tests check the configuration exists.
+    """
+
+    def test_rate_limit_configuration_exists(self):
+        """Test that rate limiting is properly configured in the app.
+
+        This verifies the rate limiting middleware is set up correctly,
+        even if disabled during tests.
+        """
+        from worth_it.api import app, limiter
+
+        # Verify limiter is attached to app
+        assert hasattr(app.state, "limiter"), "Rate limiter should be attached to app state"
+
+        # Verify limiter configuration
+        assert limiter is not None, "Limiter should be initialized"
+
+    def test_rate_limit_settings(self):
+        """Test that rate limit settings are properly configured."""
+        from worth_it.config import Settings
+
+        # Create fresh settings to check defaults (not affected by test env)
+        # Note: In production, RATE_LIMIT_ENABLED defaults to "true"
+        assert hasattr(Settings, "RATE_LIMIT_ENABLED")
+        assert hasattr(Settings, "RATE_LIMIT_PER_MINUTE")
+        assert hasattr(Settings, "RATE_LIMIT_MONTE_CARLO_PER_MINUTE")
+
+        # Verify default limits are sensible
+        assert Settings.RATE_LIMIT_PER_MINUTE == 60, "Default rate limit should be 60/min"
+        assert Settings.RATE_LIMIT_MONTE_CARLO_PER_MINUTE == 10, (
+            "Monte Carlo limit should be 10/min"
+        )

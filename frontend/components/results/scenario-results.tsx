@@ -4,19 +4,38 @@ import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown } from "lucide-react";
-import type { StartupScenarioResponse } from "@/lib/schemas";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, TrendingDown, Save } from "lucide-react";
+import type { StartupScenarioResponse, GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm } from "@/lib/schemas";
 import { CumulativeComparisonChart } from "@/components/charts/cumulative-comparison-chart";
 import { OpportunityCostChart } from "@/components/charts/opportunity-cost-chart";
 import { formatCurrency } from "@/lib/format-utils";
+import { saveScenario, type ScenarioData } from "@/lib/export-utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface ScenarioResultsProps {
   results: StartupScenarioResponse;
   isLoading?: boolean;
   monteCarloContent?: React.ReactNode;
+  globalSettings?: GlobalSettingsForm | null;
+  currentJob?: CurrentJobForm | null;
+  equityDetails?: RSUForm | StockOptionsForm | null;
 }
 
-export function ScenarioResults({ results, isLoading, monteCarloContent }: ScenarioResultsProps) {
+export function ScenarioResults({ results, isLoading, monteCarloContent, globalSettings, currentJob, equityDetails }: ScenarioResultsProps) {
+  const [showSaveDialog, setShowSaveDialog] = React.useState(false);
+  const [scenarioName, setScenarioName] = React.useState("");
+  const [saveSuccess, setSaveSuccess] = React.useState(false);
+
   if (isLoading) {
     return (
       <Card className="terminal-card">
@@ -33,10 +52,82 @@ export function ScenarioResults({ results, isLoading, monteCarloContent }: Scena
   const netBenefit = results.final_payout_value - results.final_opportunity_cost;
   const isPositive = netBenefit >= 0;
 
+  const handleSaveScenario = () => {
+    if (!scenarioName.trim() || !globalSettings || !currentJob || !equityDetails) {
+      return;
+    }
+
+    const scenarioData: ScenarioData = {
+      name: scenarioName.trim(),
+      timestamp: new Date().toISOString(),
+      globalSettings: {
+        exitYear: globalSettings.exit_year,
+      },
+      currentJob: {
+        monthlySalary: currentJob.monthly_salary,
+        annualGrowthRate: currentJob.annual_salary_growth_rate,
+        assumedROI: currentJob.assumed_annual_roi,
+        investmentFrequency: currentJob.investment_frequency,
+      },
+      equity: equityDetails.equity_type === "RSU"
+        ? {
+            type: "RSU",
+            monthlySalary: equityDetails.monthly_salary,
+            vestingPeriod: equityDetails.vesting_period,
+            cliffPeriod: equityDetails.cliff_period,
+            equityPct: equityDetails.total_equity_grant_pct,
+            exitValuation: equityDetails.exit_valuation,
+            simulateDilution: equityDetails.simulate_dilution,
+          }
+        : {
+            type: "STOCK_OPTIONS",
+            monthlySalary: equityDetails.monthly_salary,
+            vestingPeriod: equityDetails.vesting_period,
+            cliffPeriod: equityDetails.cliff_period,
+            numOptions: equityDetails.num_options,
+            strikePrice: equityDetails.strike_price,
+            exitPricePerShare: equityDetails.exit_price_per_share,
+          },
+      results: {
+        finalPayoutValue: results.final_payout_value,
+        finalOpportunityCost: results.final_opportunity_cost,
+        netOutcome: netBenefit,
+        breakeven: results.breakeven_label,
+      },
+    };
+
+    try {
+      saveScenario(scenarioData);
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setShowSaveDialog(false);
+        setSaveSuccess(false);
+        setScenarioName("");
+      }, 1500);
+    } catch (error) {
+      console.error("Failed to save scenario:", error);
+    }
+  };
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Key Metrics Cards */}
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+    <>
+      <div className="space-y-6 animate-fade-in">
+        {/* Save Scenario Button */}
+        <div className="flex justify-end">
+          <Button
+            onClick={() => setShowSaveDialog(true)}
+            variant="outline"
+            size="sm"
+            className="font-mono gap-2"
+            disabled={!globalSettings || !currentJob || !equityDetails}
+          >
+            <Save className="h-4 w-4" />
+            Save Scenario
+          </Button>
+        </div>
+
+        {/* Key Metrics Cards */}
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
         {/* Final Payout */}
         <Card className="terminal-card">
           <CardHeader className="pb-2 pt-4">
@@ -240,6 +331,62 @@ export function ScenarioResults({ results, isLoading, monteCarloContent }: Scena
           </Tabs>
         </CardContent>
       </Card>
-    </div>
+      </div>
+
+      {/* Save Scenario Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-mono">Save Scenario</DialogTitle>
+            <DialogDescription className="font-mono">
+              Give this scenario a name to save it for later comparison.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="scenario-name" className="font-mono text-sm">
+                Scenario Name
+              </Label>
+              <Input
+                id="scenario-name"
+                placeholder="e.g., Company A - Series B"
+                value={scenarioName}
+                onChange={(e) => setScenarioName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && scenarioName.trim()) {
+                    handleSaveScenario();
+                  }
+                }}
+                className="font-mono"
+              />
+            </div>
+            {saveSuccess && (
+              <div className="text-sm text-terminal font-mono flex items-center gap-2">
+                <span>Scenario saved successfully!</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setShowSaveDialog(false);
+                setScenarioName("");
+              }}
+              variant="outline"
+              className="font-mono"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveScenario}
+              disabled={!scenarioName.trim()}
+              className="font-mono"
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

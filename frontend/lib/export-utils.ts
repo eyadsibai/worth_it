@@ -39,7 +39,7 @@ export interface ScenarioData {
     finalPayoutValue: number;
     finalOpportunityCost: number;
     netOutcome: number;
-    breakeven?: number;
+    breakeven?: string;
   };
 }
 

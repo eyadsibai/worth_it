@@ -11,6 +11,9 @@ import pandas as pd
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from worth_it import calculations
 from worth_it.config import settings
@@ -44,6 +47,13 @@ from worth_it.monte_carlo import (
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# Configure rate limiter
+limiter = Limiter(
+    key_func=get_remote_address,
+    enabled=settings.RATE_LIMIT_ENABLED,
+    default_limits=[],  # No default limits, we'll set per-endpoint
+)
+
 
 def convert_equity_type_to_enum(params: dict) -> None:
     """Convert equity_type string to EquityType enum in startup_params.
@@ -69,6 +79,10 @@ app = FastAPI(
     description="Backend API for startup job offer financial analysis",
     version="1.0.0",
 )
+
+# Add rate limiter state and exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
 # Add CORS middleware with configuration from settings
 app.add_middleware(
@@ -125,13 +139,15 @@ async def generic_error_handler(request: Request, exc: Exception) -> JSONRespons
 
 
 @app.get("/health", response_model=HealthCheckResponse)
-async def health_check():
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def health_check(request: Request):
     """Health check endpoint to verify API is running."""
     return HealthCheckResponse(status="healthy", version="1.0.0")
 
 
 @app.post("/api/monthly-data-grid", response_model=MonthlyDataGridResponse)
-async def create_monthly_data_grid(request: MonthlyDataGridRequest):
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def create_monthly_data_grid(request: Request, body: MonthlyDataGridRequest):
     """Create a DataFrame with monthly financial projections.
 
     This endpoint creates a monthly data grid showing salary differences,
@@ -139,11 +155,11 @@ async def create_monthly_data_grid(request: MonthlyDataGridRequest):
     """
     try:
         df = calculations.create_monthly_data_grid(
-            exit_year=request.exit_year,
-            current_job_monthly_salary=request.current_job_monthly_salary,
-            startup_monthly_salary=request.startup_monthly_salary,
-            current_job_salary_growth_rate=request.current_job_salary_growth_rate,
-            dilution_rounds=request.dilution_rounds,
+            exit_year=body.exit_year,
+            current_job_monthly_salary=body.current_job_monthly_salary,
+            startup_monthly_salary=body.startup_monthly_salary,
+            current_job_salary_growth_rate=body.current_job_salary_growth_rate,
+            dilution_rounds=body.dilution_rounds,
         )
         return MonthlyDataGridResponse(data=df.to_dict(orient="records"))  # type: ignore[arg-type]
     except (ValueError, TypeError) as e:
@@ -151,17 +167,18 @@ async def create_monthly_data_grid(request: MonthlyDataGridRequest):
 
 
 @app.post("/api/opportunity-cost", response_model=OpportunityCostResponse)
-async def calculate_opportunity_cost(request: OpportunityCostRequest):
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def calculate_opportunity_cost(request: Request, body: OpportunityCostRequest):
     """Calculate the opportunity cost of foregone salary.
 
     This endpoint calculates the future value of the salary difference
     between current job and startup job, accounting for investment returns.
     """
     try:
-        monthly_df = pd.DataFrame(request.monthly_data)
+        monthly_df = pd.DataFrame(body.monthly_data)
 
         # Convert equity_type string to EquityType enum if needed
-        startup_params = request.startup_params.copy() if request.startup_params else None
+        startup_params = body.startup_params.copy() if body.startup_params else None
         if startup_params and "equity_type" in startup_params:
             params_wrapper = {"startup_params": startup_params}
             convert_equity_type_to_enum(params_wrapper)
@@ -169,9 +186,9 @@ async def calculate_opportunity_cost(request: OpportunityCostRequest):
 
         df = calculations.calculate_annual_opportunity_cost(
             monthly_df=monthly_df,
-            annual_roi=request.annual_roi,
-            investment_frequency=request.investment_frequency,
-            options_params=request.options_params,
+            annual_roi=body.annual_roi,
+            investment_frequency=body.investment_frequency,
+            options_params=body.options_params,
             startup_params=startup_params,
         )
         return OpportunityCostResponse(data=df.to_dict(orient="records"))  # type: ignore[arg-type]
@@ -180,17 +197,18 @@ async def calculate_opportunity_cost(request: OpportunityCostRequest):
 
 
 @app.post("/api/startup-scenario", response_model=StartupScenarioResponse)
-async def calculate_startup_scenario(request: StartupScenarioRequest):
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def calculate_startup_scenario(request: Request, body: StartupScenarioRequest):
     """Calculate financial outcomes for a startup equity package.
 
     This endpoint evaluates both RSU and Stock Option scenarios,
     including dilution effects and breakeven analysis.
     """
     try:
-        opportunity_cost_df = pd.DataFrame(request.opportunity_cost_data)
+        opportunity_cost_df = pd.DataFrame(body.opportunity_cost_data)
 
         # Convert equity_type string to EquityType enum if needed
-        startup_params = request.startup_params.copy()
+        startup_params = body.startup_params.copy()
         if "equity_type" in startup_params:
             params_wrapper = {"startup_params": startup_params}
             convert_equity_type_to_enum(params_wrapper)
@@ -239,33 +257,35 @@ async def calculate_startup_scenario(request: StartupScenarioRequest):
 
 
 @app.post("/api/irr", response_model=IRRResponse)
-async def calculate_irr(request: IRRRequest):
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def calculate_irr(request: Request, body: IRRRequest):
     """Calculate the Internal Rate of Return (IRR).
 
     This endpoint computes the annualized IRR based on monthly cash flows
     and the final equity payout.
     """
     try:
-        monthly_surpluses = pd.Series(request.monthly_surpluses)
-        irr = calculations.calculate_irr(monthly_surpluses, request.final_payout_value)
+        monthly_surpluses = pd.Series(body.monthly_surpluses)
+        irr = calculations.calculate_irr(monthly_surpluses, body.final_payout_value)
         return IRRResponse(irr=irr if pd.notna(irr) else None)
     except (ValueError, TypeError) as e:
         raise CalculationError("Invalid parameters for IRR calculation") from e
 
 
 @app.post("/api/npv", response_model=NPVResponse)
-async def calculate_npv(request: NPVRequest):
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def calculate_npv(request: Request, body: NPVRequest):
     """Calculate the Net Present Value (NPV).
 
     This endpoint computes the NPV of the investment decision,
     accounting for the time value of money.
     """
     try:
-        monthly_surpluses = pd.Series(request.monthly_surpluses)
+        monthly_surpluses = pd.Series(body.monthly_surpluses)
         npv = calculations.calculate_npv(
             monthly_surpluses,
-            request.annual_roi,
-            request.final_payout_value,
+            body.annual_roi,
+            body.final_payout_value,
         )
         return NPVResponse(npv=npv if pd.notna(npv) else None)
     except (ValueError, TypeError) as e:
@@ -273,7 +293,8 @@ async def calculate_npv(request: NPVRequest):
 
 
 @app.post("/api/monte-carlo", response_model=MonteCarloResponse)
-async def run_monte_carlo(request: MonteCarloRequest):
+@limiter.limit(f"{settings.RATE_LIMIT_MONTE_CARLO_PER_MINUTE}/minute")
+async def run_monte_carlo(request: Request, body: MonteCarloRequest):
     """Run Monte Carlo simulation for probabilistic analysis.
 
     This endpoint performs thousands of simulations with varying parameters
@@ -281,13 +302,13 @@ async def run_monte_carlo(request: MonteCarloRequest):
     """
     try:
         # Convert equity_type string to EquityType enum if needed
-        base_params = request.base_params.copy()
+        base_params = body.base_params.copy()
         convert_equity_type_to_enum(base_params)
 
         results = mc_run_simulation(
-            num_simulations=request.num_simulations,
+            num_simulations=body.num_simulations,
             base_params=base_params,
-            sim_param_configs=request.sim_param_configs,
+            sim_param_configs=body.sim_param_configs,
         )
         return MonteCarloResponse(
             net_outcomes=results["net_outcomes"].tolist(),
@@ -413,7 +434,8 @@ async def websocket_monte_carlo(websocket: WebSocket):
 
 
 @app.post("/api/sensitivity-analysis", response_model=SensitivityAnalysisResponse)
-async def run_sensitivity(request: SensitivityAnalysisRequest):
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def run_sensitivity(request: Request, body: SensitivityAnalysisRequest):
     """Run sensitivity analysis to identify key variables.
 
     This endpoint analyzes how each variable impacts the final outcome
@@ -421,12 +443,12 @@ async def run_sensitivity(request: SensitivityAnalysisRequest):
     """
     try:
         # Convert equity_type string to EquityType enum if needed
-        base_params = request.base_params.copy()
+        base_params = body.base_params.copy()
         convert_equity_type_to_enum(base_params)
 
         df = mc_sensitivity_analysis(
             base_params=base_params,
-            sim_param_configs=request.sim_param_configs,
+            sim_param_configs=body.sim_param_configs,
         )
         return SensitivityAnalysisResponse(data=df.to_dict(orient="records"))  # type: ignore[arg-type]
     except (ValueError, TypeError, KeyError) as e:
@@ -434,7 +456,8 @@ async def run_sensitivity(request: SensitivityAnalysisRequest):
 
 
 @app.post("/api/dilution", response_model=DilutionFromValuationResponse)
-async def calculate_dilution_from_valuation(request: DilutionFromValuationRequest):
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def calculate_dilution_from_valuation(request: Request, body: DilutionFromValuationRequest):
     """Calculate dilution percentage from fundraising round.
 
     This endpoint computes how much ownership dilution occurs
@@ -442,8 +465,8 @@ async def calculate_dilution_from_valuation(request: DilutionFromValuationReques
     """
     try:
         dilution = calculations.calculate_dilution_from_valuation(
-            request.pre_money_valuation,
-            request.amount_raised,
+            body.pre_money_valuation,
+            body.amount_raised,
         )
         return DilutionFromValuationResponse(dilution=dilution)
     except (ValueError, ZeroDivisionError) as e:

@@ -62,9 +62,12 @@ class Settings:
     # Monte Carlo Simulation Limits
     MAX_SIMULATIONS: int = int(os.getenv("MAX_SIMULATIONS", "10000"))
 
-    # Rate Limiting (optional - for production)
-    RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "false").lower() == "true"
+    # Rate Limiting (enabled by default for API protection)
+    RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() == "true"
     RATE_LIMIT_PER_MINUTE: int = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
+    RATE_LIMIT_MONTE_CARLO_PER_MINUTE: int = int(
+        os.getenv("RATE_LIMIT_MONTE_CARLO_PER_MINUTE", "10")
+    )
 
     @classmethod
     def is_production(cls) -> bool:

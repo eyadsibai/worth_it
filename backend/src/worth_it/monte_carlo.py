@@ -211,7 +211,8 @@ def run_monte_carlo_simulation_vectorized(
         else:
             cumulative_dilution = 1.0
             if rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
-                for r in sorted(rsu_params["dilution_rounds"], key=lambda r: r["year"]):
+                sorted_rounds = sorted(rsu_params["dilution_rounds"], key=lambda r: r["year"])
+                for r in sorted_rounds:
                     if r["year"] <= exit_year:
                         cumulative_dilution *= 1 - r.get("dilution", 0)
 
@@ -333,9 +334,11 @@ def run_monte_carlo_simulation_iterative(
     if "yearly_valuation" in sim_param_configs:
         yearly_valuation = sim_param_configs["yearly_valuation"]
         valuations = []
+        # Cache the default value outside the loop
+        default_config = list(yearly_valuation.values())[0]
         for year in sim_params["exit_year"]:
             # Ensure year is treated as a string key
-            config = yearly_valuation.get(str(year), list(yearly_valuation.values())[0])
+            config = yearly_valuation.get(str(year), default_config)
             valuations.append(get_random_variates_pert(1, config, config["mode"])[0])
         sim_params["valuation"] = np.array(valuations)
     elif "valuation" in sim_param_configs:

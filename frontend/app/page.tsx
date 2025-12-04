@@ -11,8 +11,11 @@ import { StartupOfferFormComponent } from "@/components/forms/startup-offer-form
 import { ScenarioResults } from "@/components/results/scenario-results";
 import { MonteCarloFormComponent } from "@/components/forms/monte-carlo-form";
 import { MonteCarloVisualizations } from "@/components/charts/monte-carlo-visualizations";
+import { ScenarioManager } from "@/components/scenarios/scenario-manager";
+import { ScenarioComparison } from "@/components/scenarios/scenario-comparison";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import type { GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm } from "@/lib/schemas";
+import type { ScenarioData } from "@/lib/export-utils";
 
 export default function Home() {
   const { data, isLoading, isError, error } = useHealthCheck();
@@ -27,6 +30,9 @@ export default function Home() {
     net_outcomes: number[];
     simulated_valuations: number[];
   } | null>(null);
+
+  // Scenario comparison state
+  const [comparisonScenarios, setComparisonScenarios] = React.useState<ScenarioData[]>([]);
 
   // Debounce form values to prevent waterfall API calls on rapid form changes
   // 300ms delay balances responsiveness with avoiding excessive API calls
@@ -53,6 +59,14 @@ export default function Home() {
 
   const handleMonteCarloComplete = React.useCallback((results: { net_outcomes: number[]; simulated_valuations: number[] }) => {
     setMonteCarloResults(results);
+  }, []);
+
+  const handleCompareScenarios = React.useCallback((scenarios: ScenarioData[]) => {
+    setComparisonScenarios(scenarios);
+  }, []);
+
+  const handleCloseComparison = React.useCallback(() => {
+    setComparisonScenarios([]);
   }, []);
 
   // Check if we have all required data (using debounced values for API calls)
@@ -277,10 +291,24 @@ export default function Home() {
           </Card>
         )}
 
+        {/* Scenario Comparison */}
+        {comparisonScenarios.length > 0 && (
+          <ScenarioComparison
+            scenarios={comparisonScenarios}
+            onClose={handleCloseComparison}
+          />
+        )}
+
+        {/* Scenario Manager */}
+        <ScenarioManager onCompareScenarios={handleCompareScenarios} />
+
         {startupScenarioMutation.data && (
           <ScenarioResults
             results={startupScenarioMutation.data}
             isLoading={isCalculating}
+            globalSettings={globalSettings}
+            currentJob={currentJob}
+            equityDetails={equityDetails}
             monteCarloContent={hasDebouncedData ? (
               <div className="space-y-6">
                 <MonteCarloFormComponent
