@@ -8,8 +8,8 @@ const nextConfig: NextConfig = {
     // Define responsive image sizes
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    // Cache optimized images for 60 seconds
-    minimumCacheTTL: 60,
+    // Cache optimized images for 1 year (31536000 seconds)
+    minimumCacheTTL: 31536000,
     // Allow SVG images with security policy
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",
