@@ -34,6 +34,12 @@ from worth_it.models import (
     StartupScenarioRequest,
     StartupScenarioResponse,
 )
+from worth_it.monte_carlo import (
+    run_monte_carlo_simulation as mc_run_simulation,
+)
+from worth_it.monte_carlo import (
+    run_sensitivity_analysis as mc_sensitivity_analysis,
+)
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -231,7 +237,7 @@ async def calculate_npv(request: NPVRequest):
 
 
 @app.post("/api/monte-carlo", response_model=MonteCarloResponse)
-async def run_monte_carlo_simulation(request: MonteCarloRequest):
+async def run_monte_carlo(request: MonteCarloRequest):
     """Run Monte Carlo simulation for probabilistic analysis.
 
     This endpoint performs thousands of simulations with varying parameters
@@ -248,7 +254,7 @@ async def run_monte_carlo_simulation(request: MonteCarloRequest):
                     base_params["startup_params"]["equity_type"],
                 )
 
-        results = calculations.run_monte_carlo_simulation(
+        results = mc_run_simulation(
             num_simulations=request.num_simulations,
             base_params=base_params,
             sim_param_configs=request.sim_param_configs,
@@ -313,7 +319,7 @@ async def websocket_monte_carlo(websocket: WebSocket):
             current_batch_size = min(batch_size, request.num_simulations - i)
 
             # Run batch simulation
-            results = calculations.run_monte_carlo_simulation(
+            results = mc_run_simulation(
                 num_simulations=current_batch_size,
                 base_params=base_params,
                 sim_param_configs=request.sim_param_configs,
@@ -377,7 +383,7 @@ async def websocket_monte_carlo(websocket: WebSocket):
 
 
 @app.post("/api/sensitivity-analysis", response_model=SensitivityAnalysisResponse)
-async def run_sensitivity_analysis(request: SensitivityAnalysisRequest):
+async def run_sensitivity(request: SensitivityAnalysisRequest):
     """Run sensitivity analysis to identify key variables.
 
     This endpoint analyzes how each variable impacts the final outcome
@@ -394,7 +400,7 @@ async def run_sensitivity_analysis(request: SensitivityAnalysisRequest):
                     base_params["startup_params"]["equity_type"],
                 )
 
-        df = calculations.run_sensitivity_analysis(
+        df = mc_sensitivity_analysis(
             base_params=base_params,
             sim_param_configs=request.sim_param_configs,
         )
