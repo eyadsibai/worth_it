@@ -488,8 +488,13 @@ def calculate_npv(
         return float(np.nan)
 
 
-# Re-export Monte Carlo functions for backward compatibility
-# These functions have been moved to monte_carlo.py for better organization
+# Re-export Monte Carlo functions for backward compatibility.
+# These functions have been moved to monte_carlo.py for better organization.
+# NOTE: This creates a circular import (monte_carlo imports from calculations,
+# calculations imports from monte_carlo), but it's safe because:
+# 1. monte_carlo's imports from calculations are at the top (executed first)
+# 2. This import is at the END of calculations.py (all functions already defined)
+# 3. Python handles this pattern correctly when calculations is imported first
 from worth_it.monte_carlo import (  # noqa: E402, F401
     get_random_variates_pert,
     run_monte_carlo_simulation,

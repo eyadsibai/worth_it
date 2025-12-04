@@ -8,16 +8,13 @@ simulations, and sensitivity analysis.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import numpy as np
 import pandas as pd
 from scipy import stats
 
-if TYPE_CHECKING:
-    pass
-
-# Import core calculation functions (avoid circular imports)
+# Import core calculation functions
 from worth_it.calculations import (
     annual_to_monthly_roi,
     calculate_annual_opportunity_cost,
@@ -255,10 +252,10 @@ def run_monte_carlo_simulation_vectorized(
                             * cumulative_sold_before_sale
                         )
 
-                        # Calculate cash from this sale
-                        # Note: We only receive cash for the vested portion; anything beyond
-                        # that is forfeited. The UI slider limits percent_to_sell to
-                        # vested_pct, but we validate here too
+                        # Calculate cash from this sale.
+                        # Note: We only receive cash for the vested portion; anything
+                        # beyond that is forfeited. The UI slider limits percent_to_sell
+                        # to vested_pct, but we validate here too.
                         effective_sell_pct = min(vested_pct_at_sale, r["percent_to_sell"])
                         cash_from_sale = (
                             equity_at_sale * r.get("valuation_at_sale", 0) * effective_sell_pct
