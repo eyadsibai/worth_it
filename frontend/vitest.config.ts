@@ -16,6 +16,7 @@ export default defineConfig({
         "lib/providers.tsx", // React providers don't need unit tests
         "lib/constants/**", // Constants files are just data, no logic to test
         "**/*.d.ts",
+        "**/format-utils.ts", // Phantom file from v8 coverage (appears in CI node_modules)
       ],
       thresholds: {
         lines: 70,
