@@ -56,7 +56,6 @@ export default function Home() {
   }, []);
 
   // Check if we have all required data (using debounced values for API calls)
-  const hasRequiredData = globalSettings && currentJob && equityDetails;
   const hasDebouncedData = debouncedGlobalSettings && debouncedCurrentJob && debouncedEquityDetails;
 
   // Initialize mutations
@@ -250,7 +249,7 @@ export default function Home() {
         </Card>
 
         {/* Results Dashboard */}
-        {!hasRequiredData && (
+        {!hasDebouncedData && (
           <Card className="glass-card animate-scale-in">
             <CardContent className="py-16 text-center">
               <div className="space-y-4">
@@ -268,7 +267,7 @@ export default function Home() {
           </Card>
         )}
 
-        {hasRequiredData && !startupScenarioMutation.data && isCalculating && (
+        {hasDebouncedData && !startupScenarioMutation.data && isCalculating && (
           <Card className="glass-card animate-scale-in">
             <CardContent className="py-16 text-center">
               <div className="flex flex-col items-center gap-6">
@@ -289,22 +288,22 @@ export default function Home() {
           <ScenarioResults 
             results={startupScenarioMutation.data} 
             isLoading={isCalculating}
-            monteCarloContent={hasRequiredData ? (
+            monteCarloContent={hasDebouncedData ? (
               <div className="space-y-6">
                 <MonteCarloFormComponent
                   baseParams={{
-                    exit_year: globalSettings.exit_year,
-                    current_job_monthly_salary: currentJob.monthly_salary,
-                    startup_monthly_salary: equityDetails.monthly_salary,
-                    current_job_salary_growth_rate: currentJob.annual_salary_growth_rate / 100,
-                    equity_params: equityDetails.equity_type === "RSU" ? {
+                    exit_year: debouncedGlobalSettings.exit_year,
+                    current_job_monthly_salary: debouncedCurrentJob.monthly_salary,
+                    startup_monthly_salary: debouncedEquityDetails.monthly_salary,
+                    current_job_salary_growth_rate: debouncedCurrentJob.annual_salary_growth_rate / 100,
+                    equity_params: debouncedEquityDetails.equity_type === "RSU" ? {
                       equity_type: "Equity (RSUs)",
-                      total_equity_grant_pct: equityDetails.total_equity_grant_pct / 100,
-                      total_vesting_years: equityDetails.vesting_period,
-                      cliff_years: equityDetails.cliff_period,
-                      simulate_dilution: equityDetails.simulate_dilution,
-                      dilution_rounds: equityDetails.simulate_dilution
-                        ? equityDetails.dilution_rounds.filter((r) => r.enabled).map((r) => ({
+                      total_equity_grant_pct: debouncedEquityDetails.total_equity_grant_pct / 100,
+                      total_vesting_years: debouncedEquityDetails.vesting_period,
+                      cliff_years: debouncedEquityDetails.cliff_period,
+                      simulate_dilution: debouncedEquityDetails.simulate_dilution,
+                      dilution_rounds: debouncedEquityDetails.simulate_dilution
+                        ? debouncedEquityDetails.dilution_rounds.filter((r) => r.enabled).map((r) => ({
                             round_name: r.round_name,
                             round_type: r.round_type,
                             year: r.year,
@@ -314,16 +313,16 @@ export default function Home() {
                             salary_change: r.salary_change,
                           }))
                         : [],
-                      exit_valuation: equityDetails.exit_valuation,
+                      exit_valuation: debouncedEquityDetails.exit_valuation,
                     } : {
                       equity_type: "Stock Options",
-                      num_options: equityDetails.num_options,
-                      strike_price: equityDetails.strike_price,
-                      total_vesting_years: equityDetails.vesting_period,
-                      cliff_years: equityDetails.cliff_period,
-                      exercise_strategy: equityDetails.exercise_strategy,
-                      exercise_year: equityDetails.exercise_year,
-                      exit_price_per_share: equityDetails.exit_price_per_share,
+                      num_options: debouncedEquityDetails.num_options,
+                      strike_price: debouncedEquityDetails.strike_price,
+                      total_vesting_years: debouncedEquityDetails.vesting_period,
+                      cliff_years: debouncedEquityDetails.cliff_period,
+                      exercise_strategy: debouncedEquityDetails.exercise_strategy,
+                      exercise_year: debouncedEquityDetails.exercise_year,
+                      exit_price_per_share: debouncedEquityDetails.exit_price_per_share,
                     },
                   }}
                   onComplete={handleMonteCarloComplete}
