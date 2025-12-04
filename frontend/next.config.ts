@@ -12,7 +12,6 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 31536000,
     // Allow SVG images with security policy
     dangerouslyAllowSVG: true,
-    contentDispositionType: "attachment",
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
