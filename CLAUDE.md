@@ -7,7 +7,10 @@ Development guide for Claude Code when working on the Worth It monorepo.
 ```
 worth_it/
 ├── backend/          # FastAPI Python backend
-└── frontend/         # Next.js TypeScript frontend
+├── frontend/         # Next.js TypeScript frontend
+├── playwright/       # E2E tests (Playwright)
+├── scripts/          # Utility scripts (run-e2e-tests.sh)
+└── docs/             # Additional documentation
 ```
 
 ## Quick Start
@@ -77,12 +80,16 @@ backend/
 │   ├── calculations.py    # Core financial calculations (framework-agnostic)
 │   ├── api.py            # FastAPI endpoints + WebSocket
 │   ├── models.py         # Pydantic validation models
-│   └── config.py         # Configuration management
+│   ├── config.py         # Configuration management
+│   ├── types.py          # TypedDict definitions for type safety
+│   └── exceptions.py     # Custom exception hierarchy (WorthItError, CalculationError)
 └── tests/
-    ├── test_calculations.py  # Unit tests (20 tests)
-    ├── test_api.py          # API tests (11 tests)
-    └── test_integration.py  # Integration tests (4 tests)
+    ├── test_calculations.py  # Unit tests for core calculations
+    ├── test_api.py          # API endpoint and WebSocket tests
+    └── test_integration.py  # End-to-end workflow tests
 ```
+
+**Total: ~50 backend tests** (run `uv run pytest --collect-only -q` to verify)
 
 ## Frontend Development
 
@@ -123,13 +130,16 @@ frontend/
 ├── app/                      # Next.js App Router pages
 ├── components/
 │   ├── charts/              # Recharts visualizations
+│   │   └── monte-carlo/     # Monte Carlo specific charts (histogram, ECDF, etc.)
 │   ├── forms/               # React Hook Form components
 │   ├── layout/              # Layout components (Header, Sidebar)
 │   ├── results/             # Results dashboard
 │   └── ui/                  # shadcn/ui base components
 └── lib/
     ├── api-client.ts        # Type-safe API client with TanStack Query
-    └── schemas.ts           # Zod validation schemas (match backend Pydantic)
+    ├── schemas.ts           # Zod validation schemas (match backend Pydantic)
+    ├── hooks/               # Custom React hooks (use-debounce, etc.)
+    └── providers.tsx        # TanStack Query, Theme providers
 ```
 
 ## Architecture
@@ -152,7 +162,7 @@ frontend/
 - Framework-agnostic financial calculations
 - Functions in `calculations.py`
 - Can be used standalone without web frameworks
-- Covered by 20 unit tests
+- Covered by comprehensive test suite (~50 tests)
 
 ### Data Flow
 
@@ -228,7 +238,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 ## Troubleshooting
 
 **Backend not starting?**
-- Check Python version: `python --version` (need 3.13+)
+- Check Python version: `python --version` (requires 3.13+)
 - Reinstall dependencies: `cd backend && uv sync`
 - Check port 8000 is free: `lsof -i :8000`
 
@@ -242,6 +252,11 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 - Check CORS settings in `backend/src/worth_it/config.py`
 - Check browser console for connection errors
 
+**Playwright tests failing?**
+- Ensure both backend and frontend are running
+- Check selectors if UI changed (use `[role="slider"]` for Radix sliders, not `input`)
+- Scope selectors to form containers to avoid duplicate element matches
+
 ## Important Files
 
 - `backend/src/worth_it/api.py` - All API endpoints
@@ -254,7 +269,64 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 - **Backend**: Unit tests for calculations, API tests for endpoints, integration tests for full workflows
 - **Frontend**: TypeScript for compile-time safety, Zod for runtime validation
-- **E2E**: Playwright tests (to be added)
+- **E2E**: Playwright tests for end-to-end browser testing
+
+## E2E Testing with Playwright
+
+### Running E2E Tests
+
+Use the convenience script that handles server startup/shutdown:
+```bash
+./scripts/run-e2e-tests.sh
+```
+
+Or run manually (requires both servers running):
+```bash
+# Terminal 1: Start backend
+cd backend && uv run uvicorn worth_it.api:app --reload --port 8000
+
+# Terminal 2: Start frontend
+cd frontend && npm run dev
+
+# Terminal 3: Run tests
+cd playwright && npx playwright test
+```
+
+### Playwright Test Structure
+```
+playwright/
+├── fixtures/base.ts          # Test fixtures with WorthItHelpers
+├── utils/
+│   ├── helpers.ts            # Helper methods for form interactions
+│   └── test-data.ts          # Test constants and selectors
+└── tests/
+    ├── 01-api-health.spec.ts        # API connection tests
+    ├── 02-form-interactions.spec.ts # Form input tests
+    ├── 03-rsu-form.spec.ts          # RSU equity form tests
+    ├── 04-stock-options-form.spec.ts # Stock options form tests
+    ├── 05-rsu-scenario-flow.spec.ts  # Full RSU scenario E2E
+    ├── 06-stock-options-scenario-flow.spec.ts # Full options E2E
+    ├── 07-monte-carlo.spec.ts       # Monte Carlo simulation tests
+    └── 08-ui-features.spec.ts       # Theme, accessibility tests
+```
+
+### Writing E2E Tests
+
+**Form interactions use Radix UI components**:
+- **Sliders**: Use `[role="slider"]` with keyboard navigation (Home/ArrowRight)
+- **Tabs**: Use `[role="tab"]` instead of radio buttons for equity type selection
+- **Selects**: Use `[role="combobox"]` for dropdown menus
+- **Checkboxes**: Use `[role="checkbox"]` for toggle options
+
+**Important**: Always scope selectors to form containers to avoid matching duplicate elements:
+```typescript
+// Good - scoped to specific card
+const currentJobCard = page.locator('.glass-card').filter({ hasText: 'Current Job' });
+const salaryInput = currentJobCard.locator('input[name="monthly_salary"]');
+
+// Bad - may match multiple elements
+const salaryInput = page.locator('input[name="monthly_salary"]').first();
+```
 
 ## Resources
 

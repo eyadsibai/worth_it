@@ -35,8 +35,10 @@ worth_it/
 │   │   ├── calculations.py    # Financial calculations
 │   │   ├── api.py             # REST API + WebSocket
 │   │   ├── models.py          # Pydantic models
-│   │   └── config.py          # Configuration
-│   ├── tests/                 # Test suite (35 tests)
+│   │   ├── config.py          # Configuration
+│   │   ├── types.py           # TypedDict definitions
+│   │   └── exceptions.py      # Custom exceptions
+│   ├── tests/                 # Test suite (~50 tests)
 │   ├── pyproject.toml         # Python dependencies
 │   └── README.md              # Backend docs
 ├── frontend/                   # Next.js React frontend
@@ -50,7 +52,9 @@ worth_it/
 │   │   └── schemas.ts        # Zod validation
 │   ├── package.json           # Node dependencies
 │   └── README.md              # Frontend docs
+├── playwright/                 # E2E Playwright tests (8 test suites)
 ├── scripts/                    # Utility scripts
+├── docs/                       # Additional documentation
 └── README.md                   # This file
 ```
 
@@ -73,7 +77,7 @@ worth_it/
              ▼
 ┌──────────────────────────┐
 │  Core Calculations       │  NumPy + Pandas
-│  Framework-Agnostic      │  35 unit tests
+│  Framework-Agnostic      │  ~50 unit tests
 └──────────────────────────┘
 ```
 
@@ -98,7 +102,7 @@ worth_it/
 **Backend:**
 ```bash
 cd backend
-uv run pytest                          # Run all 35 tests
+uv run pytest                          # Run all ~50 tests
 uv run pytest --cov=src --cov-report  # With coverage
 ```
 
@@ -124,7 +128,7 @@ See [playwright/README.md](playwright/README.md) for detailed E2E testing docume
 **Backend:**
 - FastAPI + Pydantic + WebSocket
 - NumPy, Pandas, SciPy for calculations
-- pytest with 35 tests (51% coverage)
+- pytest with ~50 tests
 - uv for dependency management
 
 **Frontend:**
@@ -135,7 +139,7 @@ See [playwright/README.md](playwright/README.md) for detailed E2E testing docume
 
 **E2E Testing:**
 - Playwright for automated browser testing
-- 56 end-to-end tests covering full user flows
+- 8 test suites covering full user flows
 - Automated CI/CD integration
 
 ## 🤝 Contributing
