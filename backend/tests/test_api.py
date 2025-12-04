@@ -294,6 +294,7 @@ def test_calculation_error_returns_sanitized_message():
     """Test that CalculationError returns 400 with sanitized message."""
     # Use monkey patching to force a calculation error
     from unittest.mock import patch
+
     from worth_it import calculations
 
     with patch.object(
@@ -318,6 +319,7 @@ def test_invalid_parameters_trigger_calculation_error():
     """Test that invalid calculation parameters return sanitized error."""
     # Use monkey patching to force a TypeError
     from unittest.mock import patch
+
     from worth_it import calculations
 
     with patch.object(
@@ -343,6 +345,7 @@ def test_error_messages_do_not_expose_implementation_details():
     """Test that error responses don't leak implementation details."""
     # Use monkey patching to test various error scenarios
     from unittest.mock import patch
+
     from worth_it import calculations
 
     # Test ValueError (caught by dilution endpoint)
