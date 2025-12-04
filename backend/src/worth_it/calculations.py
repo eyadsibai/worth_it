@@ -594,12 +594,8 @@ def run_monte_carlo_simulation_vectorized(
         fv_factors = (1 + monthly_rois[:, np.newaxis]) ** months_to_grow
         final_opportunity_cost = (investable_surpluses * fv_factors).sum(axis=1)
     else:
-        annual_investable_surpluses = np.array(
-            [
-                np.sum(investable_surpluses[i].reshape(-1, 12), axis=1)
-                for i in range(num_simulations)
-            ]
-        )
+        # Vectorized reshape instead of list comprehension
+        annual_investable_surpluses = investable_surpluses.reshape(num_simulations, exit_year, 12).sum(axis=2)
         years_to_grow = exit_year - np.arange(1, exit_year + 1)
         fv_factors = (1 + sim_params["roi"][:, np.newaxis]) ** years_to_grow
         final_opportunity_cost = (annual_investable_surpluses * fv_factors).sum(axis=1)
@@ -784,8 +780,9 @@ def run_monte_carlo_simulation_iterative(
         num_simulations, sim_param_configs.get("dilution"), np.nan  # type: ignore[arg-type]
     )
 
-    net_outcomes_list: list[float] = []
-    final_opportunity_costs_list: list[float] = []
+    # Pre-allocate arrays instead of lists for better performance
+    net_outcomes = np.empty(num_simulations, dtype=float)
+    final_opportunity_costs = np.empty(num_simulations, dtype=float)
     for i in range(num_simulations):
         exit_year_sim = int(sim_params["exit_year"][i])
 
@@ -825,16 +822,10 @@ def run_monte_carlo_simulation_iterative(
             options_params=sim_startup_params.get("options_params"),
             startup_params=sim_startup_params,
         )
-        final_opportunity_costs_list.append(
-            opportunity_cost_df["Opportunity Cost (Invested Surplus)"].iloc[-1]
-        )
+        final_opportunity_costs[i] = opportunity_cost_df["Opportunity Cost (Invested Surplus)"].iloc[-1]
 
         results = calculate_startup_scenario(opportunity_cost_df, sim_startup_params)
-        net_outcome = results["final_payout_value"] - results["final_opportunity_cost"]
-        net_outcomes_list.append(net_outcome)
-
-    net_outcomes: np.ndarray = np.array(net_outcomes_list)
-    final_opportunity_costs: np.ndarray = np.array(final_opportunity_costs_list)
+        net_outcomes[i] = results["final_payout_value"] - results["final_opportunity_cost"]
 
     # Incorporate failure probability
     failure_mask = (
