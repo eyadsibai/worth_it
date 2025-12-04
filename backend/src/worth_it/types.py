@@ -14,7 +14,6 @@ import pandas as pd
 
 from worth_it.calculations import EquityType
 
-
 # --- Dilution and Funding Rounds ---
 
 
