@@ -298,7 +298,9 @@ def test_calculation_error_returns_sanitized_message():
     from worth_it import calculations
 
     with patch.object(
-        calculations, "calculate_dilution_from_valuation", side_effect=ValueError("Internal error: NoneType object")
+        calculations,
+        "calculate_dilution_from_valuation",
+        side_effect=ValueError("Internal error: NoneType object"),
     ):
         request_data = {
             "pre_money_valuation": 10000000,
@@ -349,7 +351,11 @@ def test_error_messages_do_not_expose_implementation_details():
     from worth_it import calculations
 
     # Test ValueError (caught by dilution endpoint)
-    with patch.object(calculations, "calculate_dilution_from_valuation", side_effect=ValueError("'key' not found in dict")):
+    with patch.object(
+        calculations,
+        "calculate_dilution_from_valuation",
+        side_effect=ValueError("'key' not found in dict"),
+    ):
         request_data = {
             "pre_money_valuation": 10000000,
             "amount_raised": 1000000,
@@ -368,7 +374,11 @@ def test_error_messages_do_not_expose_implementation_details():
         assert "dict" not in data["message"].lower()
 
     # Test ZeroDivisionError (caught by dilution endpoint)
-    with patch.object(calculations, "calculate_dilution_from_valuation", side_effect=ZeroDivisionError("division by zero")):
+    with patch.object(
+        calculations,
+        "calculate_dilution_from_valuation",
+        side_effect=ZeroDivisionError("division by zero"),
+    ):
         request_data = {
             "pre_money_valuation": 10000000,
             "amount_raised": 1000000,
