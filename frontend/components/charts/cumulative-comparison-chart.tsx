@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import {
   BarChart,
   Bar,
@@ -16,23 +17,30 @@ interface CumulativeComparisonChartProps {
   data: Array<Record<string, any>>;
 }
 
-export function CumulativeComparisonChart({ data }: CumulativeComparisonChartProps) {
-  const chartData = data.map((row) => ({
-    year: `Year ${row.year || 0}`,
-    startup: row.startup_monthly_salary || 0,
-    currentJob: row.current_job_monthly_salary || 0,
-    opportunityCost: row.cumulative_opportunity_cost || 0,
-  }));
+// Format currency with compact notation (e.g., SAR 10K)
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat("en-SA", {
+    style: "currency",
+    currency: "SAR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+    notation: "compact",
+  }).format(value);
+};
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-SA", {
-      style: "currency",
-      currency: "SAR",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-      notation: "compact",
-    }).format(value);
-  };
+export const CumulativeComparisonChart = React.memo(function CumulativeComparisonChart({
+  data
+}: CumulativeComparisonChartProps) {
+  // Memoize the data transformation to avoid recalculating on every render
+  const chartData = React.useMemo(() =>
+    data.map((row) => ({
+      year: `Year ${row.year || 0}`,
+      startup: row.startup_monthly_salary || 0,
+      currentJob: row.current_job_monthly_salary || 0,
+      opportunityCost: row.cumulative_opportunity_cost || 0,
+    })),
+    [data]
+  );
 
   return (
     <ResponsiveContainer width="100%" height={400}>
@@ -80,4 +88,6 @@ export function CumulativeComparisonChart({ data }: CumulativeComparisonChartPro
       </BarChart>
     </ResponsiveContainer>
   );
-}
+});
+
+CumulativeComparisonChart.displayName = "CumulativeComparisonChart";
