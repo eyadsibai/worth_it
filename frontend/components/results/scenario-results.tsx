@@ -4,10 +4,18 @@ import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, DollarSign, Calendar, Percent } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Calendar, Percent, Download, FileJson, FileSpreadsheet } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { StartupScenarioResponse } from "@/lib/schemas";
 import { CumulativeComparisonChart } from "@/components/charts/cumulative-comparison-chart";
 import { OpportunityCostChart } from "@/components/charts/opportunity-cost-chart";
+import { exportAsJSON, exportResultsAsCSV } from "@/lib/export-utils";
 
 interface ScenarioResultsProps {
   results: StartupScenarioResponse;
@@ -135,10 +143,36 @@ export function ScenarioResults({ results, isLoading, monteCarloContent }: Scena
       {/* Detailed Results Tabs */}
       <Card>
         <CardHeader>
-          <CardTitle>Detailed Analysis</CardTitle>
-          <CardDescription>
-            Explore yearly breakdown and visualizations
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Detailed Analysis</CardTitle>
+              <CardDescription>
+                Explore yearly breakdown and visualizations
+              </CardDescription>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => exportAsJSON(results, `scenario-${Date.now()}`)}
+                >
+                  <FileJson className="mr-2 h-4 w-4" />
+                  Export as JSON
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => exportResultsAsCSV(results as unknown as Record<string, unknown>, `scenario-${Date.now()}`)}
+                >
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  Export as CSV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="table">
