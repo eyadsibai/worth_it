@@ -194,11 +194,12 @@ export default function Home() {
       <div className="container py-8 space-y-8">
         {/* Hero Section */}
         <div className="space-y-4">
-          <h1 className="text-4xl md:text-5xl font-display tracking-tight text-foreground animate-fade-in">
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground animate-fade-in">
+            <span className="text-accent font-mono">&gt;</span>{" "}
             Job Offer{" "}
-            <span className="gradient-gold">Financial Analyzer</span>
+            <span className="gradient-text">Financial Analyzer</span>
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed animate-fade-in delay-75">
+          <p className="text-base text-muted-foreground max-w-2xl leading-relaxed animate-fade-in delay-75">
             Analyze startup job offers with comprehensive financial modeling including equity,
             dilution, and Monte Carlo simulations
           </p>
@@ -206,39 +207,37 @@ export default function Home() {
         </div>
 
         {/* API Status */}
-        <Card className="editorial-card animate-slide-up delay-225">
+        <Card className="terminal-card animate-slide-up delay-225">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-medium flex items-center gap-3">
-              <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-accent/10">
-                <div className="h-2 w-2 rounded-full bg-accent animate-pulse"></div>
-              </div>
+            <CardTitle className="text-sm font-medium flex items-center gap-3 font-mono uppercase tracking-wider text-muted-foreground">
+              <div className="h-2 w-2 rounded-full bg-terminal animate-pulse" style={{ boxShadow: '0 0 8px oklch(75% 0.18 145 / 0.8)' }}></div>
               <span>System Status</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading && (
               <div className="flex items-center space-x-3 py-2">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Checking connection...</span>
+                <Loader2 className="h-4 w-4 animate-spin text-accent" />
+                <span className="text-sm text-muted-foreground font-mono">Connecting...</span>
               </div>
             )}
 
             {isError && (
               <div className="flex items-center space-x-3 py-2 text-destructive">
                 <XCircle className="h-4 w-4" />
-                <span className="text-sm font-medium">Error: {error?.message || "Failed to connect to API"}</span>
+                <span className="text-sm font-mono">ERROR: {error?.message || "Connection failed"}</span>
               </div>
             )}
 
             {data && (
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <CheckCircle2 className="h-4 w-4 text-accent" />
-                  <span className="text-sm font-medium">Connected</span>
+                  <CheckCircle2 className="h-4 w-4 text-terminal" />
+                  <span className="text-sm font-medium text-terminal">Online</span>
                 </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span className="capitalize">{data.status}</span>
-                  <span className="font-mono text-xs bg-muted/50 px-2 py-0.5 rounded">v{data.version}</span>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground font-mono">
+                  <span className="uppercase">{data.status}</span>
+                  <span className="text-xs bg-secondary px-2 py-1 rounded border border-border">v{data.version}</span>
                 </div>
               </div>
             )}
@@ -247,16 +246,14 @@ export default function Home() {
 
         {/* Results Dashboard */}
         {!hasDebouncedData && (
-          <Card className="editorial-card animate-scale-in delay-300">
-            <CardContent className="py-20 text-center">
-              <div className="space-y-6 max-w-sm mx-auto">
-                <div className="h-16 w-16 mx-auto bg-gradient-to-br from-accent/10 to-gold/10 rounded-2xl flex items-center justify-center border border-accent/20">
-                  <div className="h-3 w-3 rounded-full bg-accent/60"></div>
-                </div>
+          <Card className="terminal-card animate-scale-in delay-300">
+            <CardContent className="py-16 text-center">
+              <div className="space-y-6 max-w-md mx-auto">
+                <div className="font-mono text-6xl text-accent/20 select-none">_</div>
                 <div className="space-y-3">
-                  <h3 className="font-display text-xl text-foreground">Ready for Analysis</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Complete the forms in the sidebar to generate your comprehensive financial analysis and visualizations.
+                  <h3 className="text-lg font-medium text-foreground">Awaiting Input</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed font-mono">
+                    Complete the forms in the sidebar to generate your financial analysis.
                   </p>
                 </div>
               </div>
@@ -265,17 +262,15 @@ export default function Home() {
         )}
 
         {hasDebouncedData && !startupScenarioMutation.data && isCalculating && (
-          <Card className="editorial-card animate-scale-in">
-            <CardContent className="py-20 text-center">
-              <div className="flex flex-col items-center gap-8">
+          <Card className="terminal-card animate-scale-in">
+            <CardContent className="py-16 text-center">
+              <div className="flex flex-col items-center gap-6">
                 <div className="relative">
-                  <div className="h-16 w-16 rounded-2xl bg-accent/10 flex items-center justify-center">
-                    <Loader2 className="h-7 w-7 animate-spin text-accent" />
-                  </div>
+                  <Loader2 className="h-10 w-10 animate-spin text-accent" />
                 </div>
                 <div className="space-y-2 max-w-sm">
-                  <h3 className="font-display text-xl text-foreground">Analyzing Scenario</h3>
-                  <p className="text-sm text-muted-foreground">Running financial calculations and projections...</p>
+                  <h3 className="text-lg font-medium text-foreground">Processing</h3>
+                  <p className="text-sm text-muted-foreground font-mono">Running calculations...</p>
                 </div>
               </div>
             </CardContent>
@@ -339,16 +334,14 @@ export default function Home() {
 
 
         {startupScenarioMutation.isError && (
-          <Card className="editorial-card border-destructive/30 animate-scale-in">
-            <CardContent className="py-16 text-center">
-              <div className="flex flex-col items-center gap-6 max-w-sm mx-auto">
-                <div className="h-14 w-14 bg-destructive/10 rounded-2xl flex items-center justify-center border border-destructive/20">
-                  <XCircle className="h-6 w-6 text-destructive" />
-                </div>
+          <Card className="terminal-card border-destructive/30 animate-scale-in">
+            <CardContent className="py-12 text-center">
+              <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
+                <XCircle className="h-8 w-8 text-destructive" />
                 <div className="space-y-2">
-                  <h3 className="font-display text-xl text-destructive">Calculation Error</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {startupScenarioMutation.error?.message || "An error occurred during scenario calculation"}
+                  <h3 className="text-lg font-medium text-destructive font-mono">ERROR</h3>
+                  <p className="text-sm text-muted-foreground font-mono leading-relaxed">
+                    {startupScenarioMutation.error?.message || "Calculation failed"}
                   </p>
                 </div>
               </div>

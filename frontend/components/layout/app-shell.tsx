@@ -11,7 +11,7 @@ interface AppShellProps {
 
 export function AppShell({ sidebar, children }: AppShellProps) {
   return (
-    <div className="min-h-screen flex flex-col bg-grain">
+    <div className="min-h-screen flex flex-col bg-noise">
       <Header />
       <div className="flex-1 flex overflow-hidden">
         {sidebar && <Sidebar>{sidebar}</Sidebar>}
