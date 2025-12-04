@@ -227,10 +227,29 @@ def calculate_annual_opportunity_cost(
     return results_df
 
 
-def calculate_dilution_from_valuation(pre_money_valuation: float, amount_raised: float) -> float:
-    """Calculates the dilution percentage from a fundraising round."""
-    if pre_money_valuation <= 0 or amount_raised < 0:
-        return 0.0
+def calculate_dilution_from_valuation(
+    pre_money_valuation: float, amount_raised: float
+) -> float:
+    """
+    Calculate dilution percentage from a funding round.
+
+    Args:
+        pre_money_valuation: Company valuation before investment (must be > 0)
+        amount_raised: Investment amount (must be >= 0)
+
+    Returns:
+        Dilution as a decimal (e.g., 0.20 for 20%)
+
+    Raises:
+        ValueError: If pre_money_valuation <= 0 or amount_raised < 0
+    """
+    if pre_money_valuation <= 0:
+        raise ValueError(
+            f"pre_money_valuation must be positive, got {pre_money_valuation}"
+        )
+    if amount_raised < 0:
+        raise ValueError(f"amount_raised cannot be negative, got {amount_raised}")
+
     post_money_valuation = pre_money_valuation + amount_raised
     return amount_raised / post_money_valuation
 
