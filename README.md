@@ -155,4 +155,4 @@ MIT License - See LICENSE file for details
 
 ---
 
-**Monorepo** | **Python 3.10+** | **Node 18+** | **Production Ready**
+**Monorepo** | **Python 3.13+** | **Node 18+** | **Production Ready**

@@ -4,7 +4,7 @@
 
 **Worth It** is a Streamlit-based financial comparison tool that helps professionals evaluate startup job offers against their current job. It uses sophisticated financial modeling including equity valuation, dilution simulation, and Monte Carlo analysis to quantify financial trade-offs.
 
-**Tech Stack**: Python 3.10+, FastAPI, Streamlit, NumPy, Pandas, SciPy, Plotly, Pydantic
+**Tech Stack**: Python 3.13+, FastAPI, Streamlit, NumPy, Pandas, SciPy, Plotly, Pydantic
 
 ## Architecture
 
