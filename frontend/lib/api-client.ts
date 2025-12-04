@@ -337,16 +337,23 @@ export function useMonteCarloWebSocket(): MonteCarloWSResult {
             ws.close();
             break;
         }
-      } catch {
-        setError("Failed to parse server message");
+      } catch (e) {
+        if (e instanceof SyntaxError) {
+          console.error("Invalid JSON from server:", event.data);
+          setError("Server sent invalid response format");
+        } else {
+          console.error("Error processing message:", e);
+          setError("Failed to process server message");
+        }
+        // Don't close connection on parse error - server may recover
+        // Only mark as not running to allow retry
         setIsRunning(false);
-        setIsConnected(false);
-        ws.close();
       }
     };
 
-    ws.onerror = () => {
-      setError("WebSocket connection error");
+    ws.onerror = (event) => {
+      console.error("WebSocket error:", event);
+      setError("Connection error - please try again");
       setIsRunning(false);
       setIsConnected(false);
     };
