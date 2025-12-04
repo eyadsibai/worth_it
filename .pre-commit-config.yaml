@@ -36,7 +36,6 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies:
-          - types-requests
           - pandas-stubs
         args: [--ignore-missing-imports]
         files: ^backend/src/worth_it/(calculations|api|models)\.py$
@@ -75,4 +74,21 @@ repos:
         entry: bash -c 'cd frontend && npm run type-check'
         language: system
         files: ^frontend/.*\.(ts|tsx)$
+        pass_filenames: false
+
+  # Dependency auditing - check for unused/missing dependencies
+  - repo: local
+    hooks:
+      - id: deptry
+        name: deptry (backend)
+        entry: bash -c 'cd backend && uv run deptry src/'
+        language: system
+        files: ^backend/(pyproject\.toml|uv\.lock)$
+        pass_filenames: false
+
+      - id: depcheck
+        name: depcheck (frontend)
+        entry: bash -c 'cd frontend && npx depcheck --ignores="@types/*,eslint*,prettier*,vitest,@vitest/*,@vitejs/*,@testing-library/*,jsdom,@playwright/*,axe-playwright,tw-animate-css,tailwindcss,@tailwindcss/*,critters"'
+        language: system
+        files: ^frontend/package\.json$
         pass_filenames: false

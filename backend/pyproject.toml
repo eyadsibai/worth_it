@@ -136,6 +136,8 @@ dev = [
     # Linting & formatting
     "pre-commit>=4.0.0",
     "ruff>=0.14.4",
+    # Dependency auditing
+    "deptry>=0.21.0",
     # Type checking
     "mypy>=1.11.0",
     "pyright>=1.1.407",
