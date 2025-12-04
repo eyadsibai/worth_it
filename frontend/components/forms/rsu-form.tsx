@@ -139,7 +139,7 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
                   <p className="text-sm text-muted-foreground">
                     Configure funding rounds that will dilute your equity. Each round can include dilution percentage, valuation, amount raised, and salary changes.
                   </p>
-                  
+
                   <div className="space-y-3">
                     {(watchedValues.dilution_rounds as DilutionRoundForm[])?.map((round, index) => (
                       <DilutionRoundFormComponent

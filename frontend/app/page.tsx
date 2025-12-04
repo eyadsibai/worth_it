@@ -285,8 +285,8 @@ export default function Home() {
         )}
 
         {startupScenarioMutation.data && (
-          <ScenarioResults 
-            results={startupScenarioMutation.data} 
+          <ScenarioResults
+            results={startupScenarioMutation.data}
             isLoading={isCalculating}
             monteCarloContent={hasDebouncedData ? (
               <div className="space-y-6">

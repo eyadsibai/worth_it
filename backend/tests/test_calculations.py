@@ -31,6 +31,7 @@ def sample_opportunity_cost_df(sample_monthly_df):
         monthly_df=four_year_df, annual_roi=0.05, investment_frequency="Annually"
     )
 
+
 # --- Base parameters for Monte Carlo tests ---
 @pytest.fixture
 def monte_carlo_base_params():
@@ -55,6 +56,7 @@ def monte_carlo_base_params():
         },
         "failure_probability": 0.25,
     }
+
 
 # --- Test Core Functions ---
 
@@ -81,7 +83,10 @@ def test_calculate_annual_opportunity_cost(sample_monthly_df):
     )
     assert len(df) == 5
     assert "Opportunity Cost (Invested Surplus)" in df.columns
-    assert df["Opportunity Cost (Invested Surplus)"].iloc[-1] > df["Opportunity Cost (Invested Surplus)"].iloc[0]
+    assert (
+        df["Opportunity Cost (Invested Surplus)"].iloc[-1]
+        > df["Opportunity Cost (Invested Surplus)"].iloc[0]
+    )
     assert "Principal Forgone" in df.columns
 
 
@@ -205,6 +210,7 @@ def test_run_monte_carlo_simulation_no_dilution_sim(monte_carlo_base_params):
 
 # --- Test New Features from User Request ---
 
+
 def test_salary_increase_after_funding_round():
     """
     Tests that the startup salary correctly increases after a funding round
@@ -318,7 +324,7 @@ def test_final_payout_reduced_after_equity_sale(sample_opportunity_cost_df):
             "target_exit_valuation": 10_000_000,
             "simulate_dilution": True,
             "dilution_rounds": [
-                {"year": 2, "percent_to_sell": 0.50, "valuation_at_sale": 5_000_000} # Sell 50%
+                {"year": 2, "percent_to_sell": 0.50, "valuation_at_sale": 5_000_000}  # Sell 50%
             ],
         },
         "options_params": {},
@@ -369,7 +375,11 @@ def test_multiple_equity_sales(sample_opportunity_cost_df):
             "simulate_dilution": True,
             "dilution_rounds": [
                 {"year": 2, "percent_to_sell": 0.50, "valuation_at_sale": 5_000_000},  # Sell 50%
-                {"year": 3, "percent_to_sell": 0.50, "valuation_at_sale": 7_000_000},  # Sell 50% of remaining
+                {
+                    "year": 3,
+                    "percent_to_sell": 0.50,
+                    "valuation_at_sale": 7_000_000,
+                },  # Sell 50% of remaining
             ],
         },
         "options_params": {},
@@ -417,7 +427,11 @@ def test_equity_sales_after_exit_ignored(sample_opportunity_cost_df):
             "simulate_dilution": True,
             "dilution_rounds": [
                 {"year": 2, "percent_to_sell": 0.50, "valuation_at_sale": 5_000_000},  # Before exit
-                {"year": 4, "percent_to_sell": 0.50, "valuation_at_sale": 7_000_000},  # After exit - should be ignored
+                {
+                    "year": 4,
+                    "percent_to_sell": 0.50,
+                    "valuation_at_sale": 7_000_000,
+                },  # After exit - should be ignored
             ],
         },
         "options_params": {},
@@ -595,9 +609,7 @@ def test_year_0_handling():
     3. Equity sales at year 0 (with cliff=0 edge case)
     """
     # Test 1: Salary change at year 0
-    dilution_rounds = [
-        {"year": 0, "new_salary": 15000, "dilution": 0.15}
-    ]
+    dilution_rounds = [{"year": 0, "new_salary": 15000, "dilution": 0.15}]
     df = calculations.create_monthly_data_grid(
         exit_year=3,
         current_job_monthly_salary=20000,
@@ -653,9 +665,7 @@ def test_year_0_handling():
     assert opportunity_df["Cash From Sale (FV)"].iloc[-1] == 0.0
 
     # Test 3: Dilution at year 0
-    results = calculations.calculate_startup_scenario(
-        opportunity_df, startup_params
-    )
+    results = calculations.calculate_startup_scenario(opportunity_df, startup_params)
 
     # Should complete without errors
     assert results["final_payout_value"] >= 0
@@ -696,13 +706,19 @@ def test_exercise_costs_reduce_net_outcomes():
     # Scenario 1: WITH exercise costs
     params_with_exercise = base_params_template.copy()
     params_with_exercise["startup_params"] = base_params_template["startup_params"].copy()
-    params_with_exercise["startup_params"]["options_params"] = base_params_template["startup_params"]["options_params"].copy()
+    params_with_exercise["startup_params"]["options_params"] = base_params_template[
+        "startup_params"
+    ]["options_params"].copy()
 
     # Scenario 2: WITHOUT exercise costs (exercise at exit)
     params_without_exercise = base_params_template.copy()
     params_without_exercise["startup_params"] = base_params_template["startup_params"].copy()
-    params_without_exercise["startup_params"]["options_params"] = base_params_template["startup_params"]["options_params"].copy()
-    params_without_exercise["startup_params"]["options_params"]["exercise_strategy"] = "Exercise at Exit"
+    params_without_exercise["startup_params"]["options_params"] = base_params_template[
+        "startup_params"
+    ]["options_params"].copy()
+    params_without_exercise["startup_params"]["options_params"]["exercise_strategy"] = (
+        "Exercise at Exit"
+    )
 
     # Use fixed seed for reproducible results
     np.random.seed(42)
@@ -807,13 +823,13 @@ def test_equity_sale_slider_limited_to_vested():
     assert expected_cash_immediate == 250_000
 
     # FV over 2 years at 5%: 250k * 1.05^2 = 275,625
-    expected_cash_fv = expected_cash_immediate * (1.05 ** 2)
-    assert opportunity_df["Cash From Sale (FV)"].iloc[-1] == pytest.approx(expected_cash_fv, rel=0.01)
+    expected_cash_fv = expected_cash_immediate * (1.05**2)
+    assert opportunity_df["Cash From Sale (FV)"].iloc[-1] == pytest.approx(
+        expected_cash_fv, rel=0.01
+    )
 
     # Verify the final payout calculation
-    results = calculations.calculate_startup_scenario(
-        opportunity_df, startup_params
-    )
+    results = calculations.calculate_startup_scenario(opportunity_df, startup_params)
 
     # The remaining equity factor should reflect only the amount of vested equity actually sold.
     # In this case, only 50% is vested at year 2, so only 50% can be sold, even if the attempt was to sell 80%.

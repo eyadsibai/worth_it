@@ -22,7 +22,7 @@ test.describe('Accessibility Tests', () => {
     // Check for important ARIA labels
     const formInputs = page.locator('input, select, textarea');
     const count = await formInputs.count();
-    
+
     for (let i = 0; i < count; i++) {
       const input = formInputs.nth(i);
       const hasLabel = await input.evaluate((el) => {
@@ -30,10 +30,10 @@ test.describe('Accessibility Tests', () => {
         const ariaLabel = el.getAttribute('aria-label');
         const ariaLabelledBy = el.getAttribute('aria-labelledby');
         const label = id ? document.querySelector(`label[for="${id}"]`) : null;
-        
+
         return !!(ariaLabel || ariaLabelledBy || label);
       });
-      
+
       expect(hasLabel).toBeTruthy();
     }
   });
@@ -44,7 +44,7 @@ test.describe('Accessibility Tests', () => {
       const h2 = document.querySelectorAll('h2');
       const h3 = document.querySelectorAll('h3');
       const h4 = document.querySelectorAll('h4');
-      
+
       return {
         h1Count: h1.length,
         h2Count: h2.length,
@@ -54,10 +54,10 @@ test.describe('Accessibility Tests', () => {
           .map(h => parseInt(h.tagName.replace('H', '')))
       };
     });
-    
+
     // Should have at least one H1
     expect(headings.h1Count).toBeGreaterThanOrEqual(1);
-    
+
     // Check heading order doesn't skip levels
     for (let i = 1; i < headings.headingOrder.length; i++) {
       const diff = headings.headingOrder[i] - headings.headingOrder[i - 1];
@@ -114,12 +114,12 @@ test.describe('Accessibility Tests', () => {
           });
           return 0.2126 * r + 0.7152 * g + 0.0722 * b;
         };
-        
+
         const l1 = getLuminance(rgb1);
         const l2 = getLuminance(rgb2);
         return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
       };
-      
+
       const elements = document.querySelectorAll('button, a, [role="button"], [role="link"]');
       const results: Array<{ element: string; contrast: number; sufficient: boolean }> = [];
 
@@ -127,7 +127,7 @@ test.describe('Accessibility Tests', () => {
         const styles = window.getComputedStyle(el);
         const bg = styles.backgroundColor;
         const fg = styles.color;
-        
+
         if (bg && fg && bg !== 'rgba(0, 0, 0, 0)') {
           const contrast = getContrast(bg, fg);
           results.push({
@@ -137,10 +137,10 @@ test.describe('Accessibility Tests', () => {
           });
         }
       });
-      
+
       return results;
     });
-    
+
     // Check that interactive elements have sufficient contrast
     elements.forEach(el => {
       if (el.contrast > 0) {
@@ -153,31 +153,31 @@ test.describe('Accessibility Tests', () => {
     // Check that focused elements have visible focus indicators
     const firstButton = page.getByRole('button').first();
     await firstButton.focus();
-    
+
     const hasFocusStyle = await firstButton.evaluate((el) => {
       const styles = window.getComputedStyle(el);
       const outline = styles.outline;
       const boxShadow = styles.boxShadow;
       const border = styles.border;
-      
+
       return !!(
         (outline && outline !== 'none') ||
         (boxShadow && boxShadow !== 'none') ||
         (border && border !== 'none')
       );
     });
-    
+
     expect(hasFocusStyle).toBeTruthy();
   });
 
   test('should have alt text for images', async ({ page }) => {
     const images = page.locator('img');
     const count = await images.count();
-    
+
     for (let i = 0; i < count; i++) {
       const img = images.nth(i);
       const altText = await img.getAttribute('alt');
-      
+
       // Images should have alt text (even if empty for decorative images)
       expect(altText).toBeDefined();
     }
@@ -186,7 +186,7 @@ test.describe('Accessibility Tests', () => {
   test('form inputs should have associated labels', async ({ page }) => {
     const inputs = page.locator('input:not([type="hidden"]), select, textarea');
     const count = await inputs.count();
-    
+
     for (let i = 0; i < count; i++) {
       const input = inputs.nth(i);
       const hasLabel = await input.evaluate((el) => {
@@ -194,10 +194,10 @@ test.describe('Accessibility Tests', () => {
         const ariaLabel = el.getAttribute('aria-label');
         const label = id ? document.querySelector(`label[for="${id}"]`) : null;
         const parentLabel = el.closest('label');
-        
+
         return !!(ariaLabel || label || parentLabel);
       });
-      
+
       expect(hasLabel).toBeTruthy();
     }
   });
@@ -205,11 +205,11 @@ test.describe('Accessibility Tests', () => {
   test('should announce form errors to screen readers', async ({ page }) => {
     // Submit form without filling required fields
     await page.getByRole('button', { name: /calculate/i }).click();
-    
+
     // Check for ARIA live regions or error announcements
     const errorMessages = page.locator('[role="alert"], [aria-live="polite"], [aria-live="assertive"]');
     const errorCount = await errorMessages.count();
-    
+
     expect(errorCount).toBeGreaterThan(0);
   });
 
@@ -217,7 +217,7 @@ test.describe('Accessibility Tests', () => {
     // Check for skip to main content link
     const skipLink = page.locator('a[href="#main"], a[href="#content"], [class*="skip"]');
     const hasSkipLink = await skipLink.count() > 0;
-    
+
     // This is recommended but not mandatory
     if (hasSkipLink) {
       const isVisible = await skipLink.isVisible();

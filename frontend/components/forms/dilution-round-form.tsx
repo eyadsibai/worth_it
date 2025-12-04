@@ -60,7 +60,7 @@ export function DilutionRoundFormComponent({
             </div>
             {isEnabled && <Badge variant="secondary" className="text-xs">Enabled</Badge>}
           </div>
-          
+
           <div className="flex items-center gap-2">
             {isEnabled && (
               <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -72,7 +72,7 @@ export function DilutionRoundFormComponent({
                 </CollapsibleTrigger>
               </Collapsible>
             )}
-            
+
             {canRemove && onRemove && (
               <Button
                 variant="ghost"

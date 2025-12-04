@@ -3,7 +3,7 @@ import { TEST_DATA } from '../utils/test-data';
 
 /**
  * Test Suite: Form Interactions
- * 
+ *
  * These tests verify that:
  * - Global settings form works correctly
  * - Current job form accepts and validates input
@@ -22,7 +22,7 @@ test.describe('Global Settings Form', () => {
 
   test('should allow setting exit year', async ({ page, helpers }) => {
     await helpers.fillGlobalSettings(7);
-    
+
     // Verify the slider value
     const slider = page.locator('input[name="exit_year"]');
     await expect(slider).toHaveValue('7');
@@ -33,7 +33,7 @@ test.describe('Global Settings Form', () => {
     await helpers.fillGlobalSettings(3);
     const slider = page.locator('input[name="exit_year"]');
     await expect(slider).toHaveValue('3');
-    
+
     // Test maximum value
     await helpers.fillGlobalSettings(10);
     await expect(slider).toHaveValue('10');
@@ -52,14 +52,14 @@ test.describe('Current Job Form', () => {
 
   test('should allow filling all current job fields', async ({ page, helpers }) => {
     await helpers.fillCurrentJobForm();
-    
+
     // Verify all fields are filled
     const salaryInput = page.locator('input[name="monthly_salary"]').first();
     await expect(salaryInput).toHaveValue(TEST_DATA.currentJob.monthlySalary.toString());
-    
+
     const growthInput = page.locator('input[name="annual_salary_growth_rate"]');
     await expect(growthInput).toHaveValue(TEST_DATA.currentJob.annualSalaryGrowthRate.toString());
-    
+
     const roiInput = page.locator('input[name="assumed_annual_roi"]');
     await expect(roiInput).toHaveValue(TEST_DATA.currentJob.assumedAnnualROI.toString());
   });
@@ -74,7 +74,7 @@ test.describe('Current Job Form', () => {
     const growthInput = page.locator('input[name="annual_salary_growth_rate"]');
     await growthInput.fill('3.5');
     await expect(growthInput).toHaveValue('3.5');
-    
+
     const roiInput = page.locator('input[name="assumed_annual_roi"]');
     await roiInput.fill('7.5');
     await expect(roiInput).toHaveValue('7.5');

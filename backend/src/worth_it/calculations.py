@@ -122,21 +122,19 @@ def calculate_annual_opportunity_cost(
                     if prev_r["year"] < sale_year:
                         cumulative_dilution_factor *= 1 - prev_r.get("dilution", 0)
                         if "percent_to_sell" in prev_r and prev_r["percent_to_sell"] > 0:
-                            cumulative_sold_factor *= (1 - prev_r["percent_to_sell"])
+                            cumulative_sold_factor *= 1 - prev_r["percent_to_sell"]
 
                 # percent_to_sell is a percentage of remaining equity at the time of sale
                 # (after accounting for both dilution and previous equity sales)
                 # Note: If you attempt to sell more than the vested portion, you only receive cash for the vested portion,
                 # and the unvested portion of the attempted sale is forfeited. The remaining equity is reduced by the full
                 # percent_to_sell amount, not just the vested portion that generated cash.
-                equity_at_sale = initial_equity_pct * cumulative_dilution_factor * cumulative_sold_factor
+                equity_at_sale = (
+                    initial_equity_pct * cumulative_dilution_factor * cumulative_sold_factor
+                )
                 # Ensure we only get cash for vested equity (percent_to_sell is limited by UI but we validate here too)
                 effective_sell_pct = min(float(vested_pct_at_sale), r["percent_to_sell"])
-                cash_from_sale = (
-                    equity_at_sale
-                    * r.get("valuation_at_sale", 0)
-                    * effective_sell_pct
-                )
+                cash_from_sale = equity_at_sale * r.get("valuation_at_sale", 0) * effective_sell_pct
 
                 # Handle year 0: sales at year 0 happen at month 0 (inception)
                 # Other years: sale at end of year (last month of that year)
@@ -145,10 +143,7 @@ def calculate_annual_opportunity_cost(
                     monthly_df_copy.loc[sale_month_index, "CashFromSale"] += cash_from_sale
 
     # --- Handle Stock Option Exercise Costs ---
-    if (
-        options_params
-        and options_params.get("exercise_strategy") == "Exercise After Vesting"
-    ):
+    if options_params and options_params.get("exercise_strategy") == "Exercise After Vesting":
         exercise_year = options_params.get("exercise_year", 0)
         exercise_month_index = (exercise_year * 12) - 1
         num_options = options_params.get("num_options", 0)
@@ -156,27 +151,21 @@ def calculate_annual_opportunity_cost(
         total_exercise_cost = num_options * strike_price
 
         if 0 <= exercise_month_index < len(monthly_df_copy):
-            monthly_df_copy.loc[
-                exercise_month_index, "ExerciseCost"
-            ] = total_exercise_cost
+            monthly_df_copy.loc[exercise_month_index, "ExerciseCost"] = total_exercise_cost
 
     # --- Calculate Future Value of Cash Flows ---
     results_df = pd.DataFrame(
         index=pd.RangeIndex(1, monthly_df_copy["Year"].max() + 1, name="Year")
     )
     annual_surplus = monthly_df_copy.groupby("Year")["MonthlySurplus"].sum()
-    principal_col_label = (
-        "Principal Forgone" if annual_surplus.sum() >= 0 else "Salary Gain"
-    )
+    principal_col_label = "Principal Forgone" if annual_surplus.sum() >= 0 else "Salary Gain"
 
     results_df[principal_col_label] = annual_surplus.cumsum()
 
     opportunity_costs = []
     cash_from_sale_future_values = []
     monthly_roi = annual_to_monthly_roi(annual_roi)
-    annual_investable_surplus = monthly_df_copy.groupby("Year")[
-        "InvestableSurplus"
-    ].sum()
+    annual_investable_surplus = monthly_df_copy.groupby("Year")["InvestableSurplus"].sum()
     annual_exercise_cost = monthly_df_copy.groupby("Year")["ExerciseCost"].sum()
     annual_cash_from_sale = monthly_df_copy.groupby("Year")["CashFromSale"].sum()
 
@@ -189,10 +178,14 @@ def calculate_annual_opportunity_cost(
             months_to_grow = (year_end * 12) - current_df.index - 1
 
             # Future value of foregone salary that could be invested
-            fv_investable_surplus = (current_df["InvestableSurplus"] * (1 + monthly_roi) ** months_to_grow).sum()
+            fv_investable_surplus = (
+                current_df["InvestableSurplus"] * (1 + monthly_roi) ** months_to_grow
+            ).sum()
 
             # Future value of exercise costs (additional cash outflow)
-            fv_exercise_cost = (current_df["ExerciseCost"] * (1 + monthly_roi) ** months_to_grow).sum()
+            fv_exercise_cost = (
+                current_df["ExerciseCost"] * (1 + monthly_roi) ** months_to_grow
+            ).sum()
 
             # Total opportunity cost includes both foregone salary and exercise costs
             fv_opportunity = fv_investable_surplus + fv_exercise_cost
@@ -201,7 +194,9 @@ def calculate_annual_opportunity_cost(
             cash_flow = current_df["CashFromSale"]
             fv_cash_from_sale = (cash_flow * (1 + monthly_roi) ** months_to_grow).sum()
         else:  # Annually
-            annual_investable = annual_investable_surplus.reindex(range(1, year_end + 1), fill_value=0)
+            annual_investable = annual_investable_surplus.reindex(
+                range(1, year_end + 1), fill_value=0
+            )
             annual_exercise = annual_exercise_cost.reindex(range(1, year_end + 1), fill_value=0)
             years_to_grow = year_end - annual_investable.index
 
@@ -223,21 +218,16 @@ def calculate_annual_opportunity_cost(
 
     results_df["Opportunity Cost (Invested Surplus)"] = opportunity_costs
     results_df["Cash From Sale (FV)"] = cash_from_sale_future_values
-    results_df["Investment Returns"] = (
-        results_df["Opportunity Cost (Invested Surplus)"]
-        - (
-            results_df[principal_col_label].clip(lower=0)
-            - annual_exercise_cost.reindex(results_df.index, fill_value=0).cumsum()
-        )
+    results_df["Investment Returns"] = results_df["Opportunity Cost (Invested Surplus)"] - (
+        results_df[principal_col_label].clip(lower=0)
+        - annual_exercise_cost.reindex(results_df.index, fill_value=0).cumsum()
     )
 
     results_df["Year"] = results_df.index
     return results_df
 
 
-def calculate_dilution_from_valuation(
-    pre_money_valuation: float, amount_raised: float
-) -> float:
+def calculate_dilution_from_valuation(pre_money_valuation: float, amount_raised: float) -> float:
     """Calculates the dilution percentage from a fundraising round."""
     if pre_money_valuation <= 0 or amount_raised < 0:
         return 0.0
@@ -298,9 +288,7 @@ def calculate_startup_scenario(
             results_df["CumulativeDilution"] = 1 - total_dilution
             sorted_rounds = []
         elif rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
-            sorted_rounds = sorted(
-                rsu_params["dilution_rounds"], key=lambda r: r["year"]
-            )
+            sorted_rounds = sorted(rsu_params["dilution_rounds"], key=lambda r: r["year"])
 
             # Handle SAFE note conversion timing
             # SAFE notes don't dilute immediately - they convert at the next priced round
@@ -312,8 +300,10 @@ def calculate_startup_scenario(
                     # Find the next priced round after this SAFE
                     conversion_year = None
                     for future_round in sorted_rounds:
-                        if (not future_round.get("is_safe_note", False) and
-                            future_round["year"] >= r["year"]):
+                        if (
+                            not future_round.get("is_safe_note", False)
+                            and future_round["year"] >= r["year"]
+                        ):
                             conversion_year = future_round["year"]
                             break
                     safe_conversion_year[id(r)] = conversion_year
@@ -332,19 +322,17 @@ def calculate_startup_scenario(
                         # SAFE: only dilutes at conversion year
                         conversion_year = safe_conversion_year.get(id(r))
                         if conversion_year is not None and year >= conversion_year:
-                            cumulative_dilution_factor *= (1 - dilution)
+                            cumulative_dilution_factor *= 1 - dilution
                     else:
                         # Priced round: dilutes at its own year
                         if r["year"] <= year:
-                            cumulative_dilution_factor *= (1 - dilution)
+                            cumulative_dilution_factor *= 1 - dilution
 
                 yearly_dilution_factors.append(cumulative_dilution_factor)
 
             results_df["CumulativeDilution"] = yearly_dilution_factors
             total_dilution = 1 - results_df["CumulativeDilution"].iloc[-1]
-            diluted_equity_pct = (
-                initial_equity_pct * results_df["CumulativeDilution"].iloc[-1]
-            )
+            diluted_equity_pct = initial_equity_pct * results_df["CumulativeDilution"].iloc[-1]
         else:
             results_df["CumulativeDilution"] = 1.0
             total_dilution = 0.0
@@ -357,7 +345,7 @@ def calculate_startup_scenario(
         for r in sorted_rounds:
             if "percent_to_sell" in r and r["percent_to_sell"] > 0:
                 if r["year"] <= exit_year:
-                    remaining_equity_factor *= (1 - r["percent_to_sell"])
+                    remaining_equity_factor *= 1 - r["percent_to_sell"]
 
         final_vested_equity_pct = (
             results_df["Vested Equity (%)"].iloc[-1] / 100
@@ -374,12 +362,8 @@ def calculate_startup_scenario(
         if "Cash From Sale (FV)" in results_df.columns:
             final_payout_value += results_df["Cash From Sale (FV)"].iloc[-1]
 
-        yearly_diluted_equity_pct = (
-            initial_equity_pct * results_df["CumulativeDilution"]
-        )
-        breakeven_vesting_pct = (
-            results_df["Vested Equity (%)"] / 100
-        ) * yearly_diluted_equity_pct
+        yearly_diluted_equity_pct = initial_equity_pct * results_df["CumulativeDilution"]
+        breakeven_vesting_pct = (results_df["Vested Equity (%)"] / 100) * yearly_diluted_equity_pct
 
         breakeven_value_series = (
             results_df["Opportunity Cost (Invested Surplus)"]
@@ -432,9 +416,7 @@ def calculate_startup_scenario(
         {
             "results_df": results_df,
             "final_payout_value": final_payout_value,
-            "final_opportunity_cost": results_df[
-                "Opportunity Cost (Invested Surplus)"
-            ].iloc[-1],
+            "final_opportunity_cost": results_df["Opportunity Cost (Invested Surplus)"].iloc[-1],
         }
     )
 
@@ -518,9 +500,7 @@ def run_monte_carlo_simulation(
     """
     # If exit year is simulated, the calculation must be iterative.
     if "exit_year" in sim_param_configs:
-        return run_monte_carlo_simulation_iterative(
-            num_simulations, base_params, sim_param_configs
-        )
+        return run_monte_carlo_simulation_iterative(num_simulations, base_params, sim_param_configs)
 
     # --- Prepare a complete sim_params dictionary for vectorization ---
     sim_params = {}
@@ -542,9 +522,7 @@ def run_monte_carlo_simulation(
     else:
         default_valuation = base_params["startup_params"]["rsu_params"].get(
             "target_exit_valuation"
-        ) or base_params["startup_params"]["options_params"].get(
-            "target_exit_price_per_share"
-        )
+        ) or base_params["startup_params"]["options_params"].get("target_exit_price_per_share")
         sim_params["valuation"] = np.full(num_simulations, default_valuation)
 
     # Handle Salary Growth (PERT distribution)
@@ -565,9 +543,7 @@ def run_monte_carlo_simulation(
     else:
         sim_params["dilution"] = np.full(num_simulations, np.nan)
 
-    return run_monte_carlo_simulation_vectorized(
-        num_simulations, base_params, sim_params
-    )
+    return run_monte_carlo_simulation_vectorized(num_simulations, base_params, sim_params)
 
 
 def run_monte_carlo_simulation_vectorized(
@@ -609,8 +585,7 @@ def run_monte_carlo_simulation_vectorized(
     exercise_costs_fv = np.zeros(num_simulations)
     options_params = base_params["startup_params"].get("options_params", {})
 
-    if (options_params and
-        options_params.get("exercise_strategy") == "Exercise After Vesting"):
+    if options_params and options_params.get("exercise_strategy") == "Exercise After Vesting":
         exercise_year = options_params.get("exercise_year", 0)
         if exercise_year <= exit_year:
             exercise_month_index = (exercise_year * 12) - 1
@@ -622,15 +597,17 @@ def run_monte_carlo_simulation_vectorized(
                 # Calculate future value of exercise cost
                 if base_params["investment_frequency"] == "Monthly":
                     months_remaining = total_months - 1 - exercise_month_index
-                    exercise_costs_fv = total_exercise_cost * ((1 + monthly_rois) ** months_remaining)
+                    exercise_costs_fv = total_exercise_cost * (
+                        (1 + monthly_rois) ** months_remaining
+                    )
                 else:
                     years_remaining = exit_year - exercise_year
-                    exercise_costs_fv = total_exercise_cost * ((1 + sim_params["roi"]) ** years_remaining)
+                    exercise_costs_fv = total_exercise_cost * (
+                        (1 + sim_params["roi"]) ** years_remaining
+                    )
 
     startup_params = base_params["startup_params"]
-    final_vested_pct = np.clip(
-        (exit_year / startup_params["total_vesting_years"]), 0, 1
-    )
+    final_vested_pct = np.clip((exit_year / startup_params["total_vesting_years"]), 0, 1)
     if exit_year < startup_params["cliff_years"]:
         final_vested_pct = 0
 
@@ -641,9 +618,7 @@ def run_monte_carlo_simulation_vectorized(
             cumulative_dilution: float | np.ndarray = 1 - sim_params["dilution"]
         else:
             cumulative_dilution = 1.0
-            if rsu_params.get("simulate_dilution") and rsu_params.get(
-                "dilution_rounds"
-            ):
+            if rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
                 for r in sorted(rsu_params["dilution_rounds"], key=lambda r: r["year"]):
                     if r["year"] <= exit_year:
                         cumulative_dilution *= 1 - r.get("dilution", 0)
@@ -676,19 +651,21 @@ def run_monte_carlo_simulation_vectorized(
                             if prev_r["year"] < sale_year:
                                 cumulative_dilution_before_sale *= 1 - prev_r.get("dilution", 0)
                                 if "percent_to_sell" in prev_r and prev_r["percent_to_sell"] > 0:
-                                    cumulative_sold_before_sale *= (1 - prev_r["percent_to_sell"])
+                                    cumulative_sold_before_sale *= 1 - prev_r["percent_to_sell"]
 
                         # Calculate equity at sale
-                        equity_at_sale = initial_equity_pct * cumulative_dilution_before_sale * cumulative_sold_before_sale
+                        equity_at_sale = (
+                            initial_equity_pct
+                            * cumulative_dilution_before_sale
+                            * cumulative_sold_before_sale
+                        )
 
                         # Calculate cash from this sale
                         # Note: We only receive cash for the vested portion; anything beyond that is forfeited
                         # The UI slider limits percent_to_sell to vested_pct, but we validate here too
                         effective_sell_pct = min(vested_pct_at_sale, r["percent_to_sell"])
                         cash_from_sale = (
-                            equity_at_sale
-                            * r.get("valuation_at_sale", 0)
-                            * effective_sell_pct
+                            equity_at_sale * r.get("valuation_at_sale", 0) * effective_sell_pct
                         )
 
                         # Calculate future value of this cash
@@ -698,12 +675,14 @@ def run_monte_carlo_simulation_vectorized(
                             months_to_grow = years_to_grow * 12
                             fv_cash = cash_from_sale * ((1 + monthly_roi) ** months_to_grow)
                         else:  # Annually
-                            fv_cash = cash_from_sale * ((1 + sim_params["roi"][:, np.newaxis]) ** years_to_grow)
+                            fv_cash = cash_from_sale * (
+                                (1 + sim_params["roi"][:, np.newaxis]) ** years_to_grow
+                            )
 
                         cash_from_sales_fv += fv_cash.flatten()
 
                         # Update remaining equity factor
-                        remaining_equity_factor *= (1 - r["percent_to_sell"])
+                        remaining_equity_factor *= 1 - r["percent_to_sell"]
 
         final_equity_pct = rsu_params.get("equity_pct", 0.0) * cumulative_dilution
         final_payout_value = (
@@ -721,9 +700,7 @@ def run_monte_carlo_simulation_vectorized(
         final_payout_value = profit_per_share * final_vested_options
 
     # Incorporate failure probability
-    failure_mask = (
-        np.random.rand(num_simulations) < base_params["failure_probability"]
-    )
+    failure_mask = np.random.rand(num_simulations) < base_params["failure_probability"]
     final_payout_value[failure_mask] = 0
 
     # Calculate net outcomes: payout - opportunity cost - exercise costs
@@ -754,12 +731,8 @@ def run_monte_carlo_simulation_iterative(
         valuations = []
         for year in sim_params["exit_year"]:
             # Ensure year is treated as a string key
-            config = yearly_valuation.get(
-                str(year), list(yearly_valuation.values())[0]
-            )
-            valuations.append(
-                get_random_variates_pert(1, config, config["mode"])[0]
-            )
+            config = yearly_valuation.get(str(year), list(yearly_valuation.values())[0])
+            valuations.append(get_random_variates_pert(1, config, config["mode"])[0])
         sim_params["valuation"] = np.array(valuations)
     elif "valuation" in sim_param_configs:
         sim_params["valuation"] = get_random_variates_pert(
@@ -799,16 +772,12 @@ def run_monte_carlo_simulation_iterative(
 
         if sim_startup_params["equity_type"].value == "Equity (RSUs)":
             sim_startup_params["rsu_params"] = sim_startup_params["rsu_params"].copy()
-            sim_startup_params["rsu_params"]["target_exit_valuation"] = sim_params[
+            sim_startup_params["rsu_params"]["target_exit_valuation"] = sim_params["valuation"][i]
+        else:
+            sim_startup_params["options_params"] = sim_startup_params["options_params"].copy()
+            sim_startup_params["options_params"]["target_exit_price_per_share"] = sim_params[
                 "valuation"
             ][i]
-        else:
-            sim_startup_params["options_params"] = sim_startup_params[
-                "options_params"
-            ].copy()
-            sim_startup_params["options_params"][
-                "target_exit_price_per_share"
-            ] = sim_params["valuation"][i]
 
         monthly_df = create_monthly_data_grid(
             exit_year_sim,
@@ -837,9 +806,7 @@ def run_monte_carlo_simulation_iterative(
     final_opportunity_costs: np.ndarray = np.array(final_opportunity_costs_list)
 
     # Incorporate failure probability
-    failure_mask = (
-        np.random.rand(num_simulations) < base_params["failure_probability"]
-    )
+    failure_mask = np.random.rand(num_simulations) < base_params["failure_probability"]
     net_outcomes[failure_mask] = -final_opportunity_costs[failure_mask]
 
     return {
@@ -848,16 +815,12 @@ def run_monte_carlo_simulation_iterative(
     }
 
 
-def run_sensitivity_analysis(
-    base_params: dict, sim_param_configs: dict
-) -> pd.DataFrame:
+def run_sensitivity_analysis(base_params: dict, sim_param_configs: dict) -> pd.DataFrame:
     """Runs a sensitivity analysis on simulated variables."""
     impacts = []
     num_simulations_sensitivity = 500
 
-    simulated_vars = {
-        k: v for k, v in sim_param_configs.items() if v
-    }  # Filter out empty configs
+    simulated_vars = {k: v for k, v in sim_param_configs.items() if v}  # Filter out empty configs
 
     for var, config in simulated_vars.items():
         # --- Determine low and high values based on distribution ---
@@ -871,12 +834,8 @@ def run_sensitivity_analysis(
             gamma = 4.0
             alpha = 1 + gamma * (mode - min_val) / (max_val - min_val)
             beta = 1 + gamma * (max_val - mode) / (max_val - min_val)
-            low_val = stats.beta.ppf(
-                0.1, a=alpha, b=beta, loc=min_val, scale=max_val - min_val
-            )
-            high_val = stats.beta.ppf(
-                0.9, a=alpha, b=beta, loc=min_val, scale=max_val - min_val
-            )
+            low_val = stats.beta.ppf(0.1, a=alpha, b=beta, loc=min_val, scale=max_val - min_val)
+            high_val = stats.beta.ppf(0.9, a=alpha, b=beta, loc=min_val, scale=max_val - min_val)
 
         # --- Base case (all others at mode/mean) ---
         base_case_sim_params = {}

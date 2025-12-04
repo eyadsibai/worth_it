@@ -108,7 +108,7 @@ All 9 API endpoints have been tested and validated:
 The complete data flow has been validated:
 
 ```
-User Input (Streamlit) 
+User Input (Streamlit)
   → API Client (api_client.py)
     → HTTP Request (JSON)
       → FastAPI Backend (api.py)
