@@ -129,6 +129,30 @@ export const DilutionFromValuationResponseSchema = z.object({
 });
 export type DilutionFromValuationResponse = z.infer<typeof DilutionFromValuationResponseSchema>;
 
+export const GrowthSimulationRequestSchema = z.object({
+  starting_arr: z.number().min(0),
+  starting_cash: z.number().min(0),
+  monthly_burn_rate: z.number().min(0),
+  mom_growth_rate: z.number().min(0).max(100),
+  churn_rate: z.number().min(0).max(100),
+  market_sentiment: z.enum(["BULL", "NORMAL", "BEAR"]),
+  months: z.number().int().min(1).max(120),
+});
+export type GrowthSimulationRequest = z.infer<typeof GrowthSimulationRequestSchema>;
+
+export const GrowthSimulationResponseSchema = z.object({
+  data: z.array(z.object({
+    Month: z.number(),
+    MRR: z.number(),
+    ARR: z.number(),
+    Cash: z.number(),
+    Valuation: z.number(),
+    Runway: z.number(),
+  })),
+});
+export type GrowthSimulationResponse = z.infer<typeof GrowthSimulationResponseSchema>;
+
+
 export const HealthCheckResponseSchema = z.object({
   status: z.string(),
   version: z.string(),
@@ -200,9 +224,9 @@ export const RSUFormSchema = z.object({
   equity_type: z.literal("RSU"),
   monthly_salary: z.number().min(0),
   total_equity_grant_pct: z.number().min(0).max(100),
-  vesting_period: z.number().int().min(1).max(10).default(4),
-  cliff_period: z.number().int().min(0).max(5).default(1),
-  simulate_dilution: z.boolean().default(false),
+  vesting_period: z.number().int().min(1).max(10),
+  cliff_period: z.number().int().min(0).max(5),
+  simulate_dilution: z.boolean(),
   dilution_rounds: z.array(DilutionRoundFormSchema),
   exit_valuation: z.number().min(0),
 });
@@ -213,9 +237,9 @@ export const StockOptionsFormSchema = z.object({
   monthly_salary: z.number().min(0),
   num_options: z.number().int().min(0),
   strike_price: z.number().min(0),
-  vesting_period: z.number().int().min(1).max(10).default(4),
-  cliff_period: z.number().int().min(0).max(5).default(1),
-  exercise_strategy: z.enum(["AT_EXIT", "AFTER_VESTING"]).default("AT_EXIT"),
+  vesting_period: z.number().int().min(1).max(10),
+  cliff_period: z.number().int().min(0).max(5),
+  exercise_strategy: z.enum(["AT_EXIT", "AFTER_VESTING"]),
   exercise_year: z.number().int().min(1).max(20).optional(),
   exit_price_per_share: z.number().min(0),
 });

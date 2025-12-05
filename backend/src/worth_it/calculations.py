@@ -8,27 +8,30 @@ It is designed to be independent of the Streamlit UI.
 
 from __future__ import annotations
 
-from enum import Enum
 from typing import Any
 
 import numpy as np
-import numpy_financial as npf
 import pandas as pd
 
+# Re-export for backward compatibility (functions moved to dedicated modules)
+from worth_it.equity import EquityType, calculate_dilution_from_valuation
+from worth_it.financial_metrics import (
+    annual_to_monthly_roi,
+    calculate_irr,
+    calculate_npv,
+)
 
-class EquityType(str, Enum):
-    """Enum for different types of equity."""
-
-    RSU = "Equity (RSUs)"
-    STOCK_OPTIONS = "Stock Options"
-
-
-def annual_to_monthly_roi(annual_roi: float | np.ndarray) -> float | np.ndarray:
-    """Converts an annual Return on Investment (ROI) to its monthly equivalent."""
-    result = (1 + annual_roi) ** (1 / 12) - 1
-    if isinstance(annual_roi, float):
-        return float(result)
-    return result
+# Explicit exports for backward compatibility
+__all__ = [
+    "EquityType",
+    "calculate_dilution_from_valuation",
+    "annual_to_monthly_roi",
+    "calculate_irr",
+    "calculate_npv",
+    "create_monthly_data_grid",
+    "calculate_annual_opportunity_cost",
+    "calculate_startup_scenario",
+]
 
 
 def create_monthly_data_grid(
@@ -237,29 +240,6 @@ def calculate_annual_opportunity_cost(
     return results_df
 
 
-def calculate_dilution_from_valuation(pre_money_valuation: float, amount_raised: float) -> float:
-    """
-    Calculate dilution percentage from a funding round.
-
-    Args:
-        pre_money_valuation: Company valuation before investment (must be > 0)
-        amount_raised: Investment amount (must be >= 0)
-
-    Returns:
-        Dilution as a decimal (e.g., 0.20 for 20%)
-
-    Raises:
-        ValueError: If pre_money_valuation <= 0 or amount_raised < 0
-    """
-    if pre_money_valuation <= 0:
-        raise ValueError(f"pre_money_valuation must be positive, got {pre_money_valuation}")
-    if amount_raised < 0:
-        raise ValueError(f"amount_raised cannot be negative, got {amount_raised}")
-
-    post_money_valuation = pre_money_valuation + amount_raised
-    return amount_raised / post_money_valuation
-
-
 def calculate_startup_scenario(
     opportunity_cost_df: pd.DataFrame, startup_params: dict[str, Any]
 ) -> dict[str, Any]:
@@ -453,50 +433,6 @@ def calculate_startup_scenario(
     )
 
     return output
-
-
-def calculate_irr(monthly_surpluses: pd.Series, final_payout_value: float) -> float:
-    """
-    Calculates the annualized Internal Rate of Return (IRR) based on monthly cash flows.
-    """
-    cash_flows = -monthly_surpluses.copy()
-    if len(cash_flows) == 0:
-        return float(np.nan)
-
-    cash_flows.iloc[-1] += final_payout_value
-
-    if not (any(cash_flows > 0) and any(cash_flows < 0)):
-        return float(np.nan)
-
-    try:
-        monthly_irr = npf.irr(cash_flows)
-        if pd.isna(monthly_irr):
-            return float(np.nan)
-        return float(((1 + monthly_irr) ** 12 - 1) * 100)
-    except (ValueError, TypeError):
-        return float(np.nan)
-
-
-def calculate_npv(
-    monthly_surpluses: pd.Series, annual_roi: float, final_payout_value: float
-) -> float:
-    """
-    Calculates the Net Present Value of the investment.
-    """
-    monthly_roi = annual_to_monthly_roi(annual_roi)
-    if pd.isna(monthly_roi) or monthly_roi <= -1:
-        return float(np.nan)
-
-    cash_flows = -monthly_surpluses.copy()
-    if len(cash_flows) == 0:
-        return float(np.nan)
-
-    cash_flows.iloc[-1] += final_payout_value
-
-    try:
-        return float(npf.npv(monthly_roi, cash_flows))
-    except (ValueError, TypeError):
-        return float(np.nan)
 
 
 # Re-export Monte Carlo functions for backward compatibility.

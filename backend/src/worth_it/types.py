@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import TypedDict
 
-from worth_it.calculations import EquityType
+from worth_it.equity import EquityType
 
 
 class DilutionRound(TypedDict, total=False):

@@ -21,6 +21,7 @@ from worth_it.calculations import (
     calculate_startup_scenario,
     create_monthly_data_grid,
 )
+from worth_it.growth_engine import MarketSentiment
 
 
 def get_random_variates_pert(
@@ -58,6 +59,35 @@ def get_random_variates_pert(
         a=alpha, b=beta, scale=(max_val - min_val), loc=min_val, size=num_simulations
     )
     return result
+
+
+def apply_market_conditions(
+    base_params: dict[str, Any],
+    sim_params: dict[str, np.ndarray],
+    num_simulations: int
+) -> tuple[dict[str, Any], dict[str, np.ndarray]]:
+    """
+    Adjusts parameters based on market sentiment.
+    """
+    market_sentiment = base_params.get("market_sentiment", MarketSentiment.NORMAL)
+
+    # Adjust failure probability
+    if market_sentiment == MarketSentiment.BEAR:
+        base_params["failure_probability"] = min(1.0, base_params["failure_probability"] * 1.5)
+    elif market_sentiment == MarketSentiment.BULL:
+        base_params["failure_probability"] = base_params["failure_probability"] * 0.7
+
+    # Adjust valuation if not explicitly simulated
+    if "valuation" in sim_params:
+        multiple_factor = 1.0
+        if market_sentiment == MarketSentiment.BEAR:
+            multiple_factor = 0.7
+        elif market_sentiment == MarketSentiment.BULL:
+            multiple_factor = 1.3
+
+        sim_params["valuation"] = sim_params["valuation"] * multiple_factor
+
+    return base_params, sim_params
 
 
 def run_monte_carlo_simulation(
@@ -123,6 +153,9 @@ def run_monte_carlo_simulation(
         )
     else:
         sim_params["dilution"] = np.full(num_simulations, np.nan)
+
+    # Apply market conditions
+    base_params, sim_params = apply_market_conditions(base_params, sim_params, num_simulations)
 
     return run_monte_carlo_simulation_vectorized(num_simulations, base_params, sim_params)
 
@@ -363,6 +396,10 @@ def run_monte_carlo_simulation_iterative(
     sim_params["dilution"] = get_random_variates_pert(
         num_simulations, sim_param_configs.get("dilution"), np.nan
     )
+
+    # Apply market conditions (iterative)
+    # Note: apply_market_conditions expects vectorized arrays, which we have in sim_params
+    base_params, sim_params = apply_market_conditions(base_params, sim_params, num_simulations)
 
     net_outcomes_list: list[float] = []
     final_opportunity_costs_list: list[float] = []
