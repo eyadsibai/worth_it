@@ -23,6 +23,8 @@ import type {
   SensitivityAnalysisResponse,
   DilutionFromValuationRequest,
   DilutionFromValuationResponse,
+  GrowthSimulationRequest,
+  GrowthSimulationResponse,
   HealthCheckResponse,
   WSMessage,
 } from "./schemas";
@@ -148,6 +150,17 @@ class APIClient {
     return data;
   }
 
+  // Growth Simulation
+  async simulateGrowth(
+    request: GrowthSimulationRequest
+  ): Promise<GrowthSimulationResponse> {
+    const { data } = await this.client.post<GrowthSimulationResponse>(
+      "/simulate-growth",
+      request
+    );
+    return data;
+  }
+
   // WebSocket URL for Monte Carlo
   getMonteCarloWebSocketURL(): string {
     return `${this.wsURL}/ws/monte-carlo`;
@@ -228,6 +241,13 @@ export function useCalculateDilution() {
   return useMutation({
     mutationFn: (request: DilutionFromValuationRequest) =>
       apiClient.calculateDilution(request),
+  });
+}
+
+// Growth Simulation
+export function useSimulateGrowth() {
+  return useMutation({
+    mutationFn: (request: GrowthSimulationRequest) => apiClient.simulateGrowth(request),
   });
 }
 
