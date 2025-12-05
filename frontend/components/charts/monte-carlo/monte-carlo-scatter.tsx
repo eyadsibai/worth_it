@@ -51,8 +51,8 @@ export function MonteCarloScatter({ data }: MonteCarloScatterProps) {
               formatter={(value: number) => formatCurrency(value)}
               contentStyle={tooltipStyle}
             />
-            <Scatter data={data} fill="hsl(var(--primary))" fillOpacity={0.6} />
-            <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+            <Scatter data={data} fill="var(--chart-1)" fillOpacity={0.6} />
+            <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeDasharray="3 3" />
           </ScatterChart>
         </ResponsiveContainer>
       </div>

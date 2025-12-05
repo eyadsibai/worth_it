@@ -11,7 +11,7 @@ export { formatCurrencyCompact as formatCurrency };
  * Common chart tooltip style configuration
  */
 export const tooltipStyle = {
-  backgroundColor: "hsl(var(--background))",
-  border: "1px solid hsl(var(--border))",
+  backgroundColor: "var(--background)",
+  border: "1px solid var(--border)",
   borderRadius: "8px",
 };

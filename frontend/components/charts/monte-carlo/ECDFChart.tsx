@@ -58,21 +58,21 @@ export const ECDFChart = memo(function ECDFChart({
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "hsl(var(--background))",
-              border: "1px solid hsl(var(--border))",
+              backgroundColor: "var(--background)",
+              border: "1px solid var(--border)",
               borderRadius: "8px",
             }}
           />
           <Line
             type="stepAfter"
             dataKey="probability"
-            stroke="hsl(var(--primary))"
+            stroke="var(--chart-1)"
             strokeWidth={2}
             dot={false}
           />
           <ReferenceLine
             y={50}
-            stroke="hsl(var(--muted-foreground))"
+            stroke="var(--muted-foreground)"
             strokeDasharray="3 3"
             label={{ value: "Median (50%)", position: "right" }}
           />

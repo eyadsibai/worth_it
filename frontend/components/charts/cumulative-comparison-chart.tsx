@@ -58,22 +58,22 @@ export const CumulativeComparisonChart = React.memo(function CumulativeCompariso
         <Tooltip
           formatter={(value: number) => formatCurrencyCompact(value)}
           contentStyle={{
-            backgroundColor: "hsl(var(--background))",
-            border: "1px solid hsl(var(--border))",
+            backgroundColor: "var(--background)",
+            border: "1px solid var(--border)",
             borderRadius: "8px",
           }}
         />
         <Legend />
         <Bar
-          dataKey="startup"
-          fill="hsl(var(--primary))"
-          name="Startup Salary"
+          dataKey="currentJob"
+          fill="var(--chart-1)"
+          name="Current Job Salary"
           radius={[4, 4, 0, 0]}
         />
         <Bar
-          dataKey="currentJob"
-          fill="hsl(var(--secondary))"
-          name="Current Job Salary"
+          dataKey="startup"
+          fill="var(--chart-2)"
+          name="Startup Salary"
           radius={[4, 4, 0, 0]}
         />
       </BarChart>

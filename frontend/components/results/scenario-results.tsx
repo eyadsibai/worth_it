@@ -9,7 +9,7 @@ import { TrendingUp, TrendingDown, Save } from "lucide-react";
 import type { StartupScenarioResponse, GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm } from "@/lib/schemas";
 import { CumulativeComparisonChart } from "@/components/charts/cumulative-comparison-chart";
 import { OpportunityCostChart } from "@/components/charts/opportunity-cost-chart";
-import { formatCurrency } from "@/lib/format-utils";
+import { formatCurrency, formatCurrencyCompact } from "@/lib/format-utils";
 import { saveScenario, type ScenarioData } from "@/lib/export-utils";
 import {
   Dialog,
@@ -127,47 +127,47 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
         </div>
 
         {/* Key Metrics Cards */}
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         {/* Final Payout */}
-        <Card className="terminal-card">
-          <CardHeader className="pb-2 pt-4">
-            <CardDescription className="data-label">Final Payout</CardDescription>
+        <Card className="terminal-card overflow-hidden">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardDescription className="data-label text-xs">Final Payout</CardDescription>
           </CardHeader>
-          <CardContent className="pb-4">
-            <CardTitle className="data-value text-foreground">
-              {formatCurrency(results.final_payout_value)}
+          <CardContent className="pb-4 px-4">
+            <CardTitle className="font-mono text-lg lg:text-xl font-semibold tracking-tight tabular-nums text-foreground">
+              {formatCurrencyCompact(results.final_payout_value)}
             </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1 font-mono">{results.payout_label}</p>
+            <p className="text-xs text-muted-foreground mt-1 font-mono truncate">{results.payout_label}</p>
           </CardContent>
         </Card>
 
         {/* Opportunity Cost */}
-        <Card className="terminal-card">
-          <CardHeader className="pb-2 pt-4">
-            <CardDescription className="data-label">Opportunity Cost</CardDescription>
+        <Card className="terminal-card overflow-hidden">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardDescription className="data-label text-xs">Opportunity Cost</CardDescription>
           </CardHeader>
-          <CardContent className="pb-4">
-            <CardTitle className="data-value text-foreground">
-              {formatCurrency(results.final_opportunity_cost)}
+          <CardContent className="pb-4 px-4">
+            <CardTitle className="font-mono text-lg lg:text-xl font-semibold tracking-tight tabular-nums text-foreground">
+              {formatCurrencyCompact(results.final_opportunity_cost)}
             </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1 font-mono">Current job alternative</p>
+            <p className="text-xs text-muted-foreground mt-1 font-mono truncate">Current job alternative</p>
           </CardContent>
         </Card>
 
         {/* Net Benefit */}
-        <Card className={`terminal-card ${isPositive ? "border-terminal/40" : "border-destructive/40"}`}>
-          <CardHeader className="pb-2 pt-4">
-            <CardDescription className="data-label">Net Benefit</CardDescription>
+        <Card className={`terminal-card overflow-hidden ${isPositive ? "border-terminal/40" : "border-destructive/40"}`}>
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardDescription className="data-label text-xs">Net Benefit</CardDescription>
           </CardHeader>
-          <CardContent className="pb-4">
-            <div className="flex items-center gap-2">
+          <CardContent className="pb-4 px-4">
+            <div className="flex items-center gap-1.5">
               {isPositive ? (
-                <TrendingUp className="h-4 w-4 text-terminal" />
+                <TrendingUp className="h-4 w-4 flex-shrink-0 text-terminal" />
               ) : (
-                <TrendingDown className="h-4 w-4 text-destructive" />
+                <TrendingDown className="h-4 w-4 flex-shrink-0 text-destructive" />
               )}
-              <CardTitle className={`data-value ${isPositive ? "metric-positive" : "metric-negative"}`}>
-                {formatCurrency(netBenefit)}
+              <CardTitle className={`font-mono text-lg lg:text-xl font-semibold tracking-tight tabular-nums ${isPositive ? "metric-positive" : "metric-negative"}`}>
+                {formatCurrencyCompact(netBenefit)}
               </CardTitle>
             </div>
             <div className="mt-2">
@@ -183,15 +183,15 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
 
         {/* Dilution (if applicable) */}
         {results.total_dilution !== null && results.total_dilution !== undefined && (
-          <Card className="terminal-card">
-            <CardHeader className="pb-2 pt-4">
-              <CardDescription className="data-label">Total Dilution</CardDescription>
+          <Card className="terminal-card overflow-hidden">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardDescription className="data-label text-xs">Total Dilution</CardDescription>
             </CardHeader>
-            <CardContent className="pb-4">
-              <CardTitle className="data-value text-foreground">
+            <CardContent className="pb-4 px-4">
+              <CardTitle className="font-mono text-lg lg:text-xl font-semibold tracking-tight tabular-nums text-foreground">
                 {(results.total_dilution * 100).toFixed(2)}%
               </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1 font-mono">
+              <p className="text-xs text-muted-foreground mt-1 font-mono truncate">
                 Final: {((results.diluted_equity_pct || 0) * 100).toFixed(2)}%
               </p>
             </CardContent>
@@ -199,16 +199,18 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
         )}
 
         {/* Break-Even */}
-        <Card className="terminal-card">
-          <CardHeader className="pb-2 pt-4">
-            <CardDescription className="data-label">Break-Even</CardDescription>
+        <Card className="terminal-card overflow-hidden">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <CardDescription className="data-label text-xs">Break-Even</CardDescription>
           </CardHeader>
-          <CardContent className="pb-4">
-            <CardTitle className="text-lg font-mono font-semibold text-foreground">
-              {results.breakeven_label}
+          <CardContent className="pb-4 px-4">
+            <CardTitle className="font-mono text-lg lg:text-xl font-semibold tracking-tight tabular-nums text-foreground">
+              {results.results_df.length > 0 && results.results_df[results.results_df.length - 1].breakeven_value !== undefined
+                ? formatCurrencyCompact(results.results_df[results.results_df.length - 1].breakeven_value)
+                : "N/A"}
             </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1 font-mono">
-              Required to match cost
+            <p className="text-xs text-muted-foreground mt-1 font-mono truncate">
+              {results.breakeven_label}
             </p>
           </CardContent>
         </Card>

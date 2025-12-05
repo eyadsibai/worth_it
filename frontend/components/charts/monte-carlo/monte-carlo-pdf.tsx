@@ -45,13 +45,13 @@ export function MonteCarloPdf({ data }: MonteCarloPdfProps) {
             <Line
               type="monotone"
               dataKey="count"
-              stroke="hsl(var(--primary))"
+              stroke="var(--chart-1)"
               strokeWidth={3}
               dot={false}
-              fill="hsl(var(--primary))"
+              fill="var(--chart-1)"
               fillOpacity={0.2}
             />
-            <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+            <ReferenceLine x={0} stroke="var(--muted-foreground)" strokeDasharray="3 3" />
           </LineChart>
         </ResponsiveContainer>
       </div>

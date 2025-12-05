@@ -68,23 +68,23 @@ export const PDFChart = memo(function PDFChart({
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "hsl(var(--background))",
-              border: "1px solid hsl(var(--border))",
+              backgroundColor: "var(--background)",
+              border: "1px solid var(--border)",
               borderRadius: "8px",
             }}
           />
           <Line
             type="monotone"
             dataKey="count"
-            stroke="hsl(var(--primary))"
+            stroke="var(--chart-1)"
             strokeWidth={3}
             dot={false}
-            fill="hsl(var(--primary))"
+            fill="var(--chart-1)"
             fillOpacity={0.2}
           />
           <ReferenceLine
             x={0}
-            stroke="hsl(var(--muted-foreground))"
+            stroke="var(--muted-foreground)"
             strokeDasharray="3 3"
           />
         </LineChart>

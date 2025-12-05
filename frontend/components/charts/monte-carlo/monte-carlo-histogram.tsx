@@ -43,15 +43,15 @@ export function MonteCarloHistogram({ data }: MonteCarloHistogramProps) {
               label={{ value: "Frequency", angle: -90, position: "insideLeft" }}
             />
             <Tooltip contentStyle={tooltipStyle} />
-            <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
+            <Bar dataKey="count" fill="var(--chart-1)" radius={[4, 4, 0, 0]}>
               {data.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
-                  fill={entry.bin >= 0 ? "hsl(var(--primary))" : "hsl(var(--destructive))"}
+                  fill={entry.bin >= 0 ? "var(--chart-1)" : "var(--destructive)"}
                 />
               ))}
             </Bar>
-            <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+            <ReferenceLine x={0} stroke="var(--muted-foreground)" strokeDasharray="3 3" />
           </BarChart>
         </ResponsiveContainer>
       </div>

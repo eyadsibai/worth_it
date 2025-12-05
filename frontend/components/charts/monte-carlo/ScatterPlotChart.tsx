@@ -68,19 +68,19 @@ export const ScatterPlotChart = memo(function ScatterPlotChart({
             cursor={{ strokeDasharray: "3 3" }}
             formatter={(value: number) => formatCurrency(value)}
             contentStyle={{
-              backgroundColor: "hsl(var(--background))",
-              border: "1px solid hsl(var(--border))",
+              backgroundColor: "var(--background)",
+              border: "1px solid var(--border)",
               borderRadius: "8px",
             }}
           />
           <Scatter
             data={scatterData}
-            fill="hsl(var(--primary))"
+            fill="var(--chart-1)"
             fillOpacity={0.6}
           />
           <ReferenceLine
             y={0}
-            stroke="hsl(var(--muted-foreground))"
+            stroke="var(--muted-foreground)"
             strokeDasharray="3 3"
           />
         </ScatterChart>

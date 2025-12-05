@@ -103,6 +103,7 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
           step={1000000}
           prefix="SAR"
           placeholder="100000000"
+          formatDisplay={true}
         />
 
         <FormField

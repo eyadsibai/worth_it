@@ -39,8 +39,8 @@ export function MonteCarloBoxPlot({ data }: MonteCarloBoxPlotProps) {
               formatter={(value: number) => formatCurrency(value)}
               contentStyle={tooltipStyle}
             />
-            <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-            <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+            <Bar dataKey="value" fill="var(--chart-1)" radius={[0, 4, 4, 0]} />
+            <ReferenceLine x={0} stroke="var(--muted-foreground)" strokeDasharray="3 3" />
           </BarChart>
         </ResponsiveContainer>
       </div>

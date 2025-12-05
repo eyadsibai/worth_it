@@ -46,13 +46,13 @@ export function MonteCarloEcdf({ data }: MonteCarloEcdfProps) {
             <Line
               type="stepAfter"
               dataKey="probability"
-              stroke="hsl(var(--primary))"
+              stroke="var(--chart-1)"
               strokeWidth={2}
               dot={false}
             />
             <ReferenceLine
               y={50}
-              stroke="hsl(var(--muted-foreground))"
+              stroke="var(--muted-foreground)"
               strokeDasharray="3 3"
               label={{ value: "Median (50%)", position: "right" }}
             />

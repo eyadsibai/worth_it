@@ -57,19 +57,19 @@ export const BoxPlotChart = memo(function BoxPlotChart({
           <Tooltip
             formatter={(value: number) => formatCurrency(value)}
             contentStyle={{
-              backgroundColor: "hsl(var(--background))",
-              border: "1px solid hsl(var(--border))",
+              backgroundColor: "var(--background)",
+              border: "1px solid var(--border)",
               borderRadius: "8px",
             }}
           />
           <Bar
             dataKey="value"
-            fill="hsl(var(--primary))"
+            fill="var(--chart-1)"
             radius={[0, 4, 4, 0]}
           />
           <ReferenceLine
             x={0}
-            stroke="hsl(var(--muted-foreground))"
+            stroke="var(--muted-foreground)"
             strokeDasharray="3 3"
           />
         </BarChart>

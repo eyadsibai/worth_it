@@ -58,30 +58,30 @@ export const OpportunityCostChart = React.memo(function OpportunityCostChart({
         <Tooltip
           formatter={(value: number) => formatCurrencyCompact(value)}
           contentStyle={{
-            backgroundColor: "hsl(var(--background))",
-            border: "1px solid hsl(var(--border))",
+            backgroundColor: "var(--background)",
+            border: "1px solid var(--border)",
             borderRadius: "8px",
           }}
         />
         <Legend />
-        <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" />
+        <ReferenceLine y={0} stroke="var(--muted-foreground)" />
         <Line
           type="monotone"
           dataKey="opportunityCost"
-          stroke="hsl(var(--destructive))"
+          stroke="var(--chart-5)"
           strokeWidth={2}
           name="Cumulative Opportunity Cost"
-          dot={{ r: 4 }}
-          activeDot={{ r: 6 }}
+          dot={{ r: 4, fill: "var(--chart-5)" }}
+          activeDot={{ r: 6, fill: "var(--chart-5)" }}
         />
         <Line
           type="monotone"
           dataKey="monthlySurplus"
-          stroke="hsl(var(--primary))"
+          stroke="var(--chart-1)"
           strokeWidth={2}
           name="Annual Surplus"
-          dot={{ r: 4 }}
-          activeDot={{ r: 6 }}
+          dot={{ r: 4, fill: "var(--chart-1)" }}
+          activeDot={{ r: 6, fill: "var(--chart-1)" }}
         />
       </LineChart>
     </ResponsiveContainer>

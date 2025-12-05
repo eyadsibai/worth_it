@@ -202,6 +202,7 @@ export function MonteCarloFormComponent({
                 step={1000000}
                 prefix="SAR"
                 placeholder="100000000"
+                formatDisplay={true}
               />
 
               <NumberInputField
@@ -213,6 +214,7 @@ export function MonteCarloFormComponent({
                 step={1000000}
                 prefix="SAR"
                 placeholder="50000000"
+                formatDisplay={true}
               />
             </div>
 

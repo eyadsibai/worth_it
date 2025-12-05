@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { UseFormReturn } from "react-hook-form";
 import {
   FormControl,
@@ -28,6 +29,7 @@ interface NumberInputFieldProps extends FormFieldProps {
   placeholder?: string;
   prefix?: string;
   suffix?: string;
+  formatDisplay?: boolean;
 }
 
 export function NumberInputField({
@@ -41,46 +43,60 @@ export function NumberInputField({
   placeholder,
   prefix,
   suffix,
+  formatDisplay = false,
 }: NumberInputFieldProps) {
+  const [isFocused, setIsFocused] = React.useState(false);
+
   return (
     <FormField
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <FormItem>
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-            <div className="relative">
-              {prefix && (
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  {prefix}
-                </span>
-              )}
-              <Input
-                type="number"
-                placeholder={placeholder}
-                min={min}
-                max={max}
-                step={step}
-                className={prefix ? "pl-12" : suffix ? "pr-12" : ""}
-                {...field}
-                value={field.value ?? ""}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  field.onChange(value === "" ? undefined : Number(value));
-                }}
-              />
-              {suffix && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                  {suffix}
-                </span>
-              )}
-            </div>
-          </FormControl>
-          {description && <FormDescription>{description}</FormDescription>}
-          <FormMessage />
-        </FormItem>
-      )}
+      render={({ field }) => {
+        // Format the display value with thousand separators when not focused
+        const displayValue = !isFocused && formatDisplay && typeof field.value === "number"
+          ? field.value.toLocaleString("en-US")
+          : field.value ?? "";
+
+        return (
+          <FormItem>
+            <FormLabel>{label}</FormLabel>
+            <FormControl>
+              <div className="relative">
+                {prefix && (
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    {prefix}
+                  </span>
+                )}
+                <Input
+                  type={isFocused || !formatDisplay ? "number" : "text"}
+                  placeholder={placeholder}
+                  min={min}
+                  max={max}
+                  step={step}
+                  className={prefix ? "pl-12" : suffix ? "pr-12" : ""}
+                  value={displayValue}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => {
+                    setIsFocused(false);
+                    field.onBlur();
+                  }}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/,/g, ""); // Remove commas if user pastes formatted number
+                    field.onChange(value === "" ? undefined : Number(value));
+                  }}
+                />
+                {suffix && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    {suffix}
+                  </span>
+                )}
+              </div>
+            </FormControl>
+            {description && <FormDescription>{description}</FormDescription>}
+            <FormMessage />
+          </FormItem>
+        );
+      }}
     />
   );
 }

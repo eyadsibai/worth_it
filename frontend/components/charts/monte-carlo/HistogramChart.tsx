@@ -69,26 +69,26 @@ export const HistogramChart = memo(function HistogramChart({
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "hsl(var(--background))",
-              border: "1px solid hsl(var(--border))",
+              backgroundColor: "var(--background)",
+              border: "1px solid var(--border)",
               borderRadius: "8px",
             }}
           />
-          <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
+          <Bar dataKey="count" fill="var(--chart-1)" radius={[4, 4, 0, 0]}>
             {histogramData.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
                 fill={
                   entry.bin >= 0
-                    ? "hsl(var(--primary))"
-                    : "hsl(var(--destructive))"
+                    ? "var(--chart-1)"
+                    : "var(--destructive)"
                 }
               />
             ))}
           </Bar>
           <ReferenceLine
             x={0}
-            stroke="hsl(var(--muted-foreground))"
+            stroke="var(--muted-foreground)"
             strokeDasharray="3 3"
           />
         </BarChart>
