@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from worth_it import calculations
-from worth_it.equity import EquityType
+from worth_it.calculations import EquityType
 
 
 # --- Test Fixtures ---

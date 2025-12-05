@@ -144,23 +144,3 @@ class HealthCheckResponse(BaseModel):
 
     status: str
     version: str
-
-
-
-class GrowthSimulationRequest(BaseModel):
-    """Request model for startup growth simulation."""
-
-    starting_arr: float = Field(..., ge=0)
-    starting_cash: float = Field(..., ge=0)
-    monthly_burn_rate: float = Field(..., ge=0)
-    mom_growth_rate: float = Field(..., ge=0, le=100)
-    churn_rate: float = Field(..., ge=0, le=100)
-    market_sentiment: str = Field(..., pattern="^(BULL|NORMAL|BEAR)$")
-    months: int = Field(..., ge=1, le=120)
-
-
-class GrowthSimulationResponse(BaseModel):
-    """Response model for startup growth simulation."""
-
-    data: list[dict[str, Any]]  # Monthly metrics
-

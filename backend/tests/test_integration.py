@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from worth_it.api import app
-from worth_it.equity import EquityType
+from worth_it.calculations import EquityType
 
 
 @pytest.fixture

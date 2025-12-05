@@ -18,12 +18,9 @@ from slowapi.util import get_remote_address
 from worth_it import calculations
 from worth_it.config import settings
 from worth_it.exceptions import CalculationError, ValidationError, WorthItError
-from worth_it.growth_engine import GrowthConfig, MarketSentiment, simulate_growth
 from worth_it.models import (
     DilutionFromValuationRequest,
     DilutionFromValuationResponse,
-    GrowthSimulationRequest,
-    GrowthSimulationResponse,
     HealthCheckResponse,
     IRRRequest,
     IRRResponse,
@@ -41,7 +38,7 @@ from worth_it.models import (
     StartupScenarioResponse,
 )
 from worth_it.monte_carlo import (
-    run_monte_carlo_simulation,
+    run_monte_carlo_simulation as mc_run_simulation,
 )
 from worth_it.monte_carlo import (
     run_sensitivity_analysis as mc_sensitivity_analysis,
@@ -139,32 +136,6 @@ async def generic_error_handler(request: Request, exc: Exception) -> JSONRespons
         status_code=500,
         content={"error": "internal_error", "message": "An unexpected error occurred"},
     )
-
-
-@app.post("/simulate-growth", response_model=GrowthSimulationResponse)
-async def simulate_startup_growth(request: GrowthSimulationRequest) -> GrowthSimulationResponse:
-    """
-    Simulate startup growth metrics over time.
-    """
-    config = GrowthConfig(
-        starting_arr=request.starting_arr,
-        starting_cash=request.starting_cash,
-        monthly_burn_rate=request.monthly_burn_rate,
-        mom_growth_rate=request.mom_growth_rate / 100,  # Convert percentage to decimal
-        churn_rate=request.churn_rate / 100,  # Convert percentage to decimal
-        # market_sentiment is handled below
-    )
-
-    # Map request string to Enum value
-    sentiment_map = {
-        "BULL": MarketSentiment.BULL,
-        "NORMAL": MarketSentiment.NORMAL,
-        "BEAR": MarketSentiment.BEAR,
-    }
-    config.market_sentiment = sentiment_map.get(request.market_sentiment, MarketSentiment.NORMAL)
-
-    df = simulate_growth(request.months, config)
-    return GrowthSimulationResponse(data=df.to_dict(orient="records"))
 
 
 @app.get("/health", response_model=HealthCheckResponse)
@@ -334,7 +305,7 @@ async def run_monte_carlo(request: Request, body: MonteCarloRequest):
         base_params = body.base_params.copy()
         convert_equity_type_to_enum(base_params)
 
-        results = run_monte_carlo_simulation(
+        results = mc_run_simulation(
             num_simulations=body.num_simulations,
             base_params=base_params,
             sim_param_configs=body.sim_param_configs,
@@ -399,7 +370,7 @@ async def websocket_monte_carlo(websocket: WebSocket):
             current_batch_size = min(batch_size, request.num_simulations - i)
 
             # Run batch simulation
-            results = run_monte_carlo_simulation(
+            results = mc_run_simulation(
                 num_simulations=current_batch_size,
                 base_params=base_params,
                 sim_param_configs=request.sim_param_configs,
