@@ -226,3 +226,178 @@ export const StartupOfferFormSchema = z.object({
   equity_details: z.union([RSUFormSchema, StockOptionsFormSchema]),
 });
 export type StartupOfferForm = z.infer<typeof StartupOfferFormSchema>;
+
+// ============================================================================
+// Cap Table Schemas (Founder Mode)
+// ============================================================================
+
+export const StakeholderTypeEnum = z.enum(["founder", "employee", "investor", "advisor"]);
+export type StakeholderType = z.infer<typeof StakeholderTypeEnum>;
+
+export const ShareClassEnum = z.enum(["common", "preferred"]);
+export type ShareClass = z.infer<typeof ShareClassEnum>;
+
+export const VestingScheduleSchema = z.object({
+  total_shares: z.number().min(0),
+  vesting_months: z.number().int().min(0).max(120).default(48),
+  cliff_months: z.number().int().min(0).max(24).default(12),
+  start_date: z.string().optional(), // ISO date string
+  vested_shares: z.number().min(0).default(0),
+});
+export type VestingSchedule = z.infer<typeof VestingScheduleSchema>;
+
+export const StakeholderSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, "Name is required"),
+  type: StakeholderTypeEnum,
+  shares: z.number().min(0).default(0),
+  ownership_pct: z.number().min(0).max(100).default(0),
+  share_class: ShareClassEnum.default("common"),
+  vesting: VestingScheduleSchema.optional(),
+});
+export type Stakeholder = z.infer<typeof StakeholderSchema>;
+
+export const CapTableSchema = z.object({
+  stakeholders: z.array(StakeholderSchema).default([]),
+  total_shares: z.number().min(0).default(10000000), // 10M shares default
+  option_pool_pct: z.number().min(0).max(100).default(10), // 10% default
+});
+export type CapTable = z.infer<typeof CapTableSchema>;
+
+// Form schema for adding/editing a stakeholder
+export const StakeholderFormSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  type: StakeholderTypeEnum.default("founder"),
+  ownership_pct: z.number().min(0).max(100),
+  share_class: ShareClassEnum.default("common"),
+  has_vesting: z.boolean().default(false),
+  vesting_months: z.number().int().min(0).max(120).default(48),
+  cliff_months: z.number().int().min(0).max(24).default(12),
+});
+export type StakeholderFormData = z.infer<typeof StakeholderFormSchema>;
+
+// Exit scenario for founder mode
+export const ExitScenarioSchema = z.object({
+  exit_valuation: z.number().min(0),
+  stakeholder_payouts: z.array(z.object({
+    stakeholder_id: z.string(),
+    name: z.string(),
+    ownership_pct: z.number(),
+    payout: z.number(),
+  })),
+  total_payout: z.number(),
+});
+export type ExitScenario = z.infer<typeof ExitScenarioSchema>;
+
+// ============================================================================
+// Funding Instrument Schemas
+// ============================================================================
+
+export const FundingInstrumentTypeEnum = z.enum(["SAFE", "CONVERTIBLE_NOTE", "PRICED_ROUND"]);
+export type FundingInstrumentType = z.infer<typeof FundingInstrumentTypeEnum>;
+
+export const InstrumentStatusEnum = z.enum(["outstanding", "converted", "cancelled"]);
+export type InstrumentStatus = z.infer<typeof InstrumentStatusEnum>;
+
+// SAFE (Simple Agreement for Future Equity)
+export const SAFESchema = z.object({
+  id: z.string(),
+  type: z.literal("SAFE"),
+  investor_name: z.string().min(1, "Investor name is required"),
+  investment_amount: z.number().min(0),
+  valuation_cap: z.number().min(0).optional(),
+  discount_pct: z.number().min(0).max(100).optional(), // e.g., 20 for 20%
+  pro_rata_rights: z.boolean().default(false),
+  mfn_clause: z.boolean().default(false), // Most Favored Nation
+  date: z.string().optional(), // ISO date string
+  status: InstrumentStatusEnum.default("outstanding"),
+  // Conversion details (filled when converted)
+  converted_shares: z.number().optional(),
+  conversion_price: z.number().optional(),
+});
+export type SAFE = z.infer<typeof SAFESchema>;
+
+// Convertible Note
+export const ConvertibleNoteSchema = z.object({
+  id: z.string(),
+  type: z.literal("CONVERTIBLE_NOTE"),
+  investor_name: z.string().min(1, "Investor name is required"),
+  principal_amount: z.number().min(0),
+  interest_rate: z.number().min(0).max(100), // Annual rate as percentage
+  valuation_cap: z.number().min(0).optional(),
+  discount_pct: z.number().min(0).max(100).optional(),
+  maturity_months: z.number().int().min(1).max(60).default(24),
+  date: z.string().optional(),
+  status: InstrumentStatusEnum.default("outstanding"),
+  // Conversion details
+  accrued_interest: z.number().optional(),
+  converted_shares: z.number().optional(),
+  conversion_price: z.number().optional(),
+});
+export type ConvertibleNote = z.infer<typeof ConvertibleNoteSchema>;
+
+// Priced Round (Series Seed, A, B, etc.)
+export const PricedRoundSchema = z.object({
+  id: z.string(),
+  type: z.literal("PRICED_ROUND"),
+  round_name: z.string().min(1, "Round name is required"), // e.g., "Seed", "Series A"
+  lead_investor: z.string().optional(),
+  pre_money_valuation: z.number().min(0),
+  amount_raised: z.number().min(0),
+  price_per_share: z.number().min(0),
+  date: z.string().optional(),
+  // Liquidation preference
+  liquidation_multiplier: z.number().min(0).max(10).default(1), // 1x, 2x, etc.
+  participating: z.boolean().default(false),
+  participation_cap: z.number().optional(), // Only if participating
+  // New shares issued
+  new_shares_issued: z.number().min(0).default(0),
+  // Post-round totals
+  post_money_valuation: z.number().optional(),
+});
+export type PricedRound = z.infer<typeof PricedRoundSchema>;
+
+// Union of all funding instruments
+export const FundingInstrumentSchema = z.discriminatedUnion("type", [
+  SAFESchema,
+  ConvertibleNoteSchema,
+  PricedRoundSchema,
+]);
+export type FundingInstrument = z.infer<typeof FundingInstrumentSchema>;
+
+// Form schemas for adding instruments
+export const SAFEFormSchema = z.object({
+  investor_name: z.string().min(1, "Investor name is required"),
+  investment_amount: z.number().min(0),
+  valuation_cap: z.number().min(0).optional(),
+  discount_pct: z.number().min(0).max(100).optional(),
+  pro_rata_rights: z.boolean().default(false),
+  mfn_clause: z.boolean().default(false),
+});
+export type SAFEFormData = z.infer<typeof SAFEFormSchema>;
+
+export const ConvertibleNoteFormSchema = z.object({
+  investor_name: z.string().min(1, "Investor name is required"),
+  principal_amount: z.number().min(0),
+  interest_rate: z.number().min(0).max(100).default(5),
+  valuation_cap: z.number().min(0).optional(),
+  discount_pct: z.number().min(0).max(100).optional(),
+  maturity_months: z.number().int().min(1).max(60).default(24),
+});
+export type ConvertibleNoteFormData = z.infer<typeof ConvertibleNoteFormSchema>;
+
+export const PricedRoundFormSchema = z.object({
+  round_name: z.string().min(1, "Round name is required"),
+  lead_investor: z.string().optional(),
+  pre_money_valuation: z.number().min(0),
+  amount_raised: z.number().min(0),
+  liquidation_multiplier: z.number().min(0).max(10).default(1),
+  participating: z.boolean().default(false),
+});
+export type PricedRoundFormData = z.infer<typeof PricedRoundFormSchema>;
+
+// Extended cap table with funding instruments
+export const CapTableWithInstrumentsSchema = CapTableSchema.extend({
+  instruments: z.array(FundingInstrumentSchema).default([]),
+  rounds: z.array(PricedRoundSchema).default([]),
+});

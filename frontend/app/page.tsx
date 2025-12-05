@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { AppShell } from "@/components/layout/app-shell";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useHealthCheck, useCalculateStartupScenario, useCreateMonthlyDataGrid, useCalculateOpportunityCost } from "@/lib/api-client";
-import { Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { useCalculateStartupScenario, useCreateMonthlyDataGrid, useCalculateOpportunityCost } from "@/lib/api-client";
+import { Loader2, XCircle } from "lucide-react";
 import { GlobalSettingsFormComponent } from "@/components/forms/global-settings-form";
 import { CurrentJobFormComponent } from "@/components/forms/current-job-form";
 import { StartupOfferFormComponent } from "@/components/forms/startup-offer-form";
@@ -14,13 +14,24 @@ import { MonteCarloVisualizations } from "@/components/charts/monte-carlo-visual
 import { ScenarioManager } from "@/components/scenarios/scenario-manager";
 import { ScenarioComparison } from "@/components/scenarios/scenario-comparison";
 import { useDebounce } from "@/lib/hooks/use-debounce";
-import type { GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm } from "@/lib/schemas";
+import { ModeToggle, type AppMode } from "@/components/mode-toggle";
+import { CapTableManager } from "@/components/cap-table";
+import type { GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm, CapTable, FundingInstrument } from "@/lib/schemas";
 import type { ScenarioData } from "@/lib/export-utils";
 
 export default function Home() {
-  const { data, isLoading, isError, error } = useHealthCheck();
+  // App mode state
+  const [appMode, setAppMode] = React.useState<AppMode>("employee");
 
-  // Form state
+  // Cap table state (Founder mode)
+  const [capTable, setCapTable] = React.useState<CapTable>({
+    stakeholders: [],
+    total_shares: 10000000,
+    option_pool_pct: 10,
+  });
+  const [instruments, setInstruments] = React.useState<FundingInstrument[]>([]);
+
+  // Form state (Employee mode)
   const [globalSettings, setGlobalSettings] = React.useState<GlobalSettingsForm | null>(null);
   const [currentJob, setCurrentJob] = React.useState<CurrentJobForm | null>(null);
   const [equityDetails, setEquityDetails] = React.useState<RSUForm | StockOptionsForm | null>(null);
@@ -195,14 +206,22 @@ export default function Home() {
   return (
     <AppShell
       sidebar={
-        <div className="space-y-4">
-          <GlobalSettingsFormComponent onChange={handleGlobalSettingsChange} />
-          <CurrentJobFormComponent onChange={handleCurrentJobChange} />
-          <StartupOfferFormComponent
-            onRSUChange={handleRSUChange}
-            onStockOptionsChange={handleStockOptionsChange}
-          />
-        </div>
+        appMode === "employee" ? (
+          <div className="space-y-4">
+            <GlobalSettingsFormComponent onChange={handleGlobalSettingsChange} />
+            <CurrentJobFormComponent onChange={handleCurrentJobChange} />
+            <StartupOfferFormComponent
+              onRSUChange={handleRSUChange}
+              onStockOptionsChange={handleStockOptionsChange}
+            />
+          </div>
+        ) : (
+          <div className="p-4 text-center text-muted-foreground">
+            <p className="text-sm">
+              Use the main panel to configure your cap table
+            </p>
+          </div>
+        )
       }
     >
       <div className="container py-8 space-y-8">
@@ -210,54 +229,38 @@ export default function Home() {
         <div className="space-y-4">
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground animate-fade-in">
             <span className="text-accent font-mono">&gt;</span>{" "}
-            Job Offer{" "}
-            <span className="gradient-text">Financial Analyzer</span>
+            {appMode === "employee" ? (
+              <>Job Offer <span className="gradient-text">Financial Analyzer</span></>
+            ) : (
+              <>Cap Table <span className="gradient-text">Simulator</span></>
+            )}
           </h1>
           <p className="text-base text-muted-foreground max-w-2xl leading-relaxed animate-fade-in delay-75">
-            Analyze startup job offers with comprehensive financial modeling including equity,
-            dilution, and Monte Carlo simulations
+            {appMode === "employee" ? (
+              "Analyze startup job offers with comprehensive financial modeling including equity, dilution, and Monte Carlo simulations"
+            ) : (
+              "Model your cap table, simulate funding rounds, and understand exit scenarios"
+            )}
           </p>
+          <div className="animate-fade-in delay-100">
+            <ModeToggle mode={appMode} onModeChange={setAppMode} />
+          </div>
           <div className="section-divider animate-fade-in delay-150" />
         </div>
 
-        {/* API Status */}
-        <Card className="terminal-card animate-slide-up delay-225">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-3 font-mono uppercase tracking-wider text-muted-foreground">
-              <div className="h-2 w-2 rounded-full bg-terminal animate-pulse" style={{ boxShadow: '0 0 8px oklch(75% 0.18 145 / 0.8)' }}></div>
-              <span>System Status</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading && (
-              <div className="flex items-center space-x-3 py-2">
-                <Loader2 className="h-4 w-4 animate-spin text-accent" />
-                <span className="text-sm text-muted-foreground font-mono">Connecting...</span>
-              </div>
-            )}
+        {/* Founder Mode Content */}
+        {appMode === "founder" && (
+          <CapTableManager
+            capTable={capTable}
+            onCapTableChange={setCapTable}
+            instruments={instruments}
+            onInstrumentsChange={setInstruments}
+          />
+        )}
 
-            {isError && (
-              <div className="flex items-center space-x-3 py-2 text-destructive">
-                <XCircle className="h-4 w-4" />
-                <span className="text-sm font-mono">ERROR: {error?.message || "Connection failed"}</span>
-              </div>
-            )}
-
-            {data && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle2 className="h-4 w-4 text-terminal" />
-                  <span className="text-sm font-medium text-terminal">Online</span>
-                </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground font-mono">
-                  <span className="uppercase">{data.status}</span>
-                  <span className="text-xs bg-secondary px-2 py-1 rounded border border-border">v{data.version}</span>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
+        {/* Employee Mode Content */}
+        {appMode === "employee" && (
+          <>
         {/* Results Dashboard */}
         {!hasDebouncedData && (
           <Card className="terminal-card animate-scale-in delay-300">
@@ -375,6 +378,8 @@ export default function Home() {
               </div>
             </CardContent>
           </Card>
+        )}
+          </>
         )}
       </div>
     </AppShell>

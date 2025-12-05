@@ -138,6 +138,7 @@ export function DilutionRoundFormComponent({
                   step={1000000}
                   prefix="SAR"
                   placeholder="50000000"
+                  formatDisplay={true}
                 />
               </div>
 
@@ -151,6 +152,7 @@ export function DilutionRoundFormComponent({
                   step={1000000}
                   prefix="SAR"
                   placeholder="10000000"
+                  formatDisplay={true}
                 />
 
                 <NumberInputField
@@ -162,6 +164,7 @@ export function DilutionRoundFormComponent({
                   step={1000}
                   prefix="SAR"
                   placeholder="12000"
+                  formatDisplay={true}
                 />
               </div>
             </CardContent>
