@@ -40,12 +40,21 @@ cd "$PROJECT_ROOT/backend"
 uv run uvicorn worth_it.api:app --host 0.0.0.0 --reload --port 8000 &
 BACKEND_PID=$!
 
-# Wait for backend to start
-sleep 3
+# Wait for backend to start with retry loop
+echo "Waiting for backend to be ready..."
+MAX_RETRIES=30
+RETRY_COUNT=0
+while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+    if curl -s http://localhost:8000/health > /dev/null 2>&1; then
+        break
+    fi
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    sleep 1
+done
 
 # Check if backend is running
-if ! curl -s http://localhost:8000/health > /dev/null; then
-    echo "ERROR: FastAPI backend failed to start"
+if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+    echo "ERROR: FastAPI backend failed to start after ${MAX_RETRIES} seconds"
     kill $BACKEND_PID 2>/dev/null
     exit 1
 fi
