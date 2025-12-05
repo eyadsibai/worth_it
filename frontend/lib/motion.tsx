@@ -200,6 +200,9 @@ interface AnimatedNumberProps {
   className?: string;
 }
 
+// Default formatter as a stable reference
+const defaultNumberFormatter = (v: number) => v.toLocaleString();
+
 /**
  * Animated number counter that smoothly transitions between values
  * Great for displaying metrics, statistics, and financial figures
@@ -207,7 +210,7 @@ interface AnimatedNumberProps {
 export function AnimatedNumber({
   value,
   duration = 0.8,
-  formatValue = (v) => v.toLocaleString(),
+  formatValue,
   className
 }: AnimatedNumberProps) {
   const ref = React.useRef<HTMLSpanElement>(null);
@@ -218,6 +221,12 @@ export function AnimatedNumber({
   });
   const isInView = useInView(ref, { once: true, margin: "-50px" });
 
+  // Memoize the formatter to prevent unnecessary effect re-runs
+  const memoizedFormatter = React.useCallback(
+    (v: number) => (formatValue ?? defaultNumberFormatter)(v),
+    [formatValue]
+  );
+
   React.useEffect(() => {
     if (isInView) {
       motionValue.set(value);
@@ -227,13 +236,13 @@ export function AnimatedNumber({
   React.useEffect(() => {
     const unsubscribe = springValue.on("change", (latest) => {
       if (ref.current) {
-        ref.current.textContent = formatValue(Math.round(latest));
+        ref.current.textContent = memoizedFormatter(Math.round(latest));
       }
     });
     return unsubscribe;
-  }, [springValue, formatValue]);
+  }, [springValue, memoizedFormatter]);
 
-  return <span ref={ref} className={className}>{formatValue(0)}</span>;
+  return <span ref={ref} className={className}>{memoizedFormatter(0)}</span>;
 }
 
 /**

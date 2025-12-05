@@ -15,6 +15,7 @@ import {
   MotionListItem,
   AnimatedNumber,
 } from "@/lib/motion";
+import { generateId } from "@/lib/utils";
 import type {
   FundingInstrument,
   SAFEFormData,
@@ -31,11 +32,6 @@ interface FundingRoundsManagerProps {
   onAddInstrument: (instrument: FundingInstrument) => void;
   onRemoveInstrument: (id: string) => void;
   totalShares?: number;
-}
-
-// Generate unique ID
-function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
 // Format currency

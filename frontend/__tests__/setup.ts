@@ -7,6 +7,19 @@ afterEach(() => {
   cleanup();
 });
 
+// Mock crypto.randomUUID for tests (not available in jsdom)
+let uuidCounter = 0;
+if (typeof crypto === "undefined" || !crypto.randomUUID) {
+  Object.defineProperty(globalThis, "crypto", {
+    value: {
+      ...globalThis.crypto,
+      randomUUID: vi.fn(() => `test-uuid-${++uuidCounter}`),
+    },
+  });
+} else {
+  vi.spyOn(crypto, "randomUUID").mockImplementation(() => `test-uuid-${++uuidCounter}`);
+}
+
 // Mock browser APIs not available in jsdom
 Object.defineProperty(window, "matchMedia", {
   writable: true,

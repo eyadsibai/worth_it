@@ -19,6 +19,7 @@ import {
   MotionListItem,
   AnimatedPercentage,
 } from "@/lib/motion";
+import { generateId } from "@/lib/utils";
 import type { Stakeholder, StakeholderFormData, CapTable, FundingInstrument } from "@/lib/schemas";
 
 interface CapTableManagerProps {
@@ -38,7 +39,7 @@ export function CapTableManager({
 
   const handleAddStakeholder = (formData: StakeholderFormData) => {
     const newStakeholder: Stakeholder = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: formData.name,
       type: formData.type,
       shares: 0,
