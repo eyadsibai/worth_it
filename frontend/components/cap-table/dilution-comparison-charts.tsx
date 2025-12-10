@@ -60,27 +60,33 @@ function MiniPieChart({
   return (
     <div className="flex flex-col items-center">
       <p className="text-sm font-medium text-muted-foreground mb-2">{label}</p>
-      <ResponsiveContainer width="100%" height={160}>
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            innerRadius={35}
-            outerRadius={60}
-            paddingAngle={1}
-            dataKey="value"
-          >
-            {data.map((entry) => (
-              <Cell
-                key={`cell-${entry.name}`}
-                fill={TYPE_COLORS[entry.type] || "hsl(var(--muted))"}
-              />
-            ))}
-          </Pie>
-          <Tooltip content={<CustomTooltip />} />
-        </PieChart>
-      </ResponsiveContainer>
+      <div
+        role="img"
+        aria-label={`${label} ownership distribution pie chart`}
+        className="w-full"
+      >
+        <ResponsiveContainer width="100%" height={160}>
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={35}
+              outerRadius={60}
+              paddingAngle={1}
+              dataKey="value"
+            >
+              {data.map((entry, idx) => (
+                <Cell
+                  key={`cell-${entry.name}-${idx}`}
+                  fill={TYPE_COLORS[entry.type] || "hsl(var(--muted))"}
+                />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

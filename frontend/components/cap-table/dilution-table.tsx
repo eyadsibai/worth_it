@@ -85,12 +85,12 @@ export function DilutionTable({ data }: DilutionTableProps) {
               <TableCell className="text-right">
                 {row.isNew ? (
                   <span className="inline-flex items-center gap-1 text-terminal">
-                    <Star className="h-3 w-3" />
+                    <Star className="h-3 w-3" aria-hidden="true" />
                     <span className="text-xs font-medium">new</span>
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-destructive">
-                    <TrendingDown className="h-3 w-3" />
+                    <TrendingDown className="h-3 w-3" aria-hidden="true" />
                     <span className="font-mono text-sm">
                       {row.dilutionPct.toFixed(1)}%
                     </span>
