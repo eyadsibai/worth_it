@@ -792,6 +792,165 @@ class TestCapTableConversion:
         assert response.status_code == 422  # Validation error
 
 
+class TestWaterfallAPI:
+    """Test waterfall analysis API endpoint."""
+
+    def test_waterfall_basic_distribution(self):
+        """Test basic waterfall distribution calculation."""
+        request_data = {
+            "cap_table": {
+                "stakeholders": [
+                    {
+                        "id": "founder-1",
+                        "name": "Founder",
+                        "type": "founder",
+                        "shares": 7000000,
+                        "ownership_pct": 70.0,
+                        "share_class": "common",
+                    },
+                    {
+                        "id": "investor-1",
+                        "name": "Series A Investor",
+                        "type": "investor",
+                        "shares": 3000000,
+                        "ownership_pct": 30.0,
+                        "share_class": "preferred",
+                    },
+                ],
+                "total_shares": 10000000,
+                "option_pool_pct": 0,
+            },
+            "preference_tiers": [
+                {
+                    "id": "tier-1",
+                    "name": "Series A",
+                    "seniority": 1,
+                    "investment_amount": 5000000,
+                    "liquidation_multiplier": 1.0,
+                    "participating": False,
+                    "stakeholder_ids": ["investor-1"],
+                }
+            ],
+            "exit_valuations": [3000000, 10000000, 50000000],
+        }
+
+        response = client.post("/api/waterfall", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        # Check structure
+        assert "distributions_by_valuation" in data
+        assert "breakeven_points" in data
+        assert len(data["distributions_by_valuation"]) == 3
+
+        # Check low exit ($3M) - investor gets all, founder gets nothing
+        low_exit = data["distributions_by_valuation"][0]
+        assert low_exit["exit_valuation"] == 3000000
+        investor_payout = next(
+            p for p in low_exit["stakeholder_payouts"] if p["name"] == "Series A Investor"
+        )
+        founder_payout = next(
+            p for p in low_exit["stakeholder_payouts"] if p["name"] == "Founder"
+        )
+        assert investor_payout["payout_amount"] == pytest.approx(3000000)
+        assert founder_payout["payout_amount"] == pytest.approx(0)
+
+    def test_waterfall_multiple_valuations(self):
+        """Test waterfall returns results for all requested valuations."""
+        request_data = {
+            "cap_table": {
+                "stakeholders": [
+                    {
+                        "id": "founder-1",
+                        "name": "Founder",
+                        "type": "founder",
+                        "shares": 10000000,
+                        "ownership_pct": 100.0,
+                        "share_class": "common",
+                    }
+                ],
+                "total_shares": 10000000,
+                "option_pool_pct": 0,
+            },
+            "preference_tiers": [],
+            "exit_valuations": [1000000, 5000000, 10000000, 50000000, 100000000],
+        }
+
+        response = client.post("/api/waterfall", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        assert len(data["distributions_by_valuation"]) == 5
+
+        # Common-only scenario: founder gets everything at each valuation
+        for dist in data["distributions_by_valuation"]:
+            founder = next(p for p in dist["stakeholder_payouts"] if p["name"] == "Founder")
+            assert founder["payout_amount"] == pytest.approx(dist["exit_valuation"])
+
+    def test_waterfall_returns_waterfall_steps(self):
+        """Test that waterfall returns step-by-step breakdown."""
+        request_data = {
+            "cap_table": {
+                "stakeholders": [
+                    {
+                        "id": "founder-1",
+                        "name": "Founder",
+                        "type": "founder",
+                        "shares": 7000000,
+                        "ownership_pct": 70.0,
+                        "share_class": "common",
+                    },
+                    {
+                        "id": "investor-1",
+                        "name": "Investor",
+                        "type": "investor",
+                        "shares": 3000000,
+                        "ownership_pct": 30.0,
+                        "share_class": "preferred",
+                    },
+                ],
+                "total_shares": 10000000,
+                "option_pool_pct": 0,
+            },
+            "preference_tiers": [
+                {
+                    "id": "tier-1",
+                    "name": "Series A",
+                    "seniority": 1,
+                    "investment_amount": 5000000,
+                    "liquidation_multiplier": 1.0,
+                    "participating": False,
+                    "stakeholder_ids": ["investor-1"],
+                }
+            ],
+            "exit_valuations": [20000000],
+        }
+
+        response = client.post("/api/waterfall", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        dist = data["distributions_by_valuation"][0]
+        assert len(dist["waterfall_steps"]) >= 1
+        assert dist["waterfall_steps"][0]["step_number"] == 1
+
+    def test_waterfall_invalid_request(self):
+        """Test that invalid requests are rejected."""
+        # Empty exit_valuations should fail
+        request_data = {
+            "cap_table": {
+                "stakeholders": [],
+                "total_shares": 10000000,
+                "option_pool_pct": 0,
+            },
+            "preference_tiers": [],
+            "exit_valuations": [],  # Invalid - must have at least one
+        }
+
+        response = client.post("/api/waterfall", json=request_data)
+        assert response.status_code == 422  # Validation error
+
+
 class TestRateLimiting:
     """Test rate limiting functionality.
 

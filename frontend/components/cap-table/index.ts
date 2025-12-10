@@ -6,3 +6,8 @@ export { SAFEForm } from "./safe-form";
 export { ConvertibleNoteForm } from "./convertible-note-form";
 export { PricedRoundForm } from "./priced-round-form";
 export { FundingRoundsManager } from "./funding-rounds-manager";
+export { WaterfallAnalysis } from "./waterfall-analysis";
+export { WaterfallChart } from "./waterfall-chart";
+export { WaterfallTable } from "./waterfall-table";
+export { PreferenceStackEditor } from "./preference-stack-editor";
+export { ValuationSlider } from "./valuation-slider";

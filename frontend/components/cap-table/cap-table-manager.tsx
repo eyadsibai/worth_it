@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, Users, Landmark, PieChart } from "lucide-react";
+import { Trash2, Users, Landmark, PieChart, BarChart3 } from "lucide-react";
 import { StakeholderForm } from "./stakeholder-form";
 import { OwnershipChart } from "./ownership-chart";
 import { ExitCalculator } from "./exit-calculator";
 import { FundingRoundsManager } from "./funding-rounds-manager";
+import { WaterfallAnalysis } from "./waterfall-analysis";
 import {
   motion,
   MotionFadeInUp,
@@ -44,7 +45,7 @@ export function CapTableManager({
   instruments,
   onInstrumentsChange,
 }: CapTableManagerProps) {
-  const [activeSection, setActiveSection] = React.useState<"cap-table" | "funding">("cap-table");
+  const [activeSection, setActiveSection] = React.useState<"cap-table" | "funding" | "waterfall">("cap-table");
   const convertInstruments = useConvertInstruments();
 
   // Handle automatic conversion when a priced round is added
@@ -176,14 +177,18 @@ export function CapTableManager({
     <div className="space-y-6">
       {/* Section Tabs */}
       <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v as typeof activeSection)}>
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
+        <TabsList className="grid w-full grid-cols-3 max-w-lg">
           <TabsTrigger value="cap-table" className="flex items-center gap-2">
             <PieChart className="h-4 w-4" />
             Cap Table
           </TabsTrigger>
           <TabsTrigger value="funding" className="flex items-center gap-2">
             <Landmark className="h-4 w-4" />
-            Funding Rounds
+            Funding
+          </TabsTrigger>
+          <TabsTrigger value="waterfall" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Waterfall
           </TabsTrigger>
         </TabsList>
 
@@ -354,6 +359,13 @@ export function CapTableManager({
             onPricedRoundAdded={handlePricedRoundAdded}
             stakeholders={capTable.stakeholders}
             optionPoolPct={capTable.option_pool_pct}
+          />
+        </TabsContent>
+
+        <TabsContent value="waterfall" className="mt-6">
+          <WaterfallAnalysis
+            capTable={capTable}
+            pricedRounds={instruments.filter((i): i is PricedRound => i.type === "PRICED_ROUND")}
           />
         </TabsContent>
       </Tabs>

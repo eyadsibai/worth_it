@@ -284,3 +284,65 @@ class HealthCheckResponse(BaseModel):
 
     status: str
     version: str
+
+
+# --- Waterfall Analysis Models ---
+
+
+class PreferenceTier(BaseModel):
+    """A single tier in the liquidation preference stack."""
+
+    id: str
+    name: str = Field(..., min_length=1)  # e.g., "Series B", "Series A"
+    seniority: int = Field(..., ge=1)  # 1 = most senior (paid first)
+    investment_amount: float = Field(..., gt=0)  # Total invested at this tier
+    liquidation_multiplier: float = Field(default=1.0, ge=1.0)  # 1x, 2x, etc.
+    participating: bool = False
+    participation_cap: float | None = Field(default=None, ge=1.0)  # e.g., 3.0 for 3x cap
+    stakeholder_ids: list[str] = Field(default_factory=list)  # Links to Stakeholder records
+
+
+class StakeholderPayout(BaseModel):
+    """Payout for a single stakeholder in a waterfall distribution."""
+
+    stakeholder_id: str
+    name: str
+    payout_amount: float = Field(..., ge=0)
+    payout_pct: float = Field(..., ge=0, le=100)  # Percentage of total exit
+    investment_amount: float | None = None  # For investors
+    roi: float | None = None  # Return on investment (MOIC) for investors
+
+
+class WaterfallStep(BaseModel):
+    """A single step in the waterfall breakdown."""
+
+    step_number: int = Field(..., ge=1)
+    description: str
+    amount: float = Field(..., ge=0)
+    recipients: list[str]  # Stakeholder names
+    remaining_proceeds: float = Field(..., ge=0)
+
+
+class WaterfallDistribution(BaseModel):
+    """Distribution result for a single exit valuation."""
+
+    exit_valuation: float = Field(..., gt=0)
+    waterfall_steps: list[WaterfallStep]
+    stakeholder_payouts: list[StakeholderPayout]
+    common_pct: float = Field(..., ge=0, le=100)
+    preferred_pct: float = Field(..., ge=0, le=100)
+
+
+class WaterfallRequest(BaseModel):
+    """Request to calculate waterfall distribution."""
+
+    cap_table: CapTable
+    preference_tiers: list[PreferenceTier]
+    exit_valuations: list[float] = Field(..., min_length=1)
+
+
+class WaterfallResponse(BaseModel):
+    """Full waterfall analysis response."""
+
+    distributions_by_valuation: list[WaterfallDistribution]
+    breakeven_points: dict[str, float]  # {"founders": 25M, "series_a": 5M}

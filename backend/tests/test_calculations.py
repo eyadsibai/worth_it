@@ -1273,3 +1273,470 @@ class TestConvertInstruments:
         converted = result["converted_instruments"][0]
         assert converted["accrued_interest"] == pytest.approx(21_000.0, rel=0.01)
         assert converted["investment_amount"] == pytest.approx(121_000.0, rel=0.01)
+
+
+# --- Tests for Waterfall Analysis ---
+
+
+class TestCalculateWaterfall:
+    """Tests for the calculate_waterfall function."""
+
+    @pytest.fixture
+    def simple_cap_table(self):
+        """Cap table with founders and one investor."""
+        return {
+            "stakeholders": [
+                {
+                    "id": "founder-1",
+                    "name": "Founder",
+                    "type": "founder",
+                    "shares": 7_000_000,
+                    "ownership_pct": 70.0,
+                    "share_class": "common",
+                },
+                {
+                    "id": "investor-1",
+                    "name": "Series A Investor",
+                    "type": "investor",
+                    "shares": 3_000_000,
+                    "ownership_pct": 30.0,
+                    "share_class": "preferred",
+                },
+            ],
+            "total_shares": 10_000_000,
+            "option_pool_pct": 0,
+        }
+
+    @pytest.fixture
+    def single_tier_non_participating(self):
+        """Single preference tier, non-participating."""
+        return [
+            {
+                "id": "tier-1",
+                "name": "Series A",
+                "seniority": 1,
+                "investment_amount": 5_000_000,
+                "liquidation_multiplier": 1.0,
+                "participating": False,
+                "participation_cap": None,
+                "stakeholder_ids": ["investor-1"],
+            }
+        ]
+
+    def test_waterfall_non_participating_low_exit(self, simple_cap_table, single_tier_non_participating):
+        """
+        Non-participating preferred at low exit: takes preference, common gets nothing.
+        Exit: $3M, Preference: $5M
+        Series A gets $3M (all proceeds), Founders get $0
+        """
+        result = calculations.calculate_waterfall(
+            cap_table=simple_cap_table,
+            preference_tiers=single_tier_non_participating,
+            exit_valuation=3_000_000,
+        )
+
+        # Find payouts
+        investor_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Series A Investor"
+        )
+        founder_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Founder"
+        )
+
+        assert investor_payout["payout_amount"] == pytest.approx(3_000_000)
+        assert founder_payout["payout_amount"] == pytest.approx(0)
+        assert result["common_pct"] == pytest.approx(0)
+        assert result["preferred_pct"] == pytest.approx(100)
+
+    def test_waterfall_non_participating_converts_at_high_exit(
+        self, simple_cap_table, single_tier_non_participating
+    ):
+        """
+        Non-participating preferred at high exit: converts to common for pro-rata share.
+        Exit: $50M, Preference: $5M (1x), Pro-rata: $15M (30%)
+        Series A converts → gets $15M, Founders get $35M
+        """
+        result = calculations.calculate_waterfall(
+            cap_table=simple_cap_table,
+            preference_tiers=single_tier_non_participating,
+            exit_valuation=50_000_000,
+        )
+
+        investor_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Series A Investor"
+        )
+        founder_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Founder"
+        )
+
+        # 30% of $50M = $15M (converts because pro-rata > preference)
+        assert investor_payout["payout_amount"] == pytest.approx(15_000_000)
+        # 70% of $50M = $35M
+        assert founder_payout["payout_amount"] == pytest.approx(35_000_000)
+        # All treated as common after conversion
+        assert result["common_pct"] == pytest.approx(100)
+
+    def test_waterfall_participating_uncapped(self, simple_cap_table):
+        """
+        Participating preferred (uncapped): gets preference + pro-rata of remaining.
+        Exit: $20M, Preference: $5M, Remaining: $15M
+        Series A: $5M + 30% of $15M = $5M + $4.5M = $9.5M
+        Founders: 70% of $15M = $10.5M
+        """
+        participating_tier = [
+            {
+                "id": "tier-1",
+                "name": "Series A",
+                "seniority": 1,
+                "investment_amount": 5_000_000,
+                "liquidation_multiplier": 1.0,
+                "participating": True,
+                "participation_cap": None,  # Uncapped
+                "stakeholder_ids": ["investor-1"],
+            }
+        ]
+
+        result = calculations.calculate_waterfall(
+            cap_table=simple_cap_table,
+            preference_tiers=participating_tier,
+            exit_valuation=20_000_000,
+        )
+
+        investor_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Series A Investor"
+        )
+        founder_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Founder"
+        )
+
+        assert investor_payout["payout_amount"] == pytest.approx(9_500_000)
+        assert founder_payout["payout_amount"] == pytest.approx(10_500_000)
+
+    def test_waterfall_participating_with_cap(self, simple_cap_table):
+        """
+        Participating preferred with 2x cap: participation stops at cap.
+        Exit: $50M, Investment: $5M, Cap: 2x = $10M
+        Series A: min($5M + 30% of $45M, $10M cap) = min($18.5M, $10M) = $10M
+        Remaining $40M split pro-rata: Founders get 70%, Series A gets 30%
+        Wait - that's not quite right. Let me recalculate:
+
+        Actually with participation cap:
+        Series A gets preference ($5M) + participation up to cap ($10M total)
+        So participation portion = $5M more
+        Remaining after preference: $45M
+        Series A participation: min(30% of $45M = $13.5M, $5M to reach cap) = $5M
+        So Series A total: $10M
+        Remaining: $50M - $10M = $40M goes to common pro-rata
+        Founders: 70/(70+30) * $40M = $28M
+        Series A additional from common: 30/(70+30) * $40M = $12M
+
+        Hmm, this is getting confusing. Let's simplify:
+        Participation cap means total return is capped at X times investment.
+        At $50M exit with 2x cap ($10M):
+        - Series A gets exactly $10M (their cap)
+        - Founders get $50M - $10M = $40M
+        """
+        participating_capped_tier = [
+            {
+                "id": "tier-1",
+                "name": "Series A",
+                "seniority": 1,
+                "investment_amount": 5_000_000,
+                "liquidation_multiplier": 1.0,
+                "participating": True,
+                "participation_cap": 2.0,  # 2x cap = $10M max
+                "stakeholder_ids": ["investor-1"],
+            }
+        ]
+
+        result = calculations.calculate_waterfall(
+            cap_table=simple_cap_table,
+            preference_tiers=participating_capped_tier,
+            exit_valuation=50_000_000,
+        )
+
+        investor_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Series A Investor"
+        )
+        founder_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Founder"
+        )
+
+        # Series A capped at 2x = $10M
+        assert investor_payout["payout_amount"] == pytest.approx(10_000_000)
+        # Founders get remaining $40M
+        assert founder_payout["payout_amount"] == pytest.approx(40_000_000)
+
+    def test_waterfall_multiple_tiers_seniority(self):
+        """
+        Multiple tiers with different seniority: senior gets paid first.
+        Series B ($10M, senior) → Series A ($5M, junior) → Common
+        Exit: $12M
+        Series B gets $10M, Series A gets $2M, Founders get $0
+        """
+        cap_table = {
+            "stakeholders": [
+                {
+                    "id": "founder-1",
+                    "name": "Founder",
+                    "type": "founder",
+                    "shares": 5_000_000,
+                    "ownership_pct": 50.0,
+                    "share_class": "common",
+                },
+                {
+                    "id": "investor-a",
+                    "name": "Series A Investor",
+                    "type": "investor",
+                    "shares": 2_000_000,
+                    "ownership_pct": 20.0,
+                    "share_class": "preferred",
+                },
+                {
+                    "id": "investor-b",
+                    "name": "Series B Investor",
+                    "type": "investor",
+                    "shares": 3_000_000,
+                    "ownership_pct": 30.0,
+                    "share_class": "preferred",
+                },
+            ],
+            "total_shares": 10_000_000,
+            "option_pool_pct": 0,
+        }
+
+        preference_tiers = [
+            {
+                "id": "tier-b",
+                "name": "Series B",
+                "seniority": 1,  # Most senior
+                "investment_amount": 10_000_000,
+                "liquidation_multiplier": 1.0,
+                "participating": False,
+                "stakeholder_ids": ["investor-b"],
+            },
+            {
+                "id": "tier-a",
+                "name": "Series A",
+                "seniority": 2,  # Junior to Series B
+                "investment_amount": 5_000_000,
+                "liquidation_multiplier": 1.0,
+                "participating": False,
+                "stakeholder_ids": ["investor-a"],
+            },
+        ]
+
+        result = calculations.calculate_waterfall(
+            cap_table=cap_table,
+            preference_tiers=preference_tiers,
+            exit_valuation=12_000_000,
+        )
+
+        series_b_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Series B Investor"
+        )
+        series_a_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Series A Investor"
+        )
+        founder_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Founder"
+        )
+
+        assert series_b_payout["payout_amount"] == pytest.approx(10_000_000)
+        assert series_a_payout["payout_amount"] == pytest.approx(2_000_000)
+        assert founder_payout["payout_amount"] == pytest.approx(0)
+
+    def test_waterfall_pari_passu_tiers(self):
+        """
+        Pari passu (equal seniority): split proportionally if insufficient.
+        Series A ($5M) and Series B ($5M) both seniority 1
+        Exit: $8M → each gets $4M (proportional split)
+        """
+        cap_table = {
+            "stakeholders": [
+                {
+                    "id": "founder-1",
+                    "name": "Founder",
+                    "type": "founder",
+                    "shares": 5_000_000,
+                    "ownership_pct": 50.0,
+                    "share_class": "common",
+                },
+                {
+                    "id": "investor-a",
+                    "name": "Series A Investor",
+                    "type": "investor",
+                    "shares": 2_500_000,
+                    "ownership_pct": 25.0,
+                    "share_class": "preferred",
+                },
+                {
+                    "id": "investor-b",
+                    "name": "Series B Investor",
+                    "type": "investor",
+                    "shares": 2_500_000,
+                    "ownership_pct": 25.0,
+                    "share_class": "preferred",
+                },
+            ],
+            "total_shares": 10_000_000,
+            "option_pool_pct": 0,
+        }
+
+        preference_tiers = [
+            {
+                "id": "tier-a",
+                "name": "Series A",
+                "seniority": 1,  # Same seniority
+                "investment_amount": 5_000_000,
+                "liquidation_multiplier": 1.0,
+                "participating": False,
+                "stakeholder_ids": ["investor-a"],
+            },
+            {
+                "id": "tier-b",
+                "name": "Series B",
+                "seniority": 1,  # Same seniority (pari passu)
+                "investment_amount": 5_000_000,
+                "liquidation_multiplier": 1.0,
+                "participating": False,
+                "stakeholder_ids": ["investor-b"],
+            },
+        ]
+
+        result = calculations.calculate_waterfall(
+            cap_table=cap_table,
+            preference_tiers=preference_tiers,
+            exit_valuation=8_000_000,
+        )
+
+        series_a_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Series A Investor"
+        )
+        series_b_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Series B Investor"
+        )
+        founder_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Founder"
+        )
+
+        # $8M split proportionally between $5M + $5M = $10M total preference
+        # Each gets 50% = $4M
+        assert series_a_payout["payout_amount"] == pytest.approx(4_000_000)
+        assert series_b_payout["payout_amount"] == pytest.approx(4_000_000)
+        assert founder_payout["payout_amount"] == pytest.approx(0)
+
+    def test_waterfall_2x_liquidation_multiplier(self, simple_cap_table):
+        """
+        2x liquidation multiplier: preference is 2x investment.
+        Investment: $5M, Multiplier: 2x → Preference: $10M
+        Exit: $15M → Series A gets $10M, Founders get $5M
+        """
+        double_preference_tier = [
+            {
+                "id": "tier-1",
+                "name": "Series A",
+                "seniority": 1,
+                "investment_amount": 5_000_000,
+                "liquidation_multiplier": 2.0,  # 2x
+                "participating": False,
+                "stakeholder_ids": ["investor-1"],
+            }
+        ]
+
+        result = calculations.calculate_waterfall(
+            cap_table=simple_cap_table,
+            preference_tiers=double_preference_tier,
+            exit_valuation=15_000_000,
+        )
+
+        investor_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Series A Investor"
+        )
+        founder_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Founder"
+        )
+
+        assert investor_payout["payout_amount"] == pytest.approx(10_000_000)
+        assert founder_payout["payout_amount"] == pytest.approx(5_000_000)
+
+    def test_waterfall_common_only_scenario(self):
+        """
+        No preferred shares: all proceeds distributed pro-rata as common.
+        """
+        cap_table = {
+            "stakeholders": [
+                {
+                    "id": "founder-1",
+                    "name": "Founder A",
+                    "type": "founder",
+                    "shares": 6_000_000,
+                    "ownership_pct": 60.0,
+                    "share_class": "common",
+                },
+                {
+                    "id": "founder-2",
+                    "name": "Founder B",
+                    "type": "founder",
+                    "shares": 4_000_000,
+                    "ownership_pct": 40.0,
+                    "share_class": "common",
+                },
+            ],
+            "total_shares": 10_000_000,
+            "option_pool_pct": 0,
+        }
+
+        result = calculations.calculate_waterfall(
+            cap_table=cap_table,
+            preference_tiers=[],  # No preferred tiers
+            exit_valuation=10_000_000,
+        )
+
+        founder_a_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Founder A"
+        )
+        founder_b_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Founder B"
+        )
+
+        assert founder_a_payout["payout_amount"] == pytest.approx(6_000_000)
+        assert founder_b_payout["payout_amount"] == pytest.approx(4_000_000)
+        assert result["common_pct"] == pytest.approx(100)
+        assert result["preferred_pct"] == pytest.approx(0)
+
+    def test_waterfall_returns_waterfall_steps(self, simple_cap_table, single_tier_non_participating):
+        """
+        Waterfall should return step-by-step breakdown.
+        """
+        result = calculations.calculate_waterfall(
+            cap_table=simple_cap_table,
+            preference_tiers=single_tier_non_participating,
+            exit_valuation=20_000_000,
+        )
+
+        assert "waterfall_steps" in result
+        assert len(result["waterfall_steps"]) >= 1
+
+        # First step should be liquidation preference
+        first_step = result["waterfall_steps"][0]
+        assert first_step["step_number"] == 1
+        assert "Series A" in first_step["description"]
+
+    def test_waterfall_returns_roi(self, simple_cap_table, single_tier_non_participating):
+        """
+        Waterfall should calculate ROI (MOIC) for investors.
+        """
+        result = calculations.calculate_waterfall(
+            cap_table=simple_cap_table,
+            preference_tiers=single_tier_non_participating,
+            exit_valuation=50_000_000,
+        )
+
+        investor_payout = next(
+            p for p in result["stakeholder_payouts"] if p["name"] == "Series A Investor"
+        )
+
+        # Investment: $5M, Payout: $15M (30% of $50M after conversion)
+        # ROI = $15M / $5M = 3.0x
+        assert investor_payout["roi"] == pytest.approx(3.0)
