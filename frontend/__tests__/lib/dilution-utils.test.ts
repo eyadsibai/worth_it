@@ -163,6 +163,23 @@ describe("calculateDilution", () => {
       const newInvestor = result.find((d) => d.isNew);
       expect(newInvestor!.name).toBe("New Investor");
     });
+
+    it("returns empty array for zero pre-money valuation", () => {
+      const result = calculateDilution(baseStakeholders, 20, 0, 2_000_000);
+      expect(result).toEqual([]);
+    });
+
+    it("returns empty array for zero amount raised", () => {
+      const result = calculateDilution(baseStakeholders, 20, 10_000_000, 0);
+      expect(result).toEqual([]);
+    });
+
+    it("returns empty array for negative values", () => {
+      const result1 = calculateDilution(baseStakeholders, 20, -5_000_000, 2_000_000);
+      const result2 = calculateDilution(baseStakeholders, 20, 10_000_000, -1_000_000);
+      expect(result1).toEqual([]);
+      expect(result2).toEqual([]);
+    });
   });
 
   describe("dilution percentage calculation", () => {

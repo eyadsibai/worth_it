@@ -60,9 +60,9 @@ export function DilutionTable({ data }: DilutionTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((row) => (
+          {data.map((row, index) => (
             <TableRow
-              key={row.name}
+              key={`${row.name}-${row.type}-${index}`}
               className={row.isNew ? "bg-terminal/5" : undefined}
             >
               <TableCell>

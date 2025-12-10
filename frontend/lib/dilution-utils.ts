@@ -1,8 +1,21 @@
 import type { Stakeholder } from "@/lib/schemas";
 
+/**
+ * Extended type for dilution calculations.
+ * Includes stakeholder types plus "option_pool" and "new_investor"
+ * which are not individual stakeholders but appear in dilution previews.
+ */
+type DilutionPartyType =
+  | "founder"
+  | "employee"
+  | "investor"
+  | "advisor"
+  | "option_pool"
+  | "new_investor";
+
 export interface DilutionData {
   name: string;
-  type: "founder" | "employee" | "investor" | "advisor" | "option_pool" | "new_investor";
+  type: DilutionPartyType;
   beforePct: number;
   afterPct: number;
   dilutionPct: number;
@@ -26,6 +39,11 @@ export function calculateDilution(
   amountRaised: number,
   investorName: string = "New Investor"
 ): DilutionData[] {
+  // Guard against invalid inputs that would cause division by zero or NaN
+  if (preMoneyValuation <= 0 || amountRaised <= 0) {
+    return [];
+  }
+
   const postMoney = preMoneyValuation + amountRaised;
   const dilutionFactor = preMoneyValuation / postMoney;
   const newInvestorPct = (amountRaised / postMoney) * 100;
