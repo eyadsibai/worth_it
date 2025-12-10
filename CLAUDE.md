@@ -252,6 +252,28 @@ Recharts Visualization
 - [ ] `cd frontend && npm run lint`
 - [ ] `cd frontend && npm run test:unit`
 
+## Pull Request Workflow
+
+**IMPORTANT**: Always verify GitHub Actions workflows pass when creating or updating a PR.
+
+1. **Before creating a PR**: Run the full pre-commit checklist above
+2. **After pushing**: Check workflow status with `gh pr checks` or `gh pr view --web`
+3. **If workflows fail**: Fix the issues and push again before requesting review
+4. **Useful commands**:
+   ```bash
+   # Check PR status and workflow results
+   gh pr checks
+
+   # View PR in browser (includes workflow status)
+   gh pr view --web
+
+   # View workflow run details
+   gh run list --limit 5
+   gh run view <run-id>
+   ```
+
+Do not consider a PR ready for review until all GitHub Actions workflows are passing.
+
 ## Configuration
 
 **Backend** (`.env` in backend/):
