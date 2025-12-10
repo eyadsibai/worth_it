@@ -1,17 +1,13 @@
-import type { Stakeholder } from "@/lib/schemas";
+import type { Stakeholder, StakeholderType } from "@/lib/schemas";
 
 /**
  * Extended type for dilution calculations.
- * Includes stakeholder types plus "option_pool" and "new_investor"
- * which are not individual stakeholders but appear in dilution previews.
+ * Extends StakeholderType with additional categories that appear in dilution previews
+ * but are not individual stakeholders in the cap table:
+ * - "option_pool": Represents the company's unallocated option pool
+ * - "new_investor": Represents the incoming investor in a funding round
  */
-type DilutionPartyType =
-  | "founder"
-  | "employee"
-  | "investor"
-  | "advisor"
-  | "option_pool"
-  | "new_investor";
+type DilutionPartyType = StakeholderType | "option_pool" | "new_investor";
 
 export interface DilutionData {
   name: string;
