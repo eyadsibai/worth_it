@@ -20,7 +20,16 @@ import {
   AnimatedPercentage,
 } from "@/lib/motion";
 import { generateId } from "@/lib/utils";
-import type { Stakeholder, StakeholderFormData, CapTable, FundingInstrument } from "@/lib/schemas";
+import { useConvertInstruments } from "@/lib/api-client";
+import type {
+  Stakeholder,
+  StakeholderFormData,
+  CapTable,
+  FundingInstrument,
+  PricedRound,
+  SAFE,
+  ConvertibleNote,
+} from "@/lib/schemas";
 
 interface CapTableManagerProps {
   capTable: CapTable;
@@ -36,6 +45,67 @@ export function CapTableManager({
   onInstrumentsChange,
 }: CapTableManagerProps) {
   const [activeSection, setActiveSection] = React.useState<"cap-table" | "funding">("cap-table");
+  const convertInstruments = useConvertInstruments();
+
+  // Handle automatic conversion when a priced round is added
+  const handlePricedRoundAdded = React.useCallback(
+    (round: PricedRound) => {
+      // Filter for outstanding SAFEs and Convertible Notes
+      const outstandingSAFEs = instruments.filter(
+        (i): i is SAFE => i.type === "SAFE" && i.status === "outstanding"
+      );
+      const outstandingNotes = instruments.filter(
+        (i): i is ConvertibleNote =>
+          i.type === "CONVERTIBLE_NOTE" && i.status === "outstanding"
+      );
+
+      const convertibleInstruments = [...outstandingSAFEs, ...outstandingNotes];
+
+      // No instruments to convert
+      if (convertibleInstruments.length === 0) {
+        return;
+      }
+
+      // Call conversion API
+      convertInstruments.mutate(
+        {
+          cap_table: capTable,
+          instruments: convertibleInstruments,
+          priced_round: round,
+        },
+        {
+          onSuccess: (result) => {
+            // Update cap table with new stakeholders from conversion
+            onCapTableChange(result.updated_cap_table);
+
+            // Mark converted instruments as "converted"
+            const convertedIds = new Set(
+              result.converted_instruments.map((ci) => ci.instrument_id)
+            );
+            const updatedInstruments = instruments.map((inst) => {
+              if (convertedIds.has(inst.id)) {
+                return { ...inst, status: "converted" as const };
+              }
+              return inst;
+            });
+            onInstrumentsChange(updatedInstruments);
+
+            // Log success (toast can be added later)
+            console.log(
+              `Conversion complete: ${result.summary.instruments_converted} instrument(s) converted, ${result.summary.total_shares_issued.toLocaleString()} new shares issued.`
+            );
+          },
+          onError: (error) => {
+            console.error(
+              "Conversion failed:",
+              error instanceof Error ? error.message : "Unknown error"
+            );
+          },
+        }
+      );
+    },
+    [capTable, instruments, convertInstruments, onCapTableChange, onInstrumentsChange]
+  );
 
   const handleAddStakeholder = (formData: StakeholderFormData) => {
     const newStakeholder: Stakeholder = {
@@ -281,6 +351,7 @@ export function CapTableManager({
             onAddInstrument={handleAddInstrument}
             onRemoveInstrument={handleRemoveInstrument}
             totalShares={capTable.total_shares}
+            onPricedRoundAdded={handlePricedRoundAdded}
           />
         </TabsContent>
       </Tabs>

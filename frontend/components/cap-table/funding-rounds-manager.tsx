@@ -32,6 +32,7 @@ interface FundingRoundsManagerProps {
   onAddInstrument: (instrument: FundingInstrument) => void;
   onRemoveInstrument: (id: string) => void;
   totalShares?: number;
+  onPricedRoundAdded?: (round: PricedRound) => void;
 }
 
 // Format currency
@@ -47,6 +48,7 @@ export function FundingRoundsManager({
   onAddInstrument,
   onRemoveInstrument,
   totalShares = 10000000,
+  onPricedRoundAdded,
 }: FundingRoundsManagerProps) {
   const [activeTab, setActiveTab] = React.useState<"safe" | "note" | "priced">("safe");
 
@@ -72,6 +74,7 @@ export function FundingRoundsManager({
       investor_name: data.investor_name,
       principal_amount: data.principal_amount,
       interest_rate: data.interest_rate,
+      interest_type: data.interest_type ?? "simple",
       valuation_cap: data.valuation_cap,
       discount_pct: data.discount_pct,
       maturity_months: data.maturity_months,
@@ -101,6 +104,9 @@ export function FundingRoundsManager({
       post_money_valuation: postMoney,
     };
     onAddInstrument(round);
+
+    // Trigger conversion of outstanding SAFEs and Convertible Notes
+    onPricedRoundAdded?.(round);
   };
 
   // Calculate totals

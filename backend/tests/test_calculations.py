@@ -876,3 +876,400 @@ class TestCalculateDilutionFromValuation:
         """Test that negative amount raised raises ValueError."""
         with pytest.raises(ValueError, match="amount_raised cannot be negative"):
             calculations.calculate_dilution_from_valuation(10_000_000, -100_000)
+
+
+# --- Tests for Cap Table Conversion Functions ---
+
+
+class TestCalculateInterest:
+    """Tests for the calculate_interest function."""
+
+    def test_simple_interest_calculation(self):
+        """Test simple interest calculation."""
+        # $50K * 5% * (6/12) = $1,250
+        interest = calculations.calculate_interest(50_000, 5, 6, "simple")
+        assert interest == pytest.approx(1250.0)
+
+    def test_compound_interest_calculation(self):
+        """Test compound interest calculation."""
+        # $50K * ((1 + 0.05)^0.5 - 1) = $1,233.18
+        interest = calculations.calculate_interest(50_000, 5, 6, "compound")
+        expected = 50_000 * ((1 + 0.05) ** 0.5 - 1)
+        assert interest == pytest.approx(expected)
+
+    def test_zero_months_returns_zero(self):
+        """Test that zero months elapsed returns zero interest."""
+        interest = calculations.calculate_interest(50_000, 5, 0, "simple")
+        assert interest == 0.0
+
+    def test_negative_months_returns_zero(self):
+        """Test that negative months elapsed returns zero interest."""
+        interest = calculations.calculate_interest(50_000, 5, -3, "simple")
+        assert interest == 0.0
+
+    def test_full_year_simple_interest(self):
+        """Test full year simple interest."""
+        # $100K * 8% * 1 year = $8,000
+        interest = calculations.calculate_interest(100_000, 8, 12, "simple")
+        assert interest == pytest.approx(8000.0)
+
+    def test_full_year_compound_interest(self):
+        """Test full year compound interest."""
+        # $100K * ((1 + 0.08)^1 - 1) = $8,000
+        interest = calculations.calculate_interest(100_000, 8, 12, "compound")
+        assert interest == pytest.approx(8000.0)
+
+    def test_two_year_compound_vs_simple(self):
+        """Test that compound interest exceeds simple over 2 years."""
+        simple = calculations.calculate_interest(100_000, 10, 24, "simple")
+        compound = calculations.calculate_interest(100_000, 10, 24, "compound")
+        # Simple: $100K * 10% * 2 = $20,000
+        # Compound: $100K * (1.10^2 - 1) = $21,000
+        assert simple == pytest.approx(20_000.0)
+        assert compound == pytest.approx(21_000.0)
+        assert compound > simple
+
+
+class TestCalculateConversionPrice:
+    """Tests for the calculate_conversion_price function."""
+
+    def test_cap_wins_over_discount(self):
+        """Test that lower cap price beats discount price."""
+        # Cap price: $5M / 10M shares = $0.50
+        # Discount price: $1.00 * 0.80 = $0.80
+        # Cap wins because $0.50 < $0.80
+        price, source = calculations.calculate_conversion_price(
+            valuation_cap=5_000_000,
+            discount_pct=20,
+            round_price_per_share=1.0,
+            pre_conversion_shares=10_000_000,
+        )
+        assert price == pytest.approx(0.5)
+        assert source == "cap"
+
+    def test_discount_wins_over_cap(self):
+        """Test that lower discount price beats cap price."""
+        # Cap price: $20M / 10M shares = $2.00
+        # Discount price: $1.00 * 0.80 = $0.80
+        # Discount wins because $0.80 < $2.00
+        price, source = calculations.calculate_conversion_price(
+            valuation_cap=20_000_000,
+            discount_pct=20,
+            round_price_per_share=1.0,
+            pre_conversion_shares=10_000_000,
+        )
+        assert price == pytest.approx(0.8)
+        assert source == "discount"
+
+    def test_cap_only(self):
+        """Test conversion with only valuation cap."""
+        price, source = calculations.calculate_conversion_price(
+            valuation_cap=5_000_000,
+            discount_pct=None,
+            round_price_per_share=1.0,
+            pre_conversion_shares=10_000_000,
+        )
+        assert price == pytest.approx(0.5)
+        assert source == "cap"
+
+    def test_discount_only(self):
+        """Test conversion with only discount."""
+        price, source = calculations.calculate_conversion_price(
+            valuation_cap=None,
+            discount_pct=25,
+            round_price_per_share=2.0,
+            pre_conversion_shares=10_000_000,
+        )
+        assert price == pytest.approx(1.5)  # 2.0 * 0.75
+        assert source == "discount"
+
+    def test_no_cap_or_discount_raises_error(self):
+        """Test that missing both cap and discount raises ValueError."""
+        with pytest.raises(ValueError, match="Must have at least"):
+            calculations.calculate_conversion_price(
+                valuation_cap=None,
+                discount_pct=None,
+                round_price_per_share=1.0,
+                pre_conversion_shares=10_000_000,
+            )
+
+    def test_equal_prices_uses_cap(self):
+        """Test that when prices are equal, cap is used."""
+        # Cap price: $8M / 10M shares = $0.80
+        # Discount price: $1.00 * 0.80 = $0.80
+        price, source = calculations.calculate_conversion_price(
+            valuation_cap=8_000_000,
+            discount_pct=20,
+            round_price_per_share=1.0,
+            pre_conversion_shares=10_000_000,
+        )
+        assert price == pytest.approx(0.8)
+        assert source == "cap"  # Cap takes precedence when equal
+
+
+class TestCalculateMonthsBetweenDates:
+    """Tests for the calculate_months_between_dates function."""
+
+    def test_six_months_difference(self):
+        """Test calculating 6 months between dates."""
+        months = calculations.calculate_months_between_dates("2024-01-01", "2024-07-01")
+        assert months == pytest.approx(6.0, abs=0.1)
+
+    def test_one_year_difference(self):
+        """Test calculating 12 months between dates."""
+        months = calculations.calculate_months_between_dates("2024-01-15", "2025-01-15")
+        assert months == pytest.approx(12.0, abs=0.1)
+
+    def test_same_date_returns_zero(self):
+        """Test that same date returns zero months."""
+        months = calculations.calculate_months_between_dates("2024-06-15", "2024-06-15")
+        assert months == pytest.approx(0.0)
+
+    def test_end_before_start_returns_zero(self):
+        """Test that end date before start date returns zero."""
+        months = calculations.calculate_months_between_dates("2024-07-01", "2024-01-01")
+        assert months == 0.0
+
+
+class TestConvertInstruments:
+    """Tests for the convert_instruments function."""
+
+    @pytest.fixture
+    def base_cap_table(self):
+        """Provides a base cap table for testing."""
+        return {
+            "stakeholders": [
+                {
+                    "id": "founder-1",
+                    "name": "Founder",
+                    "type": "founder",
+                    "shares": 8_000_000,
+                    "ownership_pct": 80.0,
+                    "share_class": "common",
+                    "vesting": None,
+                }
+            ],
+            "total_shares": 10_000_000,
+            "option_pool_pct": 10,
+        }
+
+    @pytest.fixture
+    def seed_round(self):
+        """Provides a seed priced round for testing."""
+        return {
+            "id": "round-1",
+            "type": "PRICED_ROUND",
+            "round_name": "Seed",
+            "pre_money_valuation": 10_000_000,
+            "amount_raised": 2_000_000,
+            "price_per_share": 1.0,  # $10M / 10M shares
+            "date": "2024-07-01",
+            "new_shares_issued": 2_000_000,
+        }
+
+    def test_safe_conversion_with_cap(self, base_cap_table, seed_round):
+        """Test SAFE conversion using valuation cap."""
+        instruments = [
+            {
+                "id": "safe-1",
+                "type": "SAFE",
+                "investor_name": "Angel Investor",
+                "investment_amount": 100_000,
+                "valuation_cap": 5_000_000,
+                "discount_pct": None,
+                "status": "outstanding",
+            }
+        ]
+
+        result = calculations.convert_instruments(base_cap_table, instruments, seed_round)
+
+        # Cap price: $5M / 10M shares = $0.50/share
+        # Shares: $100K / $0.50 = 200,000 shares
+        assert len(result["converted_instruments"]) == 1
+        converted = result["converted_instruments"][0]
+        assert converted["shares_issued"] == 200_000
+        assert converted["conversion_price"] == pytest.approx(0.5)
+        assert converted["price_source"] == "cap"
+
+    def test_safe_conversion_with_discount(self, base_cap_table, seed_round):
+        """Test SAFE conversion using discount."""
+        instruments = [
+            {
+                "id": "safe-1",
+                "type": "SAFE",
+                "investor_name": "Angel Investor",
+                "investment_amount": 100_000,
+                "valuation_cap": 20_000_000,  # High cap, discount will win
+                "discount_pct": 20,
+                "status": "outstanding",
+            }
+        ]
+
+        result = calculations.convert_instruments(base_cap_table, instruments, seed_round)
+
+        # Discount price: $1.00 * 0.80 = $0.80/share
+        # Shares: $100K / $0.80 = 125,000 shares
+        converted = result["converted_instruments"][0]
+        assert converted["shares_issued"] == 125_000
+        assert converted["conversion_price"] == pytest.approx(0.8)
+        assert converted["price_source"] == "discount"
+
+    def test_convertible_note_with_interest(self, base_cap_table, seed_round):
+        """Test convertible note conversion with accrued interest."""
+        instruments = [
+            {
+                "id": "note-1",
+                "type": "CONVERTIBLE_NOTE",
+                "investor_name": "Note Investor",
+                "principal_amount": 50_000,
+                "interest_rate": 5,
+                "interest_type": "simple",
+                "valuation_cap": 5_000_000,
+                "discount_pct": None,
+                "maturity_months": 24,
+                "date": "2024-01-01",
+                "status": "outstanding",
+            }
+        ]
+
+        result = calculations.convert_instruments(base_cap_table, instruments, seed_round)
+
+        # ~6 months of simple interest (actual days: Jan 1 to Jul 1 = 182 days)
+        # Interest ≈ $50K * 5% * (182/365.25) ≈ $1,246
+        # Cap price: $5M / 10M = $0.50
+        converted = result["converted_instruments"][0]
+        assert converted["accrued_interest"] == pytest.approx(1250.0, rel=0.01)
+        assert converted["investment_amount"] == pytest.approx(51_250.0, rel=0.01)
+        assert converted["shares_issued"] == pytest.approx(102_500, rel=0.01)
+
+    def test_multiple_instruments_conversion(self, base_cap_table, seed_round):
+        """Test conversion of multiple instruments."""
+        instruments = [
+            {
+                "id": "safe-1",
+                "type": "SAFE",
+                "investor_name": "Investor A",
+                "investment_amount": 100_000,
+                "valuation_cap": 5_000_000,
+                "status": "outstanding",
+            },
+            {
+                "id": "safe-2",
+                "type": "SAFE",
+                "investor_name": "Investor B",
+                "investment_amount": 50_000,
+                "valuation_cap": 5_000_000,
+                "status": "outstanding",
+            },
+        ]
+
+        result = calculations.convert_instruments(base_cap_table, instruments, seed_round)
+
+        assert result["summary"]["instruments_converted"] == 2
+        # Total: 200,000 + 100,000 = 300,000 new shares
+        assert result["summary"]["total_shares_issued"] == 300_000
+
+    def test_skips_non_outstanding_instruments(self, base_cap_table, seed_round):
+        """Test that already converted instruments are skipped."""
+        instruments = [
+            {
+                "id": "safe-1",
+                "type": "SAFE",
+                "investor_name": "Investor A",
+                "investment_amount": 100_000,
+                "valuation_cap": 5_000_000,
+                "status": "outstanding",
+            },
+            {
+                "id": "safe-2",
+                "type": "SAFE",
+                "investor_name": "Investor B",
+                "investment_amount": 50_000,
+                "valuation_cap": 5_000_000,
+                "status": "converted",  # Already converted
+            },
+        ]
+
+        result = calculations.convert_instruments(base_cap_table, instruments, seed_round)
+
+        assert result["summary"]["instruments_converted"] == 1
+        assert result["converted_instruments"][0]["investor_name"] == "Investor A"
+
+    def test_ownership_recalculation(self, base_cap_table, seed_round):
+        """Test that ownership percentages are recalculated after conversion."""
+        instruments = [
+            {
+                "id": "safe-1",
+                "type": "SAFE",
+                "investor_name": "Investor A",
+                "investment_amount": 100_000,
+                "valuation_cap": 5_000_000,
+                "status": "outstanding",
+            }
+        ]
+
+        result = calculations.convert_instruments(base_cap_table, instruments, seed_round)
+
+        # Original: 10M shares, Founder has 8M (80%)
+        # New: 200K shares issued → 10.2M total shares
+        # Founder: 8M / 10.2M = 78.43%
+        # New investor: 200K / 10.2M = 1.96%
+        updated_cap_table = result["updated_cap_table"]
+        assert updated_cap_table["total_shares"] == 10_200_000
+
+        founder = next(s for s in updated_cap_table["stakeholders"] if s["name"] == "Founder")
+        assert founder["ownership_pct"] == pytest.approx(78.43, rel=0.01)
+
+        investor = next(
+            s for s in updated_cap_table["stakeholders"] if s["name"] == "Investor A"
+        )
+        assert investor["ownership_pct"] == pytest.approx(1.96, rel=0.01)
+
+    def test_new_stakeholders_are_preferred(self, base_cap_table, seed_round):
+        """Test that converted investors get preferred shares."""
+        instruments = [
+            {
+                "id": "safe-1",
+                "type": "SAFE",
+                "investor_name": "Investor A",
+                "investment_amount": 100_000,
+                "valuation_cap": 5_000_000,
+                "status": "outstanding",
+            }
+        ]
+
+        result = calculations.convert_instruments(base_cap_table, instruments, seed_round)
+
+        investor = next(
+            s
+            for s in result["updated_cap_table"]["stakeholders"]
+            if s["name"] == "Investor A"
+        )
+        assert investor["share_class"] == "preferred"
+        assert investor["type"] == "investor"
+
+    def test_compound_interest_note(self, base_cap_table, seed_round):
+        """Test convertible note with compound interest."""
+        instruments = [
+            {
+                "id": "note-1",
+                "type": "CONVERTIBLE_NOTE",
+                "investor_name": "Note Investor",
+                "principal_amount": 100_000,
+                "interest_rate": 10,
+                "interest_type": "compound",
+                "valuation_cap": 5_000_000,
+                "maturity_months": 24,
+                "date": "2022-07-01",  # 2 years before round
+                "status": "outstanding",
+            }
+        ]
+
+        result = calculations.convert_instruments(base_cap_table, instruments, seed_round)
+
+        # ~2 years compound interest (actual days: Jul 1, 2022 to Jul 1, 2024 = 731 days)
+        # Interest ≈ $100K * (1.10^(731/365.25) - 1) ≈ $21,016
+        # Total ≈ $121,016
+        converted = result["converted_instruments"][0]
+        assert converted["accrued_interest"] == pytest.approx(21_000.0, rel=0.01)
+        assert converted["investment_amount"] == pytest.approx(121_000.0, rel=0.01)

@@ -25,6 +25,8 @@ import type {
   DilutionFromValuationResponse,
   HealthCheckResponse,
   WSMessage,
+  CapTableConversionRequest,
+  CapTableConversionResponse,
 } from "./schemas";
 
 // ============================================================================
@@ -148,6 +150,17 @@ class APIClient {
     return data;
   }
 
+  // Cap Table Conversion (SAFE/Convertible Note → Equity)
+  async convertInstruments(
+    request: CapTableConversionRequest
+  ): Promise<CapTableConversionResponse> {
+    const { data } = await this.client.post<CapTableConversionResponse>(
+      "/api/cap-table/convert",
+      request
+    );
+    return data;
+  }
+
   // WebSocket URL for Monte Carlo
   getMonteCarloWebSocketURL(): string {
     return `${this.wsURL}/ws/monte-carlo`;
@@ -228,6 +241,14 @@ export function useCalculateDilution() {
   return useMutation({
     mutationFn: (request: DilutionFromValuationRequest) =>
       apiClient.calculateDilution(request),
+  });
+}
+
+// Cap Table Conversion (SAFE/Convertible Note → Equity)
+export function useConvertInstruments() {
+  return useMutation({
+    mutationFn: (request: CapTableConversionRequest) =>
+      apiClient.convertInstruments(request),
   });
 }
 

@@ -19,6 +19,8 @@ from worth_it import calculations
 from worth_it.config import settings
 from worth_it.exceptions import CalculationError, ValidationError, WorthItError
 from worth_it.models import (
+    CapTableConversionRequest,
+    CapTableConversionResponse,
     DilutionFromValuationRequest,
     DilutionFromValuationResponse,
     HealthCheckResponse,
@@ -471,6 +473,36 @@ async def calculate_dilution_from_valuation(request: Request, body: DilutionFrom
         return DilutionFromValuationResponse(dilution=dilution)
     except (ValueError, ZeroDivisionError) as e:
         raise CalculationError("Invalid parameters for dilution calculation") from e
+
+
+@app.post("/api/cap-table/convert", response_model=CapTableConversionResponse)
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def convert_cap_table_instruments(request: Request, body: CapTableConversionRequest):
+    """Convert SAFEs and Convertible Notes to equity when a priced round occurs.
+
+    This endpoint takes the current cap table, outstanding instruments, and a
+    new priced round, then calculates how each SAFE/Note converts to shares.
+
+    The conversion follows the "best of both" rule:
+    - SAFEs/Notes convert at the lower of cap price or discount price
+    - Notes include accrued interest in the conversion amount
+    - New stakeholders are created for each converted instrument
+    """
+    try:
+        # Convert Pydantic models to dicts for the calculation function
+        cap_table_dict = body.cap_table.model_dump()
+        instruments_list = [inst.model_dump() for inst in body.instruments]
+        priced_round_dict = body.priced_round.model_dump()
+
+        result = calculations.convert_instruments(
+            cap_table=cap_table_dict,
+            instruments=instruments_list,
+            priced_round=priced_round_dict,
+        )
+
+        return CapTableConversionResponse(**result)
+    except (ValueError, TypeError, KeyError) as e:
+        raise CalculationError("Invalid parameters for cap table conversion") from e
 
 
 if __name__ == "__main__":

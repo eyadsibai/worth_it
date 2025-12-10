@@ -48,6 +48,11 @@ The `[dependency-groups]` pattern is a uv-specific feature that provides a clean
 ### Testing & Quality
 **IMPORTANT**: Always run tests and linting before committing.
 
+**Test-Driven Development (TDD)**: Use TDD for all new features:
+1. **Red**: Write a failing test first that describes the expected behavior
+2. **Green**: Write the minimum code to make the test pass
+3. **Refactor**: Clean up the code while keeping tests green
+
 ```bash
 # Lint and auto-fix
 uv run ruff check --fix --unsafe-fixes src/ tests/
@@ -246,6 +251,28 @@ Recharts Visualization
 - [ ] `cd frontend && npm run type-check`
 - [ ] `cd frontend && npm run lint`
 - [ ] `cd frontend && npm run test:unit`
+
+## Pull Request Workflow
+
+**IMPORTANT**: Always verify GitHub Actions workflows pass when creating or updating a PR.
+
+1. **Before creating a PR**: Run the full pre-commit checklist above
+2. **After pushing**: Check workflow status with `gh pr checks` or `gh pr view --web`
+3. **If workflows fail**: Fix the issues and push again before requesting review
+4. **Useful commands**:
+   ```bash
+   # Check PR status and workflow results
+   gh pr checks
+
+   # View PR in browser (includes workflow status)
+   gh pr view --web
+
+   # View workflow run details
+   gh run list --limit 5
+   gh run view <run-id>
+   ```
+
+Do not consider a PR ready for review until all GitHub Actions workflows are passing.
 
 ## Configuration
 
