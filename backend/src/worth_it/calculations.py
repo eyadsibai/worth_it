@@ -532,10 +532,10 @@ def calculate_interest(
 
     if interest_type == "compound":
         # Compound interest: P * ((1 + r)^t - 1)
-        return principal * ((1 + rate) ** years - 1)
+        return float(principal * ((1 + rate) ** years - 1))
     else:
         # Simple interest: P * r * t
-        return principal * rate * years
+        return float(principal * rate * years)
 
 
 def calculate_conversion_price(
