@@ -119,7 +119,7 @@ export function DilutionComparisonCharts({
   );
 
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <MiniPieChart data={beforeData} label="Before" />
       <MiniPieChart data={afterData} label="After" />
     </div>
