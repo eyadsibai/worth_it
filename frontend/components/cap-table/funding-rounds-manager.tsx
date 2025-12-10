@@ -24,6 +24,7 @@ import type {
   SAFE,
   ConvertibleNote,
   PricedRound,
+  Stakeholder,
 } from "@/lib/schemas";
 import { FileText, Banknote, TrendingUp, Trash2 } from "lucide-react";
 
@@ -33,6 +34,8 @@ interface FundingRoundsManagerProps {
   onRemoveInstrument: (id: string) => void;
   totalShares?: number;
   onPricedRoundAdded?: (round: PricedRound) => void;
+  stakeholders?: Stakeholder[]; // For dilution preview
+  optionPoolPct?: number; // For dilution preview
 }
 
 // Format currency
@@ -49,6 +52,8 @@ export function FundingRoundsManager({
   onRemoveInstrument,
   totalShares = 10000000,
   onPricedRoundAdded,
+  stakeholders = [],
+  optionPoolPct = 0,
 }: FundingRoundsManagerProps) {
   const [activeTab, setActiveTab] = React.useState<"safe" | "note" | "priced">("safe");
 
@@ -204,7 +209,12 @@ export function FundingRoundsManager({
             </TabsContent>
 
             <TabsContent value="priced">
-              <PricedRoundForm onSubmit={handleAddPricedRound} totalShares={totalShares} />
+              <PricedRoundForm
+                onSubmit={handleAddPricedRound}
+                totalShares={totalShares}
+                stakeholders={stakeholders}
+                optionPoolPct={optionPoolPct}
+              />
             </TabsContent>
           </Tabs>
         </CardContent>

@@ -17,12 +17,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TrendingUp } from "lucide-react";
+import { DilutionPreview } from "./dilution-preview";
+import type { Stakeholder } from "@/lib/schemas";
 
 interface PricedRoundFormProps {
   onSubmit: (data: PricedRoundFormData) => void;
   defaultValues?: Partial<PricedRoundFormData>;
   submitLabel?: string;
   totalShares?: number; // Current total shares for calculations
+  stakeholders?: Stakeholder[]; // For dilution preview
+  optionPoolPct?: number; // For dilution preview
 }
 
 export function PricedRoundForm({
@@ -30,6 +34,8 @@ export function PricedRoundForm({
   defaultValues,
   submitLabel = "Add Priced Round",
   totalShares = 10000000,
+  stakeholders = [],
+  optionPoolPct = 0,
 }: PricedRoundFormProps) {
   const form = useForm<PricedRoundFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,6 +60,7 @@ export function PricedRoundForm({
   const amountRaised = form.watch("amount_raised") || 0;
   const participating = form.watch("participating");
   const liquidationMult = form.watch("liquidation_multiplier") || 1;
+  const leadInvestor = form.watch("lead_investor") || "";
 
   const postMoney = preMoney + amountRaised;
   const dilutionPct = postMoney > 0 ? (amountRaised / postMoney) * 100 : 0;
@@ -136,6 +143,17 @@ export function PricedRoundForm({
               <span className="font-mono">{newShares.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
             </div>
           </div>
+        )}
+
+        {/* Dilution Preview - shows detailed before/after ownership */}
+        {stakeholders.length > 0 && (
+          <DilutionPreview
+            stakeholders={stakeholders}
+            optionPoolPct={optionPoolPct}
+            preMoneyValuation={preMoney}
+            amountRaised={amountRaised}
+            investorName={leadInvestor || "New Investor"}
+          />
         )}
 
         <div className="space-y-4 p-4 border rounded-lg">
