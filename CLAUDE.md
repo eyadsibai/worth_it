@@ -48,6 +48,11 @@ The `[dependency-groups]` pattern is a uv-specific feature that provides a clean
 ### Testing & Quality
 **IMPORTANT**: Always run tests and linting before committing.
 
+**Test-Driven Development (TDD)**: Use TDD for all new features:
+1. **Red**: Write a failing test first that describes the expected behavior
+2. **Green**: Write the minimum code to make the test pass
+3. **Refactor**: Clean up the code while keeping tests green
+
 ```bash
 # Lint and auto-fix
 uv run ruff check --fix --unsafe-fixes src/ tests/

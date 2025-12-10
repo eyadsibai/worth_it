@@ -599,6 +599,197 @@ class TestWebSocketMonteCarlo:
             assert len(complete_msg["simulated_valuations"]) == 20
 
 
+class TestCapTableConversion:
+    """Tests for the cap table conversion endpoint."""
+
+    def test_convert_safe_with_cap(self):
+        """Test SAFE conversion using valuation cap."""
+        request_data = {
+            "cap_table": {
+                "stakeholders": [
+                    {
+                        "id": "founder-1",
+                        "name": "Founder",
+                        "type": "founder",
+                        "shares": 8000000,
+                        "ownership_pct": 80.0,
+                        "share_class": "common",
+                        "vesting": None,
+                    }
+                ],
+                "total_shares": 10000000,
+                "option_pool_pct": 10,
+            },
+            "instruments": [
+                {
+                    "id": "safe-1",
+                    "type": "SAFE",
+                    "investor_name": "Angel Investor",
+                    "investment_amount": 100000,
+                    "valuation_cap": 5000000,
+                    "discount_pct": None,
+                    "pro_rata_rights": False,
+                    "mfn_clause": False,
+                    "date": "2024-01-01",
+                    "status": "outstanding",
+                }
+            ],
+            "priced_round": {
+                "id": "round-1",
+                "type": "PRICED_ROUND",
+                "round_name": "Seed",
+                "pre_money_valuation": 10000000,
+                "amount_raised": 2000000,
+                "price_per_share": 1.0,
+                "date": "2024-07-01",
+                "new_shares_issued": 2000000,
+            },
+        }
+
+        response = client.post("/api/cap-table/convert", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        # Verify structure
+        assert "updated_cap_table" in data
+        assert "converted_instruments" in data
+        assert "summary" in data
+
+        # Verify conversion details
+        assert data["summary"]["instruments_converted"] == 1
+        assert data["summary"]["total_shares_issued"] == 200000  # $100K / $0.50
+
+        # Verify converted instrument details
+        converted = data["converted_instruments"][0]
+        assert converted["conversion_price"] == 0.5  # Cap price: $5M / 10M shares
+        assert converted["price_source"] == "cap"
+        assert converted["shares_issued"] == 200000
+
+    def test_convert_note_with_interest(self):
+        """Test convertible note conversion with accrued interest."""
+        request_data = {
+            "cap_table": {
+                "stakeholders": [],
+                "total_shares": 10000000,
+                "option_pool_pct": 10,
+            },
+            "instruments": [
+                {
+                    "id": "note-1",
+                    "type": "CONVERTIBLE_NOTE",
+                    "investor_name": "Note Investor",
+                    "principal_amount": 50000,
+                    "interest_rate": 5,
+                    "interest_type": "simple",
+                    "valuation_cap": 5000000,
+                    "discount_pct": None,
+                    "maturity_months": 24,
+                    "date": "2024-01-01",
+                    "status": "outstanding",
+                }
+            ],
+            "priced_round": {
+                "id": "round-1",
+                "type": "PRICED_ROUND",
+                "round_name": "Seed",
+                "pre_money_valuation": 10000000,
+                "amount_raised": 2000000,
+                "price_per_share": 1.0,
+                "date": "2024-07-01",
+                "new_shares_issued": 2000000,
+            },
+        }
+
+        response = client.post("/api/cap-table/convert", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        # Verify interest was calculated (6 months of 5% on $50K)
+        converted = data["converted_instruments"][0]
+        assert converted["accrued_interest"] == 1250.0  # $50K * 5% * (6/12)
+        assert converted["investment_amount"] == 51250.0  # $50K + $1,250
+
+    def test_convert_multiple_instruments(self):
+        """Test conversion of multiple instruments."""
+        request_data = {
+            "cap_table": {
+                "stakeholders": [],
+                "total_shares": 10000000,
+                "option_pool_pct": 10,
+            },
+            "instruments": [
+                {
+                    "id": "safe-1",
+                    "type": "SAFE",
+                    "investor_name": "Investor A",
+                    "investment_amount": 100000,
+                    "valuation_cap": 5000000,
+                    "status": "outstanding",
+                },
+                {
+                    "id": "safe-2",
+                    "type": "SAFE",
+                    "investor_name": "Investor B",
+                    "investment_amount": 50000,
+                    "valuation_cap": 5000000,
+                    "status": "outstanding",
+                },
+            ],
+            "priced_round": {
+                "id": "round-1",
+                "type": "PRICED_ROUND",
+                "round_name": "Seed",
+                "pre_money_valuation": 10000000,
+                "amount_raised": 2000000,
+                "price_per_share": 1.0,
+                "date": "2024-07-01",
+                "new_shares_issued": 2000000,
+            },
+        }
+
+        response = client.post("/api/cap-table/convert", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["summary"]["instruments_converted"] == 2
+        assert data["summary"]["total_shares_issued"] == 300000  # 200K + 100K
+
+    def test_validation_error_no_cap_or_discount(self):
+        """Test that SAFE without cap or discount is rejected."""
+        request_data = {
+            "cap_table": {
+                "stakeholders": [],
+                "total_shares": 10000000,
+                "option_pool_pct": 10,
+            },
+            "instruments": [
+                {
+                    "id": "safe-1",
+                    "type": "SAFE",
+                    "investor_name": "Investor",
+                    "investment_amount": 100000,
+                    "valuation_cap": None,
+                    "discount_pct": None,  # Neither cap nor discount
+                    "status": "outstanding",
+                }
+            ],
+            "priced_round": {
+                "id": "round-1",
+                "type": "PRICED_ROUND",
+                "round_name": "Seed",
+                "pre_money_valuation": 10000000,
+                "amount_raised": 2000000,
+                "price_per_share": 1.0,
+                "date": "2024-07-01",
+                "new_shares_issued": 2000000,
+            },
+        }
+
+        response = client.post("/api/cap-table/convert", json=request_data)
+        # Should fail validation (Pydantic model validator)
+        assert response.status_code == 422  # Validation error
+
+
 class TestRateLimiting:
     """Test rate limiting functionality.
 

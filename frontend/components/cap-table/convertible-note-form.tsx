@@ -12,8 +12,11 @@ import {
   FormItem,
   FormLabel,
   FormControl,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { Banknote } from "lucide-react";
 
 interface ConvertibleNoteFormProps {
@@ -34,6 +37,7 @@ export function ConvertibleNoteForm({
       investor_name: defaultValues?.investor_name ?? "",
       principal_amount: defaultValues?.principal_amount ?? 0,
       interest_rate: defaultValues?.interest_rate ?? 5,
+      interest_type: defaultValues?.interest_type ?? "simple",
       valuation_cap: defaultValues?.valuation_cap ?? undefined,
       discount_pct: defaultValues?.discount_pct ?? undefined,
       maturity_months: defaultValues?.maturity_months ?? 24,
@@ -45,11 +49,17 @@ export function ConvertibleNoteForm({
     form.reset();
   };
 
-  // Calculate accrued interest preview
+  // Calculate accrued interest preview (simple or compound)
   const principal = form.watch("principal_amount") || 0;
   const rate = form.watch("interest_rate") || 0;
   const months = form.watch("maturity_months") || 24;
-  const accruedInterest = principal * (rate / 100) * (months / 12);
+  const interestType = form.watch("interest_type") || "simple";
+
+  const years = months / 12;
+  const annualRate = rate / 100;
+  const accruedInterest = interestType === "compound"
+    ? principal * (Math.pow(1 + annualRate, years) - 1)
+    : principal * annualRate * years;
   const totalAtMaturity = principal + accruedInterest;
 
   return (
@@ -104,6 +114,39 @@ export function ConvertibleNoteForm({
             formatValue={(v) => `${v} months`}
           />
         </div>
+
+        <FormField
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          control={form.control as any}
+          name="interest_type"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel>Interest Type</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  value={field.value}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="simple" id="simple" />
+                    <Label htmlFor="simple" className="cursor-pointer">Simple</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="compound" id="compound" />
+                    <Label htmlFor="compound" className="cursor-pointer">Compound</Label>
+                  </div>
+                </RadioGroup>
+              </FormControl>
+              <FormDescription>
+                {interestType === "simple"
+                  ? "Interest calculated on principal only (P × r × t)"
+                  : "Interest compounded annually (P × (1 + r)^t - P)"}
+              </FormDescription>
+            </FormItem>
+          )}
+        />
 
         {principal > 0 && (
           <div className="p-3 border rounded-lg bg-muted/50 text-sm">

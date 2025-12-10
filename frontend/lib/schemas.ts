@@ -317,6 +317,10 @@ export const SAFESchema = z.object({
 });
 export type SAFE = z.infer<typeof SAFESchema>;
 
+// Interest calculation type for convertible notes
+export const InterestTypeEnum = z.enum(["simple", "compound"]);
+export type InterestType = z.infer<typeof InterestTypeEnum>;
+
 // Convertible Note
 export const ConvertibleNoteSchema = z.object({
   id: z.string(),
@@ -324,6 +328,7 @@ export const ConvertibleNoteSchema = z.object({
   investor_name: z.string().min(1, "Investor name is required"),
   principal_amount: z.number().min(0),
   interest_rate: z.number().min(0).max(100), // Annual rate as percentage
+  interest_type: InterestTypeEnum.default("simple"), // Simple or compound interest
   valuation_cap: z.number().min(0).optional(),
   discount_pct: z.number().min(0).max(100).optional(),
   maturity_months: z.number().int().min(1).max(60).default(24),
@@ -380,6 +385,7 @@ export const ConvertibleNoteFormSchema = z.object({
   investor_name: z.string().min(1, "Investor name is required"),
   principal_amount: z.number().min(0),
   interest_rate: z.number().min(0).max(100).default(5),
+  interest_type: InterestTypeEnum.default("simple"),
   valuation_cap: z.number().min(0).optional(),
   discount_pct: z.number().min(0).max(100).optional(),
   maturity_months: z.number().int().min(1).max(60).default(24),
@@ -401,3 +407,53 @@ export const CapTableWithInstrumentsSchema = CapTableSchema.extend({
   instruments: z.array(FundingInstrumentSchema).default([]),
   rounds: z.array(PricedRoundSchema).default([]),
 });
+
+// --- Cap Table Conversion API Types ---
+
+// Price source indicates whether cap or discount price was used for conversion
+export const PriceSourceEnum = z.enum(["cap", "discount"]);
+export type PriceSource = z.infer<typeof PriceSourceEnum>;
+
+// Details of a single converted instrument
+export const ConvertedInstrumentDetailSchema = z.object({
+  instrument_id: z.string(),
+  instrument_type: z.enum(["SAFE", "CONVERTIBLE_NOTE"]),
+  investor_name: z.string(),
+  investment_amount: z.number(),
+  conversion_price: z.number(),
+  price_source: PriceSourceEnum,
+  shares_issued: z.number(),
+  ownership_pct: z.number(),
+  accrued_interest: z.number().nullable(), // Only for notes
+});
+export type ConvertedInstrumentDetail = z.infer<
+  typeof ConvertedInstrumentDetailSchema
+>;
+
+// Summary of conversion results
+export const ConversionSummarySchema = z.object({
+  instruments_converted: z.number(),
+  total_shares_issued: z.number(),
+  total_dilution_pct: z.number(),
+});
+export type ConversionSummary = z.infer<typeof ConversionSummarySchema>;
+
+// Request to convert instruments
+export const CapTableConversionRequestSchema = z.object({
+  cap_table: CapTableSchema,
+  instruments: z.array(z.union([SAFESchema, ConvertibleNoteSchema])),
+  priced_round: PricedRoundSchema,
+});
+export type CapTableConversionRequest = z.infer<
+  typeof CapTableConversionRequestSchema
+>;
+
+// Response from conversion endpoint
+export const CapTableConversionResponseSchema = z.object({
+  updated_cap_table: CapTableSchema,
+  converted_instruments: z.array(ConvertedInstrumentDetailSchema),
+  summary: ConversionSummarySchema,
+});
+export type CapTableConversionResponse = z.infer<
+  typeof CapTableConversionResponseSchema
+>;
