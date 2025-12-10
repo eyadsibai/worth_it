@@ -5,6 +5,7 @@ This module tests all API endpoints to ensure they properly handle
 requests and return correct responses.
 """
 
+import pytest
 from fastapi.testclient import TestClient
 
 from worth_it.api import app
@@ -704,10 +705,11 @@ class TestCapTableConversion:
         assert response.status_code == 200
         data = response.json()
 
-        # Verify interest was calculated (6 months of 5% on $50K)
+        # Verify interest was calculated (~6 months of 5% on $50K)
+        # Uses actual day counting: Jan 1 to Jul 1 = 182 days
         converted = data["converted_instruments"][0]
-        assert converted["accrued_interest"] == 1250.0  # $50K * 5% * (6/12)
-        assert converted["investment_amount"] == 51250.0  # $50K + $1,250
+        assert converted["accrued_interest"] == pytest.approx(1250.0, rel=0.01)
+        assert converted["investment_amount"] == pytest.approx(51250.0, rel=0.01)
 
     def test_convert_multiple_instruments(self):
         """Test conversion of multiple instruments."""

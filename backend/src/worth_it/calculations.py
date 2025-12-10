@@ -595,26 +595,34 @@ def calculate_months_between_dates(start_date: str, end_date: str) -> float:
     """
     Calculate months between two ISO date strings.
 
+    Uses actual day count for accuracy, avoiding the 30-day assumption
+    that fails for month-end dates (e.g., Jan 31 to Feb 1).
+
     Args:
         start_date: Start date in ISO format (YYYY-MM-DD)
         end_date: End date in ISO format (YYYY-MM-DD)
 
     Returns:
-        Number of months (can be fractional)
+        Number of months (can be fractional), minimum 0
     """
     from datetime import datetime
 
     start = datetime.fromisoformat(start_date)
     end = datetime.fromisoformat(end_date)
 
-    # Calculate difference in months
-    months = (end.year - start.year) * 12 + (end.month - start.month)
+    # Calculate actual days between dates
+    delta = end - start
+    total_days = delta.days
 
-    # Add fractional month based on day difference
-    day_fraction = (end.day - start.day) / 30.0
-    months += day_fraction
+    if total_days <= 0:
+        return 0.0
 
-    return max(0, months)
+    # Convert days to months using average days per month (365.25 / 12)
+    # This is more accurate than assuming 30 days per month
+    avg_days_per_month = 365.25 / 12  # ~30.4375
+    months = total_days / avg_days_per_month
+
+    return months
 
 
 def convert_instruments(

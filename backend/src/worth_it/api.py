@@ -502,7 +502,7 @@ async def convert_cap_table_instruments(request: Request, body: CapTableConversi
 
         return CapTableConversionResponse(**result)
     except (ValueError, TypeError, KeyError) as e:
-        raise CalculationError(f"Invalid parameters for cap table conversion: {e}") from e
+        raise CalculationError("Invalid parameters for cap table conversion") from e
 
 
 if __name__ == "__main__":
