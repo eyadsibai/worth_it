@@ -352,6 +352,8 @@ export function CapTableManager({
             onRemoveInstrument={handleRemoveInstrument}
             totalShares={capTable.total_shares}
             onPricedRoundAdded={handlePricedRoundAdded}
+            stakeholders={capTable.stakeholders}
+            optionPoolPct={capTable.option_pool_pct}
           />
         </TabsContent>
       </Tabs>
