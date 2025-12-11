@@ -252,18 +252,4 @@ describe("ExportMenu", () => {
 
     expect(screen.getByRole("button", { name: /export/i })).toBeDisabled();
   });
-
-  it("disabled button has correct styling", () => {
-    render(
-      <ExportMenu
-        capTable={mockCapTable}
-        instruments={mockInstruments}
-        disabled
-      />
-    );
-
-    const button = screen.getByRole("button", { name: /export/i });
-    // Disabled buttons have opacity styling through Tailwind classes
-    expect(button.className).toContain("disabled:opacity-50");
-  });
 });

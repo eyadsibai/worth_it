@@ -44,15 +44,24 @@ export function ProFormaCapTable({
   }));
 
   // Create rows for converted investors
-  const convertedInvestors = conversions.map((c) => ({
-    name: c.investor_name,
-    shares: c.shares_issued,
-    ownership: c.ownership_pct,
-    type: c.conversion_method === "cap" || c.conversion_method === "discount"
-      ? "SAFE"
-      : "Note",
-    isConverted: true,
-  }));
+  // Only "cap" and "discount" are valid per schema; handle unexpected values defensively
+  const convertedInvestors = conversions.map((c) => {
+    let type: string;
+    if (c.conversion_method === "cap" || c.conversion_method === "discount") {
+      type = "SAFE";
+    } else {
+      // This should never happen if schema is enforced, but handle defensively
+      console.warn(`Unexpected conversion_method: ${c.conversion_method}`);
+      type = "Unknown";
+    }
+    return {
+      name: c.investor_name,
+      shares: c.shares_issued,
+      ownership: c.ownership_pct,
+      type,
+      isConverted: true,
+    };
+  });
 
   const hasStakeholders = capTable.stakeholders.length > 0 || conversions.length > 0;
 

@@ -3,11 +3,12 @@
  */
 
 import { v4 as uuidv4 } from "uuid";
-import type {
-  FounderScenario,
-  CapTable,
-  FundingInstrument,
-  PreferenceTier,
+import {
+  FounderScenarioSchema,
+  type FounderScenario,
+  type CapTable,
+  type FundingInstrument,
+  type PreferenceTier,
 } from "@/lib/schemas";
 
 const STORAGE_KEY = "worth_it_founder_scenarios";
@@ -113,6 +114,18 @@ export function clearAllFounderScenarios(): void {
 }
 
 /**
+ * Sanitize a string for use as a filename
+ * Removes/replaces characters that are unsafe for filesystems
+ */
+function sanitizeFilename(name: string): string {
+  return name
+    .replace(/[/\\?%*:|"<>]/g, "") // Remove filesystem-unsafe characters
+    .replace(/\.\./g, "") // Prevent directory traversal
+    .replace(/\s+/g, "_") // Replace spaces with underscores
+    .substring(0, 100); // Limit length
+}
+
+/**
  * Export a founder scenario as a downloadable JSON file
  */
 export function exportFounderScenario(scenario: FounderScenario): void {
@@ -121,7 +134,8 @@ export function exportFounderScenario(scenario: FounderScenario): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${scenario.name.replace(/\s+/g, "_")}_${scenario.id.slice(0, 8)}.json`;
+  const safeName = sanitizeFilename(scenario.name);
+  link.download = `${safeName}_${scenario.id.slice(0, 8)}.json`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -130,6 +144,7 @@ export function exportFounderScenario(scenario: FounderScenario): void {
 
 /**
  * Import a founder scenario from a JSON file
+ * Validates the imported data against FounderScenarioSchema for type safety
  */
 export function importFounderScenario(file: File): Promise<FounderScenario> {
   return new Promise((resolve, reject) => {
@@ -138,15 +153,24 @@ export function importFounderScenario(file: File): Promise<FounderScenario> {
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
-        const scenario = JSON.parse(content) as FounderScenario;
+        const parsed = JSON.parse(content);
 
-        if (!scenario.id || !scenario.name || !scenario.capTable) {
-          throw new Error("Invalid scenario format");
+        // Validate with Zod schema for type safety and data integrity
+        const result = FounderScenarioSchema.safeParse(parsed);
+        if (!result.success) {
+          const errorMessages = result.error.issues.map((issue) =>
+            `${issue.path.join('.')}: ${issue.message}`
+          ).join(', ');
+          throw new Error(`Invalid scenario format: ${errorMessages}`);
         }
 
-        resolve(scenario);
-      } catch {
-        reject(new Error("Failed to parse scenario file"));
+        resolve(result.data);
+      } catch (error) {
+        if (error instanceof Error) {
+          reject(error);
+        } else {
+          reject(new Error("Failed to parse scenario file"));
+        }
       }
     };
 

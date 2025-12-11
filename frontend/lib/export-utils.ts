@@ -223,7 +223,7 @@ export function exportCapTableAsCSV(capTable: CapTable, filename: string): void 
     const vestedShares = stakeholder.vesting?.vested_shares ?? "N/A";
 
     rows.push(
-      `"${stakeholder.name}",${stakeholder.type},${stakeholder.share_class},${stakeholder.shares},${stakeholder.ownership_pct},${vestingPeriod},${cliffPeriod},${vestedShares}`
+      `${escapeCSV(stakeholder.name)},${stakeholder.type},${stakeholder.share_class},${stakeholder.shares},${stakeholder.ownership_pct},${vestingPeriod},${cliffPeriod},${vestedShares}`
     );
   });
 
@@ -258,7 +258,7 @@ export function exportFundingHistoryAsCSV(instruments: FundingInstrument[], file
       const discountInfo = instrument.discount_pct ? `Discount: ${instrument.discount_pct}%` : "";
       const details = [capInfo, discountInfo].filter(Boolean).join(", ");
       rows.push(
-        `SAFE,"${instrument.investor_name}",${instrument.investment_amount},${date},${instrument.status},"${details}"`
+        `SAFE,${escapeCSV(instrument.investor_name)},${instrument.investment_amount},${date},${instrument.status},${escapeCSV(details)}`
       );
     } else if (instrument.type === "CONVERTIBLE_NOTE") {
       const capInfo = instrument.valuation_cap ? `Cap: $${instrument.valuation_cap.toLocaleString()}` : "";
@@ -267,7 +267,7 @@ export function exportFundingHistoryAsCSV(instruments: FundingInstrument[], file
       const maturityInfo = `Maturity: ${instrument.maturity_months} months`;
       const details = [capInfo, discountInfo, interestInfo, maturityInfo].filter(Boolean).join(", ");
       rows.push(
-        `Convertible Note,"${instrument.investor_name}",${instrument.principal_amount},${date},${instrument.status},"${details}"`
+        `Convertible Note,${escapeCSV(instrument.investor_name)},${instrument.principal_amount},${date},${instrument.status},${escapeCSV(details)}`
       );
     } else if (instrument.type === "PRICED_ROUND") {
       const leadInfo = instrument.lead_investor || "N/A";
@@ -276,7 +276,7 @@ export function exportFundingHistoryAsCSV(instruments: FundingInstrument[], file
       const liquidationInfo = `Liquidation: ${instrument.liquidation_multiplier}x${instrument.participating ? " (Participating)" : ""}`;
       const details = [priceInfo, preMoneyInfo, liquidationInfo].join(", ");
       rows.push(
-        `Priced Round (${instrument.round_name}),"${leadInfo}",${instrument.amount_raised},${date},active,"${details}"`
+        `${escapeCSV(`Priced Round (${instrument.round_name})`)},${escapeCSV(leadInfo)},${instrument.amount_raised},${date},active,${escapeCSV(details)}`
       );
     }
   });
@@ -307,9 +307,9 @@ export function exportExitScenariosAsCSV(
 ): void {
   const rows: string[] = [];
 
-  // Header row - stakeholder names
+  // Header row - stakeholder names (escaped per RFC 4180)
   const headers = ["Exit Valuation"];
-  capTable.stakeholders.forEach((s) => headers.push(s.name));
+  capTable.stakeholders.forEach((s) => headers.push(escapeCSV(s.name)));
   rows.push(headers.join(","));
 
   // Add row for each valuation
@@ -484,6 +484,21 @@ export function exportCapTableAsPDF(
 }
 
 // Helper functions
+
+/**
+ * Escape a string for CSV format according to RFC 4180
+ * - Wraps in quotes if contains comma, newline, or double quote
+ * - Escapes internal double quotes by doubling them
+ */
+function escapeCSV(value: string): string {
+  if (value.includes('"') || value.includes(',') || value.includes('\n') || value.includes('\r')) {
+    // Escape double quotes by doubling them
+    const escaped = value.replace(/"/g, '""');
+    return `"${escaped}"`;
+  }
+  return value;
+}
+
 function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");

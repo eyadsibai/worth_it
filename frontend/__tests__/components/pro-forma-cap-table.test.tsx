@@ -2,10 +2,10 @@
  * Tests for ProFormaCapTable component
  * Following TDD - tests written first
  */
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { ProFormaCapTable } from "@/components/cap-table/pro-forma-cap-table";
-import type { CapTable, FundingInstrument, ConversionResult } from "@/lib/schemas";
+import type { CapTable, ConversionResult } from "@/lib/schemas";
 
 // Test data
 const mockCapTable: CapTable = {
@@ -30,19 +30,6 @@ const mockCapTable: CapTable = {
   total_shares: 10000000,
   option_pool_pct: 20,
 };
-
-const mockInstruments: FundingInstrument[] = [
-  {
-    id: "safe1",
-    type: "SAFE",
-    investor_name: "Y Combinator",
-    investment_amount: 500000,
-    valuation_cap: 5000000,
-    pro_rata_rights: true,
-    mfn_clause: false,
-    status: "outstanding",
-  },
-];
 
 const mockConversions: ConversionResult[] = [
   {

@@ -34,13 +34,16 @@ interface MetricRowProps {
 function MetricRow({ label, values, format = "number", higherIsBetter = true }: MetricRowProps) {
   const numericValues = values.map((v) => (typeof v === "number" ? v : 0));
   const best = higherIsBetter ? Math.max(...numericValues) : Math.min(...numericValues);
+  // Only highlight as best if the best value is unique (not when all values are equal)
+  const bestCount = numericValues.filter((v) => v === best).length;
 
   return (
     <div className="grid gap-4" style={{ gridTemplateColumns: `200px repeat(${values.length}, 1fr)` }}>
       <div className="text-sm font-medium text-muted-foreground">{label}</div>
       {values.map((value, idx) => {
         const numValue = typeof value === "number" ? value : 0;
-        const isBest = numericValues.length > 1 && numValue === best;
+        // Only highlight when there's a clear winner (best value appears only once)
+        const isBest = numericValues.length > 1 && numValue === best && bestCount === 1;
 
         let displayValue: string;
         if (format === "currency") {
