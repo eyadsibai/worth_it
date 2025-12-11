@@ -123,9 +123,10 @@ export function WaterfallChart({
 
   // Handle click on chart to select valuation
   const handleChartClick = React.useCallback(
-    (data: { activePayload?: Array<{ payload: ChartDataPoint }> } | null) => {
-      if (onSelectValuation && data?.activePayload?.[0]?.payload) {
-        const payload = data.activePayload[0].payload;
+    (data: unknown) => {
+      const chartData = data as { activePayload?: Array<{ payload: ChartDataPoint }> } | null;
+      if (onSelectValuation && chartData?.activePayload?.[0]?.payload) {
+        const payload = chartData.activePayload[0].payload;
         onSelectValuation(payload.exit_valuation);
       }
     },
