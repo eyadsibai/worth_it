@@ -438,6 +438,18 @@ export const ConversionSummarySchema = z.object({
 });
 export type ConversionSummary = z.infer<typeof ConversionSummarySchema>;
 
+// Result of a single SAFE or Convertible Note conversion
+export const ConversionResultSchema = z.object({
+  investor_name: z.string(),
+  investment_amount: z.number(),
+  conversion_price: z.number(),
+  shares_issued: z.number(),
+  ownership_pct: z.number(),
+  conversion_method: z.enum(["cap", "discount"]),
+  effective_valuation: z.number(),
+});
+export type ConversionResult = z.infer<typeof ConversionResultSchema>;
+
 // Request to convert instruments
 export const CapTableConversionRequestSchema = z.object({
   cap_table: CapTableSchema,
@@ -531,3 +543,19 @@ export const PreferenceTierFormSchema = z.object({
   participation_cap: z.number().min(1).optional(),
 });
 export type PreferenceTierFormData = z.infer<typeof PreferenceTierFormSchema>;
+
+// ============================================================================
+// Founder Scenario Schemas (for scenario comparison)
+// ============================================================================
+
+export const FounderScenarioSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, "Scenario name is required"),
+  description: z.string().optional(),
+  capTable: CapTableSchema,
+  instruments: z.array(FundingInstrumentSchema).default([]),
+  preferenceTiers: z.array(PreferenceTierSchema).default([]),
+  createdAt: z.string(), // ISO date string
+  updatedAt: z.string(), // ISO date string
+});
+export type FounderScenario = z.infer<typeof FounderScenarioSchema>;
