@@ -62,20 +62,6 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  // NOTE: Uncomment when testing locally or in CI with Python 3.13+
-  // The backend command requires Python 3.13+ (use 'python3.13' explicitly if needed)
-  // webServer: [
-  //   {
-  //     command: 'cd backend && python3 -m uvicorn worth_it.api:app --host 0.0.0.0 --port 8000',
-  //     url: 'http://localhost:8000/health',
-  //     reuseExistingServer: !process.env.CI,
-  //     timeout: 120 * 1000,
-  //   },
-  //   {
-  //     command: 'cd frontend && npm run dev',
-  //     url: 'http://localhost:3000',
-  //     reuseExistingServer: !process.env.CI,
-  //     timeout: 120 * 1000,
-  //   },
-  // ],
+  // NOTE: Servers must be running manually or via ./scripts/run-e2e-tests.sh
+  // webServer config is commented out to avoid conflicts with running servers
 });

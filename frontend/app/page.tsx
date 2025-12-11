@@ -16,7 +16,7 @@ import { ScenarioComparison } from "@/components/scenarios/scenario-comparison";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { ModeToggle, type AppMode } from "@/components/mode-toggle";
 import { CapTableManager } from "@/components/cap-table";
-import type { GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm, CapTable, FundingInstrument } from "@/lib/schemas";
+import type { GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm, CapTable, FundingInstrument, PreferenceTier } from "@/lib/schemas";
 import type { ScenarioData } from "@/lib/export-utils";
 
 export default function Home() {
@@ -30,6 +30,7 @@ export default function Home() {
     option_pool_pct: 10,
   });
   const [instruments, setInstruments] = React.useState<FundingInstrument[]>([]);
+  const [preferenceTiers, setPreferenceTiers] = React.useState<PreferenceTier[]>([]);
 
   // Form state (Employee mode)
   const [globalSettings, setGlobalSettings] = React.useState<GlobalSettingsForm | null>(null);
@@ -255,6 +256,8 @@ export default function Home() {
             onCapTableChange={setCapTable}
             instruments={instruments}
             onInstrumentsChange={setInstruments}
+            preferenceTiers={preferenceTiers}
+            onPreferenceTiersChange={setPreferenceTiers}
           />
         )}
 
