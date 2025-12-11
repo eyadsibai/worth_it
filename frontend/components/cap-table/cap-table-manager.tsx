@@ -13,6 +13,8 @@ import { OwnershipChart } from "./ownership-chart";
 import { ExitCalculator } from "./exit-calculator";
 import { FundingRoundsManager } from "./funding-rounds-manager";
 import { WaterfallAnalysis } from "./waterfall-analysis";
+import { ExportMenu } from "./export-menu";
+import { ScenarioManager } from "./scenario-manager";
 import {
   motion,
   MotionFadeInUp,
@@ -30,6 +32,8 @@ import type {
   PricedRound,
   SAFE,
   ConvertibleNote,
+  PreferenceTier,
+  FounderScenario,
 } from "@/lib/schemas";
 
 interface CapTableManagerProps {
@@ -37,6 +41,8 @@ interface CapTableManagerProps {
   onCapTableChange: (capTable: CapTable) => void;
   instruments: FundingInstrument[];
   onInstrumentsChange: (instruments: FundingInstrument[]) => void;
+  preferenceTiers: PreferenceTier[];
+  onPreferenceTiersChange: (tiers: PreferenceTier[]) => void;
 }
 
 export function CapTableManager({
@@ -44,6 +50,8 @@ export function CapTableManager({
   onCapTableChange,
   instruments,
   onInstrumentsChange,
+  preferenceTiers,
+  onPreferenceTiersChange,
 }: CapTableManagerProps) {
   const [activeSection, setActiveSection] = React.useState<"cap-table" | "funding" | "waterfall">("cap-table");
   const convertInstruments = useConvertInstruments();
@@ -154,6 +162,12 @@ export function CapTableManager({
     onInstrumentsChange(instruments.filter((i) => i.id !== id));
   };
 
+  const handleLoadScenario = (scenario: FounderScenario) => {
+    onCapTableChange(scenario.capTable);
+    onInstrumentsChange(scenario.instruments);
+    onPreferenceTiersChange(scenario.preferenceTiers);
+  };
+
   const totalOwnership =
     capTable.stakeholders.reduce((sum, s) => sum + s.ownership_pct, 0) +
     capTable.option_pool_pct;
@@ -177,7 +191,8 @@ export function CapTableManager({
     <div className="space-y-6">
       {/* Section Tabs */}
       <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v as typeof activeSection)}>
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <TabsList className="grid w-full grid-cols-3 max-w-lg">
           <TabsTrigger value="cap-table" className="flex items-center gap-2">
             <PieChart className="h-4 w-4" />
             Cap Table
@@ -191,6 +206,11 @@ export function CapTableManager({
             Waterfall
           </TabsTrigger>
         </TabsList>
+          <ExportMenu
+            capTable={capTable}
+            instruments={instruments}
+          />
+        </div>
 
         <TabsContent value="cap-table" className="space-y-6 mt-6">
           <div className="grid lg:grid-cols-2 gap-6">
@@ -348,6 +368,14 @@ export function CapTableManager({
               optionPoolPct={capTable.option_pool_pct}
             />
           </div>
+
+          {/* Scenario Management */}
+          <ScenarioManager
+            currentCapTable={capTable}
+            currentInstruments={instruments}
+            currentPreferenceTiers={preferenceTiers}
+            onLoadScenario={handleLoadScenario}
+          />
         </TabsContent>
 
         <TabsContent value="funding" className="mt-6">

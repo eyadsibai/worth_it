@@ -407,3 +407,4 @@ const salaryInput = page.locator('input[name="monthly_salary"]').first();
 - **shadcn/ui**: https://ui.shadcn.com/
 - **TanStack Query**: https://tanstack.com/query/latest
 - **FastAPI**: https://fastapi.tiangolo.com/
+- ALWAYS USE Test Driven Development .. this is not negotiable

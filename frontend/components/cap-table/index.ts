@@ -11,3 +11,8 @@ export { WaterfallChart } from "./waterfall-chart";
 export { WaterfallTable } from "./waterfall-table";
 export { PreferenceStackEditor } from "./preference-stack-editor";
 export { ValuationSlider } from "./valuation-slider";
+export { ExportMenu } from "./export-menu";
+export { ScenarioManager } from "./scenario-manager";
+export { ProFormaToggle } from "./pro-forma-toggle";
+export { ProFormaCapTable } from "./pro-forma-cap-table";
+export { ScenarioComparison } from "./scenario-comparison";
