@@ -457,3 +457,77 @@ export const CapTableConversionResponseSchema = z.object({
 export type CapTableConversionResponse = z.infer<
   typeof CapTableConversionResponseSchema
 >;
+
+// ============================================================================
+// Waterfall Analysis Schemas
+// ============================================================================
+
+// A single tier in the liquidation preference stack
+export const PreferenceTierSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, "Name is required"), // e.g., "Series B", "Series A"
+  seniority: z.number().int().min(1), // 1 = most senior (paid first)
+  investment_amount: z.number().min(0), // Total invested at this tier
+  liquidation_multiplier: z.number().min(1).default(1), // 1x, 2x, etc.
+  participating: z.boolean().default(false),
+  participation_cap: z.number().min(1).optional(), // e.g., 3.0 for 3x cap
+  stakeholder_ids: z.array(z.string()).default([]), // Links to Stakeholder records
+});
+export type PreferenceTier = z.infer<typeof PreferenceTierSchema>;
+
+// Payout for a single stakeholder in a waterfall distribution
+export const StakeholderPayoutSchema = z.object({
+  stakeholder_id: z.string(),
+  name: z.string(),
+  payout_amount: z.number().min(0),
+  payout_pct: z.number().min(0).max(100), // Percentage of total exit
+  investment_amount: z.number().optional(), // For investors
+  roi: z.number().optional(), // Return on investment (MOIC) for investors
+});
+export type StakeholderPayout = z.infer<typeof StakeholderPayoutSchema>;
+
+// A single step in the waterfall breakdown
+export const WaterfallStepSchema = z.object({
+  step_number: z.number().int().min(1),
+  description: z.string(),
+  amount: z.number().min(0),
+  recipients: z.array(z.string()), // Stakeholder names
+  remaining_proceeds: z.number().min(0),
+});
+export type WaterfallStep = z.infer<typeof WaterfallStepSchema>;
+
+// Distribution result for a single exit valuation
+export const WaterfallDistributionSchema = z.object({
+  exit_valuation: z.number().min(0),
+  waterfall_steps: z.array(WaterfallStepSchema),
+  stakeholder_payouts: z.array(StakeholderPayoutSchema),
+  common_pct: z.number().min(0).max(100),
+  preferred_pct: z.number().min(0).max(100),
+});
+export type WaterfallDistribution = z.infer<typeof WaterfallDistributionSchema>;
+
+// Request to calculate waterfall distribution
+export const WaterfallRequestSchema = z.object({
+  cap_table: CapTableSchema,
+  preference_tiers: z.array(PreferenceTierSchema),
+  exit_valuations: z.array(z.number().min(0)).min(1),
+});
+export type WaterfallRequest = z.infer<typeof WaterfallRequestSchema>;
+
+// Full waterfall analysis response
+export const WaterfallResponseSchema = z.object({
+  distributions_by_valuation: z.array(WaterfallDistributionSchema),
+  breakeven_points: z.record(z.string(), z.number()), // {stakeholder_name: breakeven_valuation}
+});
+export type WaterfallResponse = z.infer<typeof WaterfallResponseSchema>;
+
+// Form schema for adding/editing a preference tier
+export const PreferenceTierFormSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  seniority: z.number().int().min(1),
+  investment_amount: z.number().min(0),
+  liquidation_multiplier: z.number().min(1).default(1),
+  participating: z.boolean().default(false),
+  participation_cap: z.number().min(1).optional(),
+});
+export type PreferenceTierFormData = z.infer<typeof PreferenceTierFormSchema>;

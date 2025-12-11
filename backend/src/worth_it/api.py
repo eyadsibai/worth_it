@@ -38,6 +38,8 @@ from worth_it.models import (
     SensitivityAnalysisResponse,
     StartupScenarioRequest,
     StartupScenarioResponse,
+    WaterfallRequest,
+    WaterfallResponse,
 )
 from worth_it.monte_carlo import (
     run_monte_carlo_simulation as mc_run_simulation,
@@ -503,6 +505,91 @@ async def convert_cap_table_instruments(request: Request, body: CapTableConversi
         return CapTableConversionResponse(**result)
     except (ValueError, TypeError, KeyError) as e:
         raise CalculationError("Invalid parameters for cap table conversion") from e
+
+
+@app.post("/api/waterfall", response_model=WaterfallResponse)
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def calculate_waterfall(request: Request, body: WaterfallRequest):
+    """Calculate exit proceeds distribution using waterfall analysis.
+
+    This endpoint performs a liquidation waterfall analysis showing how exit
+    proceeds are distributed among stakeholders respecting liquidation preferences.
+
+    Key features:
+    - Seniority-based preference ordering (senior tiers paid first)
+    - Participating vs non-participating preferred handling
+    - Participation cap enforcement
+    - Automatic conversion decision for non-participating preferred
+    - Pari passu (equal seniority) proportional distribution
+    """
+    try:
+        # Convert Pydantic models to dicts for the calculation function
+        cap_table_dict = body.cap_table.model_dump()
+        preference_tiers_list = [tier.model_dump() for tier in body.preference_tiers]
+
+        # Calculate waterfall for each exit valuation
+        distributions = []
+        breakeven_points: dict[str, float] = {}
+
+        for exit_val in body.exit_valuations:
+            result = calculations.calculate_waterfall(
+                cap_table=cap_table_dict,
+                preference_tiers=preference_tiers_list,
+                exit_valuation=exit_val,
+            )
+
+            # Build distribution response
+            from worth_it.models import (
+                StakeholderPayout,
+                WaterfallDistribution,
+                WaterfallStep,
+            )
+
+            stakeholder_payouts = [
+                StakeholderPayout(
+                    stakeholder_id=p["stakeholder_id"],
+                    name=p["name"],
+                    payout_amount=p["payout_amount"],
+                    payout_pct=p["payout_pct"],
+                    investment_amount=p.get("investment_amount"),
+                    roi=p.get("roi"),
+                )
+                for p in result["stakeholder_payouts"]
+            ]
+
+            waterfall_steps = [
+                WaterfallStep(
+                    step_number=s["step_number"],
+                    description=s["description"],
+                    amount=s["amount"],
+                    recipients=s["recipients"],
+                    remaining_proceeds=s["remaining_proceeds"],
+                )
+                for s in result["waterfall_steps"]
+            ]
+
+            distributions.append(
+                WaterfallDistribution(
+                    exit_valuation=exit_val,
+                    waterfall_steps=waterfall_steps,
+                    stakeholder_payouts=stakeholder_payouts,
+                    common_pct=result["common_pct"],
+                    preferred_pct=result["preferred_pct"],
+                )
+            )
+
+            # Track breakeven points (first valuation where stakeholder gets money)
+            for payout in result["stakeholder_payouts"]:
+                name = payout["name"]
+                if name not in breakeven_points and payout["payout_amount"] > 0:
+                    breakeven_points[name] = exit_val
+
+        return WaterfallResponse(
+            distributions_by_valuation=distributions,
+            breakeven_points=breakeven_points,
+        )
+    except (ValueError, TypeError, KeyError) as e:
+        raise CalculationError("Invalid parameters for waterfall analysis") from e
 
 
 if __name__ == "__main__":

@@ -27,6 +27,8 @@ import type {
   WSMessage,
   CapTableConversionRequest,
   CapTableConversionResponse,
+  WaterfallRequest,
+  WaterfallResponse,
 } from "./schemas";
 
 // ============================================================================
@@ -161,6 +163,17 @@ class APIClient {
     return data;
   }
 
+  // Waterfall Analysis (Exit Proceeds Distribution)
+  async calculateWaterfall(
+    request: WaterfallRequest
+  ): Promise<WaterfallResponse> {
+    const { data } = await this.client.post<WaterfallResponse>(
+      "/api/waterfall",
+      request
+    );
+    return data;
+  }
+
   // WebSocket URL for Monte Carlo
   getMonteCarloWebSocketURL(): string {
     return `${this.wsURL}/ws/monte-carlo`;
@@ -249,6 +262,14 @@ export function useConvertInstruments() {
   return useMutation({
     mutationFn: (request: CapTableConversionRequest) =>
       apiClient.convertInstruments(request),
+  });
+}
+
+// Waterfall Analysis (Exit Proceeds Distribution)
+export function useCalculateWaterfall() {
+  return useMutation({
+    mutationFn: (request: WaterfallRequest) =>
+      apiClient.calculateWaterfall(request),
   });
 }
 
