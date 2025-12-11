@@ -18,7 +18,10 @@ interface WaterfallTableProps {
 }
 
 // Format currency for display
-function formatCurrency(value: number): string {
+function formatCurrency(value: number | null | undefined): string {
+  if (value === null || value === undefined) {
+    return "-";
+  }
   if (value >= 1_000_000_000) {
     return `$${(value / 1_000_000_000).toFixed(2)}B`;
   }
@@ -32,14 +35,14 @@ function formatCurrency(value: number): string {
 }
 
 // Format ROI (multiple of invested capital)
-function formatROI(roi: number | undefined): string {
-  if (roi === undefined) return "-";
+function formatROI(roi: number | null | undefined): string {
+  if (roi === undefined || roi === null) return "-";
   return `${roi.toFixed(2)}x`;
 }
 
 // Get ROI badge color
-function getROIColor(roi: number | undefined): string {
-  if (roi === undefined) return "";
+function getROIColor(roi: number | null | undefined): string {
+  if (roi === undefined || roi === null) return "";
   if (roi >= 10) return "bg-green-500/20 text-green-500 border-green-500/30";
   if (roi >= 3) return "bg-chart-1/20 text-chart-1 border-chart-1/30";
   if (roi >= 1) return "bg-chart-2/20 text-chart-2 border-chart-2/30";
@@ -121,7 +124,7 @@ export function WaterfallTable({ distribution }: WaterfallTableProps) {
                   {formatCurrency(payout.payout_amount)}
                 </TableCell>
                 <TableCell className="text-right font-mono">
-                  {payout.payout_pct.toFixed(1)}%
+                  {(payout.payout_pct ?? 0).toFixed(1)}%
                 </TableCell>
                 <TableCell className="text-right">
                   {payout.roi !== undefined ? (
@@ -159,13 +162,13 @@ export function WaterfallTable({ distribution }: WaterfallTableProps) {
           <div className="text-center">
             <p className="text-sm text-muted-foreground">Common Shareholders</p>
             <p className="text-2xl font-mono font-semibold text-chart-1">
-              {distribution.common_pct.toFixed(1)}%
+              {(distribution.common_pct ?? 0).toFixed(1)}%
             </p>
           </div>
           <div className="text-center">
             <p className="text-sm text-muted-foreground">Preferred Shareholders</p>
             <p className="text-2xl font-mono font-semibold text-chart-3">
-              {distribution.preferred_pct.toFixed(1)}%
+              {(distribution.preferred_pct ?? 0).toFixed(1)}%
             </p>
           </div>
         </div>
