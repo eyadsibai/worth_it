@@ -47,6 +47,25 @@ function getROIColor(roi: number | undefined): string {
 }
 
 export function WaterfallTable({ distribution }: WaterfallTableProps) {
+  // Sort payouts: investors first (by ROI descending), then common shareholders
+  // Hook must be called unconditionally before any early returns
+  const sortedPayouts = React.useMemo(() => {
+    if (!distribution) return [];
+    return [...distribution.stakeholder_payouts].sort((a, b) => {
+      // Investors (have investment_amount) first
+      const aIsInvestor = a.investment_amount !== undefined;
+      const bIsInvestor = b.investment_amount !== undefined;
+      if (aIsInvestor && !bIsInvestor) return -1;
+      if (!aIsInvestor && bIsInvestor) return 1;
+      // Within investors, sort by ROI descending
+      if (aIsInvestor && bIsInvestor) {
+        return (b.roi ?? 0) - (a.roi ?? 0);
+      }
+      // Within non-investors, sort by payout descending
+      return b.payout_amount - a.payout_amount;
+    });
+  }, [distribution]);
+
   if (!distribution) {
     return (
       <Card className="terminal-card">
@@ -64,23 +83,6 @@ export function WaterfallTable({ distribution }: WaterfallTableProps) {
       </Card>
     );
   }
-
-  // Sort payouts: investors first (by ROI descending), then common shareholders
-  const sortedPayouts = React.useMemo(() => {
-    return [...distribution.stakeholder_payouts].sort((a, b) => {
-      // Investors (have investment_amount) first
-      const aIsInvestor = a.investment_amount !== undefined;
-      const bIsInvestor = b.investment_amount !== undefined;
-      if (aIsInvestor && !bIsInvestor) return -1;
-      if (!aIsInvestor && bIsInvestor) return 1;
-      // Within investors, sort by ROI descending
-      if (aIsInvestor && bIsInvestor) {
-        return (b.roi ?? 0) - (a.roi ?? 0);
-      }
-      // Within non-investors, sort by payout descending
-      return b.payout_amount - a.payout_amount;
-    });
-  }, [distribution.stakeholder_payouts]);
 
   return (
     <Card className="terminal-card">

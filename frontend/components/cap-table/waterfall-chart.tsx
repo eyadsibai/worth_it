@@ -122,11 +122,10 @@ export function WaterfallChart({
   }, [distributions]);
 
   // Handle click on chart to select valuation
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleChartClick = React.useCallback(
-    (data: any) => {
+    (data: { activePayload?: Array<{ payload: ChartDataPoint }> } | null) => {
       if (onSelectValuation && data?.activePayload?.[0]?.payload) {
-        const payload = data.activePayload[0].payload as ChartDataPoint;
+        const payload = data.activePayload[0].payload;
         onSelectValuation(payload.exit_valuation);
       }
     },

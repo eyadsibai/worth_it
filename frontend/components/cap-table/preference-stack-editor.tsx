@@ -58,7 +58,7 @@ function formatCurrency(value: number): string {
 export function PreferenceStackEditor({
   tiers,
   onTiersChange,
-  stakeholders,
+  stakeholders: _stakeholders,
 }: PreferenceStackEditorProps) {
   const form = useForm<PreferenceTierFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

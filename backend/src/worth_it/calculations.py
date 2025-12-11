@@ -981,9 +981,9 @@ def calculate_waterfall(
             # Capped participants only get up to their cap, excess goes to common
             for s in stakeholders:
                 sid = s["id"]
-                tier = stakeholder_to_tier.get(sid)
+                stakeholder_tier = stakeholder_to_tier.get(sid)
 
-                if tier is None:
+                if stakeholder_tier is None:
                     # Common shareholder - gets their share plus excess from capped participants
                     share_pct = s["shares"] / shares_for_remaining
                     base_share = share_pct * remaining_proceeds
@@ -994,19 +994,19 @@ def calculate_waterfall(
                         base_share += common_share_of_total * capped_excess
 
                     payouts[sid]["payout_amount"] += base_share
-                elif tier["id"] in converted_tiers:
+                elif stakeholder_tier["id"] in converted_tiers:
                     # Converted preferred - gets pro-rata as common
                     share_pct = s["shares"] / shares_for_remaining
                     payouts[sid]["payout_amount"] = share_pct * exit_valuation
-                elif tier.get("participating", False):
+                elif stakeholder_tier.get("participating", False):
                     # Participating preferred - gets share of remaining, capped if applicable
                     share_pct = s["shares"] / shares_for_remaining
                     additional = share_pct * remaining_proceeds
 
                     # Apply participation cap if set
-                    cap = tier.get("participation_cap")
+                    cap = stakeholder_tier.get("participation_cap")
                     if cap is not None:
-                        max_payout = tier["investment_amount"] * cap
+                        max_payout = stakeholder_tier["investment_amount"] * cap
                         current = payouts[sid]["payout_amount"]
                         if current + additional > max_payout:
                             additional = max(0, max_payout - current)
@@ -1057,8 +1057,8 @@ def calculate_waterfall(
             payout["roi"] = payout["payout_amount"] / payout["investment_amount"]
 
         # Track common vs preferred totals
-        tier = stakeholder_to_tier.get(sid)
-        if tier is None or tier["id"] in converted_tiers:
+        payout_tier = stakeholder_to_tier.get(sid)
+        if payout_tier is None or payout_tier["id"] in converted_tiers:
             common_total += payout["payout_amount"]
         else:
             preferred_total += payout["payout_amount"]

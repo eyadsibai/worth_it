@@ -4,7 +4,7 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, BarChart3, Table2, Layers, AlertCircle } from "lucide-react";
 import { WaterfallChart } from "./waterfall-chart";
 import { WaterfallTable } from "./waterfall-table";
@@ -16,7 +16,6 @@ import { generateId } from "@/lib/utils";
 import type {
   CapTable,
   PreferenceTier,
-  WaterfallDistribution,
   PricedRound,
 } from "@/lib/schemas";
 
