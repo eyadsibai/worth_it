@@ -126,13 +126,17 @@ npm run test:unit:coverage
 npm run test:unit:watch
 ```
 
-**Total: 146 frontend unit tests** covering:
+**Total: 262 frontend unit tests** covering:
 - Zod schemas (64 tests)
-- useDeepCompare hook (20 tests)
 - export-utils (20 tests)
+- useDeepCompare hook (20 tests)
 - API client & WebSocket hooks (17 tests)
+- Zustand store (15 tests)
 - utils/cn function (13 tests)
 - useDebounce hook (12 tests)
+- Form field helpers (10 tests)
+- InformationBox component (5 tests)
+- And more...
 
 ### Running the Frontend
 ```bash
@@ -169,6 +173,8 @@ frontend/
 ├── lib/
 │   ├── api-client.ts        # Type-safe API client with TanStack Query
 │   ├── schemas.ts           # Zod validation schemas (match backend Pydantic)
+│   ├── store.ts             # Zustand store for global state management
+│   ├── export-utils.ts      # CSV/PDF export utilities with shared helpers
 │   ├── hooks/               # Custom React hooks (use-debounce, etc.)
 │   └── providers.tsx        # TanStack Query, Theme providers
 └── vitest.config.ts          # Vitest configuration with coverage thresholds
@@ -213,6 +219,68 @@ React State Update ← TanStack Query cache
     ↓
 Recharts Visualization
 ```
+
+### State Management with Zustand
+
+The app uses **Zustand** for global client state (form data, UI mode) and **TanStack Query** for server state (API responses).
+
+**Store location**: `frontend/lib/store.ts`
+
+```typescript
+// Access store state and actions
+const { appMode, setAppMode, globalSettings, setGlobalSettings } = useAppStore();
+
+// Or use selector hooks for better performance
+const appMode = useAppMode();
+const capTable = useCapTable();
+```
+
+**State categories**:
+- **App Mode**: `employee` | `founder` - toggles between two app modes
+- **Employee Mode State**: Form data (`globalSettings`, `currentJob`, `equityDetails`)
+- **Founder Mode State**: Cap table data (persisted to localStorage)
+- **Results State**: Monte Carlo results, comparison scenarios
+
+### Form Field Helpers
+
+Reusable form field components reduce boilerplate in React Hook Form forms.
+
+**Location**: `frontend/components/forms/form-fields.tsx`
+
+```typescript
+// Available helpers
+import { NumberInputField, SliderField, SelectField, TextInputField, CheckboxField } from "@/components/forms/form-fields";
+
+// Usage in a form
+<TextInputField form={form} name="investor_name" label="Investor Name" />
+<NumberInputField form={form} name="amount" label="Amount" prefix="$" />
+<SelectField form={form} name="status" label="Status" options={statusOptions} />
+<CheckboxField form={form} name="pro_rata" label="Pro-rata Rights" />
+<SliderField form={form} name="discount" label="Discount %" min={0} max={50} />
+```
+
+### InformationBox Component
+
+Styled container for form sections and previews.
+
+**Location**: `frontend/components/ui/information-box.tsx`
+
+```typescript
+import { InformationBox } from "@/components/ui/information-box";
+
+<InformationBox title="Preview" variant="muted">
+  <p>Content here</p>
+</InformationBox>
+```
+
+### Export Utilities
+
+**Location**: `frontend/lib/export-utils.ts`
+
+**Shared helpers**:
+- `calculateTotalRaised(instruments)` - Sum funding from all instrument types
+- `PDF_CONFIG` - Constants for PDF generation (colors, page breaks)
+- `escapeCSV(value)` - RFC 4180 compliant CSV escaping
 
 ## Common Tasks
 
@@ -318,6 +386,9 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 - `backend/src/worth_it/calculations.py` - Core calculation logic
 - `frontend/lib/api-client.ts` - API client with React Query hooks
 - `frontend/lib/schemas.ts` - Zod schemas (must match backend Pydantic models)
+- `frontend/lib/store.ts` - Zustand store for global state management
+- `frontend/lib/export-utils.ts` - CSV/PDF export utilities
+- `frontend/components/forms/form-fields.tsx` - Reusable form field helpers
 - `frontend/app/page.tsx` - Main application page
 - `frontend/vitest.config.ts` - Unit test configuration and coverage thresholds
 
