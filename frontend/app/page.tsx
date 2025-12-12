@@ -14,37 +14,34 @@ import { MonteCarloVisualizations } from "@/components/charts/monte-carlo-visual
 import { ScenarioManager } from "@/components/scenarios/scenario-manager";
 import { ScenarioComparison } from "@/components/scenarios/scenario-comparison";
 import { useDebounce } from "@/lib/hooks/use-debounce";
-import { ModeToggle, type AppMode } from "@/components/mode-toggle";
+import { ModeToggle } from "@/components/mode-toggle";
 import { CapTableManager } from "@/components/cap-table";
-import type { GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm, CapTable, FundingInstrument, PreferenceTier } from "@/lib/schemas";
-import type { ScenarioData } from "@/lib/export-utils";
+import { useAppStore } from "@/lib/store";
+import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
 
 export default function Home() {
-  // App mode state
-  const [appMode, setAppMode] = React.useState<AppMode>("employee");
-
-  // Cap table state (Founder mode)
-  const [capTable, setCapTable] = React.useState<CapTable>({
-    stakeholders: [],
-    total_shares: 10000000,
-    option_pool_pct: 10,
-  });
-  const [instruments, setInstruments] = React.useState<FundingInstrument[]>([]);
-  const [preferenceTiers, setPreferenceTiers] = React.useState<PreferenceTier[]>([]);
-
-  // Form state (Employee mode)
-  const [globalSettings, setGlobalSettings] = React.useState<GlobalSettingsForm | null>(null);
-  const [currentJob, setCurrentJob] = React.useState<CurrentJobForm | null>(null);
-  const [equityDetails, setEquityDetails] = React.useState<RSUForm | StockOptionsForm | null>(null);
-
-  // Monte Carlo state
-  const [monteCarloResults, setMonteCarloResults] = React.useState<{
-    net_outcomes: number[];
-    simulated_valuations: number[];
-  } | null>(null);
-
-  // Scenario comparison state
-  const [comparisonScenarios, setComparisonScenarios] = React.useState<ScenarioData[]>([]);
+  // Global state from Zustand store
+  const {
+    appMode,
+    setAppMode,
+    globalSettings,
+    currentJob,
+    equityDetails,
+    setGlobalSettings,
+    setCurrentJob,
+    setEquityDetails,
+    capTable,
+    instruments,
+    preferenceTiers,
+    setCapTable,
+    setInstruments,
+    setPreferenceTiers,
+    monteCarloResults,
+    setMonteCarloResults,
+    comparisonScenarios,
+    setComparisonScenarios,
+    clearComparisonScenarios,
+  } = useAppStore();
 
   // Debounce form values to prevent waterfall API calls on rapid form changes
   // 300ms delay balances responsiveness with avoiding excessive API calls
@@ -52,34 +49,11 @@ export default function Home() {
   const debouncedCurrentJob = useDebounce(currentJob, 300);
   const debouncedEquityDetails = useDebounce(equityDetails, 300);
 
-  // useState setters are stable, but using functional updates for best practices
-  const handleGlobalSettingsChange = React.useCallback((data: GlobalSettingsForm) => {
-    setGlobalSettings(() => data);
-  }, []);
-
-  const handleCurrentJobChange = React.useCallback((data: CurrentJobForm) => {
-    setCurrentJob(() => data);
-  }, []);
-
-  const handleRSUChange = React.useCallback((data: RSUForm) => {
-    setEquityDetails(() => data);
-  }, []);
-
-  const handleStockOptionsChange = React.useCallback((data: StockOptionsForm) => {
-    setEquityDetails(() => data);
-  }, []);
-
-  const handleMonteCarloComplete = React.useCallback((results: { net_outcomes: number[]; simulated_valuations: number[] }) => {
-    setMonteCarloResults(results);
-  }, []);
-
-  const handleCompareScenarios = React.useCallback((scenarios: ScenarioData[]) => {
-    setComparisonScenarios(scenarios);
-  }, []);
-
-  const handleCloseComparison = React.useCallback(() => {
-    setComparisonScenarios([]);
-  }, []);
+  // Type-safe setters for form components
+  const handleEquityChange = React.useCallback(
+    (data: RSUForm | StockOptionsForm) => setEquityDetails(data),
+    [setEquityDetails]
+  );
 
   // Check if we have all required data (using debounced values for API calls)
   const hasDebouncedData = debouncedGlobalSettings && debouncedCurrentJob && debouncedEquityDetails;
@@ -209,11 +183,11 @@ export default function Home() {
       sidebar={
         appMode === "employee" ? (
           <div className="space-y-4">
-            <GlobalSettingsFormComponent onChange={handleGlobalSettingsChange} />
-            <CurrentJobFormComponent onChange={handleCurrentJobChange} />
+            <GlobalSettingsFormComponent onChange={setGlobalSettings} />
+            <CurrentJobFormComponent onChange={setCurrentJob} />
             <StartupOfferFormComponent
-              onRSUChange={handleRSUChange}
-              onStockOptionsChange={handleStockOptionsChange}
+              onRSUChange={handleEquityChange}
+              onStockOptionsChange={handleEquityChange}
             />
           </div>
         ) : (
@@ -301,12 +275,12 @@ export default function Home() {
         {comparisonScenarios.length > 0 && (
           <ScenarioComparison
             scenarios={comparisonScenarios}
-            onClose={handleCloseComparison}
+            onClose={clearComparisonScenarios}
           />
         )}
 
         {/* Scenario Manager */}
-        <ScenarioManager onCompareScenarios={handleCompareScenarios} />
+        <ScenarioManager onCompareScenarios={setComparisonScenarios} />
 
         {startupScenarioMutation.data && (
           <ScenarioResults
@@ -352,7 +326,7 @@ export default function Home() {
                       exit_price_per_share: debouncedEquityDetails.exit_price_per_share,
                     },
                   }}
-                  onComplete={handleMonteCarloComplete}
+                  onComplete={setMonteCarloResults}
                 />
 
                 {monteCarloResults && (
