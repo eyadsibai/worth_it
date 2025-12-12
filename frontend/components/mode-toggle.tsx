@@ -3,8 +3,7 @@
 import * as React from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Briefcase, Building2 } from "lucide-react";
-
-export type AppMode = "employee" | "founder";
+import type { AppMode } from "@/lib/store";
 
 interface ModeToggleProps {
   mode: AppMode;
