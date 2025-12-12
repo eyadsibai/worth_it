@@ -46,6 +46,17 @@ Object.defineProperty(URL, "revokeObjectURL", {
   value: vi.fn(),
 });
 
+// Mock ResizeObserver (required by Radix UI components like Checkbox)
+class ResizeObserverMock {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+Object.defineProperty(window, "ResizeObserver", {
+  writable: true,
+  value: ResizeObserverMock,
+});
+
 // Mock localStorage
 const localStorageMock = (() => {
   let store: Record<string, string> = {};

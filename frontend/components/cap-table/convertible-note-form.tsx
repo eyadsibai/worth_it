@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { NumberInputField, SliderField } from "@/components/forms/form-fields";
+import { NumberInputField, SliderField, TextInputField } from "@/components/forms/form-fields";
 import { ConvertibleNoteFormSchema, type ConvertibleNoteFormData } from "@/lib/schemas";
 import {
   FormField,
@@ -14,7 +14,7 @@ import {
   FormControl,
   FormDescription,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { InformationBox } from "@/components/ui/information-box";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Banknote } from "lucide-react";
@@ -65,18 +65,11 @@ export function ConvertibleNoteForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <FormField
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          control={form.control as any}
+        <TextInputField
+          form={form}
           name="investor_name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Investor Name</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g., Angel Investor" {...field} />
-              </FormControl>
-            </FormItem>
-          )}
+          label="Investor Name"
+          placeholder="e.g., Angel Investor"
         />
 
         <NumberInputField
@@ -149,7 +142,7 @@ export function ConvertibleNoteForm({
         />
 
         {principal > 0 && (
-          <div className="p-3 border rounded-lg bg-muted/50 text-sm">
+          <InformationBox className="p-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Accrued Interest at Maturity:</span>
               <span className="font-mono">SAR {accruedInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
@@ -158,7 +151,7 @@ export function ConvertibleNoteForm({
               <span className="text-muted-foreground">Total at Maturity:</span>
               <span className="font-mono font-medium">SAR {totalAtMaturity.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
             </div>
-          </div>
+          </InformationBox>
         )}
 
         <NumberInputField

@@ -5,17 +5,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { NumberInputField, SliderField } from "@/components/forms/form-fields";
+import { NumberInputField, SliderField, TextInputField, CheckboxField } from "@/components/forms/form-fields";
 import { PricedRoundFormSchema, type PricedRoundFormData } from "@/lib/schemas";
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+import { InformationBox } from "@/components/ui/information-box";
 import { TrendingUp } from "lucide-react";
 import { DilutionPreview } from "./dilution-preview";
 import type { Stakeholder } from "@/lib/schemas";
@@ -71,32 +63,17 @@ export function PricedRoundForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <FormField
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            control={form.control as any}
+          <TextInputField
+            form={form}
             name="round_name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Round Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., Seed, Series A" {...field} />
-                </FormControl>
-              </FormItem>
-            )}
+            label="Round Name"
+            placeholder="e.g., Seed, Series A"
           />
-
-          <FormField
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            control={form.control as any}
+          <TextInputField
+            form={form}
             name="lead_investor"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Lead Investor (Optional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., Sequoia Capital" {...field} />
-                </FormControl>
-              </FormItem>
-            )}
+            label="Lead Investor (Optional)"
+            placeholder="e.g., Sequoia Capital"
           />
         </div>
 
@@ -125,7 +102,7 @@ export function PricedRoundForm({
         />
 
         {preMoney > 0 && amountRaised > 0 && (
-          <div className="p-4 border rounded-lg bg-muted/50 space-y-2 text-sm">
+          <InformationBox className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Post-Money Valuation:</span>
               <span className="font-mono font-medium">SAR {postMoney.toLocaleString()}</span>
@@ -142,7 +119,7 @@ export function PricedRoundForm({
               <span className="text-muted-foreground">New Shares Issued:</span>
               <span className="font-mono">{newShares.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
             </div>
-          </div>
+          </InformationBox>
         )}
 
         {/* Dilution Preview - shows detailed before/after ownership */}
@@ -156,9 +133,7 @@ export function PricedRoundForm({
           />
         )}
 
-        <div className="space-y-4 p-4 border rounded-lg">
-          <h4 className="font-medium text-sm">Liquidation Preference</h4>
-
+        <InformationBox variant="default" title="Liquidation Preference" className="space-y-4">
           <SliderField
             form={form}
             name="liquidation_multiplier"
@@ -170,23 +145,11 @@ export function PricedRoundForm({
             formatValue={(v) => `${v}x`}
           />
 
-          <FormField
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            control={form.control as any}
+          <CheckboxField
+            form={form}
             name="participating"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Participating Preferred</FormLabel>
-                  <FormDescription>
-                    Investor gets preference + pro-rata share of remaining proceeds
-                  </FormDescription>
-                </div>
-              </FormItem>
-            )}
+            label="Participating Preferred"
+            description="Investor gets preference + pro-rata share of remaining proceeds"
           />
 
           {amountRaised > 0 && (
@@ -195,7 +158,7 @@ export function PricedRoundForm({
               {participating ? " + their pro-rata share of remaining proceeds" : " OR their pro-rata share (whichever is higher)"}
             </div>
           )}
-        </div>
+        </InformationBox>
 
         <Button type="submit" className="w-full">
           <TrendingUp className="mr-2 h-4 w-4" />
