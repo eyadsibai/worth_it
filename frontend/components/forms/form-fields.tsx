@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface FormFieldProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -183,6 +184,70 @@ export function SelectField({
           </Select>
           {description && <FormDescription>{description}</FormDescription>}
           <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
+interface TextInputFieldProps extends FormFieldProps {
+  placeholder?: string;
+  type?: "text" | "email" | "tel" | "url";
+}
+
+/**
+ * Simple text input field wrapper
+ * Consolidates FormField + FormItem + FormLabel + FormControl + Input pattern
+ */
+export function TextInputField({
+  form,
+  name,
+  label,
+  description,
+  placeholder,
+  type = "text",
+}: TextInputFieldProps) {
+  return (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
+          <FormControl>
+            <Input type={type} placeholder={placeholder} {...field} />
+          </FormControl>
+          {description && <FormDescription>{description}</FormDescription>}
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
+/**
+ * Checkbox field wrapper with label and description
+ * Consolidates the common checkbox + label + description pattern
+ */
+export function CheckboxField({
+  form,
+  name,
+  label,
+  description,
+}: FormFieldProps) {
+  return (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+          <FormControl>
+            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+          </FormControl>
+          <div className="space-y-1 leading-none">
+            <FormLabel>{label}</FormLabel>
+            {description && <FormDescription>{description}</FormDescription>}
+          </div>
         </FormItem>
       )}
     />

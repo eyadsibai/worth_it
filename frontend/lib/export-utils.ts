@@ -284,13 +284,7 @@ export function exportFundingHistoryAsCSV(instruments: FundingInstrument[], file
   // Add summary
   rows.push("");
   rows.push("Summary,,,,,");
-  const totalRaised = instruments.reduce((sum, i) => {
-    if (i.type === "SAFE") return sum + i.investment_amount;
-    if (i.type === "CONVERTIBLE_NOTE") return sum + i.principal_amount;
-    if (i.type === "PRICED_ROUND") return sum + i.amount_raised;
-    return sum;
-  }, 0);
-  rows.push(`Total Raised,${totalRaised},,,`);
+  rows.push(`Total Raised,${calculateTotalRaised(instruments)},,,`);
 
   const csvContent = rows.join("\n");
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
@@ -351,12 +345,7 @@ export function exportCapTableAsPDF(
   doc.text("Summary", 14, 45);
 
   const totalOwnership = capTable.stakeholders.reduce((sum, s) => sum + s.ownership_pct, 0);
-  const totalRaised = instruments.reduce((sum, i) => {
-    if (i.type === "SAFE") return sum + i.investment_amount;
-    if (i.type === "CONVERTIBLE_NOTE") return sum + i.principal_amount;
-    if (i.type === "PRICED_ROUND") return sum + i.amount_raised;
-    return sum;
-  }, 0);
+  const totalRaised = calculateTotalRaised(instruments);
 
   doc.setFontSize(10);
   doc.text(`Total Shares: ${capTable.total_shares.toLocaleString()}`, 14, 53);
@@ -384,7 +373,7 @@ export function exportCapTableAsPDF(
     head: [["Name", "Type", "Share Class", "Shares", "Ownership %", "Vesting"]],
     body: stakeholdersData,
     theme: "striped",
-    headStyles: { fillColor: [59, 130, 246] },
+    headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
     styles: { fontSize: 9 },
   });
 
@@ -393,7 +382,7 @@ export function exportCapTableAsPDF(
   let finalY = (doc as any).lastAutoTable?.finalY || 108;
 
   // Add new page if needed
-  if (finalY > 220) {
+  if (finalY > PDF_CONFIG.BREAK_THRESHOLD) {
     doc.addPage();
     finalY = 20;
   } else {
@@ -441,7 +430,7 @@ export function exportCapTableAsPDF(
       head: [["Type", "Investor/Lead", "Amount", "Valuation/Cap", "Discount/Price", "Status"]],
       body: fundingData,
       theme: "striped",
-      headStyles: { fillColor: [59, 130, 246] },
+      headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
       styles: { fontSize: 8 },
     });
 
@@ -451,7 +440,7 @@ export function exportCapTableAsPDF(
 
   // Add waterfall analysis if provided
   if (waterfall && waterfall.stakeholder_payouts.length > 0) {
-    if (finalY > 220) {
+    if (finalY > PDF_CONFIG.BREAK_THRESHOLD) {
       doc.addPage();
       finalY = 20;
     } else {
@@ -473,7 +462,7 @@ export function exportCapTableAsPDF(
       head: [["Stakeholder", "Payout", "% of Exit", "ROI"]],
       body: waterfallData,
       theme: "striped",
-      headStyles: { fillColor: [59, 130, 246] },
+      headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
       styles: { fontSize: 9 },
     });
   }
@@ -483,7 +472,9 @@ export function exportCapTableAsPDF(
   doc.save(pdfFilename);
 }
 
-// Helper functions
+// ============================================================================
+// Generic Helper Functions
+// ============================================================================
 
 /**
  * Escape a string for CSV format according to RFC 4180
@@ -492,13 +483,57 @@ export function exportCapTableAsPDF(
  */
 function escapeCSV(value: string): string {
   if (value.includes('"') || value.includes(',') || value.includes('\n') || value.includes('\r')) {
-    // Escape double quotes by doubling them
     const escaped = value.replace(/"/g, '""');
     return `"${escaped}"`;
   }
   return value;
 }
 
+/**
+ * Generic CSV column definition for type-safe CSV building
+ */
+interface CSVColumn<T> {
+  header: string;
+  accessor: (row: T) => string | number | undefined | null;
+}
+
+/**
+ * Build a CSV string from data using column definitions
+ * Automatically applies RFC 4180 escaping to string values
+ * Note: Prefixed with underscore - available for future refactoring of CSV exports
+ */
+function _buildCSV<T>(data: T[], columns: CSVColumn<T>[]): string {
+  const rows: string[] = [];
+
+  // Header row
+  rows.push(columns.map((col) => escapeCSV(col.header)).join(","));
+
+  // Data rows
+  data.forEach((item) => {
+    const values = columns.map((col) => {
+      const value = col.accessor(item);
+      if (value === null || value === undefined) return "";
+      if (typeof value === "string") return escapeCSV(value);
+      return value.toString();
+    });
+    rows.push(values.join(","));
+  });
+
+  return rows.join("\n");
+}
+
+/**
+ * Export CSV content as downloadable file
+ * Note: Prefixed with underscore - available for future refactoring of CSV exports
+ */
+function _exportCSV(csvContent: string, filename: string): void {
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
+  downloadBlob(blob, `${filename}.csv`);
+}
+
+/**
+ * Download a Blob as a file
+ */
 function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -509,3 +544,25 @@ function downloadBlob(blob: Blob, filename: string): void {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Calculate total funding raised from instruments
+ */
+export function calculateTotalRaised(instruments: FundingInstrument[]): number {
+  return instruments.reduce((sum, i) => {
+    if (i.type === "SAFE") return sum + i.investment_amount;
+    if (i.type === "CONVERTIBLE_NOTE") return sum + i.principal_amount;
+    if (i.type === "PRICED_ROUND") return sum + i.amount_raised;
+    return sum;
+  }, 0);
+}
+
+// PDF Configuration constants
+const PDF_CONFIG = {
+  PAGE_HEIGHT: 297,
+  BREAK_THRESHOLD: 220,
+  MARGIN: 14,
+  COLORS: {
+    PRIMARY: [59, 130, 246] as [number, number, number],
+  },
+} as const;

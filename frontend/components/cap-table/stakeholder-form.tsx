@@ -5,18 +5,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { NumberInputField, SelectField } from "@/components/forms/form-fields";
+import { NumberInputField, SelectField, TextInputField, CheckboxField, SliderField } from "@/components/forms/form-fields";
 import { StakeholderFormSchema, type StakeholderFormData } from "@/lib/schemas";
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { SliderField } from "@/components/forms/form-fields";
+import { InformationBox } from "@/components/ui/information-box";
 import { UserPlus } from "lucide-react";
 
 interface StakeholderFormProps {
@@ -54,18 +45,11 @@ export function StakeholderForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <FormField
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          control={form.control as any}
+        <TextInputField
+          form={form}
           name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g., John Smith" {...field} />
-              </FormControl>
-            </FormItem>
-          )}
+          label="Name"
+          placeholder="e.g., John Smith"
         />
 
         <div className="grid grid-cols-2 gap-4">
@@ -104,27 +88,17 @@ export function StakeholderForm({
           placeholder="25"
         />
 
-        <FormField
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          control={form.control as any}
-          name="has_vesting"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-              <FormControl>
-                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>Has Vesting Schedule</FormLabel>
-                <FormDescription>
-                  Enable if shares vest over time
-                </FormDescription>
-              </div>
-            </FormItem>
-          )}
-        />
+        <InformationBox variant="default" className="rounded-md">
+          <CheckboxField
+            form={form}
+            name="has_vesting"
+            label="Has Vesting Schedule"
+            description="Enable if shares vest over time"
+          />
+        </InformationBox>
 
         {hasVesting && (
-          <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/50">
+          <InformationBox className="grid grid-cols-2 gap-4">
             <SliderField
               form={form}
               name="vesting_months"
@@ -146,7 +120,7 @@ export function StakeholderForm({
               step={6}
               formatValue={(v) => `${v} months`}
             />
-          </div>
+          </InformationBox>
         )}
 
         <Button type="submit" className="w-full">

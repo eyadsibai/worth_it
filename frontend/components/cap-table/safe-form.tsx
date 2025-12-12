@@ -5,17 +5,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { NumberInputField } from "@/components/forms/form-fields";
+import { NumberInputField, TextInputField, CheckboxField } from "@/components/forms/form-fields";
 import { SAFEFormSchema, type SAFEFormData } from "@/lib/schemas";
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+import { InformationBox } from "@/components/ui/information-box";
 import { FileText } from "lucide-react";
 
 interface SAFEFormProps {
@@ -50,18 +42,11 @@ export function SAFEForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <FormField
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          control={form.control as any}
+        <TextInputField
+          form={form}
           name="investor_name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Investor Name</FormLabel>
-              <FormControl>
-                <Input placeholder="e.g., Y Combinator" {...field} />
-              </FormControl>
-            </FormItem>
-          )}
+          label="Investor Name"
+          placeholder="e.g., Y Combinator"
         />
 
         <NumberInputField
@@ -100,45 +85,20 @@ export function SAFEForm({
           placeholder="20"
         />
 
-        <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
-          <FormField
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            control={form.control as any}
+        <InformationBox className="space-y-3">
+          <CheckboxField
+            form={form}
             name="pro_rata_rights"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Pro-Rata Rights</FormLabel>
-                  <FormDescription>
-                    Right to maintain ownership % in future rounds
-                  </FormDescription>
-                </div>
-              </FormItem>
-            )}
+            label="Pro-Rata Rights"
+            description="Right to maintain ownership % in future rounds"
           />
-
-          <FormField
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            control={form.control as any}
+          <CheckboxField
+            form={form}
             name="mfn_clause"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                <FormControl>
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Most Favored Nation (MFN)</FormLabel>
-                  <FormDescription>
-                    Gets the best terms of any future SAFE
-                  </FormDescription>
-                </div>
-              </FormItem>
-            )}
+            label="Most Favored Nation (MFN)"
+            description="Gets the best terms of any future SAFE"
           />
-        </div>
+        </InformationBox>
 
         <Button type="submit" className="w-full">
           <FileText className="mr-2 h-4 w-4" />
