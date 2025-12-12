@@ -7,7 +7,7 @@ import { SELECTORS } from '../utils/test-data';
  * These tests verify that:
  * - The application loads successfully
  * - The backend API is healthy and responsive
- * - The UI displays the API connection status
+ * - The main UI components are rendered
  */
 
 test.describe('API Health and Connection', () => {
@@ -18,26 +18,27 @@ test.describe('API Health and Connection', () => {
     await expect(page.getByRole('heading', { name: /Job Offer Financial Analyzer/i })).toBeVisible();
   });
 
-  test('should connect to the API and show healthy status', async ({ page, helpers }) => {
+  test('should render main form sections', async ({ page, helpers }) => {
     await page.goto('/');
 
-    // Wait for API health check to complete
+    // Wait for page to be ready
     await helpers.waitForAPIConnection();
 
-    // Verify API status card shows connected
-    await expect(page.locator(SELECTORS.results.connectedStatus)).toBeVisible();
-
-    // Verify status shows "healthy"
-    await expect(page.getByText(/Status:/i).locator('..').getByText(/healthy/i)).toBeVisible();
+    // Verify main form sections are visible
+    await expect(page.getByText(/Global Settings/i)).toBeVisible();
+    await expect(page.getByText(/Current Job/i)).toBeVisible();
+    await expect(page.getByText(/Startup Offer/i)).toBeVisible();
   });
 
-  test('should display API version information', async ({ page, helpers }) => {
+  test('should display results summary cards', async ({ page, helpers }) => {
     await page.goto('/');
 
     await helpers.waitForAPIConnection();
 
-    // Verify version is displayed
-    await expect(page.getByText(/Version:/i)).toBeVisible();
+    // Verify result cards are displayed
+    await expect(page.locator(SELECTORS.results.finalPayoutCard)).toBeVisible();
+    await expect(page.locator(SELECTORS.results.opportunityCostCard)).toBeVisible();
+    await expect(page.locator(SELECTORS.results.netBenefitCard)).toBeVisible();
   });
 
   test('API health endpoint should return 200', async ({ helpers }) => {
