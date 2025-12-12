@@ -82,19 +82,32 @@ Visit http://localhost:8000/docs for API documentation.
 ```
 backend/
 ├── src/worth_it/
-│   ├── calculations.py    # Core financial calculations (framework-agnostic)
-│   ├── api.py            # FastAPI endpoints + WebSocket
-│   ├── models.py         # Pydantic validation models
-│   ├── config.py         # Configuration management
-│   ├── types.py          # TypedDict definitions for type safety
-│   └── exceptions.py     # Custom exception hierarchy (WorthItError, CalculationError)
+│   ├── calculations/           # Core financial calculations (framework-agnostic)
+│   │   ├── __init__.py        # Re-exports for backward compatibility
+│   │   ├── base.py            # EquityType enum, annual_to_monthly_roi
+│   │   ├── opportunity_cost.py # create_monthly_data_grid, calculate_annual_opportunity_cost
+│   │   ├── startup_scenario.py # calculate_startup_scenario
+│   │   ├── financial_metrics.py # calculate_irr, calculate_npv, calculate_dilution_from_valuation
+│   │   ├── cap_table.py       # calculate_interest, calculate_conversion_price, convert_instruments
+│   │   └── waterfall.py       # calculate_waterfall
+│   ├── services/              # Business logic orchestration layer
+│   │   ├── __init__.py        # Re-exports StartupService, CapTableService, ResponseMapper
+│   │   ├── startup_service.py # StartupService: scenario calculations, IRR, NPV
+│   │   ├── cap_table_service.py # CapTableService: conversions, waterfall, dilution
+│   │   └── serializers.py     # ResponseMapper, column mapping, type conversion
+│   ├── api.py                 # FastAPI endpoints + WebSocket (thin handlers)
+│   ├── monte_carlo.py         # Monte Carlo simulation & sensitivity analysis
+│   ├── models.py              # Pydantic validation models
+│   ├── config.py              # Configuration management
+│   ├── types.py               # TypedDict definitions for type safety
+│   └── exceptions.py          # Custom exception hierarchy (WorthItError, CalculationError)
 └── tests/
-    ├── test_calculations.py  # Unit tests for core calculations
-    ├── test_api.py          # API endpoint and WebSocket tests
-    └── test_integration.py  # End-to-end workflow tests
+    ├── test_calculations.py   # Unit tests for core calculations
+    ├── test_api.py            # API endpoint and WebSocket tests
+    └── test_integration.py    # End-to-end workflow tests
 ```
 
-**Total: ~50 backend tests** (run `uv run pytest --collect-only -q` to verify)
+**Total: 96 backend tests** (run `uv run pytest --collect-only -q` to verify)
 
 ## Frontend Development
 
@@ -195,12 +208,20 @@ frontend/
 - 1 WebSocket endpoint for Monte Carlo simulations
 - Pydantic models for request/response validation
 - CORS configured for frontend
+- Thin endpoint handlers that delegate to services
+
+**Layer 2.5: Service Layer**
+- `StartupService`: Orchestrates startup scenario calculations, IRR, NPV
+- `CapTableService`: Handles cap table conversions, waterfall analysis, dilution
+- `ResponseMapper`: Transforms internal data structures to API response formats
+- Encapsulates business logic separate from HTTP concerns
+- Handles EquityType enum conversion and column name mapping
 
 **Layer 3: Core Logic (Pure Python)**
 - Framework-agnostic financial calculations
-- Functions in `calculations.py`
+- Modular package in `calculations/` with domain-specific modules
 - Can be used standalone without web frameworks
-- Covered by comprehensive test suite (~50 tests)
+- Covered by comprehensive test suite (96 tests)
 
 ### Data Flow
 
@@ -211,7 +232,11 @@ TanStack Query → HTTP Request
     ↓
 FastAPI Endpoint → Pydantic validation
     ↓
+Service Layer → Business logic orchestration
+    ↓
 Core Calculations → Pure Python functions
+    ↓
+ResponseMapper → Column mapping & serialization
     ↓
 JSON Response ← Pydantic serialization
     ↓
@@ -287,7 +312,7 @@ import { InformationBox } from "@/components/ui/information-box";
 ### Adding a New API Endpoint
 
 1. **Define Pydantic models** in `backend/src/worth_it/models.py`
-2. **Implement calculation** in `backend/src/worth_it/calculations.py`
+2. **Implement calculation** in `backend/src/worth_it/calculations/` (choose appropriate domain module)
 3. **Create endpoint** in `backend/src/worth_it/api.py`
 4. **Add tests** in `backend/tests/test_api.py`
 5. **Update Zod schema** in `frontend/lib/schemas.ts`
@@ -382,8 +407,17 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ## Important Files
 
-- `backend/src/worth_it/api.py` - All API endpoints
-- `backend/src/worth_it/calculations.py` - Core calculation logic
+- `backend/src/worth_it/api.py` - All API endpoints (thin handlers)
+- `backend/src/worth_it/services/` - Business logic orchestration
+  - `startup_service.py` - StartupService for scenario calculations
+  - `cap_table_service.py` - CapTableService for conversions and waterfall
+  - `serializers.py` - ResponseMapper and column mapping
+- `backend/src/worth_it/calculations/` - Core calculation logic (modular package)
+  - `opportunity_cost.py` - Monthly data grids, opportunity cost calculations
+  - `startup_scenario.py` - RSU and Stock Option scenario analysis
+  - `financial_metrics.py` - IRR, NPV, dilution calculations
+  - `cap_table.py` - SAFE and Convertible Note conversions
+  - `waterfall.py` - Exit proceeds distribution analysis
 - `frontend/lib/api-client.ts` - API client with React Query hooks
 - `frontend/lib/schemas.ts` - Zod schemas (must match backend Pydantic models)
 - `frontend/lib/store.ts` - Zustand store for global state management
@@ -394,7 +428,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ## Testing Philosophy
 
-- **Backend**: Unit tests for calculations, API tests for endpoints, integration tests for full workflows (~50 tests)
+- **Backend**: Unit tests for calculations, API tests for endpoints, integration tests for full workflows (96 tests)
 - **Frontend**: Unit tests with Vitest + React Testing Library (146 tests), TypeScript for compile-time safety, Zod for runtime validation
 - **E2E**: Playwright tests for end-to-end browser testing
 
@@ -479,3 +513,4 @@ const salaryInput = page.locator('input[name="monthly_salary"]').first();
 - **TanStack Query**: https://tanstack.com/query/latest
 - **FastAPI**: https://fastapi.tiangolo.com/
 - ALWAYS USE Test Driven Development .. this is not negotiable
+- Use shadcn mcp whenever you are doing UI components

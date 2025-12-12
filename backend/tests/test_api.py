@@ -366,10 +366,10 @@ def test_calculation_error_returns_sanitized_message():
     # Use monkey patching to force a calculation error
     from unittest.mock import patch
 
-    from worth_it import calculations
+    from worth_it.services import cap_table_service
 
     with patch.object(
-        calculations,
+        cap_table_service,
         "calculate_dilution_from_valuation",
         side_effect=ValueError("Internal error: NoneType object"),
     ):
@@ -393,10 +393,10 @@ def test_invalid_parameters_trigger_calculation_error():
     # Use monkey patching to force a TypeError
     from unittest.mock import patch
 
-    from worth_it import calculations
+    from worth_it.services import startup_service
 
     with patch.object(
-        calculations, "calculate_irr", side_effect=TypeError("'NoneType' object is not iterable")
+        startup_service, "calculate_irr", side_effect=TypeError("'NoneType' object is not iterable")
     ):
         request_data = {
             "monthly_surpluses": [100] * 12,
@@ -419,11 +419,11 @@ def test_error_messages_do_not_expose_implementation_details():
     # Use monkey patching to test various error scenarios
     from unittest.mock import patch
 
-    from worth_it import calculations
+    from worth_it.services import cap_table_service
 
     # Test ValueError (caught by dilution endpoint)
     with patch.object(
-        calculations,
+        cap_table_service,
         "calculate_dilution_from_valuation",
         side_effect=ValueError("'key' not found in dict"),
     ):
@@ -446,7 +446,7 @@ def test_error_messages_do_not_expose_implementation_details():
 
     # Test ZeroDivisionError (caught by dilution endpoint)
     with patch.object(
-        calculations,
+        cap_table_service,
         "calculate_dilution_from_valuation",
         side_effect=ZeroDivisionError("division by zero"),
     ):
