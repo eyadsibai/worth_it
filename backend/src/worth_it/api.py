@@ -19,8 +19,11 @@ from worth_it import calculations
 from worth_it.config import settings
 from worth_it.exceptions import CalculationError, ValidationError, WorthItError
 from worth_it.models import (
+    CapTable,
     CapTableConversionRequest,
     CapTableConversionResponse,
+    ConversionSummary,
+    ConvertedInstrumentDetail,
     DilutionFromValuationRequest,
     DilutionFromValuationResponse,
     HealthCheckResponse,
@@ -47,6 +50,7 @@ from worth_it.monte_carlo import (
 from worth_it.monte_carlo import (
     run_sensitivity_analysis as mc_sensitivity_analysis,
 )
+from worth_it.services import CapTableService, StartupService
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -59,8 +63,15 @@ limiter = Limiter(
 )
 
 
+# Service instances for dependency injection
+startup_service = StartupService()
+cap_table_service = CapTableService()
+
+
 def convert_equity_type_to_enum(params: dict) -> None:
     """Convert equity_type string to EquityType enum in startup_params.
+
+    DEPRECATED: Use convert_equity_type_in_params from services.serializers instead.
 
     This function modifies the params dict in-place, converting the equity_type
     field from a string to a calculations.EquityType enum if needed.
@@ -209,52 +220,20 @@ async def calculate_startup_scenario(request: Request, body: StartupScenarioRequ
     including dilution effects and breakeven analysis.
     """
     try:
-        opportunity_cost_df = pd.DataFrame(body.opportunity_cost_data)
-
-        # Convert equity_type string to EquityType enum if needed
-        startup_params = body.startup_params.copy()
-        if "equity_type" in startup_params:
-            params_wrapper = {"startup_params": startup_params}
-            convert_equity_type_to_enum(params_wrapper)
-            startup_params = params_wrapper["startup_params"]
-
-        results = calculations.calculate_startup_scenario(
-            opportunity_cost_df,
-            startup_params,
+        # Use service layer for business logic and column mapping
+        result = startup_service.calculate_scenario(
+            opportunity_cost_data=body.opportunity_cost_data,
+            startup_params=body.startup_params.copy(),
         )
 
-        # Convert DataFrame to dict with frontend-expected column names
-        results_df = results["results_df"]
-
-        # Map backend column names to frontend-expected snake_case names
-        column_mapping = {
-            "Year": "year",
-            "StartupSalary": "startup_monthly_salary",
-            "CurrentJobSalary": "current_job_monthly_salary",
-            "MonthlySurplus": "monthly_surplus",
-            "Opportunity Cost (Invested Surplus)": "cumulative_opportunity_cost",
-            "Principal Forgone": "principal_forgone",
-            "Salary Gain": "salary_gain",
-            "Cash From Sale (FV)": "cash_from_sale_fv",
-            "Investment Returns": "investment_returns",
-            "Vested Equity (%)": "vested_equity_pct",
-            "CumulativeDilution": "cumulative_dilution",
-            "Breakeven Value": "breakeven_value",
-        }
-
-        # Rename columns that exist in the DataFrame
-        rename_cols = {k: v for k, v in column_mapping.items() if k in results_df.columns}
-        results_df_renamed = results_df.rename(columns=rename_cols)
-        results_df_dict = results_df_renamed.to_dict(orient="records")
-
         return StartupScenarioResponse(
-            results_df=results_df_dict,
-            final_payout_value=results["final_payout_value"],
-            final_opportunity_cost=results["final_opportunity_cost"],
-            payout_label=results["payout_label"],
-            breakeven_label=results["breakeven_label"],
-            total_dilution=results.get("total_dilution"),
-            diluted_equity_pct=results.get("diluted_equity_pct"),
+            results_df=result.results_df,
+            final_payout_value=result.final_payout_value,
+            final_opportunity_cost=result.final_opportunity_cost,
+            payout_label=result.payout_label,
+            breakeven_label=result.breakeven_label,
+            total_dilution=result.total_dilution,
+            diluted_equity_pct=result.diluted_equity_pct,
         )
     except (ValueError, TypeError, KeyError) as e:
         raise CalculationError("Invalid parameters for startup scenario") from e
@@ -269,9 +248,8 @@ async def calculate_irr(request: Request, body: IRRRequest):
     and the final equity payout.
     """
     try:
-        monthly_surpluses = pd.Series(body.monthly_surpluses)
-        irr = calculations.calculate_irr(monthly_surpluses, body.final_payout_value)
-        return IRRResponse(irr=irr if pd.notna(irr) else None)
+        irr = startup_service.calculate_irr(body.monthly_surpluses, body.final_payout_value)
+        return IRRResponse(irr=irr)
     except (ValueError, TypeError) as e:
         raise CalculationError("Invalid parameters for IRR calculation") from e
 
@@ -285,13 +263,12 @@ async def calculate_npv(request: Request, body: NPVRequest):
     accounting for the time value of money.
     """
     try:
-        monthly_surpluses = pd.Series(body.monthly_surpluses)
-        npv = calculations.calculate_npv(
-            monthly_surpluses,
+        npv = startup_service.calculate_npv(
+            body.monthly_surpluses,
             body.annual_roi,
             body.final_payout_value,
         )
-        return NPVResponse(npv=npv if pd.notna(npv) else None)
+        return NPVResponse(npv=npv)
     except (ValueError, TypeError) as e:
         raise CalculationError("Invalid parameters for NPV calculation") from e
 
@@ -468,7 +445,7 @@ async def calculate_dilution_from_valuation(request: Request, body: DilutionFrom
     based on pre-money valuation and amount raised.
     """
     try:
-        dilution = calculations.calculate_dilution_from_valuation(
+        dilution = cap_table_service.calculate_dilution(
             body.pre_money_valuation,
             body.amount_raised,
         )
@@ -491,18 +468,21 @@ async def convert_cap_table_instruments(request: Request, body: CapTableConversi
     - New stakeholders are created for each converted instrument
     """
     try:
-        # Convert Pydantic models to dicts for the calculation function
-        cap_table_dict = body.cap_table.model_dump()
-        instruments_list = [inst.model_dump() for inst in body.instruments]
-        priced_round_dict = body.priced_round.model_dump()
-
-        result = calculations.convert_instruments(
-            cap_table=cap_table_dict,
-            instruments=instruments_list,
-            priced_round=priced_round_dict,
+        # Convert Pydantic models to dicts for the service
+        result = cap_table_service.convert_instruments(
+            cap_table=body.cap_table.model_dump(),
+            instruments=[inst.model_dump() for inst in body.instruments],
+            priced_round=body.priced_round.model_dump(),
         )
 
-        return CapTableConversionResponse(**result)
+        return CapTableConversionResponse(
+            updated_cap_table=CapTable.model_validate(result.updated_cap_table),
+            converted_instruments=[
+                ConvertedInstrumentDetail.model_validate(inst)
+                for inst in result.converted_instruments
+            ],
+            summary=ConversionSummary.model_validate(result.summary),
+        )
     except (ValueError, TypeError, KeyError) as e:
         raise CalculationError("Invalid parameters for cap table conversion") from e
 
@@ -523,70 +503,53 @@ async def calculate_waterfall(request: Request, body: WaterfallRequest):
     - Pari passu (equal seniority) proportional distribution
     """
     try:
-        # Convert Pydantic models to dicts for the calculation function
-        cap_table_dict = body.cap_table.model_dump()
-        preference_tiers_list = [tier.model_dump() for tier in body.preference_tiers]
+        # Use service for business logic
+        result = cap_table_service.calculate_waterfall(
+            cap_table=body.cap_table.model_dump(),
+            preference_tiers=[tier.model_dump() for tier in body.preference_tiers],
+            exit_valuations=body.exit_valuations,
+        )
 
-        # Calculate waterfall for each exit valuation
-        distributions = []
-        breakeven_points: dict[str, float] = {}
+        # Convert service dataclasses to Pydantic models for response
+        from worth_it.models import (
+            StakeholderPayout,
+            WaterfallDistribution,
+            WaterfallStep,
+        )
 
-        for exit_val in body.exit_valuations:
-            result = calculations.calculate_waterfall(
-                cap_table=cap_table_dict,
-                preference_tiers=preference_tiers_list,
-                exit_valuation=exit_val,
+        distributions = [
+            WaterfallDistribution(
+                exit_valuation=dist.exit_valuation,
+                waterfall_steps=[
+                    WaterfallStep(
+                        step_number=s.step_number,
+                        description=s.description,
+                        amount=s.amount,
+                        recipients=s.recipients,
+                        remaining_proceeds=s.remaining_proceeds,
+                    )
+                    for s in dist.waterfall_steps
+                ],
+                stakeholder_payouts=[
+                    StakeholderPayout(
+                        stakeholder_id=p.stakeholder_id,
+                        name=p.name,
+                        payout_amount=p.payout_amount,
+                        payout_pct=p.payout_pct,
+                        investment_amount=p.investment_amount,
+                        roi=p.roi,
+                    )
+                    for p in dist.stakeholder_payouts
+                ],
+                common_pct=dist.common_pct,
+                preferred_pct=dist.preferred_pct,
             )
-
-            # Build distribution response
-            from worth_it.models import (
-                StakeholderPayout,
-                WaterfallDistribution,
-                WaterfallStep,
-            )
-
-            stakeholder_payouts = [
-                StakeholderPayout(
-                    stakeholder_id=p["stakeholder_id"],
-                    name=p["name"],
-                    payout_amount=p["payout_amount"],
-                    payout_pct=p["payout_pct"],
-                    investment_amount=p.get("investment_amount"),
-                    roi=p.get("roi"),
-                )
-                for p in result["stakeholder_payouts"]
-            ]
-
-            waterfall_steps = [
-                WaterfallStep(
-                    step_number=s["step_number"],
-                    description=s["description"],
-                    amount=s["amount"],
-                    recipients=s["recipients"],
-                    remaining_proceeds=s["remaining_proceeds"],
-                )
-                for s in result["waterfall_steps"]
-            ]
-
-            distributions.append(
-                WaterfallDistribution(
-                    exit_valuation=exit_val,
-                    waterfall_steps=waterfall_steps,
-                    stakeholder_payouts=stakeholder_payouts,
-                    common_pct=result["common_pct"],
-                    preferred_pct=result["preferred_pct"],
-                )
-            )
-
-            # Track breakeven points (first valuation where stakeholder gets money)
-            for payout in result["stakeholder_payouts"]:
-                name = payout["name"]
-                if name not in breakeven_points and payout["payout_amount"] > 0:
-                    breakeven_points[name] = exit_val
+            for dist in result.distributions_by_valuation
+        ]
 
         return WaterfallResponse(
             distributions_by_valuation=distributions,
-            breakeven_points=breakeven_points,
+            breakeven_points=result.breakeven_points,
         )
     except (ValueError, TypeError, KeyError) as e:
         raise CalculationError("Invalid parameters for waterfall analysis") from e

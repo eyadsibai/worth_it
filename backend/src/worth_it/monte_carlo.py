@@ -14,13 +14,14 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-# Import core calculation functions
-from worth_it.calculations import (
-    annual_to_monthly_roi,
+# Import core calculation functions from submodules to avoid circular import
+# (calculations/__init__.py re-exports monte_carlo functions for backward compatibility)
+from worth_it.calculations.base import annual_to_monthly_roi
+from worth_it.calculations.opportunity_cost import (
     calculate_annual_opportunity_cost,
-    calculate_startup_scenario,
     create_monthly_data_grid,
 )
+from worth_it.calculations.startup_scenario import calculate_startup_scenario
 
 
 def get_random_variates_pert(
