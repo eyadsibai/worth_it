@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { useAppStore } from "@/lib/store";
+import type { ScenarioData } from "@/lib/export-utils";
 
 // Reset store between tests
 beforeEach(() => {
@@ -176,20 +177,59 @@ describe("Results State", () => {
   });
 
   it("sets comparison scenarios", () => {
-    const mockScenarios = [
-      {
-        name: "Scenario 1",
-        settings: { exit_year: 5 },
-        results: { net_outcome: 100000 },
+    const mockScenario: ScenarioData = {
+      name: "Scenario 1",
+      timestamp: new Date().toISOString(),
+      globalSettings: { exitYear: 5 },
+      currentJob: {
+        monthlySalary: 15000,
+        annualGrowthRate: 5,
+        assumedROI: 8,
+        investmentFrequency: "Monthly",
       },
-    ];
+      equity: {
+        type: "RSU",
+        monthlySalary: 12000,
+        vestingPeriod: 4,
+        cliffPeriod: 1,
+        equityPct: 0.5,
+        exitValuation: 100000000,
+      },
+      results: {
+        finalPayoutValue: 500000,
+        finalOpportunityCost: 200000,
+        netOutcome: 300000,
+      },
+    };
 
-    useAppStore.getState().setComparisonScenarios(mockScenarios as any);
-    expect(useAppStore.getState().comparisonScenarios).toEqual(mockScenarios);
+    useAppStore.getState().setComparisonScenarios([mockScenario]);
+    expect(useAppStore.getState().comparisonScenarios).toEqual([mockScenario]);
   });
 
   it("clears comparison scenarios", () => {
-    useAppStore.getState().setComparisonScenarios([{ name: "Test" } as any]);
+    const mockScenario: ScenarioData = {
+      name: "Test",
+      timestamp: new Date().toISOString(),
+      globalSettings: { exitYear: 5 },
+      currentJob: {
+        monthlySalary: 15000,
+        annualGrowthRate: 5,
+        assumedROI: 8,
+        investmentFrequency: "Monthly",
+      },
+      equity: {
+        type: "RSU",
+        monthlySalary: 12000,
+        vestingPeriod: 4,
+        cliffPeriod: 1,
+      },
+      results: {
+        finalPayoutValue: 100000,
+        finalOpportunityCost: 50000,
+        netOutcome: 50000,
+      },
+    };
+    useAppStore.getState().setComparisonScenarios([mockScenario]);
     useAppStore.getState().clearComparisonScenarios();
     expect(useAppStore.getState().comparisonScenarios).toEqual([]);
   });

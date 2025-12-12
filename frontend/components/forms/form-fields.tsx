@@ -225,8 +225,6 @@ export function TextInputField({
   );
 }
 
-interface CheckboxFieldProps extends FormFieldProps {}
-
 /**
  * Checkbox field wrapper with label and description
  * Consolidates the common checkbox + label + description pattern
@@ -236,7 +234,7 @@ export function CheckboxField({
   name,
   label,
   description,
-}: CheckboxFieldProps) {
+}: FormFieldProps) {
   return (
     <FormField
       control={form.control}
