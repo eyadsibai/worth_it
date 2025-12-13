@@ -3,6 +3,68 @@
  */
 
 /**
+ * Multipliers for shorthand suffixes (case-insensitive)
+ */
+const SHORTHAND_MULTIPLIERS: Record<string, number> = {
+  k: 1_000,
+  m: 1_000_000,
+  b: 1_000_000_000,
+};
+
+/**
+ * Parse a string with shorthand notation (K, M, B) into a number.
+ * Handles:
+ * - Plain numbers: "50000" → 50000
+ * - Thousands: "50K" or "50k" → 50000
+ * - Millions: "10M" or "10m" → 10000000
+ * - Billions: "1B" or "1b" → 1000000000
+ * - Decimals: "1.5M" → 1500000
+ * - Currency prefix: "$50K" → 50000
+ * - Commas: "1,000,000" → 1000000
+ * - Whitespace: " 50 K " → 50000
+ *
+ * @param input - The string to parse
+ * @returns The parsed number, or NaN if invalid
+ */
+export function parseShorthand(input: string): number {
+  // Normalize: trim whitespace, remove $ and commas, collapse internal spaces
+  const normalized = input
+    .trim()
+    .replace(/\$/g, "")
+    .replace(/,/g, "")
+    .replace(/\s+/g, "")
+    .toLowerCase();
+
+  if (!normalized) {
+    return NaN;
+  }
+
+  // Check for suffix (last character)
+  const lastChar = normalized.slice(-1);
+  const multiplier = SHORTHAND_MULTIPLIERS[lastChar];
+
+  if (multiplier) {
+    const numPart = normalized.slice(0, -1);
+    const num = parseFloat(numPart);
+    return isNaN(num) ? NaN : num * multiplier;
+  }
+
+  // No suffix - parse as plain number
+  return parseFloat(normalized);
+}
+
+/**
+ * Format a number with thousand separators (no currency symbol)
+ * @param value - The number to format
+ * @returns Formatted string with commas (e.g., "1,000,000")
+ */
+export function formatNumberWithSeparators(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 10, // Preserve decimals
+  }).format(value);
+}
+
+/**
  * Format a number as USD currency with full notation
  * @param value - The number to format
  * @returns Formatted currency string (e.g., "$10,000")

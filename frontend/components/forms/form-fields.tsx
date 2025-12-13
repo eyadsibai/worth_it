@@ -20,6 +20,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { parseShorthand, formatNumberWithSeparators } from "@/lib/format-utils";
 
 interface FormFieldProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -85,16 +86,25 @@ export function NumberInputField({
   formatDisplay = false,
 }: NumberInputFieldProps) {
   const [isFocused, setIsFocused] = React.useState(false);
+  // Track raw input value for shorthand parsing (e.g., "50K")
+  const [rawInput, setRawInput] = React.useState("");
 
   return (
     <FormField
       control={form.control}
       name={name}
       render={({ field }) => {
-        // Format the display value with thousand separators when not focused
-        const displayValue = !isFocused && formatDisplay && typeof field.value === "number"
-          ? field.value.toLocaleString("en-US")
-          : field.value ?? "";
+        // Determine display value based on focus state
+        let displayValue: string | number;
+        if (isFocused) {
+          // While focused, show raw input or current number value
+          displayValue = rawInput || (field.value ?? "");
+        } else if (formatDisplay && typeof field.value === "number") {
+          // When blurred with formatDisplay, show thousand separators
+          displayValue = formatNumberWithSeparators(field.value);
+        } else {
+          displayValue = field.value ?? "";
+        }
 
         return (
           <FormItem>
@@ -107,21 +117,47 @@ export function NumberInputField({
                   </span>
                 )}
                 <Input
-                  type={isFocused || !formatDisplay ? "number" : "text"}
+                  // Use text type when formatDisplay enabled to allow shorthand input (e.g., "50K")
+                  type={formatDisplay ? "text" : "number"}
                   placeholder={placeholder}
-                  min={min}
-                  max={max}
-                  step={step}
+                  min={!formatDisplay ? min : undefined}
+                  max={!formatDisplay ? max : undefined}
+                  step={!formatDisplay ? step : undefined}
                   className={prefix ? "pl-12" : suffix ? "pr-12" : ""}
                   value={displayValue}
-                  onFocus={() => setIsFocused(true)}
+                  onFocus={() => {
+                    setIsFocused(true);
+                    // When focusing, set raw input to current formatted value for editing
+                    if (formatDisplay && typeof field.value === "number") {
+                      setRawInput(formatNumberWithSeparators(field.value));
+                    }
+                  }}
                   onBlur={() => {
                     setIsFocused(false);
+                    // On blur, parse shorthand notation and update form value
+                    if (formatDisplay && rawInput) {
+                      const parsed = parseShorthand(rawInput);
+                      if (!isNaN(parsed)) {
+                        field.onChange(parsed);
+                      }
+                    }
+                    setRawInput("");
                     field.onBlur();
                   }}
                   onChange={(e) => {
-                    const value = e.target.value.replace(/,/g, ""); // Remove commas if user pastes formatted number
-                    field.onChange(value === "" ? undefined : Number(value));
+                    const value = e.target.value;
+                    if (formatDisplay) {
+                      // Store raw input for shorthand parsing on blur
+                      setRawInput(value);
+                      // Try to parse immediately for form state
+                      const parsed = parseShorthand(value);
+                      if (!isNaN(parsed)) {
+                        field.onChange(parsed);
+                      }
+                    } else {
+                      // Standard number input behavior
+                      field.onChange(value === "" ? undefined : Number(value));
+                    }
                   }}
                 />
                 {suffix && (

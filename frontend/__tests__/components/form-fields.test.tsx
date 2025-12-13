@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form } from "@/components/ui/form";
-import { TextInputField, CheckboxField } from "@/components/forms/form-fields";
+import { TextInputField, CheckboxField, NumberInputField } from "@/components/forms/form-fields";
 
 // Test schema
 const TestSchema = z.object({
@@ -240,5 +240,104 @@ describe("CheckboxField", () => {
 
     await user.click(checkbox);
     expect(checkbox).not.toBeChecked();
+  });
+});
+
+describe("NumberInputField", () => {
+  // Use a different schema for number tests
+  const NumberTestSchema = z.object({
+    amount: z.number().min(0),
+  });
+
+  type NumberTestFormData = z.infer<typeof NumberTestSchema>;
+
+  function NumberTestWrapper({
+    children,
+    defaultValue = 0,
+  }: {
+    children: (form: ReturnType<typeof useForm<NumberTestFormData>>) => React.ReactNode;
+    defaultValue?: number;
+  }) {
+    const form = useForm<NumberTestFormData>({
+      resolver: zodResolver(NumberTestSchema) as unknown as undefined,
+      defaultValues: { amount: defaultValue },
+    });
+
+    return (
+      <Form {...form}>
+        <form>{children(form)}</form>
+      </Form>
+    );
+  }
+
+  it("renders with label and prefix", () => {
+    render(
+      <NumberTestWrapper>
+        {(form) => (
+          <NumberInputField form={form} name="amount" label="Amount" prefix="$" />
+        )}
+      </NumberTestWrapper>
+    );
+
+    // Use role-based query since shadcn FormControl wraps input in div
+    expect(screen.getByRole("spinbutton")).toBeInTheDocument();
+    expect(screen.getByText("Amount")).toBeInTheDocument();
+    expect(screen.getByText("$")).toBeInTheDocument();
+  });
+
+  it("displays formatted value when not focused", () => {
+    render(
+      <NumberTestWrapper defaultValue={50000}>
+        {(form) => (
+          <NumberInputField form={form} name="amount" label="Amount" formatDisplay={true} />
+        )}
+      </NumberTestWrapper>
+    );
+
+    // When not focused with formatDisplay, type is "text" so we use textbox role
+    const input = screen.getByRole("textbox");
+    expect(input).toHaveValue("50,000");
+  });
+
+  it("parses shorthand K notation", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <NumberTestWrapper>
+        {(form) => (
+          <NumberInputField form={form} name="amount" label="Amount" formatDisplay={true} />
+        )}
+      </NumberTestWrapper>
+    );
+
+    // Initial render shows "0" as text
+    const input = screen.getByRole("textbox");
+    await user.clear(input);
+    await user.type(input, "50K");
+    await user.tab(); // blur to trigger parsing
+
+    // After blur, should show formatted value
+    const formattedInput = screen.getByRole("textbox");
+    expect(formattedInput).toHaveValue("50,000");
+  });
+
+  it("parses shorthand M notation", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <NumberTestWrapper>
+        {(form) => (
+          <NumberInputField form={form} name="amount" label="Amount" formatDisplay={true} />
+        )}
+      </NumberTestWrapper>
+    );
+
+    const input = screen.getByRole("textbox");
+    await user.clear(input);
+    await user.type(input, "1.5M");
+    await user.tab();
+
+    const formattedInput = screen.getByRole("textbox");
+    expect(formattedInput).toHaveValue("1,500,000");
   });
 });
