@@ -20,6 +20,18 @@ function formatPercent(pct: number): string {
   return `${pct.toFixed(2)}%`;
 }
 
+/** Row data for the pro-forma cap table */
+interface TableRow {
+  id: string;
+  name: string;
+  type: string;
+  typeVariant: "outline" | "secondary";
+  shares: number | null;
+  ownership: number;
+  isConverted?: boolean;
+  isPool?: boolean;
+}
+
 export function ProFormaCapTable({
   capTable,
   conversions,
@@ -77,17 +89,6 @@ export function ProFormaCapTable({
   }
 
   // Combine all data into a single array for the responsive table
-  type TableRow = {
-    id: string;
-    name: string;
-    type: string;
-    typeVariant: "outline" | "secondary";
-    shares: number | null;
-    ownership: number;
-    isConverted?: boolean;
-    isPool?: boolean;
-  };
-
   const allRows: TableRow[] = [
     // Existing stakeholders
     ...existingStakeholders.map((s) => ({

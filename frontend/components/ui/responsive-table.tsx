@@ -72,6 +72,12 @@ export function ResponsiveTable<T>({
 }: ResponsiveTableProps<T>) {
   const isMobile = useIsMobile();
 
+  // Track mounted state to avoid layout shift during SSR hydration
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (data.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -80,53 +86,60 @@ export function ResponsiveTable<T>({
     );
   }
 
-  // Mobile: Render as cards
-  if (isMobile) {
+  // During SSR or before mount, render desktop view (most common/default)
+  // This minimizes layout shift on hydration
+  const showMobile = mounted && isMobile;
+
+  // Mobile: Render as cards with semantic list structure
+  if (showMobile) {
     const primaryColumn = columns.find((c) => c.primary) || columns[0];
     const otherColumns = columns.filter((c) => c !== primaryColumn && !c.hideOnMobile);
 
     return (
-      <div className={cn("space-y-3", className)}>
+      <ul className={cn("space-y-3", className)} role="list">
         {data.map((row, index) => (
-          <Card
-            key={getRowKey(row, index)}
-            className={cn(
-              "border bg-card",
-              rowClassName?.(row, index)
-            )}
-          >
-            <CardContent className="p-4">
-              {/* Primary field - prominent display */}
-              <div className="font-medium text-sm mb-3">
-                {primaryColumn.cell(row, index)}
-              </div>
+          <li key={getRowKey(row, index)} role="listitem">
+            <Card
+              className={cn(
+                "border bg-card",
+                rowClassName?.(row, index)
+              )}
+            >
+              <CardContent className="p-4">
+                {/* Primary field - prominent display */}
+                <div className="font-medium text-sm mb-3">
+                  {primaryColumn.cell(row, index)}
+                </div>
 
-              {/* Other fields as label-value pairs */}
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                {otherColumns.map((col) => (
-                  <div key={col.key}>
-                    <div className="text-xs text-muted-foreground font-mono mb-0.5">
-                      {col.header}
+                {/* Other fields as label-value pairs */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  {otherColumns.map((col) => (
+                    <div key={col.key}>
+                      <div className="text-xs text-muted-foreground font-mono mb-0.5">
+                        {col.header}
+                      </div>
+                      <div className={cn("font-mono", col.className)}>
+                        {col.cell(row, index)}
+                      </div>
                     </div>
-                    <div className={cn("font-mono", col.className)}>
-                      {col.cell(row, index)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </li>
         ))}
 
         {/* Footer on mobile */}
         {footer && (
-          <Card className="border-2 bg-muted/30">
-            <CardContent className="p-4">
-              {footer}
-            </CardContent>
-          </Card>
+          <li role="listitem">
+            <Card className="border-2 bg-muted/30">
+              <CardContent className="p-4">
+                {footer}
+              </CardContent>
+            </Card>
+          </li>
         )}
-      </div>
+      </ul>
     );
   }
 
@@ -159,15 +172,21 @@ export function ResponsiveTable<T>({
         </TableBody>
       </Table>
 
-      {/* Footer rendered separately for table */}
-      {footer}
+      {/* Footer with consistent styling across breakpoints */}
+      {footer && (
+        <Card className="mt-4 border-2 bg-muted/30">
+          <CardContent className="p-4">
+            {footer}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
 
 /**
- * Mobile-friendly footer component for ResponsiveTable.
- * Renders as a summary card showing totals.
+ * Responsive footer component for ResponsiveTable.
+ * Renders label-value pairs in a grid layout, used for both mobile and desktop views.
  */
 export interface TableFooterProps {
   /** Label-value pairs to display */
@@ -181,8 +200,8 @@ export interface TableFooterProps {
 export function ResponsiveTableFooter({ items }: TableFooterProps) {
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm font-medium">
-      {items.map((item, index) => (
-        <div key={index}>
+      {items.map((item) => (
+        <div key={item.label}>
           <div className="text-xs text-muted-foreground font-mono mb-0.5">
             {item.label}
           </div>

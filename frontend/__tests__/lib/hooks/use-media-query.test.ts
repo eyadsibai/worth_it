@@ -1,8 +1,6 @@
-"use client";
-
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useMediaQuery } from "@/lib/hooks/use-media-query";
+import { useMediaQuery, useIsMobile } from "@/lib/hooks/use-media-query";
 
 describe("useMediaQuery", () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -173,29 +171,26 @@ describe("useIsMobile", () => {
     vi.clearAllMocks();
   });
 
-  it("returns true when viewport is mobile-sized", async () => {
+  it("returns true when viewport is mobile-sized (below 768px)", () => {
     mockMatchMedia.mockImplementation((query: string) => ({
-      matches: query.includes("max-width: 768px"),
+      matches: query.includes("max-width: 767px"),
       media: query,
       addEventListener: mockAddEventListener,
       removeEventListener: mockRemoveEventListener,
     }));
 
-    // Import dynamically to get fresh module
-    const { useIsMobile } = await import("@/lib/hooks/use-media-query");
     const { result } = renderHook(() => useIsMobile());
     expect(result.current).toBe(true);
   });
 
-  it("returns false when viewport is desktop-sized", async () => {
+  it("returns false when viewport is desktop-sized (768px and above)", () => {
     mockMatchMedia.mockImplementation((query: string) => ({
-      matches: !query.includes("max-width: 768px"),
+      matches: !query.includes("max-width: 767px"),
       media: query,
       addEventListener: mockAddEventListener,
       removeEventListener: mockRemoveEventListener,
     }));
 
-    const { useIsMobile } = await import("@/lib/hooks/use-media-query");
     const { result } = renderHook(() => useIsMobile());
     expect(result.current).toBe(false);
   });
