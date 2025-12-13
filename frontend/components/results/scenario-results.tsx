@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, Save } from "lucide-react";
+import { TrendingUp, TrendingDown, Save, Copy, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import type { StartupScenarioResponse, GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm } from "@/lib/schemas";
 import { CumulativeComparisonChart } from "@/components/charts/cumulative-comparison-chart";
@@ -13,7 +13,13 @@ import { OpportunityCostChart } from "@/components/charts/opportunity-cost-chart
 import { formatCurrency } from "@/lib/format-utils";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
 import { AnimatedCurrencyDisplay } from "@/lib/motion";
-import { saveScenario, type ScenarioData } from "@/lib/export-utils";
+import { saveScenario, getSavedScenarios, type ScenarioData } from "@/lib/export-utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -113,21 +119,105 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
     }
   };
 
+  // Quick save with auto-generated name
+  const handleQuickSave = () => {
+    if (!globalSettings || !currentJob || !equityDetails) {
+      return;
+    }
+
+    // Generate auto-name based on equity type and timestamp
+    const equityLabel = equityDetails.equity_type === "RSU" ? "RSU" : "Options";
+    const dateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    let baseName = `${equityLabel} Scenario - ${dateStr}`;
+
+    // Check for existing scenarios with similar names and increment
+    const existingScenarios = getSavedScenarios();
+    const similarNames = existingScenarios.filter((s) => s.name.startsWith(baseName));
+    if (similarNames.length > 0) {
+      baseName = `${baseName} (${similarNames.length + 1})`;
+    }
+
+    const scenarioData: ScenarioData = {
+      name: baseName,
+      timestamp: new Date().toISOString(),
+      globalSettings: {
+        exitYear: globalSettings.exit_year,
+      },
+      currentJob: {
+        monthlySalary: currentJob.monthly_salary,
+        annualGrowthRate: currentJob.annual_salary_growth_rate,
+        assumedROI: currentJob.assumed_annual_roi,
+        investmentFrequency: currentJob.investment_frequency,
+      },
+      equity: equityDetails.equity_type === "RSU"
+        ? {
+            type: "RSU",
+            monthlySalary: equityDetails.monthly_salary,
+            vestingPeriod: equityDetails.vesting_period,
+            cliffPeriod: equityDetails.cliff_period,
+            equityPct: equityDetails.total_equity_grant_pct,
+            exitValuation: equityDetails.exit_valuation,
+            simulateDilution: equityDetails.simulate_dilution,
+          }
+        : {
+            type: "STOCK_OPTIONS",
+            monthlySalary: equityDetails.monthly_salary,
+            vestingPeriod: equityDetails.vesting_period,
+            cliffPeriod: equityDetails.cliff_period,
+            numOptions: equityDetails.num_options,
+            strikePrice: equityDetails.strike_price,
+            exitPricePerShare: equityDetails.exit_price_per_share,
+          },
+      results: {
+        finalPayoutValue: results.final_payout_value,
+        finalOpportunityCost: results.final_opportunity_cost,
+        netOutcome: netBenefit,
+        breakeven: results.breakeven_label,
+      },
+    };
+
+    try {
+      saveScenario(scenarioData);
+      toast.success("Scenario saved", {
+        description: `"${baseName}" has been saved for comparison.`,
+      });
+    } catch (error) {
+      console.error("Failed to save scenario:", error);
+      toast.error("Failed to save scenario", {
+        description: "Please try again.",
+      });
+    }
+  };
+
   return (
     <>
       <div className="space-y-6 animate-fade-in">
-        {/* Save Scenario Button */}
+        {/* Save Scenario Button with Dropdown */}
         <div className="flex justify-end">
-          <Button
-            onClick={() => setShowSaveDialog(true)}
-            variant="outline"
-            size="sm"
-            className="font-mono gap-2"
-            disabled={!globalSettings || !currentJob || !equityDetails}
-          >
-            <Save className="h-4 w-4" />
-            Save Scenario
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="font-mono gap-2"
+                disabled={!globalSettings || !currentJob || !equityDetails}
+              >
+                <Save className="h-4 w-4" />
+                Save Scenario
+                <ChevronDown className="h-3 w-3 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="font-mono">
+              <DropdownMenuItem onClick={() => setShowSaveDialog(true)}>
+                <Save className="h-4 w-4 mr-2" />
+                Save with name...
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleQuickSave}>
+                <Copy className="h-4 w-4 mr-2" />
+                Quick save
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Key Metrics Cards */}

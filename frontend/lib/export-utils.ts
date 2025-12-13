@@ -203,6 +203,77 @@ export function clearAllScenarios(): void {
   }
 }
 
+/**
+ * Generate a unique copy name for a scenario.
+ * Handles existing "(Copy)" and "(Copy N)" suffixes intelligently.
+ */
+function generateCopyName(originalName: string, existingScenarios: ScenarioData[]): string {
+  // Extract base name (removing existing (Copy) or (Copy N) suffix)
+  const copyPattern = /^(.+?)\s*\(Copy(?:\s+(\d+))?\)$/;
+  const match = originalName.match(copyPattern);
+  const baseName = match ? match[1] : originalName;
+
+  // Find all existing copy numbers for this base name
+  const existingCopyNumbers: number[] = [];
+  existingScenarios.forEach((scenario) => {
+    if (scenario.name === `${baseName} (Copy)`) {
+      existingCopyNumbers.push(1);
+    } else {
+      const scenarioMatch = scenario.name.match(new RegExp(`^${escapeRegex(baseName)}\\s*\\(Copy\\s+(\\d+)\\)$`));
+      if (scenarioMatch) {
+        existingCopyNumbers.push(parseInt(scenarioMatch[1], 10));
+      }
+    }
+  });
+
+  // Find next available copy number
+  if (existingCopyNumbers.length === 0) {
+    return `${baseName} (Copy)`;
+  }
+
+  const maxNumber = Math.max(...existingCopyNumbers);
+  return `${baseName} (Copy ${maxNumber + 1})`;
+}
+
+/**
+ * Escape special regex characters in a string
+ */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Duplicate a saved scenario, creating a copy with a new name and timestamp.
+ * Returns the duplicated scenario or null if the original wasn't found.
+ */
+export function duplicateScenario(timestamp: string): ScenarioData | null {
+  try {
+    const scenarios = getSavedScenarios();
+    const original = scenarios.find((s) => s.timestamp === timestamp);
+
+    if (!original) {
+      return null;
+    }
+
+    // Deep clone the scenario data
+    const copy: ScenarioData = JSON.parse(JSON.stringify(original));
+
+    // Generate a unique copy name
+    copy.name = generateCopyName(original.name, scenarios);
+
+    // Generate new timestamp
+    copy.timestamp = new Date().toISOString();
+
+    // Save the copy
+    saveScenario(copy);
+
+    return copy;
+  } catch (error) {
+    console.error("Failed to duplicate scenario:", error);
+    return null;
+  }
+}
+
 // ============================================================================
 // Cap Table Export Functions
 // ============================================================================

@@ -12,6 +12,7 @@ import {
   getSavedScenarios,
   deleteScenario,
   clearAllScenarios,
+  duplicateScenario,
   type ScenarioData,
 } from "@/lib/export-utils";
 import type { StartupScenarioResponse } from "@/lib/schemas";
@@ -93,7 +94,7 @@ describe("exportResultsAsCSV", () => {
     results_df: [],
     final_payout_value: 100000,
     final_opportunity_cost: 50000,
-    payout_label: "SAR 100,000",
+    payout_label: "$100,000",
     breakeven_label: "Year 3",
     total_dilution: 0.25,
     diluted_equity_pct: 0.375,
@@ -117,7 +118,7 @@ describe("exportResultsAsCSV", () => {
       results_df: [],
       final_payout_value: 100000,
       final_opportunity_cost: 50000,
-      payout_label: "SAR 100,000",
+      payout_label: "$100,000",
       breakeven_label: "Year 3",
       total_dilution: null,
       diluted_equity_pct: null,
@@ -302,5 +303,80 @@ describe("clearAllScenarios", () => {
   it("does nothing if no scenarios exist", () => {
     expect(() => clearAllScenarios()).not.toThrow();
     expect(getSavedScenarios()).toEqual([]);
+  });
+});
+
+describe("duplicateScenario", () => {
+  it("creates a copy with (Copy) suffix", () => {
+    const original = createMockScenario("My Scenario", "2024-01-01T00:00:00Z");
+    localStorage.setItem("worth_it_scenarios", JSON.stringify([original]));
+
+    const copy = duplicateScenario("2024-01-01T00:00:00Z");
+
+    expect(copy).not.toBeNull();
+    expect(copy!.name).toBe("My Scenario (Copy)");
+  });
+
+  it("creates a new timestamp for the copy", () => {
+    const original = createMockScenario("Test", "2024-01-01T00:00:00Z");
+    localStorage.setItem("worth_it_scenarios", JSON.stringify([original]));
+
+    const copy = duplicateScenario("2024-01-01T00:00:00Z");
+
+    expect(copy).not.toBeNull();
+    expect(copy!.timestamp).not.toBe("2024-01-01T00:00:00Z");
+  });
+
+  it("preserves all data from original", () => {
+    const original = createMockScenario("Test", "2024-01-01T00:00:00Z");
+    localStorage.setItem("worth_it_scenarios", JSON.stringify([original]));
+
+    const copy = duplicateScenario("2024-01-01T00:00:00Z");
+
+    expect(copy).not.toBeNull();
+    expect(copy!.globalSettings).toEqual(original.globalSettings);
+    expect(copy!.currentJob).toEqual(original.currentJob);
+    expect(copy!.equity).toEqual(original.equity);
+    expect(copy!.results).toEqual(original.results);
+  });
+
+  it("automatically saves the copy to localStorage", () => {
+    const original = createMockScenario("Test", "2024-01-01T00:00:00Z");
+    localStorage.setItem("worth_it_scenarios", JSON.stringify([original]));
+
+    duplicateScenario("2024-01-01T00:00:00Z");
+
+    const scenarios = getSavedScenarios();
+    expect(scenarios).toHaveLength(2);
+  });
+
+  it("returns null if original not found", () => {
+    const original = createMockScenario("Test", "2024-01-01T00:00:00Z");
+    localStorage.setItem("worth_it_scenarios", JSON.stringify([original]));
+
+    const copy = duplicateScenario("nonexistent-timestamp");
+
+    expect(copy).toBeNull();
+  });
+
+  it("handles scenarios with (Copy) suffix correctly", () => {
+    const original = createMockScenario("Test (Copy)", "2024-01-01T00:00:00Z");
+    localStorage.setItem("worth_it_scenarios", JSON.stringify([original]));
+
+    const copy = duplicateScenario("2024-01-01T00:00:00Z");
+
+    // Should add (Copy 2) instead of (Copy) (Copy)
+    expect(copy!.name).toBe("Test (Copy 2)");
+  });
+
+  it("increments copy number for multiple duplicates", () => {
+    const original = createMockScenario("Test", "2024-01-01T00:00:00Z");
+    const copy1 = createMockScenario("Test (Copy)", "2024-01-02T00:00:00Z");
+    const copy2 = createMockScenario("Test (Copy 2)", "2024-01-03T00:00:00Z");
+    localStorage.setItem("worth_it_scenarios", JSON.stringify([original, copy1, copy2]));
+
+    const newCopy = duplicateScenario("2024-01-01T00:00:00Z");
+
+    expect(newCopy!.name).toBe("Test (Copy 3)");
   });
 });
