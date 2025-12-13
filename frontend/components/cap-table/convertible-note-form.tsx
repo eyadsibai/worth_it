@@ -18,6 +18,7 @@ import { InformationBox } from "@/components/ui/information-box";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Banknote } from "lucide-react";
+import { TOOLTIPS } from "@/lib/constants/tooltips";
 
 interface ConvertibleNoteFormProps {
   onSubmit: (data: ConvertibleNoteFormData) => void;
@@ -69,6 +70,7 @@ export function ConvertibleNoteForm({
           form={form}
           name="investor_name"
           label="Investor Name"
+          tooltip={TOOLTIPS.shareholderName}
           placeholder="e.g., Angel Investor"
         />
 
@@ -76,10 +78,10 @@ export function ConvertibleNoteForm({
           form={form}
           name="principal_amount"
           label="Principal Amount"
-          description="Amount loaned in this note"
+          tooltip={TOOLTIPS.investmentAmount}
           min={0}
           step={1000}
-          prefix="SAR"
+          prefix="$"
           placeholder="250000"
           formatDisplay={true}
         />
@@ -89,7 +91,7 @@ export function ConvertibleNoteForm({
             form={form}
             name="interest_rate"
             label="Interest Rate"
-            description="Annual interest rate"
+            tooltip={TOOLTIPS.interestRate}
             min={0}
             max={15}
             step={0.5}
@@ -100,7 +102,7 @@ export function ConvertibleNoteForm({
             form={form}
             name="maturity_months"
             label="Maturity"
-            description="Months until maturity"
+            tooltip={TOOLTIPS.conversionDate}
             min={6}
             max={60}
             step={6}
@@ -145,11 +147,11 @@ export function ConvertibleNoteForm({
           <InformationBox className="p-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Accrued Interest at Maturity:</span>
-              <span className="font-mono">SAR {accruedInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+              <span className="font-mono">${accruedInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
             </div>
             <div className="flex justify-between mt-1">
               <span className="text-muted-foreground">Total at Maturity:</span>
-              <span className="font-mono font-medium">SAR {totalAtMaturity.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+              <span className="font-mono font-medium">${totalAtMaturity.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
             </div>
           </InformationBox>
         )}
@@ -158,10 +160,10 @@ export function ConvertibleNoteForm({
           form={form}
           name="valuation_cap"
           label="Valuation Cap (Optional)"
-          description="Maximum valuation for conversion"
+          tooltip={TOOLTIPS.valuationCap}
           min={0}
           step={100000}
-          prefix="SAR"
+          prefix="$"
           placeholder="10000000"
           formatDisplay={true}
         />
@@ -170,7 +172,7 @@ export function ConvertibleNoteForm({
           form={form}
           name="discount_pct"
           label="Discount % (Optional)"
-          description="Discount on next round price"
+          tooltip={TOOLTIPS.discountRate}
           min={0}
           max={100}
           step={1}

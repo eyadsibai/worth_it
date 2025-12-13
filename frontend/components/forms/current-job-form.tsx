@@ -8,6 +8,7 @@ import { Form } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NumberInputField, SliderField, SelectField } from "./form-fields";
 import { useDeepCompareEffect } from "@/lib/use-deep-compare";
+import { TOOLTIPS } from "@/lib/constants/tooltips";
 
 interface CurrentJobFormProps {
   defaultValues?: Partial<CurrentJobForm>;
@@ -53,7 +54,7 @@ export function CurrentJobFormComponent({
               form={form}
               name="monthly_salary"
               label="Monthly Salary"
-              description="Your current monthly gross salary"
+              tooltip={TOOLTIPS.currentMonthlySalary}
               min={0}
               step={100}
               prefix="$"
@@ -65,7 +66,7 @@ export function CurrentJobFormComponent({
               form={form}
               name="annual_salary_growth_rate"
               label="Annual Salary Growth Rate"
-              description="Expected yearly salary increase percentage"
+              tooltip={TOOLTIPS.annualSalaryGrowthRate}
               min={0}
               max={10}
               step={0.1}
@@ -85,7 +86,7 @@ export function CurrentJobFormComponent({
                 form={form}
                 name="assumed_annual_roi"
                 label="Assumed Annual ROI"
-                description="Expected annual return on invested surplus"
+                tooltip={TOOLTIPS.assumedAnnualROI}
                 min={0}
                 max={20}
                 step={0.1}
@@ -96,7 +97,7 @@ export function CurrentJobFormComponent({
                 form={form}
                 name="investment_frequency"
                 label="Investment Frequency"
-                description="How often the surplus is invested"
+                tooltip={TOOLTIPS.investmentFrequency}
                 options={[
                   { value: "Monthly", label: "Monthly" },
                   { value: "Annually", label: "Annually" },

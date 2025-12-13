@@ -7,7 +7,9 @@ import { z } from "zod";
 import { Form } from "@/components/ui/form";
 import { NumberInputField, SliderField, SelectField } from "./form-fields";
 import { useDeepCompareEffect } from "@/lib/use-deep-compare";
+import { isValidStockOptionsData } from "@/lib/validation";
 import type { StockOptionsForm } from "@/lib/schemas";
+import { TOOLTIPS } from "@/lib/constants/tooltips";
 
 // Simplified schema for the form
 const StockOptionsFormSimplifiedSchema = z.object({
@@ -54,7 +56,11 @@ export function StockOptionsFormComponent({
         equity_type: "STOCK_OPTIONS",
         ...watchedValues,
       };
-      onChange(fullData);
+      // Only propagate data when it has meaningful values (not zeros)
+      // This prevents 400 errors from the backend when the form first mounts
+      if (isValidStockOptionsData(fullData)) {
+        onChange(fullData);
+      }
     }
   }, [watchedValues, form.formState.isValid, onChange]);
 
@@ -67,18 +73,19 @@ export function StockOptionsFormComponent({
           form={form}
           name="monthly_salary"
           label="Monthly Salary"
-          description="Your monthly salary at the startup"
+          tooltip={TOOLTIPS.startupMonthlySalary}
           min={0}
           step={100}
-          prefix="SAR"
+          prefix="$"
           placeholder="8000"
+          formatDisplay={true}
         />
 
         <NumberInputField
           form={form}
           name="num_options"
           label="Number of Options"
-          description="Total stock options granted to you"
+          tooltip={TOOLTIPS.numOptions}
           min={0}
           step={1000}
           placeholder="10000"
@@ -89,10 +96,10 @@ export function StockOptionsFormComponent({
           form={form}
           name="strike_price"
           label="Strike Price"
-          description="Price to exercise each option"
+          tooltip={TOOLTIPS.strikePrice}
           min={0}
           step={0.01}
-          prefix="SAR"
+          prefix="$"
           placeholder="1.00"
         />
 
@@ -101,7 +108,7 @@ export function StockOptionsFormComponent({
             form={form}
             name="vesting_period"
             label="Vesting Period"
-            description="Total years to vest"
+            tooltip={TOOLTIPS.vestingPeriod}
             min={1}
             max={10}
             step={1}
@@ -112,7 +119,7 @@ export function StockOptionsFormComponent({
             form={form}
             name="cliff_period"
             label="Cliff Period"
-            description="Years before first vest"
+            tooltip={TOOLTIPS.cliffPeriod}
             min={0}
             max={5}
             step={1}
@@ -152,10 +159,10 @@ export function StockOptionsFormComponent({
           form={form}
           name="exit_price_per_share"
           label="Exit Price Per Share"
-          description="Expected price per share at exit"
+          tooltip={TOOLTIPS.exitPricePerShare}
           min={0}
           step={1}
-          prefix="SAR"
+          prefix="$"
           placeholder="10.00"
         />
       </form>

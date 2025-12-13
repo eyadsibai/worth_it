@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { UseFormReturn } from "react-hook-form";
+import { HelpCircle } from "lucide-react";
 import {
   FormControl,
   FormDescription,
@@ -14,6 +15,11 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface FormFieldProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,6 +27,37 @@ interface FormFieldProps {
   name: string;
   label: string;
   description?: string;
+  tooltip?: string;
+}
+
+/**
+ * FormLabel with optional tooltip icon
+ * Shows a help icon next to the label that displays the tooltip on hover
+ */
+function LabelWithTooltip({ label, tooltip }: { label: string; tooltip?: string }) {
+  if (!tooltip) {
+    return <FormLabel>{label}</FormLabel>;
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <FormLabel>{label}</FormLabel>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={`Help for ${label}`}
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs" sideOffset={4}>
+          <p>{tooltip}</p>
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  );
 }
 
 interface NumberInputFieldProps extends FormFieldProps {
@@ -38,6 +75,7 @@ export function NumberInputField({
   name,
   label,
   description,
+  tooltip,
   min,
   max,
   step = 1,
@@ -60,7 +98,7 @@ export function NumberInputField({
 
         return (
           <FormItem>
-            <FormLabel>{label}</FormLabel>
+            <LabelWithTooltip label={label} tooltip={tooltip} />
             <FormControl>
               <div className="relative">
                 {prefix && (
@@ -114,6 +152,7 @@ export function SliderField({
   name,
   label,
   description,
+  tooltip,
   min,
   max,
   step = 1,
@@ -126,7 +165,7 @@ export function SliderField({
       render={({ field }) => (
         <FormItem>
           <div className="flex items-center justify-between">
-            <FormLabel>{label}</FormLabel>
+            <LabelWithTooltip label={label} tooltip={tooltip} />
             <span className="text-sm font-medium">
               {formatValue ? formatValue(field.value) : field.value}
             </span>
@@ -158,6 +197,7 @@ export function SelectField({
   name,
   label,
   description,
+  tooltip,
   options,
   placeholder = "Select an option",
 }: SelectFieldProps) {
@@ -167,7 +207,7 @@ export function SelectField({
       name={name}
       render={({ field }) => (
         <FormItem>
-          <FormLabel>{label}</FormLabel>
+          <LabelWithTooltip label={label} tooltip={tooltip} />
           <Select onValueChange={field.onChange} defaultValue={field.value}>
             <FormControl>
               <SelectTrigger>
@@ -204,6 +244,7 @@ export function TextInputField({
   name,
   label,
   description,
+  tooltip,
   placeholder,
   type = "text",
 }: TextInputFieldProps) {
@@ -213,7 +254,7 @@ export function TextInputField({
       name={name}
       render={({ field }) => (
         <FormItem>
-          <FormLabel>{label}</FormLabel>
+          <LabelWithTooltip label={label} tooltip={tooltip} />
           <FormControl>
             <Input type={type} placeholder={placeholder} {...field} />
           </FormControl>
@@ -234,6 +275,7 @@ export function CheckboxField({
   name,
   label,
   description,
+  tooltip,
 }: FormFieldProps) {
   return (
     <FormField
@@ -245,7 +287,7 @@ export function CheckboxField({
             <Checkbox checked={field.value} onCheckedChange={field.onChange} />
           </FormControl>
           <div className="space-y-1 leading-none">
-            <FormLabel>{label}</FormLabel>
+            <LabelWithTooltip label={label} tooltip={tooltip} />
             {description && <FormDescription>{description}</FormDescription>}
           </div>
         </FormItem>

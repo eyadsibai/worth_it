@@ -11,7 +11,9 @@ import { DilutionRoundFormComponent } from "./dilution-round-form";
 import { RSUFormSchema } from "@/lib/schemas";
 import type { RSUForm, DilutionRoundForm } from "@/lib/schemas";
 import { useDeepCompareEffect } from "@/lib/use-deep-compare";
+import { isValidRSUData } from "@/lib/validation";
 import { DEFAULT_DILUTION_ROUNDS } from "@/lib/constants/funding-rounds";
+import { TOOLTIPS } from "@/lib/constants/tooltips";
 
 interface RSUFormProps {
   defaultValues?: Partial<RSUForm>;
@@ -38,7 +40,12 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
   const watchedValues = form.watch();
   useDeepCompareEffect(() => {
     if (form.formState.isValid && onChange) {
-      onChange(watchedValues as RSUForm);
+      const fullData = watchedValues as RSUForm;
+      // Only propagate data when it has meaningful values (not zeros)
+      // This prevents 400 errors from the backend when the form first mounts
+      if (isValidRSUData(fullData)) {
+        onChange(fullData);
+      }
     }
   }, [watchedValues, form.formState.isValid, onChange]);
 
@@ -51,18 +58,19 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
           form={form}
           name="monthly_salary"
           label="Monthly Salary"
-          description="Your monthly salary at the startup"
+          tooltip={TOOLTIPS.startupMonthlySalary}
           min={0}
           step={100}
-          prefix="SAR"
+          prefix="$"
           placeholder="8000"
+          formatDisplay={true}
         />
 
         <NumberInputField
           form={form}
           name="total_equity_grant_pct"
           label="Total Equity Grant"
-          description="Percentage of company equity granted to you"
+          tooltip={TOOLTIPS.totalEquityGrantPct}
           min={0}
           max={100}
           step={0.01}
@@ -75,7 +83,7 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
             form={form}
             name="vesting_period"
             label="Vesting Period"
-            description="Total years to vest"
+            tooltip={TOOLTIPS.vestingPeriod}
             min={1}
             max={10}
             step={1}
@@ -86,7 +94,7 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
             form={form}
             name="cliff_period"
             label="Cliff Period"
-            description="Years before first vest"
+            tooltip={TOOLTIPS.cliffPeriod}
             min={0}
             max={5}
             step={1}
@@ -97,11 +105,11 @@ export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
         <NumberInputField
           form={form}
           name="exit_valuation"
-          label="Exit Valuation (for RSUs)"
-          description="Expected company valuation at exit"
+          label="Exit Valuation"
+          tooltip={TOOLTIPS.exitValuation}
           min={0}
           step={1000000}
-          prefix="SAR"
+          prefix="$"
           placeholder="100000000"
           formatDisplay={true}
         />

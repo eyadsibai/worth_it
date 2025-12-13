@@ -9,6 +9,7 @@ import { NumberInputField, SelectField, TextInputField, CheckboxField, SliderFie
 import { StakeholderFormSchema, type StakeholderFormData } from "@/lib/schemas";
 import { InformationBox } from "@/components/ui/information-box";
 import { UserPlus } from "lucide-react";
+import { TOOLTIPS } from "@/lib/constants/tooltips";
 
 interface StakeholderFormProps {
   onSubmit: (data: StakeholderFormData) => void;
@@ -49,6 +50,7 @@ export function StakeholderForm({
           form={form}
           name="name"
           label="Name"
+          tooltip={TOOLTIPS.shareholderName}
           placeholder="e.g., John Smith"
         />
 
@@ -57,6 +59,7 @@ export function StakeholderForm({
             form={form}
             name="type"
             label="Type"
+            tooltip={TOOLTIPS.isFounder}
             options={[
               { value: "founder", label: "Founder" },
               { value: "employee", label: "Employee" },
@@ -69,6 +72,7 @@ export function StakeholderForm({
             form={form}
             name="share_class"
             label="Share Class"
+            tooltip={TOOLTIPS.shareClass}
             options={[
               { value: "common", label: "Common" },
               { value: "preferred", label: "Preferred" },
@@ -80,7 +84,7 @@ export function StakeholderForm({
           form={form}
           name="ownership_pct"
           label="Ownership %"
-          description="Percentage of company owned"
+          tooltip={TOOLTIPS.sharesOwned}
           min={0}
           max={100}
           step={0.1}
@@ -103,7 +107,7 @@ export function StakeholderForm({
               form={form}
               name="vesting_months"
               label="Vesting Period"
-              description="Total months to vest"
+              tooltip={TOOLTIPS.vestingPeriod}
               min={12}
               max={60}
               step={12}
@@ -114,7 +118,7 @@ export function StakeholderForm({
               form={form}
               name="cliff_months"
               label="Cliff Period"
-              description="Months before first vest"
+              tooltip={TOOLTIPS.cliffPeriod}
               min={0}
               max={24}
               step={6}

@@ -9,6 +9,7 @@ import { NumberInputField, TextInputField, CheckboxField } from "@/components/fo
 import { SAFEFormSchema, type SAFEFormData } from "@/lib/schemas";
 import { InformationBox } from "@/components/ui/information-box";
 import { FileText } from "lucide-react";
+import { TOOLTIPS } from "@/lib/constants/tooltips";
 
 interface SAFEFormProps {
   onSubmit: (data: SAFEFormData) => void;
@@ -46,6 +47,7 @@ export function SAFEForm({
           form={form}
           name="investor_name"
           label="Investor Name"
+          tooltip={TOOLTIPS.shareholderName}
           placeholder="e.g., Y Combinator"
         />
 
@@ -53,10 +55,10 @@ export function SAFEForm({
           form={form}
           name="investment_amount"
           label="Investment Amount"
-          description="Amount invested in this SAFE"
+          tooltip={TOOLTIPS.investmentAmount}
           min={0}
           step={1000}
-          prefix="SAR"
+          prefix="$"
           placeholder="500000"
           formatDisplay={true}
         />
@@ -65,10 +67,10 @@ export function SAFEForm({
           form={form}
           name="valuation_cap"
           label="Valuation Cap (Optional)"
-          description="Maximum valuation for conversion"
+          tooltip={TOOLTIPS.valuationCap}
           min={0}
           step={100000}
-          prefix="SAR"
+          prefix="$"
           placeholder="10000000"
           formatDisplay={true}
         />
@@ -77,7 +79,7 @@ export function SAFEForm({
           form={form}
           name="discount_pct"
           label="Discount % (Optional)"
-          description="Discount on next round price"
+          tooltip={TOOLTIPS.discountRate}
           min={0}
           max={100}
           step={1}
@@ -90,13 +92,13 @@ export function SAFEForm({
             form={form}
             name="pro_rata_rights"
             label="Pro-Rata Rights"
-            description="Right to maintain ownership % in future rounds"
+            tooltip={TOOLTIPS.proRataRights}
           />
           <CheckboxField
             form={form}
             name="mfn_clause"
             label="Most Favored Nation (MFN)"
-            description="Gets the best terms of any future SAFE"
+            tooltip={TOOLTIPS.mfnClause}
           />
         </InformationBox>
 

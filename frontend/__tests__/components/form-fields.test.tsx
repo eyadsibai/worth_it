@@ -123,6 +123,41 @@ describe("TextInputField", () => {
   });
 });
 
+describe("TextInputField with tooltip", () => {
+  it("renders tooltip icon when tooltip prop is provided", () => {
+    render(
+      <TestFormWrapper>
+        {(form) => (
+          <TextInputField
+            form={form}
+            name="name"
+            label="Full Name"
+            tooltip="Enter your legal full name as it appears on official documents"
+          />
+        )}
+      </TestFormWrapper>
+    );
+
+    // The tooltip icon should be rendered
+    const helpButton = screen.getByRole("button", { name: /help for full name/i });
+    expect(helpButton).toBeInTheDocument();
+  });
+
+  it("does not render tooltip icon when tooltip prop is not provided", () => {
+    render(
+      <TestFormWrapper>
+        {(form) => (
+          <TextInputField form={form} name="name" label="Full Name" />
+        )}
+      </TestFormWrapper>
+    );
+
+    // The tooltip icon should not be rendered
+    const helpButton = screen.queryByRole("button", { name: /help for full name/i });
+    expect(helpButton).not.toBeInTheDocument();
+  });
+});
+
 describe("CheckboxField", () => {
   it("renders with label", () => {
     render(
