@@ -275,6 +275,254 @@ export function duplicateScenario(timestamp: string): ScenarioData | null {
 }
 
 // ============================================================================
+// Employee Mode Scenario Export Functions
+// ============================================================================
+
+/**
+ * Interface for Monte Carlo statistics used in exports
+ */
+export interface MonteCarloExportStats {
+  mean: number;
+  median: number;
+  stdDev: number;
+  percentiles: Record<string, number>;
+  profitProbability: number;
+}
+
+/**
+ * Export a scenario as a comprehensive CSV file
+ */
+export function exportScenarioAsCSV(scenario: ScenarioData): void {
+  const rows: string[] = [];
+  const timestamp = new Date().toLocaleString();
+
+  // Header section
+  rows.push("Worth It Analysis Report");
+  rows.push(`Generated,${timestamp}`);
+  rows.push(`Scenario Name,${escapeCSVValue(scenario.name)}`);
+  rows.push("");
+
+  // Global Settings
+  rows.push("GLOBAL SETTINGS");
+  rows.push("Setting,Value");
+  rows.push(`Exit Year,${scenario.globalSettings.exitYear}`);
+  rows.push("");
+
+  // Current Job
+  rows.push("CURRENT JOB");
+  rows.push("Metric,Value");
+  rows.push(`Monthly Salary,${scenario.currentJob.monthlySalary}`);
+  rows.push(`Annual Growth Rate,${(scenario.currentJob.annualGrowthRate * 100).toFixed(1)}%`);
+  rows.push(`Assumed ROI,${(scenario.currentJob.assumedROI * 100).toFixed(1)}%`);
+  rows.push(`Investment Frequency,${scenario.currentJob.investmentFrequency}`);
+  rows.push("");
+
+  // Equity Details
+  rows.push("STARTUP OFFER");
+  rows.push("Metric,Value");
+  rows.push(`Equity Type,${scenario.equity.type}`);
+  rows.push(`Monthly Salary,${scenario.equity.monthlySalary}`);
+  rows.push(`Vesting Period,${scenario.equity.vestingPeriod} years`);
+  rows.push(`Cliff Period,${scenario.equity.cliffPeriod} year(s)`);
+
+  if (scenario.equity.type === "RSU") {
+    rows.push(`Equity Percentage,${((scenario.equity.equityPct || 0) * 100).toFixed(2)}%`);
+    rows.push(`Exit Valuation,${scenario.equity.exitValuation || 0}`);
+    if (scenario.equity.simulateDilution !== undefined) {
+      rows.push(`Simulate Dilution,${scenario.equity.simulateDilution ? "Yes" : "No"}`);
+    }
+  } else {
+    rows.push(`Number of Options,${scenario.equity.numOptions || 0}`);
+    rows.push(`Strike Price,${scenario.equity.strikePrice || 0}`);
+    rows.push(`Exit Price per Share,${scenario.equity.exitPricePerShare || 0}`);
+  }
+  rows.push("");
+
+  // Results
+  rows.push("RESULTS");
+  rows.push("Metric,Value");
+  rows.push(`Final Payout Value,${scenario.results.finalPayoutValue}`);
+  rows.push(`Final Opportunity Cost,${scenario.results.finalOpportunityCost}`);
+  rows.push(`Net Outcome,${scenario.results.netOutcome}`);
+  rows.push(`Verdict,${scenario.results.netOutcome >= 0 ? "WORTH IT" : "NOT WORTH IT"}`);
+  if (scenario.results.breakeven) {
+    rows.push(`Breakeven,${scenario.results.breakeven}`);
+  }
+
+  const csvContent = rows.join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
+  const csvFilename = `scenario-${scenario.name.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-${new Date().toISOString().split("T")[0]}.csv`;
+  downloadBlob(blob, csvFilename);
+}
+
+/**
+ * Export a scenario as a JSON file for backup/import
+ */
+export function exportScenarioAsJSON(
+  scenario: ScenarioData,
+  monteCarloStats?: MonteCarloExportStats
+): void {
+  const exportData = {
+    version: "1.0",
+    exportedAt: new Date().toISOString(),
+    scenario: scenario,
+    monteCarloStats: monteCarloStats || null,
+  };
+
+  const jsonString = JSON.stringify(exportData, null, 2);
+  const blob = new Blob([jsonString], { type: "application/json" });
+  const jsonFilename = `scenario-${scenario.name.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-${new Date().toISOString().split("T")[0]}.json`;
+  downloadBlob(blob, jsonFilename);
+}
+
+/**
+ * Export a scenario as a professional PDF report
+ */
+export function exportScenarioAsPDF(
+  scenario: ScenarioData,
+  monteCarloStats?: MonteCarloExportStats
+): void {
+  const doc = new jsPDF();
+  const timestamp = new Date().toLocaleDateString();
+  const isPositive = scenario.results.netOutcome >= 0;
+
+  // Title
+  doc.setFontSize(24);
+  doc.text("Worth It Analysis Report", 14, 22);
+
+  doc.setFontSize(10);
+  doc.setTextColor(100);
+  doc.text(`Generated: ${timestamp}`, 14, 30);
+  doc.text(`Scenario: ${scenario.name}`, 14, 36);
+  doc.setTextColor(0);
+
+  // Executive Summary Box
+  doc.setFontSize(14);
+  doc.text("Executive Summary", 14, 50);
+
+  doc.setFontSize(11);
+  const verdictText = isPositive ? "WORTH IT" : "NOT WORTH IT";
+  const netOutcomeFormatted = formatNumber(scenario.results.netOutcome);
+  doc.text(`Net Benefit: $${netOutcomeFormatted} (${verdictText})`, 14, 60);
+  doc.text(`Equity Payout: $${formatNumber(scenario.results.finalPayoutValue)}`, 14, 68);
+  doc.text(`Opportunity Cost: $${formatNumber(scenario.results.finalOpportunityCost)}`, 14, 76);
+  if (scenario.results.breakeven) {
+    doc.text(`Breakeven: ${scenario.results.breakeven}`, 14, 84);
+  }
+
+  // Inputs Table
+  doc.setFontSize(14);
+  doc.text("Analysis Inputs", 14, 100);
+
+  const inputData = [
+    ["Exit Horizon", `Year ${scenario.globalSettings.exitYear}`],
+    ["Current Monthly Salary", `$${formatNumber(scenario.currentJob.monthlySalary)}`],
+    ["Salary Growth Rate", `${(scenario.currentJob.annualGrowthRate * 100).toFixed(1)}%`],
+    ["Investment ROI", `${(scenario.currentJob.assumedROI * 100).toFixed(1)}%`],
+    ["Startup Monthly Salary", `$${formatNumber(scenario.equity.monthlySalary)}`],
+    ["Equity Type", scenario.equity.type === "RSU" ? "RSU" : "Stock Options"],
+    ["Vesting Period", `${scenario.equity.vestingPeriod} years`],
+    ["Cliff Period", `${scenario.equity.cliffPeriod} year(s)`],
+  ];
+
+  // Add equity-specific details
+  if (scenario.equity.type === "RSU") {
+    inputData.push(["Equity Percentage", `${((scenario.equity.equityPct || 0) * 100).toFixed(3)}%`]);
+    inputData.push(["Exit Valuation", `$${formatNumber(scenario.equity.exitValuation || 0)}`]);
+  } else {
+    inputData.push(["Number of Options", formatNumber(scenario.equity.numOptions || 0)]);
+    inputData.push(["Strike Price", `$${(scenario.equity.strikePrice || 0).toFixed(2)}`]);
+    inputData.push(["Exit Price/Share", `$${(scenario.equity.exitPricePerShare || 0).toFixed(2)}`]);
+  }
+
+  autoTable(doc, {
+    startY: 105,
+    head: [["Parameter", "Value"]],
+    body: inputData,
+    theme: "striped",
+    headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
+    styles: { fontSize: 9 },
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let finalY = (doc as any).lastAutoTable?.finalY || 105;
+
+  // Monte Carlo Section (if provided)
+  if (monteCarloStats) {
+    if (finalY > PDF_CONFIG.BREAK_THRESHOLD) {
+      doc.addPage();
+      finalY = 20;
+    } else {
+      finalY += 15;
+    }
+
+    doc.setFontSize(14);
+    doc.text("Monte Carlo Analysis", 14, finalY);
+
+    const mcData = [
+      ["Expected Value (Mean)", `$${formatNumber(monteCarloStats.mean)}`],
+      ["Median Outcome", `$${formatNumber(monteCarloStats.median)}`],
+      ["Standard Deviation", `$${formatNumber(monteCarloStats.stdDev)}`],
+      ["Probability of Profit", `${(monteCarloStats.profitProbability * 100).toFixed(1)}%`],
+    ];
+
+    // Add percentiles
+    Object.entries(monteCarloStats.percentiles).forEach(([key, value]) => {
+      mcData.push([key, `$${formatNumber(value)}`]);
+    });
+
+    autoTable(doc, {
+      startY: finalY + 5,
+      head: [["Metric", "Value"]],
+      body: mcData,
+      theme: "striped",
+      headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
+      styles: { fontSize: 9 },
+    });
+  }
+
+  // Footer
+  const pageCount = doc.internal.pages.length - 1;
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text(
+      "Generated by Worth It - https://worth-it.app",
+      14,
+      doc.internal.pageSize.getHeight() - 10
+    );
+    doc.text(
+      `Page ${i} of ${pageCount}`,
+      doc.internal.pageSize.getWidth() - 30,
+      doc.internal.pageSize.getHeight() - 10
+    );
+  }
+
+  // Save the PDF
+  const pdfFilename = `worth-it-report-${new Date().toISOString().split("T")[0]}.pdf`;
+  doc.save(pdfFilename);
+}
+
+/**
+ * Format a number with thousands separators
+ */
+function formatNumber(value: number): string {
+  return Math.round(value).toLocaleString();
+}
+
+/**
+ * Escape a value for CSV (internal helper that doesn't add extension)
+ */
+function escapeCSVValue(value: string): string {
+  if (value.includes('"') || value.includes(',') || value.includes('\n') || value.includes('\r')) {
+    const escaped = value.replace(/"/g, '""');
+    return `"${escaped}"`;
+  }
+  return value;
+}
+
+// ============================================================================
 // Cap Table Export Functions
 // ============================================================================
 
