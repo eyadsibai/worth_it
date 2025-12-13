@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, Users, Landmark, PieChart, BarChart3 } from "lucide-react";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { StakeholderForm } from "./stakeholder-form";
 import { OwnershipChart } from "./ownership-chart";
 import { ExitCalculator } from "./exit-calculator";
@@ -339,14 +340,23 @@ export function CapTableManager({
                             <span className="text-lg font-mono font-semibold">
                               <AnimatedPercentage value={stakeholder.ownership_pct} />
                             </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveStakeholder(stakeholder.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <ConfirmationDialog
+                              trigger={
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive"
+                                  aria-label={`Delete ${stakeholder.name}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              }
+                              title="Delete stakeholder?"
+                              description={`This will remove ${stakeholder.name} from your cap table. This action cannot be undone.`}
+                              confirmLabel="Delete"
+                              variant="destructive"
+                              onConfirm={() => handleRemoveStakeholder(stakeholder.id)}
+                            />
                           </div>
                         </motion.div>
                       </MotionListItem>

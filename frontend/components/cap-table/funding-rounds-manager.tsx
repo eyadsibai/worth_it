@@ -27,6 +27,7 @@ import type {
   Stakeholder,
 } from "@/lib/schemas";
 import { FileText, Banknote, TrendingUp, Trash2 } from "lucide-react";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 interface FundingRoundsManagerProps {
   instruments: FundingInstrument[];
@@ -41,9 +42,9 @@ interface FundingRoundsManagerProps {
 // Format currency
 function formatCurrency(value: number): string {
   if (value >= 1000000) {
-    return `SAR ${(value / 1000000).toFixed(2)}M`;
+    return `$${(value / 1000000).toFixed(2)}M`;
   }
-  return `SAR ${value.toLocaleString()}`;
+  return `$${value.toLocaleString()}`;
 }
 
 export function FundingRoundsManager({
@@ -137,7 +138,7 @@ export function FundingRoundsManager({
         >
           <div className="text-muted-foreground">Total Raised</div>
           <div className="text-lg font-mono font-medium text-terminal">
-            SAR <AnimatedNumber
+            $ <AnimatedNumber
               value={totalRaised}
               formatValue={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(2)}M` : v.toLocaleString()}
             />
@@ -283,14 +284,23 @@ export function FundingRoundsManager({
                           {instrument.type === "CONVERTIBLE_NOTE" && "Note"}
                           {instrument.type === "PRICED_ROUND" && "Priced"}
                         </Badge>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onRemoveInstrument(instrument.id)}
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <ConfirmationDialog
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              aria-label={`Delete ${instrument.type === "PRICED_ROUND" ? instrument.round_name : instrument.investor_name}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          }
+                          title="Delete funding instrument?"
+                          description={`This will remove the ${instrument.type === "SAFE" ? "SAFE" : instrument.type === "CONVERTIBLE_NOTE" ? "Convertible Note" : "Priced Round"} from ${instrument.type === "PRICED_ROUND" ? instrument.round_name : instrument.investor_name}. This action cannot be undone.`}
+                          confirmLabel="Delete"
+                          variant="destructive"
+                          onConfirm={() => onRemoveInstrument(instrument.id)}
+                        />
                       </div>
                     </motion.div>
                   </MotionListItem>

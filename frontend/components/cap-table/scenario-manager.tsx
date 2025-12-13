@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { Save, Trash2, Download, Upload, FolderOpen } from "lucide-react";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -185,16 +186,25 @@ export function ScenarioManager({
                     <Download className="h-4 w-4" />
                     <span className="sr-only">Export JSON</span>
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDelete(scenario.id)}
-                    title="Delete scenario"
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span className="sr-only">Delete</span>
-                  </Button>
+                  <ConfirmationDialog
+                    trigger={
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        title="Delete scenario"
+                        className="text-destructive hover:text-destructive"
+                        aria-label={`Delete ${scenario.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Delete</span>
+                      </Button>
+                    }
+                    title="Delete scenario?"
+                    description={`This will permanently delete "${scenario.name}". This action cannot be undone.`}
+                    confirmLabel="Delete"
+                    variant="destructive"
+                    onConfirm={() => handleDelete(scenario.id)}
+                  />
                 </div>
               </div>
             ))}

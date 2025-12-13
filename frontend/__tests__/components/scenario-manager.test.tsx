@@ -165,7 +165,7 @@ describe("ScenarioManager", () => {
     expect(onLoadScenario).toHaveBeenCalledWith(mockScenario);
   });
 
-  it("deletes scenario when delete button is clicked", async () => {
+  it("deletes scenario when delete button is clicked and confirmed", async () => {
     const user = userEvent.setup();
     mockLoadFounderScenarios.mockReturnValue([mockScenario]);
 
@@ -178,7 +178,14 @@ describe("ScenarioManager", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: /delete/i }));
+    // Click delete button to open confirmation dialog
+    await user.click(screen.getByRole("button", { name: /delete test scenario/i }));
+
+    // Wait for dialog and confirm
+    await waitFor(() => {
+      expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: /^delete$/i }));
 
     expect(mockDeleteFounderScenario).toHaveBeenCalledWith(mockScenario.id);
   });
@@ -259,7 +266,14 @@ describe("ScenarioManager", () => {
 
     expect(screen.getByText("Test Scenario")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /delete/i }));
+    // Click delete button to open confirmation dialog
+    await user.click(screen.getByRole("button", { name: /delete test scenario/i }));
+
+    // Wait for dialog and confirm
+    await waitFor(() => {
+      expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: /^delete$/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/no saved scenarios/i)).toBeInTheDocument();

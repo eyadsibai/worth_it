@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Calendar, TrendingUp, TrendingDown } from "lucide-react";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { toast } from "sonner";
 import { getSavedScenarios, deleteScenario, clearAllScenarios, type ScenarioData } from "@/lib/export-utils";
 import { formatCurrency } from "@/lib/format-utils";
@@ -165,17 +166,24 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                           {new Date(scenario.timestamp).toLocaleString()}
                         </div>
                       </div>
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteScenario(scenario.timestamp);
-                        }}
-                        variant="ghost"
-                        size="icon-sm"
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <ConfirmationDialog
+                        trigger={
+                          <Button
+                            onClick={(e) => e.stopPropagation()}
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-destructive hover:text-destructive"
+                            aria-label={`Delete ${scenario.name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        }
+                        title="Delete scenario?"
+                        description={`This will permanently delete "${scenario.name}". This action cannot be undone.`}
+                        confirmLabel="Delete"
+                        variant="destructive"
+                        onConfirm={() => handleDeleteScenario(scenario.timestamp)}
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 text-xs">
