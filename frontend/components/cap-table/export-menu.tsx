@@ -1,6 +1,7 @@
 "use client";
 
 import { Download, FileSpreadsheet, FileText } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -36,21 +37,41 @@ export function ExportMenu({
   const timestamp = new Date().toISOString().split("T")[0];
 
   const handleExportCapTableCSV = () => {
-    exportCapTableAsCSV(capTable, `cap-table-${timestamp}`);
+    try {
+      exportCapTableAsCSV(capTable, `cap-table-${timestamp}`);
+      toast.success("Export complete", { description: "Cap table CSV downloaded." });
+    } catch {
+      toast.error("Export failed", { description: "Could not generate CSV file." });
+    }
   };
 
   const handleExportFundingCSV = () => {
-    exportFundingHistoryAsCSV(instruments, `funding-history-${timestamp}`);
+    try {
+      exportFundingHistoryAsCSV(instruments, `funding-history-${timestamp}`);
+      toast.success("Export complete", { description: "Funding history CSV downloaded." });
+    } catch {
+      toast.error("Export failed", { description: "Could not generate CSV file." });
+    }
   };
 
   const handleExportExitScenariosCSV = () => {
     if (exitValuations && exitValuations.length > 0) {
-      exportExitScenariosAsCSV(capTable, exitValuations, `exit-scenarios-${timestamp}`);
+      try {
+        exportExitScenariosAsCSV(capTable, exitValuations, `exit-scenarios-${timestamp}`);
+        toast.success("Export complete", { description: "Exit scenarios CSV downloaded." });
+      } catch {
+        toast.error("Export failed", { description: "Could not generate CSV file." });
+      }
     }
   };
 
   const handleExportPDF = () => {
-    exportCapTableAsPDF(capTable, instruments, waterfall);
+    try {
+      exportCapTableAsPDF(capTable, instruments, waterfall);
+      toast.success("Export complete", { description: "PDF report downloaded." });
+    } catch {
+      toast.error("Export failed", { description: "Could not generate PDF file." });
+    }
   };
 
   return (

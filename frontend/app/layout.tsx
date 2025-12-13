@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { JetBrains_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/lib/providers";
+import { Toaster } from "@/components/ui/sonner";
 
 // Terminal-style monospace for data and code - the star of the show
 const jetbrainsMono = JetBrains_Mono({
@@ -33,6 +34,7 @@ export default function RootLayout({
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >
         <Providers>{children}</Providers>
+        <Toaster position="bottom-right" richColors closeButton />
       </body>
     </html>
   );

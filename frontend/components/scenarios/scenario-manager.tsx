@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trash2, Calendar, TrendingUp, TrendingDown } from "lucide-react";
+import { toast } from "sonner";
 import { getSavedScenarios, deleteScenario, clearAllScenarios, type ScenarioData } from "@/lib/export-utils";
 import { formatCurrency } from "@/lib/format-utils";
 import {
@@ -33,20 +34,36 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
   }, []);
 
   const handleDeleteScenario = (timestamp: string) => {
-    deleteScenario(timestamp);
-    setScenarios(getSavedScenarios());
-    setSelectedScenarios((prev) => {
-      const updated = new Set(prev);
-      updated.delete(timestamp);
-      return updated;
-    });
+    const scenarioName = scenarios.find((s) => s.timestamp === timestamp)?.name;
+    try {
+      deleteScenario(timestamp);
+      setScenarios(getSavedScenarios());
+      setSelectedScenarios((prev) => {
+        const updated = new Set(prev);
+        updated.delete(timestamp);
+        return updated;
+      });
+      toast.success("Scenario deleted", {
+        description: scenarioName ? `"${scenarioName}" has been removed.` : "The scenario has been removed.",
+      });
+    } catch {
+      toast.error("Failed to delete scenario", { description: "Please try again." });
+    }
   };
 
   const handleClearAll = () => {
-    clearAllScenarios();
-    setScenarios([]);
-    setSelectedScenarios(new Set());
-    setShowClearConfirm(false);
+    const count = scenarios.length;
+    try {
+      clearAllScenarios();
+      setScenarios([]);
+      setSelectedScenarios(new Set());
+      setShowClearConfirm(false);
+      toast.success("All scenarios cleared", {
+        description: `${count} scenario${count !== 1 ? "s" : ""} removed.`,
+      });
+    } catch {
+      toast.error("Failed to clear scenarios", { description: "Please try again." });
+    }
   };
 
   const handleToggleSelect = (timestamp: string) => {

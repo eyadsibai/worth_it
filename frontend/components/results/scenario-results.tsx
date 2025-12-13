@@ -6,10 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, Save } from "lucide-react";
+import { toast } from "sonner";
 import type { StartupScenarioResponse, GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm } from "@/lib/schemas";
 import { CumulativeComparisonChart } from "@/components/charts/cumulative-comparison-chart";
 import { OpportunityCostChart } from "@/components/charts/opportunity-cost-chart";
-import { formatCurrency, formatCurrencyCompact } from "@/lib/format-utils";
+import { formatCurrency } from "@/lib/format-utils";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
 import { saveScenario, type ScenarioData } from "@/lib/export-utils";
 import {
@@ -35,7 +36,6 @@ interface ScenarioResultsProps {
 export function ScenarioResults({ results, isLoading, monteCarloContent, globalSettings, currentJob, equityDetails }: ScenarioResultsProps) {
   const [showSaveDialog, setShowSaveDialog] = React.useState(false);
   const [scenarioName, setScenarioName] = React.useState("");
-  const [saveSuccess, setSaveSuccess] = React.useState(false);
 
   if (isLoading) {
     return (
@@ -99,14 +99,16 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
 
     try {
       saveScenario(scenarioData);
-      setSaveSuccess(true);
-      setTimeout(() => {
-        setShowSaveDialog(false);
-        setSaveSuccess(false);
-        setScenarioName("");
-      }, 1500);
+      toast.success("Scenario saved", {
+        description: `"${scenarioName.trim()}" has been saved for comparison.`,
+      });
+      setShowSaveDialog(false);
+      setScenarioName("");
     } catch (error) {
       console.error("Failed to save scenario:", error);
+      toast.error("Failed to save scenario", {
+        description: "Please try again.",
+      });
     }
   };
 
@@ -362,11 +364,6 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
                 className="font-mono"
               />
             </div>
-            {saveSuccess && (
-              <div className="text-sm text-terminal font-mono flex items-center gap-2">
-                <span>Scenario saved successfully!</span>
-              </div>
-            )}
           </div>
           <DialogFooter>
             <Button
