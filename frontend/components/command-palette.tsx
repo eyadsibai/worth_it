@@ -21,7 +21,7 @@ import {
   CommandList,
   CommandShortcut,
 } from "@/components/ui/command";
-import { useAppStore } from "@/lib/store";
+import { useAppStore, useCommandPaletteOpen, useSetCommandPaletteOpen } from "@/lib/store";
 
 interface CommandPaletteProps {
   open: boolean;
@@ -35,8 +35,10 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
   const runCommand = React.useCallback(
     (command: () => void) => {
-      onOpenChange(false);
+      // Execute command first, then close dialog for better UX
+      // This ensures the command completes before the dialog disappears
       command();
+      onOpenChange(false);
     },
     [onOpenChange]
   );
@@ -99,22 +101,25 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 }
 
 /**
- * Hook to manage command palette state with keyboard shortcut
+ * Hook to manage command palette state with keyboard shortcut.
+ * Uses Zustand store for global state management, ensuring state is shared
+ * across all components that use this hook.
  */
 export function useCommandPalette() {
-  const [open, setOpen] = React.useState(false);
+  const open = useCommandPaletteOpen();
+  const setOpen = useSetCommandPaletteOpen();
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setOpen((open) => !open);
+        setOpen(!open);
       }
     };
 
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
-  }, []);
+  }, [open, setOpen]);
 
   return { open, setOpen };
 }

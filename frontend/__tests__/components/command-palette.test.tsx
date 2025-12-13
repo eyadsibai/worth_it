@@ -28,16 +28,22 @@ vi.mock("next-themes", () => ({
 
 // Mock zustand store
 const mockSetAppMode = vi.fn();
+const mockSetCommandPaletteOpen = vi.fn();
+let mockCommandPaletteOpen = false;
+
 vi.mock("@/lib/store", () => ({
   useAppStore: () => ({
     appMode: "employee",
     setAppMode: mockSetAppMode,
   }),
+  useCommandPaletteOpen: () => mockCommandPaletteOpen,
+  useSetCommandPaletteOpen: () => mockSetCommandPaletteOpen,
 }));
 
 describe("CommandPalette", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCommandPaletteOpen = false;
   });
 
   afterEach(() => {
@@ -265,13 +271,18 @@ describe("CommandPalette", () => {
 });
 
 describe("useCommandPalette hook", () => {
-  it("initializes with open=false", () => {
+  beforeEach(() => {
+    mockSetCommandPaletteOpen.mockClear();
+    mockCommandPaletteOpen = false;
+  });
+
+  it("initializes with open=false from Zustand store", () => {
     const { result } = renderHook(() => useCommandPalette());
     expect(result.current.open).toBe(false);
   });
 
-  it("toggles open state on Cmd+K", () => {
-    const { result } = renderHook(() => useCommandPalette());
+  it("calls setOpen to toggle on Cmd+K", () => {
+    renderHook(() => useCommandPalette());
 
     act(() => {
       // Simulate Cmd+K keydown
@@ -283,23 +294,12 @@ describe("useCommandPalette hook", () => {
       document.dispatchEvent(event);
     });
 
-    expect(result.current.open).toBe(true);
-
-    act(() => {
-      // Toggle off
-      const event = new KeyboardEvent("keydown", {
-        key: "k",
-        metaKey: true,
-        bubbles: true,
-      });
-      document.dispatchEvent(event);
-    });
-
-    expect(result.current.open).toBe(false);
+    // Should call setOpen with toggled value (!false = true)
+    expect(mockSetCommandPaletteOpen).toHaveBeenCalledWith(true);
   });
 
-  it("toggles open state on Ctrl+K", () => {
-    const { result } = renderHook(() => useCommandPalette());
+  it("calls setOpen to toggle on Ctrl+K", () => {
+    renderHook(() => useCommandPalette());
 
     act(() => {
       // Simulate Ctrl+K keydown
@@ -311,22 +311,20 @@ describe("useCommandPalette hook", () => {
       document.dispatchEvent(event);
     });
 
-    expect(result.current.open).toBe(true);
+    // Should call setOpen with toggled value (!false = true)
+    expect(mockSetCommandPaletteOpen).toHaveBeenCalledWith(true);
   });
 
-  it("provides setOpen function", () => {
+  it("provides setOpen function from Zustand store", () => {
     const { result } = renderHook(() => useCommandPalette());
+
+    // setOpen should be the mocked function
+    expect(result.current.setOpen).toBe(mockSetCommandPaletteOpen);
 
     act(() => {
       result.current.setOpen(true);
     });
 
-    expect(result.current.open).toBe(true);
-
-    act(() => {
-      result.current.setOpen(false);
-    });
-
-    expect(result.current.open).toBe(false);
+    expect(mockSetCommandPaletteOpen).toHaveBeenCalledWith(true);
   });
 });

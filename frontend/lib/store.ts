@@ -35,6 +35,10 @@ interface AppState {
   appMode: AppMode;
   setAppMode: (mode: AppMode) => void;
 
+  // Command Palette State
+  commandPaletteOpen: boolean;
+  setCommandPaletteOpen: (open: boolean) => void;
+
   // Employee Mode - Form State
   globalSettings: GlobalSettingsForm | null;
   currentJob: CurrentJobForm | null;
@@ -74,6 +78,10 @@ export const useAppStore = create<AppState>()(
       // App Mode
       appMode: "employee",
       setAppMode: (mode) => set({ appMode: mode }),
+
+      // Command Palette State
+      commandPaletteOpen: false,
+      setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
 
       // Employee Mode - Form State
       globalSettings: null,
@@ -123,3 +131,5 @@ export const useCapTable = () => useAppStore((state) => state.capTable);
 export const useInstruments = () => useAppStore((state) => state.instruments);
 export const usePreferenceTiers = () => useAppStore((state) => state.preferenceTiers);
 export const useComparisonScenarios = () => useAppStore((state) => state.comparisonScenarios);
+export const useCommandPaletteOpen = () => useAppStore((state) => state.commandPaletteOpen);
+export const useSetCommandPaletteOpen = () => useAppStore((state) => state.setCommandPaletteOpen);
