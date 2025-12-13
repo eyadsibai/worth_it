@@ -5,10 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Calendar, TrendingUp, TrendingDown, Copy } from "lucide-react";
+import { Trash2, Calendar, TrendingUp, TrendingDown, Copy, Pencil, StickyNote } from "lucide-react";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { toast } from "sonner";
-import { getSavedScenarios, deleteScenario, clearAllScenarios, duplicateScenario, type ScenarioData } from "@/lib/export-utils";
+import { getSavedScenarios, deleteScenario, clearAllScenarios, duplicateScenario, updateScenarioNotes, type ScenarioData } from "@/lib/export-utils";
 import { formatCurrency } from "@/lib/format-utils";
 import {
   Dialog,
@@ -18,6 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 interface ScenarioManagerProps {
   onLoadScenario?: (scenario: ScenarioData) => void;
@@ -28,6 +30,8 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
   const [scenarios, setScenarios] = React.useState<ScenarioData[]>([]);
   const [selectedScenarios, setSelectedScenarios] = React.useState<Set<string>>(new Set());
   const [showClearConfirm, setShowClearConfirm] = React.useState(false);
+  const [editingNotesTimestamp, setEditingNotesTimestamp] = React.useState<string | null>(null);
+  const [editingNotesValue, setEditingNotesValue] = React.useState("");
 
   // Load scenarios from localStorage on mount
   React.useEffect(() => {
@@ -96,6 +100,41 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
       const selected = scenarios.filter((s) => selectedScenarios.has(s.timestamp));
       onCompareScenarios(selected);
     }
+  };
+
+  const handleOpenEditNotes = (timestamp: string) => {
+    const scenario = scenarios.find((s) => s.timestamp === timestamp);
+    setEditingNotesTimestamp(timestamp);
+    setEditingNotesValue(scenario?.notes || "");
+  };
+
+  const handleSaveNotes = () => {
+    if (!editingNotesTimestamp) return;
+
+    const scenario = scenarios.find((s) => s.timestamp === editingNotesTimestamp);
+    const trimmedNotes = editingNotesValue.trim() || undefined;
+
+    try {
+      const success = updateScenarioNotes(editingNotesTimestamp, trimmedNotes);
+      if (success) {
+        setScenarios(getSavedScenarios());
+        toast.success("Notes updated", {
+          description: scenario?.name ? `Notes for "${scenario.name}" have been updated.` : "Notes have been updated.",
+        });
+      } else {
+        toast.error("Failed to update notes", { description: "Scenario not found." });
+      }
+    } catch {
+      toast.error("Failed to update notes", { description: "Please try again." });
+    }
+
+    setEditingNotesTimestamp(null);
+    setEditingNotesValue("");
+  };
+
+  const handleCloseEditNotes = () => {
+    setEditingNotesTimestamp(null);
+    setEditingNotesValue("");
   };
 
   if (scenarios.length === 0) {
@@ -182,6 +221,18 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                         <Button
                           onClick={(e) => {
                             e.stopPropagation();
+                            handleOpenEditNotes(scenario.timestamp);
+                          }}
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-muted-foreground hover:text-foreground"
+                          aria-label={`Edit notes for ${scenario.name}`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
                             handleDuplicateScenario(scenario.timestamp);
                           }}
                           variant="ghost"
@@ -211,6 +262,16 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                         />
                       </div>
                     </div>
+
+                    {/* Notes display */}
+                    {scenario.notes && (
+                      <div className="flex items-start gap-2 mb-3 p-2 rounded-md bg-muted/50">
+                        <StickyNote className="h-3 w-3 mt-0.5 text-muted-foreground flex-shrink-0" />
+                        <p className="text-xs text-muted-foreground italic line-clamp-2">
+                          {scenario.notes}
+                        </p>
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
@@ -288,6 +349,48 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
               className="font-mono"
             >
               Clear All
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Notes Dialog */}
+      <Dialog open={editingNotesTimestamp !== null} onOpenChange={(open) => !open && handleCloseEditNotes()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-mono">Edit Notes</DialogTitle>
+            <DialogDescription className="font-mono">
+              Add or update notes for this scenario.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-notes" className="font-mono text-sm">
+                Notes
+              </Label>
+              <Textarea
+                id="edit-notes"
+                placeholder="Add any notes or comments about this scenario..."
+                value={editingNotesValue}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditingNotesValue(e.target.value)}
+                className="font-mono min-h-[100px] resize-none"
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={handleCloseEditNotes}
+              variant="outline"
+              className="font-mono"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveNotes}
+              className="font-mono"
+            >
+              Save Notes
             </Button>
           </DialogFooter>
         </DialogContent>

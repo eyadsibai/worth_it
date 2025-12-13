@@ -13,6 +13,7 @@ import {
   deleteScenario,
   clearAllScenarios,
   duplicateScenario,
+  updateScenarioNotes,
   type ScenarioData,
 } from "@/lib/export-utils";
 import type { StartupScenarioResponse } from "@/lib/schemas";
@@ -190,9 +191,10 @@ describe("exportMonteCarloStatsAsCSV", () => {
 // localStorage Scenario Management Tests
 // =============================================================================
 
-const createMockScenario = (name: string, timestamp: string): ScenarioData => ({
+const createMockScenario = (name: string, timestamp: string, notes?: string): ScenarioData => ({
   name,
   timestamp,
+  notes,
   globalSettings: { exitYear: 5 },
   currentJob: {
     monthlySalary: 15000,
@@ -378,5 +380,106 @@ describe("duplicateScenario", () => {
     const newCopy = duplicateScenario("2024-01-01T00:00:00Z");
 
     expect(newCopy!.name).toBe("Test (Copy 3)");
+  });
+
+  it("preserves notes when duplicating", () => {
+    const original = createMockScenario("Test", "2024-01-01T00:00:00Z", "Original notes");
+    localStorage.setItem("worth_it_scenarios", JSON.stringify([original]));
+
+    const copy = duplicateScenario("2024-01-01T00:00:00Z");
+
+    expect(copy).not.toBeNull();
+    expect(copy!.notes).toBe("Original notes");
+  });
+});
+
+// =============================================================================
+// Scenario Notes Tests
+// =============================================================================
+
+describe("scenario notes", () => {
+  it("saves scenario with notes", () => {
+    const scenario = createMockScenario("Test", "2024-01-01T00:00:00Z", "My analysis notes");
+
+    saveScenario(scenario);
+
+    const saved = getSavedScenarios();
+    expect(saved[0].notes).toBe("My analysis notes");
+  });
+
+  it("saves scenario without notes (undefined)", () => {
+    const scenario = createMockScenario("Test", "2024-01-01T00:00:00Z");
+
+    saveScenario(scenario);
+
+    const saved = getSavedScenarios();
+    expect(saved[0].notes).toBeUndefined();
+  });
+});
+
+describe("updateScenarioNotes", () => {
+  it("updates notes for existing scenario", () => {
+    const scenario = createMockScenario("Test", "2024-01-01T00:00:00Z");
+    localStorage.setItem("worth_it_scenarios", JSON.stringify([scenario]));
+
+    const updated = updateScenarioNotes("2024-01-01T00:00:00Z", "New notes");
+
+    expect(updated).toBe(true);
+    const saved = getSavedScenarios();
+    expect(saved[0].notes).toBe("New notes");
+  });
+
+  it("returns false if scenario not found", () => {
+    const scenario = createMockScenario("Test", "2024-01-01T00:00:00Z");
+    localStorage.setItem("worth_it_scenarios", JSON.stringify([scenario]));
+
+    const updated = updateScenarioNotes("nonexistent", "New notes");
+
+    expect(updated).toBe(false);
+  });
+
+  it("can clear notes by setting empty string", () => {
+    const scenario = createMockScenario("Test", "2024-01-01T00:00:00Z", "Original notes");
+    localStorage.setItem("worth_it_scenarios", JSON.stringify([scenario]));
+
+    updateScenarioNotes("2024-01-01T00:00:00Z", "");
+
+    const saved = getSavedScenarios();
+    expect(saved[0].notes).toBe("");
+  });
+
+  it("can clear notes by setting undefined", () => {
+    const scenario = createMockScenario("Test", "2024-01-01T00:00:00Z", "Original notes");
+    localStorage.setItem("worth_it_scenarios", JSON.stringify([scenario]));
+
+    updateScenarioNotes("2024-01-01T00:00:00Z", undefined);
+
+    const saved = getSavedScenarios();
+    expect(saved[0].notes).toBeUndefined();
+  });
+
+  it("preserves other scenario data when updating notes", () => {
+    const scenario = createMockScenario("Test", "2024-01-01T00:00:00Z");
+    localStorage.setItem("worth_it_scenarios", JSON.stringify([scenario]));
+
+    updateScenarioNotes("2024-01-01T00:00:00Z", "Added notes");
+
+    const saved = getSavedScenarios();
+    expect(saved[0].name).toBe("Test");
+    expect(saved[0].globalSettings.exitYear).toBe(5);
+    expect(saved[0].results.netOutcome).toBe(50000);
+    expect(saved[0].notes).toBe("Added notes");
+  });
+
+  it("only updates the correct scenario when multiple exist", () => {
+    const scenario1 = createMockScenario("First", "2024-01-01T00:00:00Z", "First notes");
+    const scenario2 = createMockScenario("Second", "2024-01-02T00:00:00Z", "Second notes");
+    localStorage.setItem("worth_it_scenarios", JSON.stringify([scenario1, scenario2]));
+
+    updateScenarioNotes("2024-01-02T00:00:00Z", "Updated second notes");
+
+    const saved = getSavedScenarios();
+    expect(saved[0].notes).toBe("First notes");
+    expect(saved[1].notes).toBe("Updated second notes");
   });
 });

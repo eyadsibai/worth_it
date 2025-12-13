@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ScenarioResultsProps {
   results: StartupScenarioResponse;
@@ -43,6 +44,7 @@ interface ScenarioResultsProps {
 export function ScenarioResults({ results, isLoading, monteCarloContent, globalSettings, currentJob, equityDetails }: ScenarioResultsProps) {
   const [showSaveDialog, setShowSaveDialog] = React.useState(false);
   const [scenarioName, setScenarioName] = React.useState("");
+  const [scenarioNotes, setScenarioNotes] = React.useState("");
 
   if (isLoading) {
     return (
@@ -68,6 +70,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
     const scenarioData: ScenarioData = {
       name: scenarioName.trim(),
       timestamp: new Date().toISOString(),
+      notes: scenarioNotes.trim() || undefined,
       globalSettings: {
         exitYear: globalSettings.exit_year,
       },
@@ -111,6 +114,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
       });
       setShowSaveDialog(false);
       setScenarioName("");
+      setScenarioNotes("");
     } catch (error) {
       console.error("Failed to save scenario:", error);
       toast.error("Failed to save scenario", {
@@ -455,12 +459,26 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
                 className="font-mono"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="scenario-notes" className="font-mono text-sm">
+                Notes <span className="text-muted-foreground">(optional)</span>
+              </Label>
+              <Textarea
+                id="scenario-notes"
+                placeholder="Add any notes or comments about this scenario..."
+                value={scenarioNotes}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setScenarioNotes(e.target.value)}
+                className="font-mono min-h-[80px] resize-none"
+                rows={3}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button
               onClick={() => {
                 setShowSaveDialog(false);
                 setScenarioName("");
+                setScenarioNotes("");
               }}
               variant="outline"
               className="font-mono"

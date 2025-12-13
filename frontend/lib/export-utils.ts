@@ -19,6 +19,7 @@ import autoTable from "jspdf-autotable";
 export interface ScenarioData {
   name: string;
   timestamp: string;
+  notes?: string;
   globalSettings: {
     exitYear: number;
   };
@@ -188,6 +189,28 @@ export function deleteScenario(timestamp: string): void {
   } catch (error) {
     console.error("Failed to delete scenario from localStorage:", error);
     throw new Error("Failed to delete scenario. Storage may be unavailable.");
+  }
+}
+
+/**
+ * Update notes for a saved scenario.
+ * Returns true if the scenario was found and updated, false otherwise.
+ */
+export function updateScenarioNotes(timestamp: string, notes: string | undefined): boolean {
+  try {
+    const scenarios = getSavedScenarios();
+    const index = scenarios.findIndex((s) => s.timestamp === timestamp);
+
+    if (index === -1) {
+      return false;
+    }
+
+    scenarios[index].notes = notes;
+    localStorage.setItem("worth_it_scenarios", JSON.stringify(scenarios));
+    return true;
+  } catch (error) {
+    console.error("Failed to update scenario notes:", error);
+    return false;
   }
 }
 
