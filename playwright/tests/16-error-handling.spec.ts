@@ -133,11 +133,8 @@ test.describe('Validation Error Display', () => {
     // Try to interact with results area (calculation requires data)
     await page.waitForTimeout(1000);
 
-    // Should not show calculation results yet
-    const hasResults = await page.getByText(/Final Payout/i).isVisible().catch(() => false);
-
-    // Either no results shown, or shows empty/default state
-    // Not crashing is the main validation
+    // Should not crash when fields aren't filled
+    // The main validation is that the page remains functional
     await expect(page.locator('body')).toBeVisible();
   });
 
