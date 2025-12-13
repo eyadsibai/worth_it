@@ -275,6 +275,163 @@ describe("QuickAdjustPanel", () => {
       // Initially should not call with results since nothing changed
       expect(onChangeMock).not.toHaveBeenCalledWith(expect.objectContaining({ final_payout_value: expect.any(Number) }));
     });
+
+    it("calls onAdjustedResultsChange with adjusted results when slider values change", async () => {
+      const user = userEvent.setup();
+      const onChangeMock = vi.fn();
+      render(
+        <QuickAdjustPanel
+          equityDetails={sampleRSUEquity}
+          baseResults={sampleResults}
+          onAdjustedResultsChange={onChangeMock}
+          defaultExpanded={true}
+        />
+      );
+
+      // Get first slider (exit valuation for RSU) and change its value using keyboard
+      // Radix UI puts role="slider" on the thumb element, not the root
+      const sliders = screen.getAllByRole("slider");
+      const exitValuationSlider = sliders[0]; // First slider is exit valuation
+      exitValuationSlider.focus();
+      await user.keyboard("{ArrowRight}");
+
+      // Should have called onAdjustedResultsChange with adjusted results
+      await waitFor(() => {
+        expect(onChangeMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            final_payout_value: expect.any(Number),
+            final_opportunity_cost: expect.any(Number),
+          })
+        );
+      });
+    });
+  });
+
+  describe("reset functionality with changes", () => {
+    it("enables reset button when values are modified", async () => {
+      const user = userEvent.setup();
+      render(
+        <QuickAdjustPanel
+          equityDetails={sampleRSUEquity}
+          baseResults={sampleResults}
+          onAdjustedResultsChange={() => {}}
+          defaultExpanded={true}
+        />
+      );
+
+      // Initially reset should be disabled
+      const resetButton = screen.getByRole("button", { name: /reset/i });
+      expect(resetButton).toBeDisabled();
+
+      // Change a slider value (first slider is exit valuation for RSU)
+      const sliders = screen.getAllByRole("slider");
+      sliders[0].focus();
+      await user.keyboard("{ArrowRight}");
+
+      // Reset button should now be enabled
+      await waitFor(() => {
+        expect(resetButton).not.toBeDisabled();
+      });
+    });
+
+    it("resets values and calls onAdjustedResultsChange with null when reset is clicked", async () => {
+      const user = userEvent.setup();
+      const onChangeMock = vi.fn();
+      render(
+        <QuickAdjustPanel
+          equityDetails={sampleRSUEquity}
+          baseResults={sampleResults}
+          onAdjustedResultsChange={onChangeMock}
+          defaultExpanded={true}
+        />
+      );
+
+      // Change a slider value first (first slider is exit valuation for RSU)
+      const sliders = screen.getAllByRole("slider");
+      sliders[0].focus();
+      await user.keyboard("{ArrowRight}");
+
+      // Clear mock to track reset behavior
+      onChangeMock.mockClear();
+
+      // Click reset
+      const resetButton = screen.getByRole("button", { name: /reset/i });
+      await user.click(resetButton);
+
+      // Should call with null after reset
+      await waitFor(() => {
+        expect(onChangeMock).toHaveBeenCalledWith(null);
+      });
+
+      // Reset button should be disabled again
+      expect(resetButton).toBeDisabled();
+    });
+  });
+
+  describe("modified indicator", () => {
+    it("shows (modified) indicator when values have changed", async () => {
+      const user = userEvent.setup();
+      render(
+        <QuickAdjustPanel
+          equityDetails={sampleRSUEquity}
+          baseResults={sampleResults}
+          onAdjustedResultsChange={() => {}}
+          defaultExpanded={true}
+        />
+      );
+
+      // Initially no modified indicator
+      expect(screen.queryByText("(modified)")).not.toBeInTheDocument();
+
+      // Change a slider value (first slider is exit valuation for RSU)
+      const sliders = screen.getAllByRole("slider");
+      sliders[0].focus();
+      await user.keyboard("{ArrowRight}");
+
+      // Modified indicator should appear
+      await waitFor(() => {
+        expect(screen.getByText("(modified)")).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("stock options edge cases", () => {
+    it("handles exit price below strike price (underwater options)", async () => {
+      const user = userEvent.setup();
+      const onChangeMock = vi.fn();
+
+      // Create options where exit price is close to strike price
+      const underwaterOptions: StockOptionsForm = {
+        ...sampleOptionsEquity,
+        strike_price: 5.0,
+        exit_price_per_share: 6.0, // Just above strike
+      };
+
+      render(
+        <QuickAdjustPanel
+          equityDetails={underwaterOptions}
+          baseResults={sampleResults}
+          onAdjustedResultsChange={onChangeMock}
+          defaultExpanded={true}
+        />
+      );
+
+      // Decrease exit price below strike using arrow keys
+      // For stock options, first slider is exit price
+      const sliders = screen.getAllByRole("slider");
+      sliders[0].focus();
+      // Press Home to go to minimum value
+      await user.keyboard("{Home}");
+
+      // Should still call with valid results (not NaN or error)
+      await waitFor(() => {
+        const lastCall = onChangeMock.mock.calls[onChangeMock.mock.calls.length - 1];
+        if (lastCall && lastCall[0]) {
+          expect(lastCall[0].final_payout_value).toBeGreaterThanOrEqual(0);
+          expect(Number.isNaN(lastCall[0].final_payout_value)).toBe(false);
+        }
+      });
+    });
   });
 
   describe("value formatting", () => {

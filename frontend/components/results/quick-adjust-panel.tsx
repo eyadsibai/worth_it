@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ChevronDown, ChevronUp, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/format-utils";
+import { formatCurrency, formatCurrencyCompact } from "@/lib/format-utils";
 import type { RSUForm, StockOptionsForm, StartupScenarioResponse } from "@/lib/schemas";
 import { AnimatedCurrencyDisplay } from "@/lib/motion";
 
@@ -19,16 +19,25 @@ interface QuickAdjustPanelProps {
   className?: string;
 }
 
-// Format large numbers with abbreviations
-function formatCompactCurrency(value: number): string {
-  if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(1)}B`;
-  } else if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(0)}M`;
-  } else if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(0)}K`;
-  }
-  return formatCurrency(value);
+/**
+ * Calculate the adjusted opportunity cost based on salary difference.
+ * Used for both RSU and Stock Options scenarios.
+ *
+ * @param originalSalary - Original monthly startup salary
+ * @param newSalary - Adjusted monthly startup salary
+ * @param baseOpportunityCost - Original opportunity cost from scenario
+ * @param vestingYears - Number of years to project salary difference
+ * @returns Adjusted opportunity cost
+ */
+function calculateAdjustedOpportunityCost(
+  originalSalary: number,
+  newSalary: number,
+  baseOpportunityCost: number,
+  vestingYears: number
+): number {
+  // Lower startup salary = higher opportunity cost (more foregone income)
+  const salaryDiff = (originalSalary - newSalary) * 12 * vestingYears;
+  return baseOpportunityCost + salaryDiff;
 }
 
 export function QuickAdjustPanel({
@@ -75,51 +84,82 @@ export function QuickAdjustPanel({
     }
   }, [isRSU, equityDetails, exitValuation, equityPct, exitPricePerShare, numOptions, startupSalary]);
 
-  // Calculate adjusted net benefit based on simple scaling
-  // This is a client-side approximation for instant feedback
-  const adjustedNetBenefit = React.useMemo(() => {
+  /**
+   * Calculate adjusted net benefit based on simple scaling.
+   * This is a CLIENT-SIDE APPROXIMATION for instant feedback.
+   *
+   * ASSUMPTIONS & LIMITATIONS:
+   * - Payout scales linearly with valuation/equity changes (ignores non-linear effects)
+   * - Salary difference is projected over the vesting period only
+   * - Does NOT account for: dilution from future funding rounds, vesting schedules,
+   *   secondary sales, taxes, or exercise costs for options
+   * - For complex scenarios with dilution or secondary sales, results may be significantly
+   *   different from a full backend recalculation
+   *
+   * This approximation is suitable for quick "what-if" exploration.
+   * For accurate results, users should recalculate with the backend.
+   */
+  const { adjustedNetBenefit, adjustedPayout, adjustedOpportunityCost } = React.useMemo(() => {
     const baseNetBenefit = baseResults.final_payout_value - baseResults.final_opportunity_cost;
 
     if (!hasChanges) {
-      return baseNetBenefit;
+      return {
+        adjustedNetBenefit: baseNetBenefit,
+        adjustedPayout: baseResults.final_payout_value,
+        adjustedOpportunityCost: baseResults.final_opportunity_cost,
+      };
     }
 
     if (isRSU) {
       const rsuDetails = equityDetails as RSUForm;
       const originalValuation = rsuDetails.exit_valuation;
       const originalEquity = rsuDetails.total_equity_grant_pct;
+      const vestingYears = rsuDetails.vesting_period;
 
       // Scale payout proportionally to valuation and equity changes
       const valuationRatio = originalValuation > 0 ? exitValuation / originalValuation : 1;
       const equityRatio = originalEquity > 0 ? equityPct / originalEquity : 1;
 
-      const adjustedPayout = baseResults.final_payout_value * valuationRatio * equityRatio;
+      const payout = baseResults.final_payout_value * valuationRatio * equityRatio;
+      const opportunityCost = calculateAdjustedOpportunityCost(
+        rsuDetails.monthly_salary,
+        startupSalary,
+        baseResults.final_opportunity_cost,
+        vestingYears
+      );
 
-      // Salary changes affect opportunity cost (lower startup salary = higher opportunity cost)
-      const originalSalary = rsuDetails.monthly_salary;
-      const salaryDiff = (originalSalary - startupSalary) * 12 * 4; // Rough 4-year estimate
-      const adjustedOpportunityCost = baseResults.final_opportunity_cost + salaryDiff;
-
-      return adjustedPayout - adjustedOpportunityCost;
+      return {
+        adjustedNetBenefit: payout - opportunityCost,
+        adjustedPayout: payout,
+        adjustedOpportunityCost: opportunityCost,
+      };
     } else {
       const optionsDetails = equityDetails as StockOptionsForm;
       const originalPrice = optionsDetails.exit_price_per_share;
       const originalOptions = optionsDetails.num_options;
       const strikePrice = optionsDetails.strike_price;
+      const vestingYears = optionsDetails.vesting_period;
 
       // Options value = (exit price - strike) * num options
-      const originalValue = (originalPrice - strikePrice) * originalOptions;
-      const newValue = (exitPricePerShare - strikePrice) * numOptions;
+      // Clamp to zero when exit price is below strike price (options are worthless)
+      const originalValue = Math.max(0, (originalPrice - strikePrice) * originalOptions);
+      const newValue = Math.max(0, (exitPricePerShare - strikePrice) * numOptions);
 
-      const payoutRatio = originalValue > 0 ? newValue / originalValue : 1;
-      const adjustedPayout = baseResults.final_payout_value * payoutRatio;
+      const payoutRatio = originalValue > 0 ? newValue / originalValue : (newValue > 0 ? 1 : 0);
+      const payout = baseResults.final_payout_value * payoutRatio;
 
-      // Salary adjustment
-      const originalSalary = optionsDetails.monthly_salary;
-      const salaryDiff = (originalSalary - startupSalary) * 12 * 4;
-      const adjustedOpportunityCost = baseResults.final_opportunity_cost + salaryDiff;
+      const opportunityCost = calculateAdjustedOpportunityCost(
+        optionsDetails.monthly_salary,
+        startupSalary,
+        baseResults.final_opportunity_cost,
+        vestingYears
+      );
 
-      return adjustedPayout - adjustedOpportunityCost;
+      return {
+        adjustedNetBenefit: payout - opportunityCost,
+        adjustedPayout: payout,
+        adjustedOpportunityCost: opportunityCost,
+      };
     }
   }, [hasChanges, isRSU, equityDetails, baseResults, exitValuation, equityPct, exitPricePerShare, numOptions, startupSalary]);
 
@@ -139,19 +179,26 @@ export function QuickAdjustPanel({
     onAdjustedResultsChange(null);
   };
 
+  // Use ref to avoid callback dependency causing re-renders
+  const onAdjustedResultsChangeRef = React.useRef(onAdjustedResultsChange);
+  React.useEffect(() => {
+    onAdjustedResultsChangeRef.current = onAdjustedResultsChange;
+  }, [onAdjustedResultsChange]);
+
   // Effect to notify parent of changes
   React.useEffect(() => {
     if (hasChanges) {
-      // Create adjusted results (simplified approximation)
+      // Create adjusted results with correctly calculated values
       const adjustedResults: StartupScenarioResponse = {
         ...baseResults,
-        final_payout_value: adjustedNetBenefit + baseResults.final_opportunity_cost,
+        final_payout_value: adjustedPayout,
+        final_opportunity_cost: adjustedOpportunityCost,
       };
-      onAdjustedResultsChange(adjustedResults);
+      onAdjustedResultsChangeRef.current(adjustedResults);
     } else {
-      onAdjustedResultsChange(null);
+      onAdjustedResultsChangeRef.current(null);
     }
-  }, [hasChanges, adjustedNetBenefit, baseResults, onAdjustedResultsChange]);
+  }, [hasChanges, adjustedPayout, adjustedOpportunityCost, baseResults]);
 
   const isPositive = adjustedNetBenefit >= 0;
 
@@ -201,12 +248,14 @@ export function QuickAdjustPanel({
                 {/* Exit Valuation Slider (RSU) */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Exit Valuation</Label>
+                    <Label htmlFor="exit-valuation-slider" className="text-sm font-medium">Exit Valuation</Label>
                     <span className="text-sm font-mono text-accent">
-                      {formatCompactCurrency(exitValuation)}
+                      {formatCurrencyCompact(exitValuation)}
                     </span>
                   </div>
                   <Slider
+                    id="exit-valuation-slider"
+                    aria-label="Exit valuation"
                     value={[exitValuation]}
                     onValueChange={([value]) => setExitValuation(value)}
                     min={1_000_000}
@@ -223,12 +272,14 @@ export function QuickAdjustPanel({
                 {/* Equity Percentage Slider (RSU) */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Equity %</Label>
+                    <Label htmlFor="equity-pct-slider" className="text-sm font-medium">Equity %</Label>
                     <span className="text-sm font-mono text-accent">
                       {equityPct.toFixed(2)}%
                     </span>
                   </div>
                   <Slider
+                    id="equity-pct-slider"
+                    aria-label="Equity percentage"
                     value={[equityPct]}
                     onValueChange={([value]) => setEquityPct(value)}
                     min={0.01}
@@ -247,12 +298,14 @@ export function QuickAdjustPanel({
                 {/* Exit Price Per Share Slider (Stock Options) */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Exit Price/Share</Label>
+                    <Label htmlFor="exit-price-slider" className="text-sm font-medium">Exit Price/Share</Label>
                     <span className="text-sm font-mono text-accent">
                       ${exitPricePerShare.toFixed(2)}
                     </span>
                   </div>
                   <Slider
+                    id="exit-price-slider"
+                    aria-label="Exit price per share"
                     value={[exitPricePerShare]}
                     onValueChange={([value]) => setExitPricePerShare(value)}
                     min={0.01}
@@ -269,12 +322,14 @@ export function QuickAdjustPanel({
                 {/* Number of Options Slider (Stock Options) */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Options</Label>
+                    <Label htmlFor="num-options-slider" className="text-sm font-medium">Options</Label>
                     <span className="text-sm font-mono text-accent">
                       {numOptions.toLocaleString()}
                     </span>
                   </div>
                   <Slider
+                    id="num-options-slider"
+                    aria-label="Number of options"
                     value={[numOptions]}
                     onValueChange={([value]) => setNumOptions(value)}
                     min={1000}
@@ -293,12 +348,14 @@ export function QuickAdjustPanel({
             {/* Startup Salary Slider (both types) */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">Startup Salary</Label>
+                <Label htmlFor="salary-slider" className="text-sm font-medium">Startup Salary</Label>
                 <span className="text-sm font-mono text-accent">
                   {formatCurrency(startupSalary)}/mo
                 </span>
               </div>
               <Slider
+                id="salary-slider"
+                aria-label="Startup monthly salary"
                 value={[startupSalary]}
                 onValueChange={([value]) => setStartupSalary(value)}
                 min={0}

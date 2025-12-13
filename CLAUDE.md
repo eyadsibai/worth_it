@@ -573,4 +573,4 @@ The frontend implements an **exact Fundcy-style** design: clean white cards, ver
 - ALWAYS USE Test Driven Development .. this is not negotiable
 - Use shadcn mcp whenever you are doing UI components
 
-@POWERHOSRE.md
+@POWERHORSE.md
