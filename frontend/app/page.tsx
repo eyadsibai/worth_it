@@ -13,11 +13,12 @@ import { MonteCarloFormComponent } from "@/components/forms/monte-carlo-form";
 import { MonteCarloVisualizations } from "@/components/charts/monte-carlo-visualizations";
 import { ScenarioManager } from "@/components/scenarios/scenario-manager";
 import { ScenarioComparison } from "@/components/scenarios/scenario-comparison";
-import { useDebounce } from "@/lib/hooks/use-debounce";
+import { useDebounce, useDraftAutoSave, getDraft, clearDraft, useBeforeUnload, type DraftData } from "@/lib/hooks";
 import { ModeToggle } from "@/components/mode-toggle";
 import { CapTableManager } from "@/components/cap-table";
 import { useAppStore } from "@/lib/store";
 import { isValidEquityData } from "@/lib/validation";
+import { DraftRecoveryDialog } from "@/components/draft-recovery-dialog";
 import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
 
 export default function Home() {
@@ -55,6 +56,64 @@ export default function Home() {
     (data: RSUForm | StockOptionsForm) => setEquityDetails(data),
     [setEquityDetails]
   );
+
+  // Draft auto-save and recovery
+  const [showDraftDialog, setShowDraftDialog] = React.useState(false);
+  const [savedDraft, setSavedDraft] = React.useState<DraftData | null>(null);
+
+  // Auto-save form data every 5 seconds (only in employee mode)
+  useDraftAutoSave(
+    {
+      globalSettings,
+      currentJob,
+      equityDetails,
+    },
+    { disabled: appMode !== "employee" }
+  );
+
+  // Warn before leaving with unsaved changes
+  const hasUnsavedChanges = appMode === "employee" && (
+    globalSettings !== null || currentJob !== null || equityDetails !== null
+  );
+  useBeforeUnload(hasUnsavedChanges);
+
+  // Check for saved draft on mount
+  React.useEffect(() => {
+    if (appMode !== "employee") return;
+
+    const draft = getDraft();
+    if (draft) {
+      setSavedDraft(draft);
+      setShowDraftDialog(true);
+    }
+  }, [appMode]);
+
+  // Handle draft restore
+  const handleRestoreDraft = React.useCallback(() => {
+    if (!savedDraft) return;
+
+    const { data } = savedDraft;
+    if (data.globalSettings) {
+      setGlobalSettings(data.globalSettings as Parameters<typeof setGlobalSettings>[0]);
+    }
+    if (data.currentJob) {
+      setCurrentJob(data.currentJob as Parameters<typeof setCurrentJob>[0]);
+    }
+    if (data.equityDetails) {
+      setEquityDetails(data.equityDetails as RSUForm | StockOptionsForm);
+    }
+
+    clearDraft();
+    setShowDraftDialog(false);
+    setSavedDraft(null);
+  }, [savedDraft, setGlobalSettings, setCurrentJob, setEquityDetails]);
+
+  // Handle draft discard
+  const handleDiscardDraft = React.useCallback(() => {
+    clearDraft();
+    setShowDraftDialog(false);
+    setSavedDraft(null);
+  }, []);
 
   // Check if we have all required data (using debounced values for API calls)
   // Also validate that equity data has meaningful values (not all zeros)
@@ -394,6 +453,16 @@ export default function Home() {
           </>
         )}
       </div>
+
+      {/* Draft Recovery Dialog */}
+      {savedDraft && (
+        <DraftRecoveryDialog
+          open={showDraftDialog}
+          draft={savedDraft}
+          onRestore={handleRestoreDraft}
+          onDiscard={handleDiscardDraft}
+        />
+      )}
     </AppShell>
   );
 }
