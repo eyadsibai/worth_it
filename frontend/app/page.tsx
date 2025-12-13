@@ -193,7 +193,7 @@ export default function Home() {
         ) : (
           <div className="p-4 text-center text-muted-foreground">
             <p className="text-sm">
-              Use the main panel to configure your cap table
+              Use the main panel to model your cap table and simulate funding rounds
             </p>
           </div>
         )
@@ -205,16 +205,16 @@ export default function Home() {
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground animate-fade-in">
             <span className="text-accent font-mono">&gt;</span>{" "}
             {appMode === "employee" ? (
-              <>Job Offer <span className="gradient-text">Financial Analyzer</span></>
+              <>Offer <span className="gradient-text">Analysis</span></>
             ) : (
-              <>Cap Table <span className="gradient-text">Simulator</span></>
+              <>Cap Table <span className="gradient-text">Modeling</span></>
             )}
           </h1>
           <p className="text-base text-muted-foreground max-w-2xl leading-relaxed animate-fade-in delay-75">
             {appMode === "employee" ? (
-              "Analyze startup job offers with comprehensive financial modeling including equity, dilution, and Monte Carlo simulations"
+              "Compare startup offers to your current job with equity modeling, dilution scenarios, and Monte Carlo simulations"
             ) : (
-              "Model your cap table, simulate funding rounds, and understand exit scenarios"
+              "Simulate funding rounds, model ownership dilution, and understand your exit scenarios"
             )}
           </p>
           <div className="animate-fade-in delay-100">
