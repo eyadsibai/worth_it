@@ -32,6 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { QuickAdjustPanel } from "@/components/results/quick-adjust-panel";
 
 interface ScenarioResultsProps {
   results: StartupScenarioResponse;
@@ -47,6 +48,10 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
   const [showSaveDialog, setShowSaveDialog] = React.useState(false);
   const [scenarioName, setScenarioName] = React.useState("");
   const [scenarioNotes, setScenarioNotes] = React.useState("");
+  const [adjustedResults, setAdjustedResults] = React.useState<StartupScenarioResponse | null>(null);
+
+  // Use adjusted results when available, otherwise use original results
+  const displayResults = adjustedResults || results;
 
   if (isLoading) {
     return (
@@ -61,7 +66,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
     );
   }
 
-  const netBenefit = results.final_payout_value - results.final_opportunity_cost;
+  const netBenefit = displayResults.final_payout_value - displayResults.final_opportunity_cost;
   const isPositive = netBenefit >= 0;
 
   const handleSaveScenario = () => {
@@ -272,6 +277,15 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
           </DropdownMenu>
         </div>
 
+        {/* Quick Adjustments Panel */}
+        {equityDetails && (
+          <QuickAdjustPanel
+            equityDetails={equityDetails}
+            baseResults={results}
+            onAdjustedResultsChange={setAdjustedResults}
+          />
+        )}
+
         {/* Key Metrics Cards */}
         <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         {/* Final Payout */}
@@ -281,7 +295,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
           </CardHeader>
           <CardContent className="pb-4 px-4">
             <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight text-foreground">
-              <AnimatedCurrencyDisplay value={results.final_payout_value} />
+              <AnimatedCurrencyDisplay value={displayResults.final_payout_value} />
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1 truncate">{results.payout_label}</p>
           </CardContent>
@@ -294,7 +308,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
           </CardHeader>
           <CardContent className="pb-4 px-4">
             <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight text-foreground">
-              <AnimatedCurrencyDisplay value={results.final_opportunity_cost} />
+              <AnimatedCurrencyDisplay value={displayResults.final_opportunity_cost} />
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1 truncate">Current job alternative</p>
           </CardContent>
@@ -328,17 +342,17 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
         </Card>
 
         {/* Dilution (if applicable) */}
-        {results.total_dilution !== null && results.total_dilution !== undefined && (
+        {displayResults.total_dilution !== null && displayResults.total_dilution !== undefined && (
           <Card className="terminal-card overflow-hidden">
             <CardHeader className="pb-2 pt-4 px-4">
               <CardDescription className="data-label text-xs">Total Dilution</CardDescription>
             </CardHeader>
             <CardContent className="pb-4 px-4">
               <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight tabular-nums text-foreground">
-                {(results.total_dilution * 100).toFixed(2)}%
+                {(displayResults.total_dilution * 100).toFixed(2)}%
               </CardTitle>
               <p className="text-xs text-muted-foreground mt-1 truncate">
-                Final: {((results.diluted_equity_pct || 0) * 100).toFixed(2)}%
+                Final: {((displayResults.diluted_equity_pct || 0) * 100).toFixed(2)}%
               </p>
             </CardContent>
           </Card>
@@ -351,12 +365,12 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
           </CardHeader>
           <CardContent className="pb-4 px-4">
             <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight text-foreground">
-              {results.results_df.length > 0 && results.results_df[results.results_df.length - 1].breakeven_value !== undefined
-                ? <CurrencyDisplay value={results.results_df[results.results_df.length - 1].breakeven_value} />
+              {displayResults.results_df.length > 0 && displayResults.results_df[displayResults.results_df.length - 1].breakeven_value !== undefined
+                ? <CurrencyDisplay value={displayResults.results_df[displayResults.results_df.length - 1].breakeven_value} />
                 : "N/A"}
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1 truncate">
-              {results.breakeven_label}
+              {displayResults.breakeven_label}
             </p>
           </CardContent>
         </Card>
