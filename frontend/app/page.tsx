@@ -13,7 +13,8 @@ import { MonteCarloFormComponent } from "@/components/forms/monte-carlo-form";
 import { MonteCarloVisualizations } from "@/components/charts/monte-carlo-visualizations";
 import { ScenarioManager } from "@/components/scenarios/scenario-manager";
 import { ScenarioComparison } from "@/components/scenarios/scenario-comparison";
-import { useDebounce, useDraftAutoSave, getDraft, clearDraft, useBeforeUnload, type DraftData } from "@/lib/hooks";
+import { useDebounce, useDraftAutoSave, getDraft, clearDraft, useBeforeUnload, useSidebarFormStatus, type DraftData } from "@/lib/hooks";
+import { FormCompletionSummary } from "@/components/forms/form-completion-summary";
 import { ModeToggle } from "@/components/mode-toggle";
 import { CapTableManager } from "@/components/cap-table";
 import { useAppStore } from "@/lib/store";
@@ -50,6 +51,9 @@ export default function Home() {
   const debouncedGlobalSettings = useDebounce(globalSettings, 300);
   const debouncedCurrentJob = useDebounce(currentJob, 300);
   const debouncedEquityDetails = useDebounce(equityDetails, 300);
+
+  // Form completion status for sidebar summary
+  const formStatus = useSidebarFormStatus(globalSettings, currentJob, equityDetails);
 
   // Type-safe setters for form components
   const handleEquityChange = React.useCallback(
@@ -248,6 +252,7 @@ export default function Home() {
       sidebar={
         appMode === "employee" ? (
           <div className="space-y-4">
+            <FormCompletionSummary status={formStatus} />
             <GlobalSettingsFormComponent onChange={setGlobalSettings} />
             <CurrentJobFormComponent onChange={setCurrentJob} />
             <StartupOfferFormComponent

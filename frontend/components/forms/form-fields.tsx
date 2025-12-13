@@ -21,6 +21,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { parseShorthand, formatNumberWithSeparators } from "@/lib/format-utils";
+import { ValidationIndicator } from "./validation-indicator";
+import { FormWarning } from "@/components/ui/form-warning";
+import { getFieldWarning, type WarningContext } from "@/lib/hooks/use-field-warnings";
 
 interface FormFieldProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,6 +32,8 @@ interface FormFieldProps {
   label: string;
   description?: string;
   tooltip?: string;
+  /** Context for field warnings (e.g., related field values) */
+  warningContext?: WarningContext;
 }
 
 /**
@@ -84,6 +89,7 @@ export function NumberInputField({
   prefix,
   suffix,
   formatDisplay = false,
+  warningContext,
 }: NumberInputFieldProps) {
   const [isFocused, setIsFocused] = React.useState(false);
   // Track raw input value for shorthand parsing (e.g., "50K")
@@ -93,7 +99,7 @@ export function NumberInputField({
     <FormField
       control={form.control}
       name={name}
-      render={({ field }) => {
+      render={({ field, fieldState }) => {
         // Determine display value based on focus state
         let displayValue: string | number;
         if (isFocused) {
@@ -105,6 +111,14 @@ export function NumberInputField({
         } else {
           displayValue = field.value ?? "";
         }
+
+        // Get warning for this field
+        const warning = getFieldWarning(name, field.value, warningContext);
+        const hasWarning = !!warning && !fieldState.error;
+
+        // Calculate right padding for validation indicator
+        const hasIndicator = fieldState.isTouched && fieldState.isDirty;
+        const rightPadding = suffix ? "pr-16" : hasIndicator ? "pr-10" : "";
 
         return (
           <FormItem>
@@ -123,7 +137,7 @@ export function NumberInputField({
                   min={!formatDisplay ? min : undefined}
                   max={!formatDisplay ? max : undefined}
                   step={!formatDisplay ? step : undefined}
-                  className={prefix ? "pl-12" : suffix ? "pr-12" : ""}
+                  className={`${prefix ? "pl-12" : ""} ${rightPadding}`}
                   value={displayValue}
                   onFocus={() => {
                     setIsFocused(true);
@@ -165,10 +179,21 @@ export function NumberInputField({
                     {suffix}
                   </span>
                 )}
+                {/* Validation indicator - positioned after suffix if present */}
+                <span className={`absolute top-1/2 -translate-y-1/2 ${suffix ? "right-10" : "right-3"}`}>
+                  <ValidationIndicator
+                    isValid={!fieldState.error && !hasWarning}
+                    hasError={!!fieldState.error}
+                    hasWarning={hasWarning}
+                    isTouched={fieldState.isTouched}
+                    isDirty={fieldState.isDirty}
+                  />
+                </span>
               </div>
             </FormControl>
             {description && <FormDescription>{description}</FormDescription>}
             <FormMessage />
+            {hasWarning && <FormWarning>{warning}</FormWarning>}
           </FormItem>
         );
       }}
@@ -193,32 +218,48 @@ export function SliderField({
   max,
   step = 1,
   formatValue,
+  warningContext,
 }: SliderFieldProps) {
   return (
     <FormField
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <FormItem>
-          <div className="flex items-center justify-between">
-            <LabelWithTooltip label={label} tooltip={tooltip} />
-            <span className="text-sm font-medium">
-              {formatValue ? formatValue(field.value) : field.value}
-            </span>
-          </div>
-          <FormControl>
-            <Slider
-              min={min}
-              max={max}
-              step={step}
-              value={[field.value]}
-              onValueChange={([value]) => field.onChange(value)}
-            />
-          </FormControl>
-          {description && <FormDescription>{description}</FormDescription>}
-          <FormMessage />
-        </FormItem>
-      )}
+      render={({ field, fieldState }) => {
+        const warning = getFieldWarning(name, field.value, warningContext);
+        const hasWarning = !!warning && !fieldState.error;
+
+        return (
+          <FormItem>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <LabelWithTooltip label={label} tooltip={tooltip} />
+                <ValidationIndicator
+                  isValid={!fieldState.error && !hasWarning}
+                  hasError={!!fieldState.error}
+                  hasWarning={hasWarning}
+                  isTouched={fieldState.isTouched}
+                  isDirty={fieldState.isDirty}
+                />
+              </div>
+              <span className="text-sm font-medium">
+                {formatValue ? formatValue(field.value) : field.value}
+              </span>
+            </div>
+            <FormControl>
+              <Slider
+                min={min}
+                max={max}
+                step={step}
+                value={[field.value]}
+                onValueChange={([value]) => field.onChange(value)}
+              />
+            </FormControl>
+            {description && <FormDescription>{description}</FormDescription>}
+            <FormMessage />
+            {hasWarning && <FormWarning>{warning}</FormWarning>}
+          </FormItem>
+        );
+      }}
     />
   );
 }
@@ -288,16 +329,35 @@ export function TextInputField({
     <FormField
       control={form.control}
       name={name}
-      render={({ field }) => (
-        <FormItem>
-          <LabelWithTooltip label={label} tooltip={tooltip} />
-          <FormControl>
-            <Input type={type} placeholder={placeholder} {...field} />
-          </FormControl>
-          {description && <FormDescription>{description}</FormDescription>}
-          <FormMessage />
-        </FormItem>
-      )}
+      render={({ field, fieldState }) => {
+        const hasIndicator = fieldState.isTouched && fieldState.isDirty;
+        return (
+          <FormItem>
+            <LabelWithTooltip label={label} tooltip={tooltip} />
+            <div className="relative">
+              <FormControl>
+                <Input
+                  type={type}
+                  placeholder={placeholder}
+                  className={hasIndicator ? "pr-10" : ""}
+                  {...field}
+                />
+              </FormControl>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                <ValidationIndicator
+                  isValid={!fieldState.error}
+                  hasError={!!fieldState.error}
+                  hasWarning={false}
+                  isTouched={fieldState.isTouched}
+                  isDirty={fieldState.isDirty}
+                />
+              </span>
+            </div>
+            {description && <FormDescription>{description}</FormDescription>}
+            <FormMessage />
+          </FormItem>
+        );
+      }}
     />
   );
 }
