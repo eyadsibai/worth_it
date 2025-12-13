@@ -2,15 +2,8 @@
 
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { ResponsiveTable, ResponsiveTableFooter, type Column } from "@/components/ui/responsive-table";
 import type { WaterfallDistribution, StakeholderPayout } from "@/lib/schemas";
 
 interface WaterfallTableProps {
@@ -87,10 +80,68 @@ export function WaterfallTable({ distribution }: WaterfallTableProps) {
     );
   }
 
+  const columns: Column<StakeholderPayout>[] = [
+    {
+      key: "name",
+      header: "Stakeholder",
+      cell: (row) => <span className="font-medium">{row.name}</span>,
+      primary: true,
+    },
+    {
+      key: "investment",
+      header: "Investment",
+      cell: (row) =>
+        row.investment_amount !== undefined
+          ? formatCurrency(row.investment_amount)
+          : "-",
+      className: "text-right font-mono",
+    },
+    {
+      key: "payout",
+      header: "Payout",
+      cell: (row) => formatCurrency(row.payout_amount),
+      className: "text-right font-mono",
+    },
+    {
+      key: "pct",
+      header: "% of Exit",
+      cell: (row) => `${(row.payout_pct ?? 0).toFixed(1)}%`,
+      className: "text-right font-mono",
+    },
+    {
+      key: "roi",
+      header: "ROI",
+      cell: (row) =>
+        row.roi !== undefined ? (
+          <Badge variant="outline" className={getROIColor(row.roi)}>
+            {formatROI(row.roi)}
+          </Badge>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        ),
+      className: "text-right",
+    },
+  ];
+
+  const totalInvestment = sortedPayouts.reduce(
+    (sum, p) => sum + (p.investment_amount ?? 0),
+    0
+  );
+
+  const footer = (
+    <ResponsiveTableFooter
+      items={[
+        { label: "Total Investment", value: formatCurrency(totalInvestment) },
+        { label: "Total Payout", value: formatCurrency(distribution.exit_valuation) },
+        { label: "Exit Distribution", value: "100%" },
+      ]}
+    />
+  );
+
   return (
     <Card className="terminal-card">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex items-center justify-between flex-wrap gap-2">
           <span>Stakeholder Payouts</span>
           <Badge variant="outline" className="font-mono">
             Exit: {formatCurrency(distribution.exit_valuation)}
@@ -101,61 +152,12 @@ export function WaterfallTable({ distribution }: WaterfallTableProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Stakeholder</TableHead>
-              <TableHead className="text-right">Investment</TableHead>
-              <TableHead className="text-right">Payout</TableHead>
-              <TableHead className="text-right">% of Exit</TableHead>
-              <TableHead className="text-right">ROI</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedPayouts.map((payout: StakeholderPayout) => (
-              <TableRow key={payout.stakeholder_id}>
-                <TableCell className="font-medium">{payout.name}</TableCell>
-                <TableCell className="text-right font-mono">
-                  {payout.investment_amount !== undefined
-                    ? formatCurrency(payout.investment_amount)
-                    : "-"}
-                </TableCell>
-                <TableCell className="text-right font-mono">
-                  {formatCurrency(payout.payout_amount)}
-                </TableCell>
-                <TableCell className="text-right font-mono">
-                  {(payout.payout_pct ?? 0).toFixed(1)}%
-                </TableCell>
-                <TableCell className="text-right">
-                  {payout.roi !== undefined ? (
-                    <Badge variant="outline" className={getROIColor(payout.roi)}>
-                      {formatROI(payout.roi)}
-                    </Badge>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-            {/* Summary row */}
-            <TableRow className="border-t-2 font-medium">
-              <TableCell>Total</TableCell>
-              <TableCell className="text-right font-mono">
-                {formatCurrency(
-                  sortedPayouts.reduce(
-                    (sum, p) => sum + (p.investment_amount ?? 0),
-                    0
-                  )
-                )}
-              </TableCell>
-              <TableCell className="text-right font-mono">
-                {formatCurrency(distribution.exit_valuation)}
-              </TableCell>
-              <TableCell className="text-right font-mono">100%</TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
+        <ResponsiveTable
+          data={sortedPayouts}
+          columns={columns}
+          getRowKey={(row) => row.stakeholder_id}
+          footer={footer}
+        />
 
         {/* Common vs Preferred Summary */}
         <div className="mt-4 p-4 rounded-lg bg-muted/50 grid grid-cols-2 gap-4">
