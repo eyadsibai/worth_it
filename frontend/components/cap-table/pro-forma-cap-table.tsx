@@ -1,15 +1,9 @@
 "use client";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
+import { ResponsiveTable, ResponsiveTableFooter, type Column } from "@/components/ui/responsive-table";
 import type { CapTable, ConversionResult } from "@/lib/schemas";
 
 interface ProFormaCapTableProps {
@@ -82,77 +76,102 @@ export function ProFormaCapTable({
     );
   }
 
+  // Combine all data into a single array for the responsive table
+  type TableRow = {
+    id: string;
+    name: string;
+    type: string;
+    typeVariant: "outline" | "secondary";
+    shares: number | null;
+    ownership: number;
+    isConverted?: boolean;
+    isPool?: boolean;
+  };
+
+  const allRows: TableRow[] = [
+    // Existing stakeholders
+    ...existingStakeholders.map((s) => ({
+      id: s.id,
+      name: s.name,
+      type: s.type,
+      typeVariant: "outline" as const,
+      shares: s.shares,
+      ownership: s.proFormaOwnership,
+    })),
+    // Converted investors
+    ...convertedInvestors.map((inv, idx) => ({
+      id: `conversion-${idx}`,
+      name: inv.name,
+      type: inv.type,
+      typeVariant: "secondary" as const,
+      shares: inv.shares,
+      ownership: inv.ownership,
+      isConverted: true,
+    })),
+    // Option pool
+    ...(capTable.option_pool_pct > 0
+      ? [{
+          id: "option-pool",
+          name: "Option Pool (Reserved)",
+          type: "Pool",
+          typeVariant: "outline" as const,
+          shares: null,
+          ownership: capTable.option_pool_pct,
+          isPool: true,
+        }]
+      : []),
+  ];
+
+  const columns: Column<TableRow>[] = [
+    {
+      key: "name",
+      header: "Stakeholder",
+      cell: (row) => <span className="font-medium">{row.name}</span>,
+      primary: true,
+    },
+    {
+      key: "type",
+      header: "Type",
+      cell: (row) => (
+        <Badge variant={row.typeVariant} className="capitalize">
+          {row.type}
+        </Badge>
+      ),
+    },
+    {
+      key: "shares",
+      header: "Shares",
+      cell: (row) => (row.shares !== null ? formatNumber(row.shares) : "-"),
+      className: "text-right",
+    },
+    {
+      key: "ownership",
+      header: "Ownership %",
+      cell: (row) => formatPercent(row.ownership),
+      className: "text-right",
+    },
+  ];
+
+  const footer = (
+    <ResponsiveTableFooter
+      items={[
+        { label: "Total Shares", value: formatNumber(totalProFormaShares) },
+        { label: "Total Ownership", value: "100%" },
+      ]}
+    />
+  );
+
   return (
     <div className="space-y-4">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Stakeholder</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead className="text-right">Shares</TableHead>
-            <TableHead className="text-right">Ownership %</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {/* Existing stakeholders */}
-          {existingStakeholders.map((stakeholder) => (
-            <TableRow key={stakeholder.id}>
-              <TableCell className="font-medium">{stakeholder.name}</TableCell>
-              <TableCell>
-                <Badge variant="outline" className="capitalize">
-                  {stakeholder.type}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-right">
-                {formatNumber(stakeholder.shares)}
-              </TableCell>
-              <TableCell className="text-right">
-                {formatPercent(stakeholder.proFormaOwnership)}
-              </TableCell>
-            </TableRow>
-          ))}
-
-          {/* Converted investors */}
-          {convertedInvestors.map((investor, idx) => (
-            <TableRow key={`conversion-${idx}`} className="bg-muted/30">
-              <TableCell className="font-medium">{investor.name}</TableCell>
-              <TableCell>
-                <Badge variant="secondary">{investor.type}</Badge>
-              </TableCell>
-              <TableCell className="text-right">
-                {formatNumber(investor.shares)}
-              </TableCell>
-              <TableCell className="text-right">
-                {formatPercent(investor.ownership)}
-              </TableCell>
-            </TableRow>
-          ))}
-
-          {/* Option Pool Row */}
-          {capTable.option_pool_pct > 0 && (
-            <TableRow className="bg-muted/20">
-              <TableCell className="font-medium">Option Pool (Reserved)</TableCell>
-              <TableCell>
-                <Badge variant="outline">Pool</Badge>
-              </TableCell>
-              <TableCell className="text-right">-</TableCell>
-              <TableCell className="text-right">
-                {formatPercent(capTable.option_pool_pct)}
-              </TableCell>
-            </TableRow>
-          )}
-
-          {/* Total Row */}
-          <TableRow className="font-bold border-t-2">
-            <TableCell>Total</TableCell>
-            <TableCell></TableCell>
-            <TableCell className="text-right">
-              {formatNumber(totalProFormaShares)}
-            </TableCell>
-            <TableCell className="text-right">100%</TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+      <ResponsiveTable
+        data={allRows}
+        columns={columns}
+        getRowKey={(row) => row.id}
+        rowClassName={(row) =>
+          row.isConverted ? "bg-muted/30" : row.isPool ? "bg-muted/20" : ""
+        }
+        footer={footer}
+      />
 
       {conversions.length > 0 && (
         <p className="text-xs text-muted-foreground">
