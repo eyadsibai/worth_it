@@ -275,6 +275,43 @@ export function duplicateScenario(timestamp: string): ScenarioData | null {
 }
 
 // ============================================================================
+// Generic Helper Functions (defined early for use in export functions)
+// ============================================================================
+
+/**
+ * Escape a string for CSV format according to RFC 4180
+ * - Wraps in quotes if contains comma, newline, or double quote
+ * - Escapes internal double quotes by doubling them
+ */
+function escapeCSV(value: string): string {
+  if (value.includes('"') || value.includes(',') || value.includes('\n') || value.includes('\r')) {
+    const escaped = value.replace(/"/g, '""');
+    return `"${escaped}"`;
+  }
+  return value;
+}
+
+/**
+ * Sanitize a string for use in filenames.
+ * Removes or replaces all non-alphanumeric characters (except hyphens),
+ * collapses consecutive hyphens, and trims leading/trailing hyphens.
+ */
+function sanitizeFilename(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")  // Replace non-alphanumeric sequences with hyphen
+    .replace(/-+/g, "-")            // Collapse consecutive hyphens
+    .replace(/^-|-$/g, "");         // Trim leading/trailing hyphens
+}
+
+/**
+ * Get a consistent date string for export filenames (YYYY-MM-DD format)
+ */
+function getExportDateString(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+// ============================================================================
 // Employee Mode Scenario Export Functions
 // ============================================================================
 
@@ -294,12 +331,12 @@ export interface MonteCarloExportStats {
  */
 export function exportScenarioAsCSV(scenario: ScenarioData): void {
   const rows: string[] = [];
-  const timestamp = new Date().toLocaleString();
+  const timestamp = getExportDateString();
 
   // Header section
   rows.push("Worth It Analysis Report");
   rows.push(`Generated,${timestamp}`);
-  rows.push(`Scenario Name,${escapeCSVValue(scenario.name)}`);
+  rows.push(`Scenario Name,${escapeCSV(scenario.name)}`);
   rows.push("");
 
   // Global Settings
@@ -314,13 +351,13 @@ export function exportScenarioAsCSV(scenario: ScenarioData): void {
   rows.push(`Monthly Salary,${scenario.currentJob.monthlySalary}`);
   rows.push(`Annual Growth Rate,${(scenario.currentJob.annualGrowthRate * 100).toFixed(1)}%`);
   rows.push(`Assumed ROI,${(scenario.currentJob.assumedROI * 100).toFixed(1)}%`);
-  rows.push(`Investment Frequency,${scenario.currentJob.investmentFrequency}`);
+  rows.push(`Investment Frequency,${escapeCSV(scenario.currentJob.investmentFrequency)}`);
   rows.push("");
 
   // Equity Details
   rows.push("STARTUP OFFER");
   rows.push("Metric,Value");
-  rows.push(`Equity Type,${scenario.equity.type}`);
+  rows.push(`Equity Type,${escapeCSV(scenario.equity.type)}`);
   rows.push(`Monthly Salary,${scenario.equity.monthlySalary}`);
   rows.push(`Vesting Period,${scenario.equity.vestingPeriod} years`);
   rows.push(`Cliff Period,${scenario.equity.cliffPeriod} year(s)`);
@@ -346,12 +383,12 @@ export function exportScenarioAsCSV(scenario: ScenarioData): void {
   rows.push(`Net Outcome,${scenario.results.netOutcome}`);
   rows.push(`Verdict,${scenario.results.netOutcome >= 0 ? "WORTH IT" : "NOT WORTH IT"}`);
   if (scenario.results.breakeven) {
-    rows.push(`Breakeven,${scenario.results.breakeven}`);
+    rows.push(`Breakeven,${escapeCSV(scenario.results.breakeven)}`);
   }
 
   const csvContent = rows.join("\n");
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
-  const csvFilename = `scenario-${scenario.name.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-${new Date().toISOString().split("T")[0]}.csv`;
+  const csvFilename = `scenario-${sanitizeFilename(scenario.name)}-${timestamp}.csv`;
   downloadBlob(blob, csvFilename);
 }
 
@@ -362,6 +399,7 @@ export function exportScenarioAsJSON(
   scenario: ScenarioData,
   monteCarloStats?: MonteCarloExportStats
 ): void {
+  const timestamp = getExportDateString();
   const exportData = {
     version: "1.0",
     exportedAt: new Date().toISOString(),
@@ -371,7 +409,7 @@ export function exportScenarioAsJSON(
 
   const jsonString = JSON.stringify(exportData, null, 2);
   const blob = new Blob([jsonString], { type: "application/json" });
-  const jsonFilename = `scenario-${scenario.name.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-${new Date().toISOString().split("T")[0]}.json`;
+  const jsonFilename = `scenario-${sanitizeFilename(scenario.name)}-${timestamp}.json`;
   downloadBlob(blob, jsonFilename);
 }
 
@@ -383,8 +421,8 @@ export function exportScenarioAsPDF(
   monteCarloStats?: MonteCarloExportStats
 ): void {
   const doc = new jsPDF();
-  const timestamp = new Date().toLocaleDateString();
-  const isPositive = scenario.results.netOutcome >= 0;
+  const timestamp = getExportDateString();
+  const verdictText = scenario.results.netOutcome >= 0 ? "WORTH IT" : "NOT WORTH IT";
 
   // Title
   doc.setFontSize(24);
@@ -401,7 +439,6 @@ export function exportScenarioAsPDF(
   doc.text("Executive Summary", 14, 50);
 
   doc.setFontSize(11);
-  const verdictText = isPositive ? "WORTH IT" : "NOT WORTH IT";
   const netOutcomeFormatted = formatNumber(scenario.results.netOutcome);
   doc.text(`Net Benefit: $${netOutcomeFormatted} (${verdictText})`, 14, 60);
   doc.text(`Equity Payout: $${formatNumber(scenario.results.finalPayoutValue)}`, 14, 68);
@@ -425,9 +462,9 @@ export function exportScenarioAsPDF(
     ["Cliff Period", `${scenario.equity.cliffPeriod} year(s)`],
   ];
 
-  // Add equity-specific details
+  // Add equity-specific details (use 2 decimal places for equity percentage, consistent with CSV)
   if (scenario.equity.type === "RSU") {
-    inputData.push(["Equity Percentage", `${((scenario.equity.equityPct || 0) * 100).toFixed(3)}%`]);
+    inputData.push(["Equity Percentage", `${((scenario.equity.equityPct || 0) * 100).toFixed(2)}%`]);
     inputData.push(["Exit Valuation", `$${formatNumber(scenario.equity.exitValuation || 0)}`]);
   } else {
     inputData.push(["Number of Options", formatNumber(scenario.equity.numOptions || 0)]);
@@ -499,8 +536,8 @@ export function exportScenarioAsPDF(
     );
   }
 
-  // Save the PDF
-  const pdfFilename = `worth-it-report-${new Date().toISOString().split("T")[0]}.pdf`;
+  // Save the PDF with scenario name in filename for consistency with CSV/JSON
+  const pdfFilename = `scenario-${sanitizeFilename(scenario.name)}-${timestamp}.pdf`;
   doc.save(pdfFilename);
 }
 
@@ -511,16 +548,6 @@ function formatNumber(value: number): string {
   return Math.round(value).toLocaleString();
 }
 
-/**
- * Escape a value for CSV (internal helper that doesn't add extension)
- */
-function escapeCSVValue(value: string): string {
-  if (value.includes('"') || value.includes(',') || value.includes('\n') || value.includes('\r')) {
-    const escaped = value.replace(/"/g, '""');
-    return `"${escaped}"`;
-  }
-  return value;
-}
 
 // ============================================================================
 // Cap Table Export Functions
@@ -786,27 +813,14 @@ export function exportCapTableAsPDF(
     });
   }
 
-  // Save the PDF
-  const pdfFilename = `cap-table-${new Date().toISOString().split("T")[0]}.pdf`;
+  // Save the PDF with consistent filename pattern
+  const pdfFilename = `cap-table-${getExportDateString()}.pdf`;
   doc.save(pdfFilename);
 }
 
 // ============================================================================
-// Generic Helper Functions
+// Additional Helper Functions
 // ============================================================================
-
-/**
- * Escape a string for CSV format according to RFC 4180
- * - Wraps in quotes if contains comma, newline, or double quote
- * - Escapes internal double quotes by doubling them
- */
-function escapeCSV(value: string): string {
-  if (value.includes('"') || value.includes(',') || value.includes('\n') || value.includes('\r')) {
-    const escaped = value.replace(/"/g, '""');
-    return `"${escaped}"`;
-  }
-  return value;
-}
 
 /**
  * Generic CSV column definition for type-safe CSV building

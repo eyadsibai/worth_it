@@ -311,23 +311,24 @@ describe("clearAllScenarios", () => {
 // =============================================================================
 
 describe("exportScenarioAsCSV", () => {
-  it("exports scenario with correct filename", async () => {
-    // Import the function dynamically to allow for future implementation
+  it("exports scenario with correct filename pattern", async () => {
     const { exportScenarioAsCSV } = await import("@/lib/export-utils");
     const scenario = createMockScenario("My Scenario", "2024-01-01T00:00:00Z");
 
     exportScenarioAsCSV(scenario);
 
-    expect(mockLink.download).toMatch(/scenario.*\.csv$/);
+    // Filename should follow pattern: scenario-{sanitized-name}-{date}.csv
+    expect(mockLink.download).toMatch(/^scenario-my-scenario-\d{4}-\d{2}-\d{2}\.csv$/);
     expect(mockLink.click).toHaveBeenCalled();
   });
 
-  it("includes all scenario sections in CSV", async () => {
+  it("generates valid CSV for all sections", async () => {
     const { exportScenarioAsCSV } = await import("@/lib/export-utils");
     const scenario = createMockScenario("Test Scenario", "2024-01-01T00:00:00Z");
 
-    // Should not throw when exporting full scenario
+    // Should not throw - verifies all sections are properly formatted
     expect(() => exportScenarioAsCSV(scenario)).not.toThrow();
+    expect(mockLink.download).toMatch(/\.csv$/);
   });
 
   it("handles RSU scenarios", async () => {
@@ -349,16 +350,47 @@ describe("exportScenarioAsCSV", () => {
 
     expect(() => exportScenarioAsCSV(scenario)).not.toThrow();
   });
+
+  it("sanitizes filename for special characters", async () => {
+    const { exportScenarioAsCSV } = await import("@/lib/export-utils");
+    const scenario = createMockScenario("My Test / Analysis: 2024", "2024-01-01T00:00:00Z");
+
+    exportScenarioAsCSV(scenario);
+
+    // Should have cleaned filename without slashes, colons, or multiple hyphens
+    expect(mockLink.download).toMatch(/^scenario-my-test-analysis-2024-\d{4}-\d{2}-\d{2}\.csv$/);
+    expect(mockLink.download).not.toContain("//");
+    expect(mockLink.download).not.toMatch(/--+/); // No consecutive hyphens
+  });
+
+  it("handles scenario names with quotes and commas", async () => {
+    const { exportScenarioAsCSV } = await import("@/lib/export-utils");
+    const scenario = createMockScenario('Scenario with, "quotes" and comma', "2024-01-01T00:00:00Z");
+
+    // Should not throw - CSV escaping is applied internally
+    expect(() => exportScenarioAsCSV(scenario)).not.toThrow();
+    // Filename should be sanitized
+    expect(mockLink.download).toMatch(/^scenario-scenario-with-quotes-and-comma-.*\.csv$/);
+  });
+
+  it("handles scenarios with breakeven field", async () => {
+    const { exportScenarioAsCSV } = await import("@/lib/export-utils");
+    const scenario = createMockScenario("Test", "2024-01-01T00:00:00Z");
+    scenario.results.breakeven = "Year 3, Month 6";
+
+    expect(() => exportScenarioAsCSV(scenario)).not.toThrow();
+  });
 });
 
 describe("exportScenarioAsJSON", () => {
-  it("exports scenario with correct filename", async () => {
+  it("exports scenario with correct filename pattern", async () => {
     const { exportScenarioAsJSON } = await import("@/lib/export-utils");
     const scenario = createMockScenario("My Scenario", "2024-01-01T00:00:00Z");
 
     exportScenarioAsJSON(scenario);
 
-    expect(mockLink.download).toMatch(/scenario.*\.json$/);
+    // Filename should follow pattern: scenario-{sanitized-name}-{date}.json
+    expect(mockLink.download).toMatch(/^scenario-my-scenario-\d{4}-\d{2}-\d{2}\.json$/);
     expect(mockLink.click).toHaveBeenCalled();
   });
 

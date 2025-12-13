@@ -200,7 +200,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
           {globalSettings && currentJob && equityDetails && (
             <ExportMenu
               scenario={{
-                name: "Current Analysis",
+                name: `${equityDetails.equity_type === "RSU" ? "RSU" : "Stock Options"} - $${formatCurrency(equityDetails.monthly_salary)}/mo`,
                 timestamp: new Date().toISOString(),
                 globalSettings: {
                   exitYear: globalSettings.exit_year,
