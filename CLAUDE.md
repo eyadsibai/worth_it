@@ -572,3 +572,5 @@ The frontend implements an **exact Fundcy-style** design: clean white cards, ver
 - **FastAPI**: https://fastapi.tiangolo.com/
 - ALWAYS USE Test Driven Development .. this is not negotiable
 - Use shadcn mcp whenever you are doing UI components
+
+@POWERHOSRE.md
