@@ -5,14 +5,13 @@ import { TIMEOUTS } from '../utils/test-data';
  * Test Suite: WebSocket Integration Tests
  *
  * These tests verify:
- * - WebSocket connection establishment and reconnection
+ * - WebSocket connection establishment
  * - Monte Carlo progress updates render correctly
- * - Simulation cancellation works properly
  * - Multiple rapid form submissions handled correctly
  */
 
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:8000';
-const WS_URL = API_BASE_URL.replace('http', 'ws');
+// Use 127.0.0.1 instead of localhost to avoid IPv6 resolution issues
+const API_BASE_URL = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
 
 test.describe('WebSocket Connection Establishment', () => {
   test('should establish WebSocket connection for Monte Carlo', async ({ page, helpers }) => {

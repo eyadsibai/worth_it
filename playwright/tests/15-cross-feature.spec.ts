@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/base';
-import { TEST_DATA, TIMEOUTS } from '../utils/test-data';
+import { TEST_DATA } from '../utils/test-data';
 
 /**
  * Test Suite: Cross-Feature Integration Tests

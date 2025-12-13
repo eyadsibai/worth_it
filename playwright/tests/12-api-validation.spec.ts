@@ -1,14 +1,13 @@
 import { test, expect } from '../fixtures/base';
-import { TEST_DATA, TIMEOUTS } from '../utils/test-data';
 
 /**
  * Test Suite: API Response Validation
  *
  * These tests verify:
- * - API responses match expected Zod schemas
- * - Error responses are properly displayed in UI
+ * - API responses have expected structure and types
+ * - Error responses are properly handled by UI
  * - Loading states during API calls
- * - Network failure handling and retry logic
+ * - Network failure handling
  */
 
 // Use 127.0.0.1 instead of localhost to avoid IPv6 resolution issues

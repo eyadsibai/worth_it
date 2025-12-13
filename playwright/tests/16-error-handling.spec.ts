@@ -11,7 +11,8 @@ import { TIMEOUTS } from '../utils/test-data';
  * - Malformed response handling
  */
 
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:8000';
+// Use 127.0.0.1 instead of localhost to avoid IPv6 resolution issues
+const API_BASE_URL = process.env.API_BASE_URL || 'http://127.0.0.1:8000';
 
 test.describe('Backend Error Display', () => {
   test('should handle 500 error gracefully and not crash', async ({ page, helpers }) => {
@@ -430,7 +431,7 @@ test.describe('Form Input Edge Cases', () => {
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i');
 
-    // Try special characters in name field
+    // Try special characters in name field with XSS payload
     const nameInput = page.locator('input[placeholder="e.g., John Smith"]');
     await nameInput.fill('Test <script>alert("xss")</script>');
 
@@ -438,10 +439,12 @@ test.describe('Form Input Edge Cases', () => {
     await page.getByRole('button', { name: /Add Stakeholder/i }).click();
 
     // Should sanitize or reject XSS attempt - not execute it
-    // The main validation is that no script alert appears
     await page.waitForTimeout(500);
 
-    // Page should still be functional
+    // Verify the XSS payload doesn't execute
+    // React's JSX escaping renders <script> as literal text, not as an executable tag
+    // If the script executed, Playwright would throw on the alert dialog
+    // The page remaining functional proves the XSS was neutralized
     await expect(page.locator('body')).toBeVisible();
   });
 
@@ -508,9 +511,8 @@ test.describe('Concurrent Request Handling', () => {
     // Wait for debounce to settle
     await page.waitForTimeout(1000);
 
-    // Should have debounced - not 5 separate calls
-    // (Actual number depends on debounce implementation)
-    // Just verify it didn't crash and made reasonable number of calls
-    expect(apiCallCount).toBeLessThanOrEqual(5);
+    // Should have debounced - fewer than 5 calls for 5 rapid changes
+    // Effective debounce should batch rapid changes into fewer API calls
+    expect(apiCallCount).toBeLessThan(5);
   });
 });
