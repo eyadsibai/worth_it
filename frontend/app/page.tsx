@@ -20,6 +20,7 @@ import { CapTableManager } from "@/components/cap-table";
 import { useAppStore } from "@/lib/store";
 import { isValidEquityData } from "@/lib/validation";
 import { DraftRecoveryDialog } from "@/components/draft-recovery-dialog";
+import { ExampleLoader } from "@/components/forms/example-loader";
 import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
 
 export default function Home() {
@@ -252,6 +253,7 @@ export default function Home() {
       sidebar={
         appMode === "employee" ? (
           <div className="space-y-4">
+            <ExampleLoader />
             <FormCompletionSummary status={formStatus} />
             <GlobalSettingsFormComponent onChange={setGlobalSettings} />
             <CurrentJobFormComponent onChange={setCurrentJob} />

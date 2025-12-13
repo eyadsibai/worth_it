@@ -22,6 +22,7 @@ import type {
   PreferenceTier,
 } from "@/lib/schemas";
 import type { ScenarioData } from "@/lib/export-utils";
+import { getExampleById } from "@/lib/constants/examples";
 
 export type AppMode = "employee" | "founder";
 
@@ -61,6 +62,9 @@ interface AppState {
   setMonteCarloResults: (results: MonteCarloResults | null) => void;
   setComparisonScenarios: (scenarios: ScenarioData[]) => void;
   clearComparisonScenarios: () => void;
+
+  // Example Loading
+  loadExample: (exampleId: string) => boolean;
 
   // Derived State Helpers
   hasEmployeeFormData: () => boolean;
@@ -105,6 +109,21 @@ export const useAppStore = create<AppState>()(
       setMonteCarloResults: (results) => set({ monteCarloResults: results }),
       setComparisonScenarios: (scenarios) => set({ comparisonScenarios: scenarios }),
       clearComparisonScenarios: () => set({ comparisonScenarios: [] }),
+
+      // Example Loading
+      loadExample: (exampleId) => {
+        const example = getExampleById(exampleId);
+        if (!example) return false;
+
+        // Atomically update all form state and clear results
+        set({
+          globalSettings: example.globalSettings,
+          currentJob: example.currentJob,
+          equityDetails: example.equityDetails,
+          monteCarloResults: null,
+        });
+        return true;
+      },
 
       // Derived State Helpers
       hasEmployeeFormData: () => {

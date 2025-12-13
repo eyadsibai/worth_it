@@ -156,6 +156,63 @@ describe("Founder Mode State", () => {
   });
 });
 
+describe("loadExample", () => {
+  it("loads early-stage example and sets all form state atomically", () => {
+    const result = useAppStore.getState().loadExample("early-stage");
+
+    expect(result).toBe(true);
+
+    const state = useAppStore.getState();
+    expect(state.globalSettings).toEqual({ exit_year: 5 });
+    expect(state.currentJob).toEqual({
+      monthly_salary: 12000,
+      annual_salary_growth_rate: 5,
+      assumed_annual_roi: 8,
+      investment_frequency: "Monthly",
+    });
+    expect(state.equityDetails).not.toBeNull();
+    expect(state.equityDetails?.equity_type).toBe("RSU");
+    expect(state.equityDetails?.monthly_salary).toBe(8000);
+  });
+
+  it("loads growth-stage example correctly", () => {
+    const result = useAppStore.getState().loadExample("growth-stage");
+
+    expect(result).toBe(true);
+    expect(useAppStore.getState().globalSettings).toEqual({ exit_year: 4 });
+    expect(useAppStore.getState().currentJob?.monthly_salary).toBe(15000);
+  });
+
+  it("loads late-stage example correctly", () => {
+    const result = useAppStore.getState().loadExample("late-stage");
+
+    expect(result).toBe(true);
+    expect(useAppStore.getState().globalSettings).toEqual({ exit_year: 2 });
+    expect(useAppStore.getState().currentJob?.monthly_salary).toBe(18000);
+  });
+
+  it("returns false for unknown example ID", () => {
+    const result = useAppStore.getState().loadExample("nonexistent");
+
+    expect(result).toBe(false);
+    expect(useAppStore.getState().globalSettings).toBeNull();
+    expect(useAppStore.getState().currentJob).toBeNull();
+    expect(useAppStore.getState().equityDetails).toBeNull();
+  });
+
+  it("clears Monte Carlo results when loading example", () => {
+    // Pre-populate results
+    useAppStore.getState().setMonteCarloResults({
+      net_outcomes: [100000],
+      simulated_valuations: [1000000],
+    });
+
+    useAppStore.getState().loadExample("early-stage");
+
+    expect(useAppStore.getState().monteCarloResults).toBeNull();
+  });
+});
+
 describe("Results State", () => {
   it("sets Monte Carlo results", () => {
     const mockResults = {
