@@ -1,7 +1,9 @@
 "use client";
 
-import { motion, type HTMLMotionProps, type Variants, useInView, useSpring, useMotionValue } from "framer-motion";
+import { motion, type HTMLMotionProps, type Variants, useInView, useSpring, useMotionValue, AnimatePresence } from "framer-motion";
 import * as React from "react";
+import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
+import { formatCurrencyWithDecimals } from "@/lib/format-utils";
 
 // ============================================================================
 // Animation Variants - Reusable animation presets
@@ -250,7 +252,7 @@ export function AnimatedNumber({
  */
 export function AnimatedCurrency({
   value,
-  currency = "SAR",
+  currency = "$",
   className
 }: {
   value: number;
@@ -264,6 +266,98 @@ export function AnimatedCurrency({
         value={value}
         formatValue={(v) => v.toLocaleString(undefined, { maximumFractionDigits: 0 })}
       />
+    </span>
+  );
+}
+
+/**
+ * Enhanced animated currency with delta display
+ * Shows the change amount briefly when value updates
+ */
+export function AnimatedCurrencyDisplay({
+  value,
+  showDelta = true,
+  className,
+}: {
+  value: number;
+  showDelta?: boolean;
+  className?: string;
+}) {
+  const prefersReducedMotion = useReducedMotion();
+  const mainRef = React.useRef<HTMLSpanElement>(null);
+  const decimalRef = React.useRef<HTMLSpanElement>(null);
+  const motionValue = useMotionValue(0);
+  const springValue = useSpring(motionValue, {
+    duration: prefersReducedMotion ? 0 : 800,
+    bounce: 0,
+  });
+  const isInView = useInView(mainRef, { once: true, margin: "-50px" });
+
+  // Track previous value for delta calculation
+  const previousValue = React.useRef<number | null>(null);
+  const [delta, setDelta] = React.useState<number | null>(null);
+  const isFirstRender = React.useRef(true);
+
+  React.useEffect(() => {
+    if (isInView) {
+      // Calculate delta (skip on first render)
+      if (!isFirstRender.current && previousValue.current !== null && showDelta) {
+        const diff = value - previousValue.current;
+        if (diff !== 0) {
+          setDelta(diff);
+          // Clear delta after 2 seconds
+          const timer = setTimeout(() => setDelta(null), 2000);
+          return () => clearTimeout(timer);
+        }
+      }
+      isFirstRender.current = false;
+      previousValue.current = value;
+      motionValue.set(value);
+    }
+  }, [isInView, value, motionValue, showDelta]);
+
+  // Format and update display using textContent (safe)
+  React.useEffect(() => {
+    const unsubscribe = springValue.on("change", (latest) => {
+      const { main, decimal } = formatCurrencyWithDecimals(Math.round(latest));
+      if (mainRef.current) {
+        mainRef.current.textContent = main;
+      }
+      if (decimalRef.current) {
+        decimalRef.current.textContent = decimal;
+      }
+    });
+    return unsubscribe;
+  }, [springValue]);
+
+  const { main, decimal } = formatCurrencyWithDecimals(0);
+
+  return (
+    <span className={`relative inline-flex items-center gap-2 ${className ?? ""}`}>
+      <span className="tabular-nums">
+        <span ref={mainRef}>{main}</span>
+        <span ref={decimalRef} className="currency-decimal">{decimal}</span>
+      </span>
+      <AnimatePresence>
+        {delta !== null && (
+          <motion.span
+            initial={{ opacity: 0, y: -5, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 5 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
+            className={`text-xs font-mono tabular-nums ${
+              delta > 0
+                ? "text-terminal"
+                : delta < 0
+                  ? "text-destructive"
+                  : ""
+            }`}
+          >
+            {delta > 0 ? "+" : ""}
+            {formatCurrencyWithDecimals(delta).main}
+          </motion.span>
+        )}
+      </AnimatePresence>
     </span>
   );
 }

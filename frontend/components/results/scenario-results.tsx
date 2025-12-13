@@ -12,6 +12,7 @@ import { CumulativeComparisonChart } from "@/components/charts/cumulative-compar
 import { OpportunityCostChart } from "@/components/charts/opportunity-cost-chart";
 import { formatCurrency } from "@/lib/format-utils";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
+import { AnimatedCurrencyDisplay } from "@/lib/motion";
 import { saveScenario, type ScenarioData } from "@/lib/export-utils";
 import {
   Dialog,
@@ -138,7 +139,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
           </CardHeader>
           <CardContent className="pb-4 px-4">
             <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight text-foreground">
-              <CurrencyDisplay value={results.final_payout_value} />
+              <AnimatedCurrencyDisplay value={results.final_payout_value} />
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1 truncate">{results.payout_label}</p>
           </CardContent>
@@ -151,7 +152,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
           </CardHeader>
           <CardContent className="pb-4 px-4">
             <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight text-foreground">
-              <CurrencyDisplay value={results.final_opportunity_cost} />
+              <AnimatedCurrencyDisplay value={results.final_opportunity_cost} />
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1 truncate">Current job alternative</p>
           </CardContent>
@@ -170,7 +171,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
                 <TrendingDown className="h-4 w-4 flex-shrink-0 text-destructive" />
               )}
               <CardTitle className={`text-lg lg:text-xl font-semibold tracking-tight ${isPositive ? "text-terminal" : "text-destructive"}`}>
-                <CurrencyDisplay value={netBenefit} />
+                <AnimatedCurrencyDisplay value={netBenefit} />
               </CardTitle>
             </div>
             <div className="mt-2">
