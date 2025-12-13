@@ -124,11 +124,12 @@ export const SELECTORS = {
 
   // Results
   results: {
-    apiStatusCard: 'text=/API Connection Status/i',
-    connectedStatus: 'text=/Connected to API/i',
-    scenarioResults: 'text=/Scenario Analysis/i',
+    pageTitle: 'text=/Job Offer Financial Analyzer/i',
+    scenarioResults: 'text=/Detailed Analysis/i',
     finalPayoutCard: 'text=/Final Payout/i',
     opportunityCostCard: 'text=/Opportunity Cost/i',
+    netBenefitCard: 'text=/Net Benefit/i',
+    breakEvenCard: 'text=/Break-Even/i',
   },
 
   // Monte Carlo
@@ -146,6 +147,7 @@ export const SELECTORS = {
 };
 
 export const TIMEOUTS = {
+  // Extended timeout for page/form loading
   navigation: 30000, // 30s for page navigation
   calculation: 10000, // 10s for calculations to complete
   apiResponse: 5000, // 5s for API responses
