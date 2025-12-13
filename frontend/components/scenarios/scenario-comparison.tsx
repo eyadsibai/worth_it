@@ -24,11 +24,10 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <span className="text-accent font-mono">&gt;</span>
+            <CardTitle className="text-lg font-semibold">
               Scenario Comparison
             </CardTitle>
-            <CardDescription className="text-sm font-mono text-muted-foreground mt-1">
+            <CardDescription className="text-sm text-muted-foreground mt-1">
               Comparing {scenarios.length} scenario{scenarios.length !== 1 ? "s" : ""}
             </CardDescription>
           </div>

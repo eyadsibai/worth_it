@@ -27,11 +27,10 @@ export function Sidebar({ children }: SidebarProps) {
     <aside className="w-full md:w-[420px] border-r border-border bg-sidebar">
       <div className="h-full flex flex-col">
         <div className="px-5 py-4 border-b border-border">
-          <h2 className="text-sm font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <span className="text-accent">&gt;</span>
+          <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
             {config.title}
           </h2>
-          <p className="text-xs text-muted-foreground/70 mt-1 font-mono">
+          <p className="text-xs text-muted-foreground/70 mt-1">
             {config.description}
           </p>
         </div>

@@ -33,8 +33,8 @@ export const CumulativeComparisonChart = React.memo(function CumulativeCompariso
   );
 
   return (
-    <div role="img" aria-label="Bar chart comparing startup salary and current job salary over years">
-        <ResponsiveContainer width="100%" height={400}>
+    <div role="img" aria-label="Bar chart comparing startup salary and current job salary over years" className="h-[400px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
       <BarChart
         data={chartData}
         margin={{
@@ -58,10 +58,14 @@ export const CumulativeComparisonChart = React.memo(function CumulativeCompariso
         <Tooltip
           formatter={(value: number) => formatCurrencyCompact(value)}
           contentStyle={{
-            backgroundColor: "var(--background)",
-            border: "1px solid var(--border)",
-            borderRadius: "8px",
+            backgroundColor: "hsl(220 15% 15%)",
+            border: "none",
+            borderRadius: "12px",
+            color: "white",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
           }}
+          labelStyle={{ color: "rgba(255, 255, 255, 0.7)" }}
+          itemStyle={{ color: "white" }}
         />
         <Legend />
         <Bar
@@ -77,8 +81,8 @@ export const CumulativeComparisonChart = React.memo(function CumulativeCompariso
           radius={[4, 4, 0, 0]}
         />
       </BarChart>
-    </ResponsiveContainer>
-      </div>
+      </ResponsiveContainer>
+    </div>
   );
 });
 

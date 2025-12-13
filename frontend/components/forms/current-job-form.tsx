@@ -38,10 +38,10 @@ export function CurrentJobFormComponent({
   }, [watchedValues, form.formState.isValid, onChange]);
 
   return (
-    <Card className="glass-card animate-slide-up border-l-4 border-l-chart-2/50">
+    <Card className="glass-card animate-slide-up border-l-4 border-l-chart-3/60">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-chart-2"></div>
+          <div className="h-2 w-2 rounded-full bg-chart-3"></div>
           Current Job
         </CardTitle>
         <CardDescription>Your current employment details</CardDescription>
@@ -56,8 +56,9 @@ export function CurrentJobFormComponent({
               description="Your current monthly gross salary"
               min={0}
               step={100}
-              prefix="SAR"
+              prefix="$"
               placeholder="10000"
+              formatDisplay={true}
             />
 
             <SliderField

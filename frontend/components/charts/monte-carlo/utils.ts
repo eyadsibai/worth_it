@@ -8,10 +8,12 @@ import { formatCurrencyCompact } from "@/lib/format-utils";
 export { formatCurrencyCompact as formatCurrency };
 
 /**
- * Common chart tooltip style configuration
+ * Common chart tooltip style configuration - Fundcy dark style
  */
 export const tooltipStyle = {
-  backgroundColor: "var(--background)",
-  border: "1px solid var(--border)",
-  borderRadius: "8px",
+  backgroundColor: "hsl(220 15% 15%)",
+  border: "none",
+  borderRadius: "12px",
+  color: "white",
+  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
 };

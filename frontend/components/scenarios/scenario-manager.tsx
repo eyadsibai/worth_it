@@ -72,16 +72,15 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
     return (
       <Card className="terminal-card">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <span className="text-accent font-mono">&gt;</span>
+          <CardTitle className="text-lg font-semibold">
             Saved Scenarios
           </CardTitle>
-          <CardDescription className="text-sm font-mono text-muted-foreground">
+          <CardDescription className="text-sm text-muted-foreground">
             No saved scenarios yet
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground font-mono text-sm">
+          <div className="text-center py-8 text-muted-foreground text-sm">
             Save a scenario from the results to compare different offers
           </div>
         </CardContent>
@@ -95,11 +94,10 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <span className="text-accent font-mono">&gt;</span>
+              <CardTitle className="text-lg font-semibold">
                 Saved Scenarios
               </CardTitle>
-              <CardDescription className="text-sm font-mono text-muted-foreground mt-1">
+              <CardDescription className="text-sm text-muted-foreground mt-1">
                 {scenarios.length} scenario{scenarios.length !== 1 ? "s" : ""} saved
               </CardDescription>
             </div>

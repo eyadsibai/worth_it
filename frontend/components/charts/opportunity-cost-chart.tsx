@@ -33,8 +33,8 @@ export const OpportunityCostChart = React.memo(function OpportunityCostChart({
   );
 
   return (
-    <div role="img" aria-label="Line chart showing cumulative opportunity cost and annual surplus over time">
-        <ResponsiveContainer width="100%" height={400}>
+    <div role="img" aria-label="Line chart showing cumulative opportunity cost and annual surplus over time" className="h-[400px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
       <LineChart
         data={chartData}
         margin={{
@@ -58,10 +58,14 @@ export const OpportunityCostChart = React.memo(function OpportunityCostChart({
         <Tooltip
           formatter={(value: number) => formatCurrencyCompact(value)}
           contentStyle={{
-            backgroundColor: "var(--background)",
-            border: "1px solid var(--border)",
-            borderRadius: "8px",
+            backgroundColor: "hsl(220 15% 15%)",
+            border: "none",
+            borderRadius: "12px",
+            color: "white",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
           }}
+          labelStyle={{ color: "rgba(255, 255, 255, 0.7)" }}
+          itemStyle={{ color: "white" }}
         />
         <Legend />
         <ReferenceLine y={0} stroke="var(--muted-foreground)" />
@@ -84,8 +88,8 @@ export const OpportunityCostChart = React.memo(function OpportunityCostChart({
           activeDot={{ r: 6, fill: "var(--chart-1)" }}
         />
       </LineChart>
-    </ResponsiveContainer>
-      </div>
+      </ResponsiveContainer>
+    </div>
   );
 });
 

@@ -10,6 +10,7 @@ import type { StartupScenarioResponse, GlobalSettingsForm, CurrentJobForm, RSUFo
 import { CumulativeComparisonChart } from "@/components/charts/cumulative-comparison-chart";
 import { OpportunityCostChart } from "@/components/charts/opportunity-cost-chart";
 import { formatCurrency, formatCurrencyCompact } from "@/lib/format-utils";
+import { CurrencyDisplay } from "@/components/ui/currency-display";
 import { saveScenario, type ScenarioData } from "@/lib/export-utils";
 import {
   Dialog,
@@ -134,10 +135,10 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
             <CardDescription className="data-label text-xs">Final Payout</CardDescription>
           </CardHeader>
           <CardContent className="pb-4 px-4">
-            <CardTitle className="font-mono text-lg lg:text-xl font-semibold tracking-tight tabular-nums text-foreground">
-              {formatCurrencyCompact(results.final_payout_value)}
+            <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight text-foreground">
+              <CurrencyDisplay value={results.final_payout_value} />
             </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1 font-mono truncate">{results.payout_label}</p>
+            <p className="text-xs text-muted-foreground mt-1 truncate">{results.payout_label}</p>
           </CardContent>
         </Card>
 
@@ -147,15 +148,15 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
             <CardDescription className="data-label text-xs">Opportunity Cost</CardDescription>
           </CardHeader>
           <CardContent className="pb-4 px-4">
-            <CardTitle className="font-mono text-lg lg:text-xl font-semibold tracking-tight tabular-nums text-foreground">
-              {formatCurrencyCompact(results.final_opportunity_cost)}
+            <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight text-foreground">
+              <CurrencyDisplay value={results.final_opportunity_cost} />
             </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1 font-mono truncate">Current job alternative</p>
+            <p className="text-xs text-muted-foreground mt-1 truncate">Current job alternative</p>
           </CardContent>
         </Card>
 
         {/* Net Benefit */}
-        <Card className={`terminal-card overflow-hidden ${isPositive ? "border-terminal/40" : "border-destructive/40"}`}>
+        <Card className="terminal-card overflow-hidden">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardDescription className="data-label text-xs">Net Benefit</CardDescription>
           </CardHeader>
@@ -166,14 +167,14 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
               ) : (
                 <TrendingDown className="h-4 w-4 flex-shrink-0 text-destructive" />
               )}
-              <CardTitle className={`font-mono text-lg lg:text-xl font-semibold tracking-tight tabular-nums ${isPositive ? "metric-positive" : "metric-negative"}`}>
-                {formatCurrencyCompact(netBenefit)}
+              <CardTitle className={`text-lg lg:text-xl font-semibold tracking-tight ${isPositive ? "text-terminal" : "text-destructive"}`}>
+                <CurrencyDisplay value={netBenefit} />
               </CardTitle>
             </div>
             <div className="mt-2">
               <Badge
                 variant={isPositive ? "default" : "destructive"}
-                className={isPositive ? "bg-terminal/15 text-terminal hover:bg-terminal/20 border border-terminal/30 font-mono text-xs" : "font-mono text-xs"}
+                className={isPositive ? "bg-terminal/15 text-terminal hover:bg-terminal/20 border border-terminal/30 text-xs" : "text-xs"}
               >
                 {isPositive ? "WORTH IT" : "NOT WORTH IT"}
               </Badge>
@@ -188,10 +189,10 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
               <CardDescription className="data-label text-xs">Total Dilution</CardDescription>
             </CardHeader>
             <CardContent className="pb-4 px-4">
-              <CardTitle className="font-mono text-lg lg:text-xl font-semibold tracking-tight tabular-nums text-foreground">
+              <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight tabular-nums text-foreground">
                 {(results.total_dilution * 100).toFixed(2)}%
               </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1 font-mono truncate">
+              <p className="text-xs text-muted-foreground mt-1 truncate">
                 Final: {((results.diluted_equity_pct || 0) * 100).toFixed(2)}%
               </p>
             </CardContent>
@@ -204,12 +205,12 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
             <CardDescription className="data-label text-xs">Break-Even</CardDescription>
           </CardHeader>
           <CardContent className="pb-4 px-4">
-            <CardTitle className="font-mono text-lg lg:text-xl font-semibold tracking-tight tabular-nums text-foreground">
+            <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight text-foreground">
               {results.results_df.length > 0 && results.results_df[results.results_df.length - 1].breakeven_value !== undefined
-                ? formatCurrencyCompact(results.results_df[results.results_df.length - 1].breakeven_value)
+                ? <CurrencyDisplay value={results.results_df[results.results_df.length - 1].breakeven_value} />
                 : "N/A"}
             </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1 font-mono truncate">
+            <p className="text-xs text-muted-foreground mt-1 truncate">
               {results.breakeven_label}
             </p>
           </CardContent>
@@ -219,11 +220,10 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
       {/* Detailed Results Tabs */}
       <Card className="terminal-card">
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <span className="text-accent font-mono">&gt;</span>
+          <CardTitle className="text-lg font-semibold">
             Detailed Analysis
           </CardTitle>
-          <CardDescription className="text-sm font-mono text-muted-foreground">
+          <CardDescription className="text-sm text-muted-foreground">
             Yearly breakdown and visualizations
           </CardDescription>
         </CardHeader>

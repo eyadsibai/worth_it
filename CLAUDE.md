@@ -505,6 +505,64 @@ const salaryInput = currentJobCard.locator('input[name="monthly_salary"]');
 const salaryInput = page.locator('input[name="monthly_salary"]').first();
 ```
 
+## Design System (Fundcy Clone)
+
+The frontend implements an **exact Fundcy-style** design: clean white cards, very light gray background, multi-tone green palette, and subtle shadows.
+
+### Color Palette (oklch)
+
+**Light Mode:**
+- **Background**: Very light cool gray (`oklch(97.5% 0.003 250)`) - #F7F8FA
+- **Card**: Pure white (`oklch(100% 0 0)`) - #FFFFFF
+- **Primary**: Dark forest green (`oklch(32% 0.08 155)`) - #1A3D2E
+- **Accent**: Medium green (`oklch(42% 0.10 155)`) - #2D5A3D
+- **Terminal/Success**: Lime green (`oklch(72% 0.18 115)`) - #9BC53D
+- **Destructive**: Red (`oklch(55% 0.22 25)`) - for negative values
+
+**Chart Palette** (multi-tone green):
+- chart-1: Dark forest (`oklch(32% 0.08 155)`) - #1A3D2E
+- chart-2: Medium green (`oklch(42% 0.10 155)`) - #2D5A3D
+- chart-3: Lime (`oklch(72% 0.18 115)`) - #9BC53D
+- chart-4: Teal/Mint (`oklch(70% 0.14 175)`) - #3DD9C1
+- chart-5: Light mint (`oklch(85% 0.08 155)`)
+
+### Component Patterns
+
+**Cards (Fundcy style):**
+- Pure white background (`bg-card`)
+- NO borders (borderless)
+- Very subtle shadow: `box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 2px 8px rgba(0,0,0,0.04)`
+- Large radius: 16px (`rounded-2xl`)
+- Hover: Slightly elevated shadow
+
+**Chart Tooltips:**
+- Dark background (`hsl(220 15% 15%)`)
+- White text
+- No border, 12px radius
+- Subtle shadow
+
+### Typography
+
+**Currency Display (Fundcy-style):**
+- Large numbers with lighter decimals: `$74,503.00` where `.00` is muted
+- Use `<CurrencyDisplay value={...} />` component
+- The `.currency-decimal` class styles the decimal portion lighter
+
+**General:**
+- System fonts (no custom fonts)
+- Tabular numbers for financial data (`tabular-nums`)
+- Data labels: uppercase, small, muted (`data-label` class)
+
+### Key CSS Classes
+- `.terminal-card` / `.glass-card` - Fundcy-style white card with subtle shadow
+- `.data-value` / `.data-value-lg` - Financial numbers
+- `.currency-decimal` - Lighter decimal portion (.00)
+- `.metric-positive` / `.metric-negative` - Success/error text colors
+
+### Key Components
+- `<CurrencyDisplay value={number} />` - Fundcy-style currency with lighter decimals
+- `formatCurrencyWithDecimals(value)` - Returns `{ main, decimal }` for custom styling
+
 ## Resources
 
 - **Backend API Docs**: http://localhost:8000/docs (when running)

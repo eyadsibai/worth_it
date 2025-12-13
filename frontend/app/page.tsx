@@ -4,7 +4,7 @@ import * as React from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCalculateStartupScenario, useCreateMonthlyDataGrid, useCalculateOpportunityCost } from "@/lib/api-client";
-import { Loader2, XCircle } from "lucide-react";
+import { Loader2, XCircle, AlertCircle } from "lucide-react";
 import { GlobalSettingsFormComponent } from "@/components/forms/global-settings-form";
 import { CurrentJobFormComponent } from "@/components/forms/current-job-form";
 import { StartupOfferFormComponent } from "@/components/forms/startup-offer-form";
@@ -17,6 +17,7 @@ import { useDebounce } from "@/lib/hooks/use-debounce";
 import { ModeToggle } from "@/components/mode-toggle";
 import { CapTableManager } from "@/components/cap-table";
 import { useAppStore } from "@/lib/store";
+import { isValidEquityData } from "@/lib/validation";
 import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
 
 export default function Home() {
@@ -56,7 +57,12 @@ export default function Home() {
   );
 
   // Check if we have all required data (using debounced values for API calls)
-  const hasDebouncedData = debouncedGlobalSettings && debouncedCurrentJob && debouncedEquityDetails;
+  // Also validate that equity data has meaningful values (not all zeros)
+  const hasDebouncedData =
+    debouncedGlobalSettings &&
+    debouncedCurrentJob &&
+    debouncedEquityDetails &&
+    isValidEquityData(debouncedEquityDetails);
 
   // Initialize mutations
   const monthlyDataMutation = useCreateMonthlyDataGrid();
@@ -203,7 +209,6 @@ export default function Home() {
         {/* Hero Section */}
         <div className="space-y-4">
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground animate-fade-in">
-            <span className="text-accent font-mono">&gt;</span>{" "}
             {appMode === "employee" ? (
               <>Offer <span className="gradient-text">Analysis</span></>
             ) : (
@@ -243,13 +248,36 @@ export default function Home() {
           <Card className="terminal-card animate-scale-in delay-300">
             <CardContent className="py-16 text-center">
               <div className="space-y-6 max-w-md mx-auto">
-                <div className="font-mono text-6xl text-accent/20 select-none">_</div>
-                <div className="space-y-3">
-                  <h3 className="text-lg font-medium text-foreground">Awaiting Input</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed font-mono">
-                    Complete the forms in the sidebar to generate your financial analysis.
-                  </p>
-                </div>
+                {!debouncedEquityDetails || !isValidEquityData(debouncedEquityDetails) ? (
+                  <>
+                    <AlertCircle className="h-12 w-12 text-accent/40 mx-auto" />
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-medium text-foreground">Complete Equity Details</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed font-mono">
+                        Please fill in all equity fields in the Startup Offer form. Enter values greater than zero for:
+                        {debouncedEquityDetails?.equity_type === "STOCK_OPTIONS" ? (
+                          <span className="block mt-2">
+                            Number of Options, Strike Price, Exit Price Per Share, and Monthly Salary
+                          </span>
+                        ) : (
+                          <span className="block mt-2">
+                            Total Equity Grant %, Exit Valuation, and Monthly Salary
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="font-mono text-6xl text-accent/20 select-none">_</div>
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-medium text-foreground">Awaiting Input</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed font-mono">
+                        Complete the forms in the sidebar to generate your financial analysis.
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -297,33 +325,40 @@ export default function Home() {
                     current_job_monthly_salary: debouncedCurrentJob.monthly_salary,
                     startup_monthly_salary: debouncedEquityDetails.monthly_salary,
                     current_job_salary_growth_rate: debouncedCurrentJob.annual_salary_growth_rate / 100,
-                    equity_params: debouncedEquityDetails.equity_type === "RSU" ? {
+                    annual_roi: debouncedCurrentJob.assumed_annual_roi / 100,
+                    investment_frequency: debouncedCurrentJob.investment_frequency,
+                    failure_probability: 0.6, // 60% failure rate (realistic: 50-70% of startups fail within 5 years)
+                    startup_params: debouncedEquityDetails.equity_type === "RSU" ? {
                       equity_type: "Equity (RSUs)",
-                      total_equity_grant_pct: debouncedEquityDetails.total_equity_grant_pct / 100,
                       total_vesting_years: debouncedEquityDetails.vesting_period,
                       cliff_years: debouncedEquityDetails.cliff_period,
-                      simulate_dilution: debouncedEquityDetails.simulate_dilution,
-                      dilution_rounds: debouncedEquityDetails.simulate_dilution
-                        ? debouncedEquityDetails.dilution_rounds.filter((r) => r.enabled).map((r) => ({
-                            round_name: r.round_name,
-                            round_type: r.round_type,
-                            year: r.year,
-                            dilution_pct: r.dilution_pct ? r.dilution_pct / 100 : undefined,
-                            pre_money_valuation: r.pre_money_valuation,
-                            amount_raised: r.amount_raised,
-                            salary_change: r.salary_change,
-                          }))
-                        : [],
-                      exit_valuation: debouncedEquityDetails.exit_valuation,
+                      rsu_params: {
+                        equity_pct: debouncedEquityDetails.total_equity_grant_pct / 100,
+                        target_exit_valuation: debouncedEquityDetails.exit_valuation,
+                        simulate_dilution: debouncedEquityDetails.simulate_dilution,
+                        dilution_rounds: debouncedEquityDetails.simulate_dilution
+                          ? debouncedEquityDetails.dilution_rounds.filter((r) => r.enabled).map((r) => ({
+                              round_name: r.round_name,
+                              round_type: r.round_type,
+                              year: r.year,
+                              dilution: r.dilution_pct ? r.dilution_pct / 100 : undefined,
+                              pre_money_valuation: r.pre_money_valuation,
+                              amount_raised: r.amount_raised,
+                              salary_change: r.salary_change,
+                            }))
+                          : [],
+                      },
                     } : {
                       equity_type: "Stock Options",
-                      num_options: debouncedEquityDetails.num_options,
-                      strike_price: debouncedEquityDetails.strike_price,
                       total_vesting_years: debouncedEquityDetails.vesting_period,
                       cliff_years: debouncedEquityDetails.cliff_period,
-                      exercise_strategy: debouncedEquityDetails.exercise_strategy,
-                      exercise_year: debouncedEquityDetails.exercise_year,
-                      exit_price_per_share: debouncedEquityDetails.exit_price_per_share,
+                      options_params: {
+                        num_options: debouncedEquityDetails.num_options,
+                        strike_price: debouncedEquityDetails.strike_price,
+                        target_exit_price_per_share: debouncedEquityDetails.exit_price_per_share,
+                        exercise_strategy: debouncedEquityDetails.exercise_strategy,
+                        exercise_year: debouncedEquityDetails.exercise_year,
+                      },
                     },
                   }}
                   onComplete={setMonteCarloResults}
