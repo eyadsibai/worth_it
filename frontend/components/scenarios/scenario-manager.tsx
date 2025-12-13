@@ -5,11 +5,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Calendar, TrendingUp, TrendingDown, Copy, Pencil, StickyNote } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Trash2, Calendar, TrendingUp, TrendingDown, Copy, Pencil, StickyNote, Search, Filter, ArrowUpDown } from "lucide-react";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { toast } from "sonner";
 import { getSavedScenarios, deleteScenario, clearAllScenarios, duplicateScenario, updateScenarioNotes, type ScenarioData } from "@/lib/export-utils";
 import { formatCurrency } from "@/lib/format-utils";
+import {
+  searchScenarios,
+  filterScenarios,
+  sortScenarios,
+  type FilterOption,
+  type SortOption,
+} from "@/lib/employee-scenario-utils";
 import {
   Dialog,
   DialogContent,
@@ -33,10 +48,23 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
   const [editingNotesTimestamp, setEditingNotesTimestamp] = React.useState<string | null>(null);
   const [editingNotesValue, setEditingNotesValue] = React.useState("");
 
+  // Search, filter, and sort state
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [filterOption, setFilterOption] = React.useState<FilterOption>("all");
+  const [sortOption, setSortOption] = React.useState<SortOption>("newest");
+
   // Load scenarios from localStorage on mount
   React.useEffect(() => {
     setScenarios(getSavedScenarios());
   }, []);
+
+  // Apply search, filter, and sort
+  const filteredScenarios = React.useMemo(() => {
+    let result = searchScenarios(scenarios, searchQuery);
+    result = filterScenarios(result, filterOption);
+    result = sortScenarios(result, sortOption);
+    return result;
+  }, [scenarios, searchQuery, filterOption, sortOption]);
 
   const handleDeleteScenario = (timestamp: string) => {
     const scenarioName = scenarios.find((s) => s.timestamp === timestamp)?.name;
@@ -160,14 +188,16 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
   return (
     <>
       <Card className="terminal-card">
-        <CardHeader>
+        <CardHeader className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-lg font-semibold">
                 Saved Scenarios
               </CardTitle>
               <CardDescription className="text-sm text-muted-foreground mt-1">
-                {scenarios.length} scenario{scenarios.length !== 1 ? "s" : ""} saved
+                {filteredScenarios.length === scenarios.length
+                  ? `${scenarios.length} scenario${scenarios.length !== 1 ? "s" : ""} saved`
+                  : `${filteredScenarios.length} of ${scenarios.length} scenario${scenarios.length !== 1 ? "s" : ""}`}
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -191,11 +221,66 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
               </Button>
             </div>
           </div>
+
+          {/* Search, Filter, and Sort Controls */}
+          <div className="space-y-3">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search scenarios..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 font-mono text-sm"
+              />
+            </div>
+
+            {/* Filter and Sort */}
+            <div className="flex gap-2">
+              <Select
+                value={filterOption}
+                onValueChange={(value) => setFilterOption(value as FilterOption)}
+              >
+                <SelectTrigger className="w-[130px] font-mono text-xs">
+                  <Filter className="h-3.5 w-3.5 mr-1.5" />
+                  <SelectValue placeholder="Filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="font-mono text-xs">All Types</SelectItem>
+                  <SelectItem value="RSU" className="font-mono text-xs">RSU</SelectItem>
+                  <SelectItem value="STOCK_OPTIONS" className="font-mono text-xs">Options</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={sortOption}
+                onValueChange={(value) => setSortOption(value as SortOption)}
+              >
+                <SelectTrigger className="w-[140px] font-mono text-xs">
+                  <ArrowUpDown className="h-3.5 w-3.5 mr-1.5" />
+                  <SelectValue placeholder="Sort" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest" className="font-mono text-xs">Newest First</SelectItem>
+                  <SelectItem value="oldest" className="font-mono text-xs">Oldest First</SelectItem>
+                  <SelectItem value="name-asc" className="font-mono text-xs">Name A-Z</SelectItem>
+                  <SelectItem value="name-desc" className="font-mono text-xs">Name Z-A</SelectItem>
+                  <SelectItem value="outcome-best" className="font-mono text-xs">Best Outcome</SelectItem>
+                  <SelectItem value="outcome-worst" className="font-mono text-xs">Worst Outcome</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[400px] pr-4">
             <div className="space-y-3">
-              {scenarios.map((scenario) => {
+              {filteredScenarios.length === 0 && scenarios.length > 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No scenarios match your search or filter
+                </div>
+              ) : null}
+              {filteredScenarios.map((scenario) => {
                 const isPositive = scenario.results.netOutcome >= 0;
                 const isSelected = selectedScenarios.has(scenario.timestamp);
 
