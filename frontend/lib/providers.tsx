@@ -4,6 +4,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
+import { CommandPalette, useCommandPalette } from "@/components/command-palette";
+
+function CommandPaletteWrapper() {
+  const { open, setOpen } = useCommandPalette();
+  return <CommandPalette open={open} onOpenChange={setOpen} />;
+}
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -28,6 +34,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
       >
         {children}
+        <CommandPaletteWrapper />
         <ReactQueryDevtools initialIsOpen={false} />
       </ThemeProvider>
     </QueryClientProvider>
