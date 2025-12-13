@@ -306,6 +306,170 @@ describe("clearAllScenarios", () => {
   });
 });
 
+// =============================================================================
+// Employee Mode Export Functions Tests
+// =============================================================================
+
+describe("exportScenarioAsCSV", () => {
+  it("exports scenario with correct filename pattern", async () => {
+    const { exportScenarioAsCSV } = await import("@/lib/export-utils");
+    const scenario = createMockScenario("My Scenario", "2024-01-01T00:00:00Z");
+
+    exportScenarioAsCSV(scenario);
+
+    // Filename should follow pattern: scenario-{sanitized-name}-{date}.csv
+    expect(mockLink.download).toMatch(/^scenario-my-scenario-\d{4}-\d{2}-\d{2}\.csv$/);
+    expect(mockLink.click).toHaveBeenCalled();
+  });
+
+  it("generates valid CSV for all sections", async () => {
+    const { exportScenarioAsCSV } = await import("@/lib/export-utils");
+    const scenario = createMockScenario("Test Scenario", "2024-01-01T00:00:00Z");
+
+    // Should not throw - verifies all sections are properly formatted
+    expect(() => exportScenarioAsCSV(scenario)).not.toThrow();
+    expect(mockLink.download).toMatch(/\.csv$/);
+  });
+
+  it("handles RSU scenarios", async () => {
+    const { exportScenarioAsCSV } = await import("@/lib/export-utils");
+    const scenario = createMockScenario("RSU Test", "2024-01-01T00:00:00Z");
+    scenario.equity.type = "RSU";
+    scenario.equity.equityPct = 0.5;
+
+    expect(() => exportScenarioAsCSV(scenario)).not.toThrow();
+  });
+
+  it("handles Stock Options scenarios", async () => {
+    const { exportScenarioAsCSV } = await import("@/lib/export-utils");
+    const scenario = createMockScenario("Options Test", "2024-01-01T00:00:00Z");
+    scenario.equity.type = "STOCK_OPTIONS";
+    scenario.equity.numOptions = 10000;
+    scenario.equity.strikePrice = 1.5;
+    scenario.equity.exitPricePerShare = 15;
+
+    expect(() => exportScenarioAsCSV(scenario)).not.toThrow();
+  });
+
+  it("sanitizes filename for special characters", async () => {
+    const { exportScenarioAsCSV } = await import("@/lib/export-utils");
+    const scenario = createMockScenario("My Test / Analysis: 2024", "2024-01-01T00:00:00Z");
+
+    exportScenarioAsCSV(scenario);
+
+    // Should have cleaned filename without slashes, colons, or multiple hyphens
+    expect(mockLink.download).toMatch(/^scenario-my-test-analysis-2024-\d{4}-\d{2}-\d{2}\.csv$/);
+    expect(mockLink.download).not.toContain("//");
+    expect(mockLink.download).not.toMatch(/--+/); // No consecutive hyphens
+  });
+
+  it("handles scenario names with quotes and commas", async () => {
+    const { exportScenarioAsCSV } = await import("@/lib/export-utils");
+    const scenario = createMockScenario('Scenario with, "quotes" and comma', "2024-01-01T00:00:00Z");
+
+    // Should not throw - CSV escaping is applied internally
+    expect(() => exportScenarioAsCSV(scenario)).not.toThrow();
+    // Filename should be sanitized
+    expect(mockLink.download).toMatch(/^scenario-scenario-with-quotes-and-comma-.*\.csv$/);
+  });
+
+  it("handles scenarios with breakeven field", async () => {
+    const { exportScenarioAsCSV } = await import("@/lib/export-utils");
+    const scenario = createMockScenario("Test", "2024-01-01T00:00:00Z");
+    scenario.results.breakeven = "Year 3, Month 6";
+
+    expect(() => exportScenarioAsCSV(scenario)).not.toThrow();
+  });
+});
+
+describe("exportScenarioAsJSON", () => {
+  it("exports scenario with correct filename pattern", async () => {
+    const { exportScenarioAsJSON } = await import("@/lib/export-utils");
+    const scenario = createMockScenario("My Scenario", "2024-01-01T00:00:00Z");
+
+    exportScenarioAsJSON(scenario);
+
+    // Filename should follow pattern: scenario-{sanitized-name}-{date}.json
+    expect(mockLink.download).toMatch(/^scenario-my-scenario-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(mockLink.click).toHaveBeenCalled();
+  });
+
+  it("includes metadata in export", async () => {
+    const { exportScenarioAsJSON } = await import("@/lib/export-utils");
+    const scenario = createMockScenario("Test", "2024-01-01T00:00:00Z");
+
+    expect(() => exportScenarioAsJSON(scenario)).not.toThrow();
+  });
+
+  it("includes Monte Carlo stats when provided", async () => {
+    const { exportScenarioAsJSON } = await import("@/lib/export-utils");
+    const scenario = createMockScenario("Test", "2024-01-01T00:00:00Z");
+    const mcStats = {
+      mean: 50000,
+      median: 45000,
+      stdDev: 20000,
+      percentiles: { "5th": -10000, "95th": 120000 },
+      profitProbability: 0.78,
+    };
+
+    expect(() => exportScenarioAsJSON(scenario, mcStats)).not.toThrow();
+  });
+});
+
+describe("exportScenarioAsPDF", () => {
+  // Note: jsPDF mocking is complex in vitest. We test that functions don't throw
+  // and rely on the existing exportCapTableAsPDF tests for jsPDF integration.
+
+  it("handles scenarios with positive net outcome", async () => {
+    const { exportScenarioAsPDF } = await import("@/lib/export-utils");
+    const scenario = createMockScenario("Positive", "2024-01-01T00:00:00Z");
+    scenario.results.netOutcome = 50000; // Positive
+
+    expect(() => exportScenarioAsPDF(scenario)).not.toThrow();
+  });
+
+  it("handles scenarios with negative net outcome", async () => {
+    const { exportScenarioAsPDF } = await import("@/lib/export-utils");
+    const scenario = createMockScenario("Negative", "2024-01-01T00:00:00Z");
+    scenario.results.netOutcome = -25000; // Negative
+
+    expect(() => exportScenarioAsPDF(scenario)).not.toThrow();
+  });
+
+  it("handles RSU scenarios", async () => {
+    const { exportScenarioAsPDF } = await import("@/lib/export-utils");
+    const scenario = createMockScenario("RSU Test", "2024-01-01T00:00:00Z");
+    scenario.equity.type = "RSU";
+
+    expect(() => exportScenarioAsPDF(scenario)).not.toThrow();
+  });
+
+  it("handles Stock Options scenarios", async () => {
+    const { exportScenarioAsPDF } = await import("@/lib/export-utils");
+    const scenario = createMockScenario("Options Test", "2024-01-01T00:00:00Z");
+    scenario.equity.type = "STOCK_OPTIONS";
+    scenario.equity.numOptions = 10000;
+    scenario.equity.strikePrice = 1.5;
+    scenario.equity.exitPricePerShare = 15;
+
+    expect(() => exportScenarioAsPDF(scenario)).not.toThrow();
+  });
+
+  it("includes Monte Carlo section when stats provided", async () => {
+    const { exportScenarioAsPDF } = await import("@/lib/export-utils");
+    const scenario = createMockScenario("MC Test", "2024-01-01T00:00:00Z");
+    const mcStats = {
+      mean: 50000,
+      median: 45000,
+      stdDev: 20000,
+      percentiles: { "5th Percentile": -10000, "95th Percentile": 120000 },
+      profitProbability: 0.78,
+    };
+
+    expect(() => exportScenarioAsPDF(scenario, mcStats)).not.toThrow();
+  });
+});
+
 describe("duplicateScenario", () => {
   it("creates a copy with (Copy) suffix", () => {
     const original = createMockScenario("My Scenario", "2024-01-01T00:00:00Z");

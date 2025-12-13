@@ -13,7 +13,8 @@ import { OpportunityCostChart } from "@/components/charts/opportunity-cost-chart
 import { formatCurrency } from "@/lib/format-utils";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
 import { AnimatedCurrencyDisplay } from "@/lib/motion";
-import { saveScenario, getSavedScenarios, type ScenarioData } from "@/lib/export-utils";
+import { saveScenario, getSavedScenarios, type ScenarioData, type MonteCarloExportStats } from "@/lib/export-utils";
+import { ExportMenu } from "@/components/results/export-menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,9 +39,10 @@ interface ScenarioResultsProps {
   globalSettings?: GlobalSettingsForm | null;
   currentJob?: CurrentJobForm | null;
   equityDetails?: RSUForm | StockOptionsForm | null;
+  monteCarloStats?: MonteCarloExportStats;
 }
 
-export function ScenarioResults({ results, isLoading, monteCarloContent, globalSettings, currentJob, equityDetails }: ScenarioResultsProps) {
+export function ScenarioResults({ results, isLoading, monteCarloContent, globalSettings, currentJob, equityDetails, monteCarloStats }: ScenarioResultsProps) {
   const [showSaveDialog, setShowSaveDialog] = React.useState(false);
   const [scenarioName, setScenarioName] = React.useState("");
 
@@ -192,8 +194,54 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
   return (
     <>
       <div className="space-y-6 animate-fade-in">
-        {/* Save Scenario Button with Dropdown */}
-        <div className="flex justify-end">
+        {/* Save and Export Buttons */}
+        <div className="flex justify-end gap-2">
+          {/* Export Menu */}
+          {globalSettings && currentJob && equityDetails && (
+            <ExportMenu
+              scenario={{
+                name: `${equityDetails.equity_type === "RSU" ? "RSU" : "Stock Options"} - $${formatCurrency(equityDetails.monthly_salary)}/mo`,
+                timestamp: new Date().toISOString(),
+                globalSettings: {
+                  exitYear: globalSettings.exit_year,
+                },
+                currentJob: {
+                  monthlySalary: currentJob.monthly_salary,
+                  annualGrowthRate: currentJob.annual_salary_growth_rate,
+                  assumedROI: currentJob.assumed_annual_roi,
+                  investmentFrequency: currentJob.investment_frequency,
+                },
+                equity: equityDetails.equity_type === "RSU"
+                  ? {
+                      type: "RSU",
+                      monthlySalary: equityDetails.monthly_salary,
+                      vestingPeriod: equityDetails.vesting_period,
+                      cliffPeriod: equityDetails.cliff_period,
+                      equityPct: equityDetails.total_equity_grant_pct,
+                      exitValuation: equityDetails.exit_valuation,
+                      simulateDilution: equityDetails.simulate_dilution,
+                    }
+                  : {
+                      type: "STOCK_OPTIONS",
+                      monthlySalary: equityDetails.monthly_salary,
+                      vestingPeriod: equityDetails.vesting_period,
+                      cliffPeriod: equityDetails.cliff_period,
+                      numOptions: equityDetails.num_options,
+                      strikePrice: equityDetails.strike_price,
+                      exitPricePerShare: equityDetails.exit_price_per_share,
+                    },
+                results: {
+                  finalPayoutValue: results.final_payout_value,
+                  finalOpportunityCost: results.final_opportunity_cost,
+                  netOutcome: netBenefit,
+                  breakeven: results.breakeven_label,
+                },
+              }}
+              monteCarloStats={monteCarloStats}
+            />
+          )}
+
+          {/* Save Scenario Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
