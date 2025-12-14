@@ -249,29 +249,7 @@ export default function Home() {
     startupScenarioMutation.isPending;
 
   return (
-    <AppShell
-      sidebar={
-        appMode === "employee" ? (
-          <div className="space-y-6">
-            <ExampleLoader />
-            <FormCompletionSummary status={formStatus} />
-            <GlobalSettingsFormComponent value={globalSettings} onChange={setGlobalSettings} />
-            <CurrentJobFormComponent value={currentJob} onChange={setCurrentJob} />
-            <StartupOfferFormComponent
-              value={equityDetails}
-              onRSUChange={handleEquityChange}
-              onStockOptionsChange={handleEquityChange}
-            />
-          </div>
-        ) : (
-          <div className="p-4 text-center text-muted-foreground">
-            <p className="text-sm">
-              Use the main panel to model your cap table and simulate funding rounds
-            </p>
-          </div>
-        )
-      }
-    >
+    <AppShell>
       <div className="container py-8 space-y-8">
         {/* Hero Section */}
         <div className="space-y-4">
@@ -309,7 +287,22 @@ export default function Home() {
 
         {/* Employee Mode Content */}
         {appMode === "employee" && (
-          <>
+          <div className="grid lg:grid-cols-[380px_1fr] gap-8">
+            {/* Left Column - Configuration Forms */}
+            <div className="space-y-6 lg:sticky lg:top-20 lg:self-start">
+              <ExampleLoader />
+              <FormCompletionSummary status={formStatus} />
+              <GlobalSettingsFormComponent value={globalSettings} onChange={setGlobalSettings} />
+              <CurrentJobFormComponent value={currentJob} onChange={setCurrentJob} />
+              <StartupOfferFormComponent
+                value={equityDetails}
+                onRSUChange={handleEquityChange}
+                onStockOptionsChange={handleEquityChange}
+              />
+            </div>
+
+            {/* Right Column - Results */}
+            <div className="space-y-6">
         {/* Results Dashboard */}
         {!hasDebouncedData && (
           <Card className="terminal-card animate-scale-in delay-300">
@@ -340,7 +333,7 @@ export default function Home() {
                     <div className="space-y-3">
                       <h3 className="text-lg font-medium text-foreground">Awaiting Input</h3>
                       <p className="text-sm text-muted-foreground leading-relaxed font-mono">
-                        Complete the forms in the sidebar to generate your financial analysis.
+                        Complete the configuration forms to generate your financial analysis.
                       </p>
                     </div>
                   </>
@@ -458,7 +451,8 @@ export default function Home() {
             </CardContent>
           </Card>
         )}
-          </>
+            </div>
+          </div>
         )}
       </div>
 

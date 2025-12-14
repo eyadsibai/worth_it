@@ -1,6 +1,5 @@
 /**
  * Tests for Header component
- * Focuses on the mobile hamburger menu button functionality
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -31,102 +30,13 @@ vi.mock("@/components/command-palette", () => ({
   }),
 }));
 
-// Mock the sidebar context module for testing the standalone case
-vi.mock("@/components/layout/sidebar-context", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@/components/layout/sidebar-context")>();
-  return {
-    ...original,
-    useSidebar: vi.fn(() => ({
-      isOpen: false,
-      setIsOpen: vi.fn(),
-      toggle: vi.fn(),
-    })),
-  };
-});
-
-import { useSidebar as mockUseSidebar } from "@/components/layout/sidebar-context";
-const mockedUseSidebar = vi.mocked(mockUseSidebar);
-
 describe("Header", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset to default mock implementation
-    mockedUseSidebar.mockReturnValue({
-      isOpen: false,
-      setIsOpen: vi.fn(),
-      toggle: vi.fn(),
-    });
   });
 
   afterEach(() => {
     vi.clearAllMocks();
-  });
-
-  describe("hamburger menu button", () => {
-    it("renders hamburger button with md:hidden class", () => {
-      render(<Header />);
-
-      const hamburgerButton = screen.getByRole("button", {
-        name: /toggle sidebar menu/i,
-      });
-
-      expect(hamburgerButton).toBeInTheDocument();
-      expect(hamburgerButton).toHaveClass("md:hidden");
-    });
-
-    it("has proper aria-label for accessibility", () => {
-      render(<Header />);
-
-      const hamburgerButton = screen.getByRole("button", {
-        name: /toggle sidebar menu/i,
-      });
-
-      expect(hamburgerButton).toHaveAttribute(
-        "aria-label",
-        "Toggle sidebar menu"
-      );
-    });
-
-    it("calls sidebar.toggle() when clicked", async () => {
-      const mockToggle = vi.fn();
-      mockedUseSidebar.mockReturnValue({
-        isOpen: false,
-        setIsOpen: vi.fn(),
-        toggle: mockToggle,
-      });
-
-      const user = userEvent.setup();
-      render(<Header />);
-
-      const hamburgerButton = screen.getByRole("button", {
-        name: /toggle sidebar menu/i,
-      });
-
-      await user.click(hamburgerButton);
-
-      expect(mockToggle).toHaveBeenCalledTimes(1);
-    });
-
-    it("works correctly with no-op sidebar (standalone usage)", async () => {
-      // Simulate standalone usage where useSidebar returns no-op functions
-      const noOpToggle = vi.fn();
-      mockedUseSidebar.mockReturnValue({
-        isOpen: false,
-        setIsOpen: vi.fn(),
-        toggle: noOpToggle,
-      });
-
-      const user = userEvent.setup();
-      render(<Header />);
-
-      const hamburgerButton = screen.getByRole("button", {
-        name: /toggle sidebar menu/i,
-      });
-
-      // Should not throw when clicked
-      await expect(user.click(hamburgerButton)).resolves.not.toThrow();
-      expect(noOpToggle).toHaveBeenCalled();
-    });
   });
 
   describe("logo and branding", () => {
