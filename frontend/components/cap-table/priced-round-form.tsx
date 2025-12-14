@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { NumberInputField, SliderField, TextInputField, CheckboxField } from "@/components/forms/form-fields";
 import { PricedRoundFormSchema, type PricedRoundFormData } from "@/lib/schemas";
 import { InformationBox } from "@/components/ui/information-box";
+import { TOOLTIPS } from "@/lib/constants/tooltips";
 import { TrendingUp } from "lucide-react";
 import { DilutionPreview } from "./dilution-preview";
 import type { Stakeholder } from "@/lib/schemas";
@@ -82,6 +83,7 @@ export function PricedRoundForm({
           name="pre_money_valuation"
           label="Pre-Money Valuation"
           description="Company valuation before this round"
+          tooltip={TOOLTIPS.preMoneyValuation}
           min={0}
           step={100000}
           prefix="SAR"
@@ -94,6 +96,7 @@ export function PricedRoundForm({
           name="amount_raised"
           label="Amount Raised"
           description="Total capital raised in this round"
+          tooltip={TOOLTIPS.amountRaised}
           min={0}
           step={100000}
           prefix="SAR"
@@ -139,6 +142,7 @@ export function PricedRoundForm({
             name="liquidation_multiplier"
             label="Multiplier"
             description="Multiplier on invested amount before common"
+            tooltip={TOOLTIPS.liquidationMultiplier}
             min={1}
             max={3}
             step={0.5}
@@ -150,6 +154,7 @@ export function PricedRoundForm({
             name="participating"
             label="Participating Preferred"
             description="Investor gets preference + pro-rata share of remaining proceeds"
+            tooltip={TOOLTIPS.participatingPreferred}
           />
 
           {amountRaised > 0 && (

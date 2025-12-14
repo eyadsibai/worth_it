@@ -8,6 +8,7 @@ import { Form } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SliderField } from "./form-fields";
 import { useDeepCompareEffect } from "@/lib/use-deep-compare";
+import { TOOLTIPS } from "@/lib/constants/tooltips";
 
 interface GlobalSettingsFormProps {
   /** External value to sync with (e.g., from Zustand store) */
@@ -66,6 +67,7 @@ export function GlobalSettingsFormComponent({
               name="exit_year"
               label="Exit Year"
               description="Number of years until liquidity event (IPO/acquisition)"
+              tooltip={TOOLTIPS.exitYear}
               min={1}
               max={20}
               step={1}

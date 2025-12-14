@@ -12,6 +12,7 @@ import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { NumberInputField, SliderField } from "./form-fields";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, PlayCircle, CheckCircle2 } from "lucide-react";
+import { TOOLTIPS } from "@/lib/constants/tooltips";
 import { useRunMonteCarlo } from "@/lib/api-client";
 import type { MonteCarloRequest } from "@/lib/schemas";
 
@@ -183,6 +184,7 @@ export function MonteCarloFormComponent({
               name="num_simulations"
               label="Number of Simulations"
               description="More simulations = more accurate results (but slower)"
+              tooltip={TOOLTIPS.numSimulations}
               min={100}
               max={10000}
               step={100}
@@ -198,6 +200,7 @@ export function MonteCarloFormComponent({
                 name="exit_valuation_mean"
                 label="Mean Valuation"
                 description="Expected exit valuation"
+                tooltip={TOOLTIPS.exitValuationMean}
                 min={0}
                 step={1000000}
                 prefix="SAR"
@@ -210,6 +213,7 @@ export function MonteCarloFormComponent({
                 name="exit_valuation_std"
                 label="Standard Deviation"
                 description="Uncertainty in valuation"
+                tooltip={TOOLTIPS.exitValuationStd}
                 min={0}
                 step={1000000}
                 prefix="SAR"
@@ -242,6 +246,7 @@ export function MonteCarloFormComponent({
                       name="growth_rate_min"
                       label="Minimum"
                       description="Pessimistic case"
+                      tooltip={TOOLTIPS.salaryGrowthMin}
                       min={-50}
                       max={100}
                       step={0.5}
@@ -254,6 +259,7 @@ export function MonteCarloFormComponent({
                       name="growth_rate_mode"
                       label="Most Likely"
                       description="Expected case"
+                      tooltip={TOOLTIPS.salaryGrowthMode}
                       min={-50}
                       max={100}
                       step={0.5}
@@ -266,6 +272,7 @@ export function MonteCarloFormComponent({
                       name="growth_rate_max"
                       label="Maximum"
                       description="Optimistic case"
+                      tooltip={TOOLTIPS.salaryGrowthMax}
                       min={-50}
                       max={100}
                       step={0.5}
@@ -301,6 +308,7 @@ export function MonteCarloFormComponent({
                       name="roi_mean"
                       label="Mean ROI"
                       description="Expected annual return"
+                      tooltip={TOOLTIPS.roiMean}
                       min={0}
                       max={50}
                       step={0.5}
@@ -313,6 +321,7 @@ export function MonteCarloFormComponent({
                       name="roi_std"
                       label="Standard Deviation"
                       description="Uncertainty in returns"
+                      tooltip={TOOLTIPS.roiStd}
                       min={0}
                       max={20}
                       step={0.5}
@@ -348,6 +357,7 @@ export function MonteCarloFormComponent({
                       name="exit_year_min"
                       label="Earliest Exit"
                       description="Minimum years"
+                      tooltip={TOOLTIPS.exitYearMin}
                       min={1}
                       max={20}
                       step={1}
@@ -360,6 +370,7 @@ export function MonteCarloFormComponent({
                       name="exit_year_mode"
                       label="Expected Exit"
                       description="Most likely years"
+                      tooltip={TOOLTIPS.exitYearMode}
                       min={1}
                       max={20}
                       step={1}
@@ -372,6 +383,7 @@ export function MonteCarloFormComponent({
                       name="exit_year_max"
                       label="Latest Exit"
                       description="Maximum years"
+                      tooltip={TOOLTIPS.exitYearMax}
                       min={1}
                       max={20}
                       step={1}
@@ -407,6 +419,7 @@ export function MonteCarloFormComponent({
                       name="dilution_min"
                       label="Minimum Dilution"
                       description="Best case"
+                      tooltip={TOOLTIPS.dilutionMin}
                       min={0}
                       max={100}
                       step={1}
@@ -419,6 +432,7 @@ export function MonteCarloFormComponent({
                       name="dilution_mode"
                       label="Expected Dilution"
                       description="Most likely"
+                      tooltip={TOOLTIPS.dilutionMode}
                       min={0}
                       max={100}
                       step={1}
@@ -431,6 +445,7 @@ export function MonteCarloFormComponent({
                       name="dilution_max"
                       label="Maximum Dilution"
                       description="Worst case"
+                      tooltip={TOOLTIPS.dilutionMax}
                       min={0}
                       max={100}
                       step={1}

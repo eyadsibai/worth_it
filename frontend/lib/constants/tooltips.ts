@@ -49,14 +49,37 @@ export const TOOLTIPS = {
   liquidationPreference: "Investors with preferred shares get paid first before common shareholders. Usually 1x their investment.",
   participationCap: "Maximum multiple of investment that preferred shareholders can receive before common shareholders participate.",
 
+  // Priced Round
+  preMoneyValuation: "Company valuation before this funding round. The higher the pre-money, the less dilution founders experience.",
+  amountRaised: "Total capital raised from all investors in this round. This amount is added to pre-money to get post-money valuation.",
+  liquidationMultiplier: "Multiple of invested amount that preferred shareholders receive before common shareholders get anything. Standard is 1x, but can be 2x or 3x in difficult markets.",
+  participatingPreferred: "If enabled, investors receive their liquidation preference AND participate pro-rata in remaining proceeds. More investor-friendly; reduces common shareholder payouts.",
+
   // Monte Carlo
-  numSimulations: "Number of random scenarios to simulate. More simulations = more accurate probability distribution.",
-  exitValuationMin: "Minimum exit valuation in the simulation range. Represents a pessimistic but plausible outcome.",
-  exitValuationMax: "Maximum exit valuation in the simulation range. Represents an optimistic but achievable outcome.",
-  salaryGrowthMin: "Minimum annual salary growth rate to simulate. Consider inflation as a floor (typically 2-3%).",
-  salaryGrowthMax: "Maximum annual salary growth rate to simulate. Top performers might see 8-10% increases.",
-  roiMin: "Minimum annual return on investment. Consider worst-case market scenarios.",
-  roiMax: "Maximum annual return on investment. Historical bull markets have seen 15-20%+ returns.",
+  numSimulations: "Number of random scenarios to simulate. More simulations = more accurate probability distribution, but takes longer to compute.",
+
+  // Exit Valuation (Normal distribution)
+  exitValuationMean: "Expected (average) company valuation at exit. The simulation generates values centered around this number.",
+  exitValuationStd: "Standard deviation measures uncertainty. Higher values mean more variance in simulated exit valuations. ~68% of outcomes fall within ±1 std dev of the mean.",
+
+  // Salary Growth (PERT distribution)
+  salaryGrowthMin: "Minimum annual salary growth rate. Consider inflation as a floor (typically 2-3%). This is the pessimistic scenario.",
+  salaryGrowthMode: "Most likely annual salary growth rate. This value has the highest probability in the PERT distribution.",
+  salaryGrowthMax: "Maximum annual salary growth rate. Top performers might see 8-10% increases. This is the optimistic scenario.",
+
+  // ROI (Normal distribution)
+  roiMean: "Expected annual return on invested savings. S&P 500 historical average is ~10%, but consider your risk tolerance.",
+  roiStd: "Standard deviation of investment returns. Markets are volatile—higher std dev models more uncertainty in returns.",
+
+  // Exit Year (PERT distribution)
+  exitYearMin: "Earliest possible exit year. Very few startups exit in under 3 years.",
+  exitYearMode: "Most likely year for an exit event. Most startup exits happen between years 5-7.",
+  exitYearMax: "Latest possible exit year. Some startups take 10+ years to reach liquidity.",
+
+  // Dilution (PERT distribution)
+  dilutionMin: "Minimum expected dilution. Only achievable if company raises little or no additional funding.",
+  dilutionMode: "Most likely total dilution by exit. Expect 25-50% dilution through typical funding rounds (Series A, B, C).",
+  dilutionMax: "Maximum expected dilution. Multiple large funding rounds can dilute early employees 50-80%.",
 } as const;
 
 export type TooltipKey = keyof typeof TOOLTIPS;
