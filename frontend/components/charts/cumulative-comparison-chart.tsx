@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { formatCurrencyCompact } from "@/lib/format-utils";
+import { useChartColors, useChartTooltipStyles } from "@/lib/hooks/use-chart-colors";
 
 interface CumulativeComparisonChartProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,6 +22,9 @@ interface CumulativeComparisonChartProps {
 export const CumulativeComparisonChart = React.memo(function CumulativeComparisonChart({
   data
 }: CumulativeComparisonChartProps) {
+  const colors = useChartColors();
+  const tooltipStyles = useChartTooltipStyles();
+
   // Memoize the data transformation to avoid recalculating on every render
   const chartData = React.useMemo(() =>
     data.map((row) => ({
@@ -44,39 +48,33 @@ export const CumulativeComparisonChart = React.memo(function CumulativeCompariso
           bottom: 5,
         }}
       >
-        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+        <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
         <XAxis
           dataKey="year"
           className="text-xs"
-          tick={{ fill: "currentColor" }}
+          tick={{ fill: colors.foreground }}
+          stroke={colors.muted}
         />
         <YAxis
           className="text-xs"
-          tick={{ fill: "currentColor" }}
+          tick={{ fill: colors.foreground }}
+          stroke={colors.muted}
           tickFormatter={formatCurrencyCompact}
         />
         <Tooltip
           formatter={(value: number) => formatCurrencyCompact(value)}
-          contentStyle={{
-            backgroundColor: "hsl(220 15% 15%)",
-            border: "none",
-            borderRadius: "12px",
-            color: "white",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-          }}
-          labelStyle={{ color: "rgba(255, 255, 255, 0.7)" }}
-          itemStyle={{ color: "white" }}
+          {...tooltipStyles}
         />
         <Legend />
         <Bar
           dataKey="currentJob"
-          fill="var(--chart-1)"
+          fill={colors.chart1}
           name="Current Job Salary"
           radius={[4, 4, 0, 0]}
         />
         <Bar
           dataKey="startup"
-          fill="var(--chart-2)"
+          fill={colors.chart2}
           name="Startup Salary"
           radius={[4, 4, 0, 0]}
         />

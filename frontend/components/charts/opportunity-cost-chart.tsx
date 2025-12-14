@@ -13,6 +13,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { formatCurrencyCompact } from "@/lib/format-utils";
+import { useChartColors, useChartTooltipStyles } from "@/lib/hooks/use-chart-colors";
 
 interface OpportunityCostChartProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,6 +23,9 @@ interface OpportunityCostChartProps {
 export const OpportunityCostChart = React.memo(function OpportunityCostChart({
   data
 }: OpportunityCostChartProps) {
+  const colors = useChartColors();
+  const tooltipStyles = useChartTooltipStyles();
+
   // Memoize the data transformation to avoid recalculating on every render
   const chartData = React.useMemo(() =>
     data.map((row) => ({
@@ -44,48 +48,42 @@ export const OpportunityCostChart = React.memo(function OpportunityCostChart({
           bottom: 5,
         }}
       >
-        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+        <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
         <XAxis
           dataKey="year"
           className="text-xs"
-          tick={{ fill: "currentColor" }}
+          tick={{ fill: colors.foreground }}
+          stroke={colors.muted}
         />
         <YAxis
           className="text-xs"
-          tick={{ fill: "currentColor" }}
+          tick={{ fill: colors.foreground }}
+          stroke={colors.muted}
           tickFormatter={formatCurrencyCompact}
         />
         <Tooltip
           formatter={(value: number) => formatCurrencyCompact(value)}
-          contentStyle={{
-            backgroundColor: "hsl(220 15% 15%)",
-            border: "none",
-            borderRadius: "12px",
-            color: "white",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-          }}
-          labelStyle={{ color: "rgba(255, 255, 255, 0.7)" }}
-          itemStyle={{ color: "white" }}
+          {...tooltipStyles}
         />
         <Legend />
-        <ReferenceLine y={0} stroke="var(--muted-foreground)" />
+        <ReferenceLine y={0} stroke={colors.muted} />
         <Line
           type="monotone"
           dataKey="opportunityCost"
-          stroke="var(--chart-5)"
+          stroke={colors.chart5}
           strokeWidth={2}
           name="Cumulative Opportunity Cost"
-          dot={{ r: 4, fill: "var(--chart-5)" }}
-          activeDot={{ r: 6, fill: "var(--chart-5)" }}
+          dot={{ r: 4, fill: colors.chart5 }}
+          activeDot={{ r: 6, fill: colors.chart5 }}
         />
         <Line
           type="monotone"
           dataKey="monthlySurplus"
-          stroke="var(--chart-1)"
+          stroke={colors.chart1}
           strokeWidth={2}
           name="Annual Surplus"
-          dot={{ r: 4, fill: "var(--chart-1)" }}
-          activeDot={{ r: 6, fill: "var(--chart-1)" }}
+          dot={{ r: 4, fill: colors.chart1 }}
+          activeDot={{ r: 6, fill: colors.chart1 }}
         />
       </LineChart>
       </ResponsiveContainer>

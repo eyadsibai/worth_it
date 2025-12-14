@@ -11,13 +11,16 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { HistogramBin } from "./types";
-import { tooltipStyle } from "./utils";
+import { useChartColors, useChartTooltipStyles } from "@/lib/hooks/use-chart-colors";
 
 interface MonteCarloPdfProps {
   data: HistogramBin[];
 }
 
 export function MonteCarloPdf({ data }: MonteCarloPdfProps) {
+  const colors = useChartColors();
+  const tooltipStyles = useChartTooltipStyles();
+
   return (
     <div>
       <h3 className="text-lg font-semibold mb-2">Probability Density Function</h3>
@@ -27,31 +30,33 @@ export function MonteCarloPdf({ data }: MonteCarloPdfProps) {
       <div role="img" aria-label="Probability density function line chart showing smooth approximation of outcome distribution">
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
             <XAxis
               dataKey="label"
               className="text-xs"
-              tick={{ fill: "currentColor" }}
+              tick={{ fill: colors.foreground }}
+              stroke={colors.muted}
               angle={-45}
               textAnchor="end"
               height={80}
             />
             <YAxis
               className="text-xs"
-              tick={{ fill: "currentColor" }}
-              label={{ value: "Density", angle: -90, position: "insideLeft" }}
+              tick={{ fill: colors.foreground }}
+              stroke={colors.muted}
+              label={{ value: "Density", angle: -90, position: "insideLeft", fill: colors.foreground }}
             />
-            <Tooltip contentStyle={tooltipStyle} />
+            <Tooltip {...tooltipStyles} />
             <Line
               type="monotone"
               dataKey="count"
-              stroke="var(--chart-1)"
+              stroke={colors.chart1}
               strokeWidth={3}
               dot={false}
-              fill="var(--chart-1)"
+              fill={colors.chart1}
               fillOpacity={0.2}
             />
-            <ReferenceLine x={0} stroke="var(--muted-foreground)" strokeDasharray="3 3" />
+            <ReferenceLine x={0} stroke={colors.muted} strokeDasharray="3 3" />
           </LineChart>
         </ResponsiveContainer>
       </div>

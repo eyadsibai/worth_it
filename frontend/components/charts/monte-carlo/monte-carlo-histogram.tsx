@@ -12,13 +12,19 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { HistogramBin } from "./types";
-import { tooltipStyle } from "./utils";
+import { useChartColors, useChartTooltipStyles } from "@/lib/hooks/use-chart-colors";
 
 interface MonteCarloHistogramProps {
   data: HistogramBin[];
 }
 
+// Destructive color for negative values (red in both themes)
+const DESTRUCTIVE_COLOR = "oklch(55% 0.22 25)";
+
 export function MonteCarloHistogram({ data }: MonteCarloHistogramProps) {
+  const colors = useChartColors();
+  const tooltipStyles = useChartTooltipStyles();
+
   return (
     <div>
       <h3 className="text-lg font-semibold mb-2">Distribution of Net Outcomes</h3>
@@ -28,30 +34,32 @@ export function MonteCarloHistogram({ data }: MonteCarloHistogramProps) {
       <div role="img" aria-label="Histogram showing distribution of net outcomes from Monte Carlo simulation">
         <ResponsiveContainer width="100%" height={400}>
           <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
             <XAxis
               dataKey="label"
               className="text-xs"
-              tick={{ fill: "currentColor" }}
+              tick={{ fill: colors.foreground }}
+              stroke={colors.muted}
               angle={-45}
               textAnchor="end"
               height={80}
             />
             <YAxis
               className="text-xs"
-              tick={{ fill: "currentColor" }}
-              label={{ value: "Frequency", angle: -90, position: "insideLeft" }}
+              tick={{ fill: colors.foreground }}
+              stroke={colors.muted}
+              label={{ value: "Frequency", angle: -90, position: "insideLeft", fill: colors.foreground }}
             />
-            <Tooltip contentStyle={tooltipStyle} />
-            <Bar dataKey="count" fill="var(--chart-1)" radius={[4, 4, 0, 0]}>
+            <Tooltip {...tooltipStyles} />
+            <Bar dataKey="count" fill={colors.chart1} radius={[4, 4, 0, 0]}>
               {data.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
-                  fill={entry.bin >= 0 ? "var(--chart-1)" : "var(--destructive)"}
+                  fill={entry.bin >= 0 ? colors.chart1 : DESTRUCTIVE_COLOR}
                 />
               ))}
             </Bar>
-            <ReferenceLine x={0} stroke="var(--muted-foreground)" strokeDasharray="3 3" />
+            <ReferenceLine x={0} stroke={colors.muted} strokeDasharray="3 3" />
           </BarChart>
         </ResponsiveContainer>
       </div>

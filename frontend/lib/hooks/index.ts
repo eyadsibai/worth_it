@@ -13,3 +13,4 @@ export {
   type ProcessedSection,
 } from "./use-form-status";
 export { useSidebarFormStatus } from "./use-sidebar-form-status";
+export { useChartColors, useChartTooltipStyles, type ChartColors } from "./use-chart-colors";

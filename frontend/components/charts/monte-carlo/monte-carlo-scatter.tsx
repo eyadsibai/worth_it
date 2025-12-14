@@ -11,13 +11,17 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { ScatterDataPoint } from "./types";
-import { formatCurrency, tooltipStyle } from "./utils";
+import { formatCurrency } from "./utils";
+import { useChartColors, useChartTooltipStyles } from "@/lib/hooks/use-chart-colors";
 
 interface MonteCarloScatterProps {
   data: ScatterDataPoint[];
 }
 
 export function MonteCarloScatter({ data }: MonteCarloScatterProps) {
+  const colors = useChartColors();
+  const tooltipStyles = useChartTooltipStyles();
+
   return (
     <div>
       <h3 className="text-lg font-semibold mb-2">Valuation vs Outcome</h3>
@@ -27,32 +31,34 @@ export function MonteCarloScatter({ data }: MonteCarloScatterProps) {
       <div role="img" aria-label="Scatter plot showing relationship between exit valuations and net outcomes">
         <ResponsiveContainer width="100%" height={400}>
           <ScatterChart>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
             <XAxis
               type="number"
               dataKey="valuation"
               name="Valuation"
               className="text-xs"
-              tick={{ fill: "currentColor" }}
+              tick={{ fill: colors.foreground }}
+              stroke={colors.muted}
               tickFormatter={formatCurrency}
-              label={{ value: "Exit Valuation", position: "insideBottom", offset: -5 }}
+              label={{ value: "Exit Valuation", position: "insideBottom", offset: -5, fill: colors.foreground }}
             />
             <YAxis
               type="number"
               dataKey="outcome"
               name="Outcome"
               className="text-xs"
-              tick={{ fill: "currentColor" }}
+              tick={{ fill: colors.foreground }}
+              stroke={colors.muted}
               tickFormatter={formatCurrency}
-              label={{ value: "Net Outcome", angle: -90, position: "insideLeft" }}
+              label={{ value: "Net Outcome", angle: -90, position: "insideLeft", fill: colors.foreground }}
             />
             <Tooltip
               cursor={{ strokeDasharray: "3 3" }}
               formatter={(value: number) => formatCurrency(value)}
-              contentStyle={tooltipStyle}
+              {...tooltipStyles}
             />
-            <Scatter data={data} fill="var(--chart-1)" fillOpacity={0.6} />
-            <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeDasharray="3 3" />
+            <Scatter data={data} fill={colors.chart1} fillOpacity={0.6} />
+            <ReferenceLine y={0} stroke={colors.muted} strokeDasharray="3 3" />
           </ScatterChart>
         </ResponsiveContainer>
       </div>
