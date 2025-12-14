@@ -11,24 +11,38 @@ import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 import { TOOLTIPS } from "@/lib/constants/tooltips";
 
 interface CurrentJobFormProps {
+  /** External value to sync with (e.g., from Zustand store) */
+  value?: CurrentJobForm | null;
+  /** @deprecated Use `value` instead */
   defaultValues?: Partial<CurrentJobForm>;
   onChange?: (data: CurrentJobForm) => void;
 }
 
 export function CurrentJobFormComponent({
+  value,
   defaultValues,
   onChange,
 }: CurrentJobFormProps) {
+  // Use value prop if available, otherwise fall back to defaultValues
+  const initialValues = value ?? defaultValues;
+
   const form = useForm<CurrentJobForm>({
     resolver: zodResolver(CurrentJobFormSchema),
     defaultValues: {
-      monthly_salary: defaultValues?.monthly_salary ?? 0,
-      annual_salary_growth_rate: defaultValues?.annual_salary_growth_rate ?? 3,
-      assumed_annual_roi: defaultValues?.assumed_annual_roi ?? 5.4,
-      investment_frequency: defaultValues?.investment_frequency ?? "Monthly",
+      monthly_salary: initialValues?.monthly_salary ?? 0,
+      annual_salary_growth_rate: initialValues?.annual_salary_growth_rate ?? 3,
+      assumed_annual_roi: initialValues?.assumed_annual_roi ?? 5.4,
+      investment_frequency: initialValues?.investment_frequency ?? "Monthly",
     },
     mode: "onChange",
   });
+
+  // Sync form with external value changes (e.g., when loading examples)
+  React.useEffect(() => {
+    if (value) {
+      form.reset(value);
+    }
+  }, [value, form]);
 
   // Watch for changes and notify parent
   const watchedValues = form.watch();
