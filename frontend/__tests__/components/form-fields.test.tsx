@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form } from "@/components/ui/form";
-import { TextInputField, CheckboxField, NumberInputField } from "@/components/forms/form-fields";
+import { TextInputField, CheckboxField, NumberInputField, SliderField } from "@/components/forms/form-fields";
 
 // Test schema
 const TestSchema = z.object({
@@ -339,5 +339,156 @@ describe("NumberInputField", () => {
 
     const formattedInput = screen.getByRole("textbox");
     expect(formattedInput).toHaveValue("1,500,000");
+  });
+});
+
+describe("SliderField", () => {
+  // Use a different schema for slider tests
+  const SliderTestSchema = z.object({
+    years: z.number().min(1).max(10),
+    percentage: z.number().min(0).max(100),
+  });
+
+  type SliderTestFormData = z.infer<typeof SliderTestSchema>;
+
+  function SliderTestWrapper({
+    children,
+    defaultValues = { years: 5, percentage: 50 },
+  }: {
+    children: (form: ReturnType<typeof useForm<SliderTestFormData>>) => React.ReactNode;
+    defaultValues?: SliderTestFormData;
+  }) {
+    const form = useForm<SliderTestFormData>({
+      resolver: zodResolver(SliderTestSchema) as unknown as undefined,
+      defaultValues,
+    });
+
+    return (
+      <Form {...form}>
+        <form>{children(form)}</form>
+      </Form>
+    );
+  }
+
+  it("renders with label and current value display", () => {
+    render(
+      <SliderTestWrapper>
+        {(form) => (
+          <SliderField
+            form={form}
+            name="years"
+            label="Years"
+            min={1}
+            max={10}
+          />
+        )}
+      </SliderTestWrapper>
+    );
+
+    expect(screen.getByText("Years")).toBeInTheDocument();
+    expect(screen.getByRole("slider")).toBeInTheDocument();
+    // Default value should be displayed
+    expect(screen.getByText("5")).toBeInTheDocument();
+  });
+
+  it("has aria-valuetext with raw value when formatValue is not provided", () => {
+    render(
+      <SliderTestWrapper>
+        {(form) => (
+          <SliderField
+            form={form}
+            name="years"
+            label="Years"
+            min={1}
+            max={10}
+          />
+        )}
+      </SliderTestWrapper>
+    );
+
+    const slider = screen.getByRole("slider");
+    expect(slider).toHaveAttribute("aria-valuetext", "5");
+  });
+
+  it("has aria-valuetext with formatted value when formatValue is provided", () => {
+    render(
+      <SliderTestWrapper>
+        {(form) => (
+          <SliderField
+            form={form}
+            name="years"
+            label="Years"
+            min={1}
+            max={10}
+            formatValue={(value) => `${value} years`}
+          />
+        )}
+      </SliderTestWrapper>
+    );
+
+    const slider = screen.getByRole("slider");
+    expect(slider).toHaveAttribute("aria-valuetext", "5 years");
+    // The displayed value should also be formatted
+    expect(screen.getByText("5 years")).toBeInTheDocument();
+  });
+
+  it("has aria-valuetext with percentage format", () => {
+    render(
+      <SliderTestWrapper>
+        {(form) => (
+          <SliderField
+            form={form}
+            name="percentage"
+            label="Growth Rate"
+            min={0}
+            max={100}
+            formatValue={(value) => `${value}%`}
+          />
+        )}
+      </SliderTestWrapper>
+    );
+
+    const slider = screen.getByRole("slider");
+    expect(slider).toHaveAttribute("aria-valuetext", "50%");
+  });
+
+  it("renders with description", () => {
+    render(
+      <SliderTestWrapper>
+        {(form) => (
+          <SliderField
+            form={form}
+            name="years"
+            label="Years"
+            description="Number of years until exit"
+            min={1}
+            max={10}
+          />
+        )}
+      </SliderTestWrapper>
+    );
+
+    expect(screen.getByText("Number of years until exit")).toBeInTheDocument();
+  });
+
+  it("renders with tooltip", () => {
+    render(
+      <SliderTestWrapper>
+        {(form) => (
+          <SliderField
+            form={form}
+            name="years"
+            label="Years"
+            tooltip="The expected timeline for company exit"
+            min={1}
+            max={10}
+          />
+        )}
+      </SliderTestWrapper>
+    );
+
+    // The tooltip icon should be rendered
+    const helpButton = screen.getByRole("button", { name: /help for years/i });
+    expect(helpButton).toBeInTheDocument();
   });
 });
