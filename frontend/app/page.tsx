@@ -255,9 +255,10 @@ export default function Home() {
           <div className="space-y-4">
             <ExampleLoader />
             <FormCompletionSummary status={formStatus} />
-            <GlobalSettingsFormComponent onChange={setGlobalSettings} />
-            <CurrentJobFormComponent onChange={setCurrentJob} />
+            <GlobalSettingsFormComponent value={globalSettings} onChange={setGlobalSettings} />
+            <CurrentJobFormComponent value={currentJob} onChange={setCurrentJob} />
             <StartupOfferFormComponent
+              value={equityDetails}
               onRSUChange={handleEquityChange}
               onStockOptionsChange={handleEquityChange}
             />
