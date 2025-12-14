@@ -33,7 +33,7 @@ function AppShellContent({ sidebar, children }: AppShellProps) {
           </Sheet>
         )}
 
-        <main className="flex-1 overflow-auto page-enter">{children}</main>
+        <main className="flex-1 overflow-auto page-enter md:px-6">{children}</main>
       </div>
     </div>
   );
