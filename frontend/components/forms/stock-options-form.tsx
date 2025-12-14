@@ -28,7 +28,7 @@ type StockOptionsFormSimplified = z.infer<typeof StockOptionsFormSimplifiedSchem
 interface StockOptionsFormProps {
   /** External value to sync with (e.g., from Zustand store) */
   value?: StockOptionsForm | null;
-  /** @deprecated Use `value` instead */
+  /** @deprecated Use `value` prop instead for controlled form synchronization */
   defaultValues?: Partial<StockOptionsForm>;
   onChange?: (data: StockOptionsForm) => void;
 }
@@ -63,7 +63,8 @@ export function StockOptionsFormComponent({
       const { equity_type: _, ...formValues } = value;
       form.reset(formValues);
     }
-  }, [value, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   const watchedValues = form.watch();
   useDeepCompareEffect(() => {

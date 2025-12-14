@@ -13,7 +13,7 @@ import { TOOLTIPS } from "@/lib/constants/tooltips";
 interface CurrentJobFormProps {
   /** External value to sync with (e.g., from Zustand store) */
   value?: CurrentJobForm | null;
-  /** @deprecated Use `value` instead */
+  /** @deprecated Use `value` prop instead for controlled form synchronization */
   defaultValues?: Partial<CurrentJobForm>;
   onChange?: (data: CurrentJobForm) => void;
 }
@@ -42,7 +42,8 @@ export function CurrentJobFormComponent({
     if (value) {
       form.reset(value);
     }
-  }, [value, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   // Watch for changes and notify parent
   const watchedValues = form.watch();

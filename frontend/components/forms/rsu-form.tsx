@@ -18,7 +18,7 @@ import { TOOLTIPS } from "@/lib/constants/tooltips";
 interface RSUFormProps {
   /** External value to sync with (e.g., from Zustand store) */
   value?: RSUForm | null;
-  /** @deprecated Use `value` instead */
+  /** @deprecated Use `value` prop instead for controlled form synchronization */
   defaultValues?: Partial<RSUForm>;
   onChange?: (data: RSUForm) => void;
 }
@@ -48,7 +48,8 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
     if (value) {
       form.reset(value);
     }
-  }, [value, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   const watchedValues = form.watch();
   useDeepCompareEffect(() => {

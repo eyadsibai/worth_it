@@ -12,7 +12,7 @@ import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 interface GlobalSettingsFormProps {
   /** External value to sync with (e.g., from Zustand store) */
   value?: GlobalSettingsForm | null;
-  /** @deprecated Use `value` instead */
+  /** @deprecated Use `value` prop instead for controlled form synchronization */
   defaultValues?: Partial<GlobalSettingsForm>;
   onChange?: (data: GlobalSettingsForm) => void;
 }
@@ -38,7 +38,8 @@ export function GlobalSettingsFormComponent({
     if (value) {
       form.reset(value);
     }
-  }, [value, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   // Watch for changes and notify parent
   const watchedValues = form.watch();
