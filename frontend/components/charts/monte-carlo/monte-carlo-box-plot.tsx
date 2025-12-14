@@ -11,13 +11,17 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { BoxPlotDataPoint } from "./types";
-import { formatCurrency, tooltipStyle } from "./utils";
+import { formatCurrency } from "./utils";
+import { useChartColors, CHART_TOOLTIP_STYLES } from "@/lib/hooks/use-chart-colors";
 
 interface MonteCarloBoxPlotProps {
   data: BoxPlotDataPoint[];
 }
 
 export function MonteCarloBoxPlot({ data }: MonteCarloBoxPlotProps) {
+  const colors = useChartColors();
+  const tooltipStyles = CHART_TOOLTIP_STYLES;
+
   return (
     <div>
       <h3 className="text-lg font-semibold mb-2">Outcome Percentiles</h3>
@@ -27,20 +31,27 @@ export function MonteCarloBoxPlot({ data }: MonteCarloBoxPlotProps) {
       <div role="img" aria-label="Horizontal bar chart showing outcome percentiles from minimum to maximum">
         <ResponsiveContainer width="100%" height={400}>
           <BarChart data={data} layout="horizontal">
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
             <XAxis
               type="number"
               className="text-xs"
-              tick={{ fill: "currentColor" }}
+              tick={{ fill: colors.foreground }}
+              stroke={colors.muted}
               tickFormatter={formatCurrency}
             />
-            <YAxis type="category" dataKey="name" className="text-xs" tick={{ fill: "currentColor" }} />
+            <YAxis
+              type="category"
+              dataKey="name"
+              className="text-xs"
+              tick={{ fill: colors.foreground }}
+              stroke={colors.muted}
+            />
             <Tooltip
               formatter={(value: number) => formatCurrency(value)}
-              contentStyle={tooltipStyle}
+              {...tooltipStyles}
             />
-            <Bar dataKey="value" fill="var(--chart-1)" radius={[0, 4, 4, 0]} />
-            <ReferenceLine x={0} stroke="var(--muted-foreground)" strokeDasharray="3 3" />
+            <Bar dataKey="value" fill={colors.chart1} radius={[0, 4, 4, 0]} />
+            <ReferenceLine x={0} stroke={colors.muted} strokeDasharray="3 3" />
           </BarChart>
         </ResponsiveContainer>
       </div>
