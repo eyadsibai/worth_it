@@ -5,9 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, Save, Copy, ChevronDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Save, Copy, ChevronDown, Info } from "lucide-react";
 import { toast } from "sonner";
 import type { StartupScenarioResponse, GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm } from "@/lib/schemas";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { RESULT_EXPLANATIONS, generateResultsSummary } from "@/lib/constants/result-explanations";
 import { CumulativeComparisonChart } from "@/components/charts/cumulative-comparison-chart";
 import { OpportunityCostChart } from "@/components/charts/opportunity-cost-chart";
 import { formatCurrency } from "@/lib/format-utils";
@@ -292,9 +294,10 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
         {/* Final Payout */}
         <Card className="terminal-card overflow-hidden">
           <CardHeader className="pb-2 pt-4 px-4">
-            <CardDescription className="data-label text-xs">
+            <CardDescription className="data-label text-xs flex items-center gap-1">
               <span className="hidden sm:inline">Final Payout</span>
               <span className="sm:hidden">Payout</span>
+              <InfoTooltip content={RESULT_EXPLANATIONS.finalPayout} iconSize={12} />
             </CardDescription>
           </CardHeader>
           <CardContent className="pb-4 px-4">
@@ -308,9 +311,10 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
         {/* Opportunity Cost */}
         <Card className="terminal-card overflow-hidden">
           <CardHeader className="pb-2 pt-4 px-4">
-            <CardDescription className="data-label text-xs">
+            <CardDescription className="data-label text-xs flex items-center gap-1">
               <span className="hidden sm:inline">Opportunity Cost</span>
               <span className="sm:hidden">Opp. Cost</span>
+              <InfoTooltip content={RESULT_EXPLANATIONS.opportunityCost} iconSize={12} />
             </CardDescription>
           </CardHeader>
           <CardContent className="pb-4 px-4">
@@ -327,7 +331,10 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
         {/* Net Benefit */}
         <Card className="terminal-card overflow-hidden">
           <CardHeader className="pb-2 pt-4 px-4">
-            <CardDescription className="data-label text-xs">Net Benefit</CardDescription>
+            <CardDescription className="data-label text-xs flex items-center gap-1">
+              Net Benefit
+              <InfoTooltip content={RESULT_EXPLANATIONS.netBenefit} iconSize={12} />
+            </CardDescription>
           </CardHeader>
           <CardContent className="pb-4 px-4">
             <div className="flex items-center gap-1.5">
@@ -355,9 +362,10 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
         {displayResults.total_dilution !== null && displayResults.total_dilution !== undefined && (
           <Card className="terminal-card overflow-hidden">
             <CardHeader className="pb-2 pt-4 px-4">
-              <CardDescription className="data-label text-xs">
+              <CardDescription className="data-label text-xs flex items-center gap-1">
                 <span className="hidden sm:inline">Total Dilution</span>
                 <span className="sm:hidden">Dilution</span>
+                <InfoTooltip content={RESULT_EXPLANATIONS.totalDilution} iconSize={12} />
               </CardDescription>
             </CardHeader>
             <CardContent className="pb-4 px-4">
@@ -374,7 +382,10 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
         {/* Break-Even */}
         <Card className="terminal-card overflow-hidden">
           <CardHeader className="pb-2 pt-4 px-4">
-            <CardDescription className="data-label text-xs">Break-Even</CardDescription>
+            <CardDescription className="data-label text-xs flex items-center gap-1">
+              Break-Even
+              <InfoTooltip content={RESULT_EXPLANATIONS.breakEven} iconSize={12} />
+            </CardDescription>
           </CardHeader>
           <CardContent className="pb-4 px-4">
             <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight text-foreground">
@@ -388,6 +399,36 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
           </CardContent>
         </Card>
       </div>
+
+      {/* Plain-English Summary */}
+      {globalSettings && (
+        <Card className={`terminal-card border-l-4 ${isPositive ? "border-l-terminal" : "border-l-destructive"}`}>
+          <CardContent className="py-4 px-5">
+            <div className="flex items-start gap-3">
+              <Info className={`h-5 w-5 mt-0.5 flex-shrink-0 ${isPositive ? "text-terminal" : "text-destructive"}`} />
+              <div className="space-y-2">
+                <p className="text-sm leading-relaxed text-foreground">
+                  {generateResultsSummary({
+                    netBenefit,
+                    finalPayout: displayResults.final_payout_value,
+                    opportunityCost: displayResults.final_opportunity_cost,
+                    exitYear: globalSettings.exit_year,
+                    breakEvenValuation: displayResults.results_df.length > 0
+                      ? displayResults.results_df[displayResults.results_df.length - 1].breakeven_value
+                      : undefined,
+                    totalDilution: displayResults.total_dilution ?? undefined,
+                  }).split("**").map((part, i) =>
+                    i % 2 === 1 ? <strong key={i} className="font-semibold">{part}</strong> : part
+                  )}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {isPositive ? RESULT_EXPLANATIONS.worthItPositive : RESULT_EXPLANATIONS.worthItNegative}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Detailed Results Tabs */}
       <Card className="terminal-card">
