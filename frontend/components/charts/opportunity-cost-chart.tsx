@@ -13,7 +13,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { formatCurrencyCompact } from "@/lib/format-utils";
-import { useChartColors, useChartTooltipStyles } from "@/lib/hooks/use-chart-colors";
+import { useChartColors, CHART_TOOLTIP_STYLES } from "@/lib/hooks/use-chart-colors";
 
 interface OpportunityCostChartProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,7 +24,7 @@ export const OpportunityCostChart = React.memo(function OpportunityCostChart({
   data
 }: OpportunityCostChartProps) {
   const colors = useChartColors();
-  const tooltipStyles = useChartTooltipStyles();
+  const tooltipStyles = CHART_TOOLTIP_STYLES;
 
   // Memoize the data transformation to avoid recalculating on every render
   const chartData = React.useMemo(() =>

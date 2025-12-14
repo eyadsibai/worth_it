@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import type { BoxPlotDataPoint } from "./types";
 import { formatCurrency } from "./utils";
-import { useChartColors, useChartTooltipStyles } from "@/lib/hooks/use-chart-colors";
+import { useChartColors, CHART_TOOLTIP_STYLES } from "@/lib/hooks/use-chart-colors";
 
 interface MonteCarloBoxPlotProps {
   data: BoxPlotDataPoint[];
@@ -20,7 +20,7 @@ interface MonteCarloBoxPlotProps {
 
 export function MonteCarloBoxPlot({ data }: MonteCarloBoxPlotProps) {
   const colors = useChartColors();
-  const tooltipStyles = useChartTooltipStyles();
+  const tooltipStyles = CHART_TOOLTIP_STYLES;
 
   return (
     <div>

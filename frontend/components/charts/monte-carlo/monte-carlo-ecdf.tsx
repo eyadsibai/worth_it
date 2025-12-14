@@ -11,7 +11,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { EcdfDataPoint } from "./types";
-import { useChartColors, useChartTooltipStyles } from "@/lib/hooks/use-chart-colors";
+import { useChartColors, CHART_TOOLTIP_STYLES } from "@/lib/hooks/use-chart-colors";
 
 interface MonteCarloEcdfProps {
   data: EcdfDataPoint[];
@@ -19,7 +19,7 @@ interface MonteCarloEcdfProps {
 
 export function MonteCarloEcdf({ data }: MonteCarloEcdfProps) {
   const colors = useChartColors();
-  const tooltipStyles = useChartTooltipStyles();
+  const tooltipStyles = CHART_TOOLTIP_STYLES;
 
   return (
     <div>

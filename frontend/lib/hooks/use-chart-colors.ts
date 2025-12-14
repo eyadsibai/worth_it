@@ -19,6 +19,7 @@ const CHART_COLORS = {
     chart3: "oklch(72% 0.18 115)",    // Lime #9BC53D
     chart4: "oklch(70% 0.14 175)",    // Teal/Mint #3DD9C1
     chart5: "oklch(85% 0.08 155)",    // Light mint
+    destructive: "oklch(55% 0.22 25)", // Red for negative values
     muted: "oklch(50% 0.01 250)",     // Muted foreground
     grid: "oklch(92% 0.003 250)",     // Border/grid
     background: "oklch(100% 0 0)",    // Card background
@@ -30,6 +31,7 @@ const CHART_COLORS = {
     chart3: "oklch(72% 0.18 115)",    // Lime
     chart4: "oklch(70% 0.14 175)",    // Teal/Mint
     chart5: "oklch(80% 0.10 155)",    // Light mint
+    destructive: "oklch(60% 0.20 25)", // Slightly brighter red for dark mode
     muted: "oklch(60% 0.01 250)",     // Muted foreground
     grid: "oklch(25% 0.01 250)",      // Border/grid
     background: "oklch(18% 0.01 250)", // Card background
@@ -43,6 +45,7 @@ export interface ChartColors {
   chart3: string;
   chart4: string;
   chart5: string;
+  destructive: string;
   muted: string;
   grid: string;
   background: string;
@@ -81,19 +84,18 @@ export function useChartColors(): ChartColors {
 }
 
 /**
- * Returns tooltip styles that work in both light and dark modes.
+ * Tooltip styles that work in both light and dark modes.
  * The tooltip has a dark background in both modes for consistency.
+ * Exported as a constant since styles are static (no theme dependency).
  */
-export function useChartTooltipStyles() {
-  return {
-    contentStyle: {
-      backgroundColor: "hsl(220 15% 15%)",
-      border: "none",
-      borderRadius: "12px",
-      color: "white",
-      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-    },
-    labelStyle: { color: "rgba(255, 255, 255, 0.7)" },
-    itemStyle: { color: "white" },
-  };
-}
+export const CHART_TOOLTIP_STYLES = {
+  contentStyle: {
+    backgroundColor: "hsl(220 15% 15%)",
+    border: "none",
+    borderRadius: "12px",
+    color: "white",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+  },
+  labelStyle: { color: "rgba(255, 255, 255, 0.7)" },
+  itemStyle: { color: "white" },
+} as const;

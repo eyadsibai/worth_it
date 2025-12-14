@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import type { ScatterDataPoint } from "./types";
 import { formatCurrency } from "./utils";
-import { useChartColors, useChartTooltipStyles } from "@/lib/hooks/use-chart-colors";
+import { useChartColors, CHART_TOOLTIP_STYLES } from "@/lib/hooks/use-chart-colors";
 
 interface MonteCarloScatterProps {
   data: ScatterDataPoint[];
@@ -20,7 +20,7 @@ interface MonteCarloScatterProps {
 
 export function MonteCarloScatter({ data }: MonteCarloScatterProps) {
   const colors = useChartColors();
-  const tooltipStyles = useChartTooltipStyles();
+  const tooltipStyles = CHART_TOOLTIP_STYLES;
 
   return (
     <div>

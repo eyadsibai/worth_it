@@ -12,18 +12,15 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { HistogramBin } from "./types";
-import { useChartColors, useChartTooltipStyles } from "@/lib/hooks/use-chart-colors";
+import { useChartColors, CHART_TOOLTIP_STYLES } from "@/lib/hooks/use-chart-colors";
 
 interface MonteCarloHistogramProps {
   data: HistogramBin[];
 }
 
-// Destructive color for negative values (red in both themes)
-const DESTRUCTIVE_COLOR = "oklch(55% 0.22 25)";
-
 export function MonteCarloHistogram({ data }: MonteCarloHistogramProps) {
   const colors = useChartColors();
-  const tooltipStyles = useChartTooltipStyles();
+  const tooltipStyles = CHART_TOOLTIP_STYLES;
 
   return (
     <div>
@@ -55,7 +52,7 @@ export function MonteCarloHistogram({ data }: MonteCarloHistogramProps) {
               {data.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
-                  fill={entry.bin >= 0 ? colors.chart1 : DESTRUCTIVE_COLOR}
+                  fill={entry.bin >= 0 ? colors.chart1 : colors.destructive}
                 />
               ))}
             </Bar>

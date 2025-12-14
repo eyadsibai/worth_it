@@ -11,7 +11,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { HistogramBin } from "./types";
-import { useChartColors, useChartTooltipStyles } from "@/lib/hooks/use-chart-colors";
+import { useChartColors, CHART_TOOLTIP_STYLES } from "@/lib/hooks/use-chart-colors";
 
 interface MonteCarloPdfProps {
   data: HistogramBin[];
@@ -19,7 +19,7 @@ interface MonteCarloPdfProps {
 
 export function MonteCarloPdf({ data }: MonteCarloPdfProps) {
   const colors = useChartColors();
-  const tooltipStyles = useChartTooltipStyles();
+  const tooltipStyles = CHART_TOOLTIP_STYLES;
 
   return (
     <div>
