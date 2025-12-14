@@ -5,14 +5,26 @@ import * as SliderPrimitive from "@radix-ui/react-slider"
 
 import { cn } from "@/lib/utils"
 
+interface SliderProps extends React.ComponentProps<typeof SliderPrimitive.Root> {
+  /**
+   * Function to generate accessible value text for each thumb.
+   * Used to set aria-valuetext on the slider thumb for screen readers.
+   * @param value - The current value of the thumb
+   * @param index - The index of the thumb (for range sliders)
+   * @returns Human-readable string describing the value (e.g., "5 years", "50%")
+   */
+  getValueLabel?: (value: number, index: number) => string;
+}
+
 function Slider({
   className,
   defaultValue,
   value,
   min = 0,
   max = 100,
+  getValueLabel,
   ...props
-}: React.ComponentProps<typeof SliderPrimitive.Root>) {
+}: SliderProps) {
   const _values = React.useMemo(
     () =>
       Array.isArray(value)
@@ -54,6 +66,7 @@ function Slider({
           data-slot="slider-thumb"
           key={index}
           className="border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+          aria-valuetext={getValueLabel ? getValueLabel(_values[index], index) : undefined}
         />
       ))}
     </SliderPrimitive.Root>

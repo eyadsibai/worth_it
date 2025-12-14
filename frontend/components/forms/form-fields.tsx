@@ -252,6 +252,7 @@ export function SliderField({
                 step={step}
                 value={[field.value]}
                 onValueChange={([value]) => field.onChange(value)}
+                getValueLabel={(value) => formatValue ? formatValue(value) : String(value)}
               />
             </FormControl>
             {description && <FormDescription>{description}</FormDescription>}
