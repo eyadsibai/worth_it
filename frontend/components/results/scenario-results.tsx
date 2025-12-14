@@ -297,7 +297,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
               <Button
                 variant="outline"
                 size="sm"
-                className="font-mono gap-2"
+                className="gap-2"
                 disabled={!globalSettings || !currentJob || !equityDetails}
               >
                 <Save className="h-4 w-4" />
@@ -305,7 +305,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
                 <ChevronDown className="h-3 w-3 ml-1" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="font-mono">
+            <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setShowSaveDialog(true)}>
                 <Save className="h-4 w-4 mr-2" />
                 Save with name...
@@ -482,15 +482,15 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
         <CardContent>
           <Tabs defaultValue="table" className="w-full">
             <TabsList className="mb-4 bg-secondary/50 border border-border">
-              <TabsTrigger value="table" className="text-sm font-mono data-[state=active]:bg-accent/20 data-[state=active]:text-accent">
-                table
+              <TabsTrigger value="table" className="text-sm data-[state=active]:bg-accent/20 data-[state=active]:text-accent">
+                Table
               </TabsTrigger>
-              <TabsTrigger value="charts" className="text-sm font-mono data-[state=active]:bg-accent/20 data-[state=active]:text-accent">
-                charts
+              <TabsTrigger value="charts" className="text-sm data-[state=active]:bg-accent/20 data-[state=active]:text-accent">
+                Charts
               </TabsTrigger>
               {monteCarloContent && (
-                <TabsTrigger value="monte-carlo" className="text-sm font-mono data-[state=active]:bg-accent/20 data-[state=active]:text-accent">
-                  monte_carlo
+                <TabsTrigger value="monte-carlo" className="text-sm data-[state=active]:bg-accent/20 data-[state=active]:text-accent">
+                  Monte Carlo
                 </TabsTrigger>
               )}
             </TabsList>
@@ -546,11 +546,10 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
             <TabsContent value="charts" className="space-y-8">
               <div className="space-y-3">
                 <div>
-                  <h3 className="text-base font-semibold flex items-center gap-2">
-                    <span className="text-accent font-mono text-sm">#</span>
+                  <h3 className="text-base font-semibold">
                     Salary Comparison
                   </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     Monthly salary over time
                   </p>
                 </div>
@@ -563,11 +562,10 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
 
               <div className="space-y-3">
                 <div>
-                  <h3 className="text-base font-semibold flex items-center gap-2">
-                    <span className="text-accent font-mono text-sm">#</span>
+                  <h3 className="text-base font-semibold">
                     Opportunity Cost
                   </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     Cumulative cost analysis
                   </p>
                 </div>
@@ -591,14 +589,14 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-mono">Save Scenario</DialogTitle>
-            <DialogDescription className="font-mono">
+            <DialogTitle>Save Scenario</DialogTitle>
+            <DialogDescription>
               Give this scenario a name to save it for later comparison.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="scenario-name" className="font-mono text-sm">
+              <Label htmlFor="scenario-name" className="text-sm">
                 Scenario Name
               </Label>
               <Input
@@ -611,11 +609,10 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
                     handleSaveScenario();
                   }
                 }}
-                className="font-mono"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="scenario-notes" className="font-mono text-sm">
+              <Label htmlFor="scenario-notes" className="text-sm">
                 Notes <span className="text-muted-foreground">(optional)</span>
               </Label>
               <Textarea
@@ -623,7 +620,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
                 placeholder="Add any notes or comments about this scenario..."
                 value={scenarioNotes}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setScenarioNotes(e.target.value)}
-                className="font-mono min-h-[80px] resize-none"
+                className="min-h-[80px] resize-none"
                 rows={3}
               />
             </div>
@@ -636,14 +633,12 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
                 setScenarioNotes("");
               }}
               variant="outline"
-              className="font-mono"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSaveScenario}
               disabled={!scenarioName.trim()}
-              className="font-mono"
             >
               Save
             </Button>

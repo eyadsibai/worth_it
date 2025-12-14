@@ -210,7 +210,7 @@ export function QuickAdjustPanel({
             <SlidersHorizontal className="h-4 w-4 text-accent" />
             <CardTitle className="text-sm font-semibold">Quick Adjustments</CardTitle>
             {hasChanges && (
-              <span className="text-xs text-accent font-mono">(modified)</span>
+              <span className="text-xs text-accent">(modified)</span>
             )}
           </div>
           <Button
@@ -249,7 +249,7 @@ export function QuickAdjustPanel({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="exit-valuation-slider" className="text-sm font-medium">Exit Valuation</Label>
-                    <span className="text-sm font-mono text-accent">
+                    <span className="text-sm tabular-nums text-accent">
                       {formatCurrencyCompact(exitValuation)}
                     </span>
                   </div>
@@ -273,7 +273,7 @@ export function QuickAdjustPanel({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="equity-pct-slider" className="text-sm font-medium">Equity %</Label>
-                    <span className="text-sm font-mono text-accent">
+                    <span className="text-sm tabular-nums text-accent">
                       {equityPct.toFixed(2)}%
                     </span>
                   </div>
@@ -299,7 +299,7 @@ export function QuickAdjustPanel({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="exit-price-slider" className="text-sm font-medium">Exit Price/Share</Label>
-                    <span className="text-sm font-mono text-accent">
+                    <span className="text-sm tabular-nums text-accent">
                       ${exitPricePerShare.toFixed(2)}
                     </span>
                   </div>
@@ -323,7 +323,7 @@ export function QuickAdjustPanel({
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="num-options-slider" className="text-sm font-medium">Options</Label>
-                    <span className="text-sm font-mono text-accent">
+                    <span className="text-sm tabular-nums text-accent">
                       {numOptions.toLocaleString()}
                     </span>
                   </div>
@@ -349,7 +349,7 @@ export function QuickAdjustPanel({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="salary-slider" className="text-sm font-medium">Startup Salary</Label>
-                <span className="text-sm font-mono text-accent">
+                <span className="text-sm tabular-nums text-accent">
                   {formatCurrency(startupSalary)}/mo
                 </span>
               </div>
@@ -377,7 +377,7 @@ export function QuickAdjustPanel({
               size="sm"
               onClick={handleReset}
               disabled={!hasChanges}
-              className="font-mono gap-2"
+              className="gap-2"
             >
               <RefreshCw className="h-3 w-3" />
               Reset
