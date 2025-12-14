@@ -252,7 +252,7 @@ export default function Home() {
     <AppShell
       sidebar={
         appMode === "employee" ? (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <ExampleLoader />
             <FormCompletionSummary status={formStatus} />
             <GlobalSettingsFormComponent value={globalSettings} onChange={setGlobalSettings} />
