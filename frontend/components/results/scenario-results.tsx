@@ -287,30 +287,40 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
         )}
 
         {/* Key Metrics Cards */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        {/* Grid: 2 cols on mobile, skip 3-col (causes truncation at 768px), jump to 5 cols on lg */}
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
         {/* Final Payout */}
         <Card className="terminal-card overflow-hidden">
           <CardHeader className="pb-2 pt-4 px-4">
-            <CardDescription className="data-label text-xs">Final Payout</CardDescription>
+            <CardDescription className="data-label text-xs">
+              <span className="hidden sm:inline">Final Payout</span>
+              <span className="sm:hidden">Payout</span>
+            </CardDescription>
           </CardHeader>
           <CardContent className="pb-4 px-4">
             <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight text-foreground">
-              <AnimatedCurrencyDisplay value={displayResults.final_payout_value} />
+              <AnimatedCurrencyDisplay value={displayResults.final_payout_value} responsive />
             </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1 truncate">{results.payout_label}</p>
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{results.payout_label}</p>
           </CardContent>
         </Card>
 
         {/* Opportunity Cost */}
         <Card className="terminal-card overflow-hidden">
           <CardHeader className="pb-2 pt-4 px-4">
-            <CardDescription className="data-label text-xs">Opportunity Cost</CardDescription>
+            <CardDescription className="data-label text-xs">
+              <span className="hidden sm:inline">Opportunity Cost</span>
+              <span className="sm:hidden">Opp. Cost</span>
+            </CardDescription>
           </CardHeader>
           <CardContent className="pb-4 px-4">
             <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight text-foreground">
-              <AnimatedCurrencyDisplay value={displayResults.final_opportunity_cost} />
+              <AnimatedCurrencyDisplay value={displayResults.final_opportunity_cost} responsive />
             </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1 truncate">Current job alternative</p>
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+              <span className="hidden sm:inline">Current job alternative</span>
+              <span className="sm:hidden">Alt. path</span>
+            </p>
           </CardContent>
         </Card>
 
@@ -327,7 +337,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
                 <TrendingDown className="h-4 w-4 flex-shrink-0 text-destructive" />
               )}
               <CardTitle className={`text-lg lg:text-xl font-semibold tracking-tight ${isPositive ? "text-terminal" : "text-destructive"}`}>
-                <AnimatedCurrencyDisplay value={netBenefit} />
+                <AnimatedCurrencyDisplay value={netBenefit} responsive />
               </CardTitle>
             </div>
             <div className="mt-2">
@@ -345,13 +355,16 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
         {displayResults.total_dilution !== null && displayResults.total_dilution !== undefined && (
           <Card className="terminal-card overflow-hidden">
             <CardHeader className="pb-2 pt-4 px-4">
-              <CardDescription className="data-label text-xs">Total Dilution</CardDescription>
+              <CardDescription className="data-label text-xs">
+                <span className="hidden sm:inline">Total Dilution</span>
+                <span className="sm:hidden">Dilution</span>
+              </CardDescription>
             </CardHeader>
             <CardContent className="pb-4 px-4">
               <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight tabular-nums text-foreground">
                 {(displayResults.total_dilution * 100).toFixed(2)}%
               </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1 truncate">
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                 Final: {((displayResults.diluted_equity_pct || 0) * 100).toFixed(2)}%
               </p>
             </CardContent>
@@ -366,10 +379,10 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
           <CardContent className="pb-4 px-4">
             <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight text-foreground">
               {displayResults.results_df.length > 0 && displayResults.results_df[displayResults.results_df.length - 1].breakeven_value !== undefined
-                ? <CurrencyDisplay value={displayResults.results_df[displayResults.results_df.length - 1].breakeven_value} />
+                ? <CurrencyDisplay value={displayResults.results_df[displayResults.results_df.length - 1].breakeven_value} responsive />
                 : "N/A"}
             </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1 truncate">
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
               {displayResults.breakeven_label}
             </p>
           </CardContent>

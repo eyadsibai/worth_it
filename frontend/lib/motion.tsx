@@ -3,7 +3,7 @@
 import { motion, type HTMLMotionProps, type Variants, useInView, useSpring, useMotionValue, AnimatePresence } from "framer-motion";
 import * as React from "react";
 import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
-import { formatCurrencyWithDecimals } from "@/lib/format-utils";
+import { formatCurrencyWithDecimals, formatCurrencyCompact } from "@/lib/format-utils";
 
 // ============================================================================
 // Animation Variants - Reusable animation presets
@@ -273,14 +273,20 @@ export function AnimatedCurrency({
 /**
  * Enhanced animated currency with delta display
  * Shows the change amount briefly when value updates
+ *
+ * When responsive=true, shows compact format ($123K) at tablet/mobile
+ * to prevent text truncation in tight layouts
  */
 export function AnimatedCurrencyDisplay({
   value,
   showDelta = true,
+  responsive = false,
   className,
 }: {
   value: number;
   showDelta?: boolean;
+  /** When true, uses compact notation ($123K) on smaller viewports */
+  responsive?: boolean;
   className?: string;
 }) {
   const prefersReducedMotion = useReducedMotion();
@@ -334,10 +340,17 @@ export function AnimatedCurrencyDisplay({
 
   return (
     <span className={`relative inline-flex items-center gap-2 ${className ?? ""}`}>
-      <span className="tabular-nums">
+      {/* Full format shown on lg+ screens, compact on smaller when responsive */}
+      <span className={`tabular-nums ${responsive ? "hidden lg:inline" : ""}`}>
         <span ref={mainRef}>{main}</span>
         <span ref={decimalRef} className="currency-decimal">{decimal}</span>
       </span>
+      {/* Compact format shown only on smaller screens when responsive */}
+      {responsive && (
+        <span className="tabular-nums lg:hidden">
+          {formatCurrencyCompact(value)}
+        </span>
+      )}
       <AnimatePresence>
         {delta !== null && (
           <motion.span
