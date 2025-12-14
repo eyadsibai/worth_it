@@ -26,28 +26,45 @@ const StockOptionsFormSimplifiedSchema = z.object({
 type StockOptionsFormSimplified = z.infer<typeof StockOptionsFormSimplifiedSchema>;
 
 interface StockOptionsFormProps {
+  /** External value to sync with (e.g., from Zustand store) */
+  value?: StockOptionsForm | null;
+  /** @deprecated Use `value` prop instead for controlled form synchronization */
   defaultValues?: Partial<StockOptionsForm>;
   onChange?: (data: StockOptionsForm) => void;
 }
 
 export function StockOptionsFormComponent({
+  value,
   defaultValues,
   onChange,
 }: StockOptionsFormProps) {
+  // Use value prop if available, otherwise fall back to defaultValues
+  const initialValues = value ?? defaultValues;
+
   const form = useForm<StockOptionsFormSimplified>({
     resolver: zodResolver(StockOptionsFormSimplifiedSchema),
     defaultValues: {
-      monthly_salary: defaultValues?.monthly_salary ?? 0,
-      num_options: defaultValues?.num_options ?? 0,
-      strike_price: defaultValues?.strike_price ?? 0,
-      vesting_period: defaultValues?.vesting_period ?? 4,
-      cliff_period: defaultValues?.cliff_period ?? 1,
-      exercise_strategy: defaultValues?.exercise_strategy ?? "AT_EXIT",
-      exercise_year: defaultValues?.exercise_year,
-      exit_price_per_share: defaultValues?.exit_price_per_share ?? 0,
+      monthly_salary: initialValues?.monthly_salary ?? 0,
+      num_options: initialValues?.num_options ?? 0,
+      strike_price: initialValues?.strike_price ?? 0,
+      vesting_period: initialValues?.vesting_period ?? 4,
+      cliff_period: initialValues?.cliff_period ?? 1,
+      exercise_strategy: initialValues?.exercise_strategy ?? "AT_EXIT",
+      exercise_year: initialValues?.exercise_year,
+      exit_price_per_share: initialValues?.exit_price_per_share ?? 0,
     },
     mode: "onChange",
   });
+
+  // Sync form with external value changes (e.g., when loading examples)
+  React.useEffect(() => {
+    if (value) {
+      // Strip equity_type since form uses simplified schema without it
+      const { equity_type: _, ...formValues } = value;
+      form.reset(formValues);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   const watchedValues = form.watch();
   useDeepCompareEffect(() => {

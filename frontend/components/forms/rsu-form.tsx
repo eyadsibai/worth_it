@@ -16,26 +16,40 @@ import { DEFAULT_DILUTION_ROUNDS } from "@/lib/constants/funding-rounds";
 import { TOOLTIPS } from "@/lib/constants/tooltips";
 
 interface RSUFormProps {
+  /** External value to sync with (e.g., from Zustand store) */
+  value?: RSUForm | null;
+  /** @deprecated Use `value` prop instead for controlled form synchronization */
   defaultValues?: Partial<RSUForm>;
   onChange?: (data: RSUForm) => void;
 }
 
-export function RSUFormComponent({ defaultValues, onChange }: RSUFormProps) {
+export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProps) {
+  // Use value prop if available, otherwise fall back to defaultValues
+  const initialValues = value ?? defaultValues;
+
   const form = useForm<RSUForm>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(RSUFormSchema) as any,
     defaultValues: {
       equity_type: "RSU" as const,
-      monthly_salary: defaultValues?.monthly_salary ?? 0,
-      total_equity_grant_pct: defaultValues?.total_equity_grant_pct ?? 0,
-      vesting_period: defaultValues?.vesting_period ?? 4,
-      cliff_period: defaultValues?.cliff_period ?? 1,
-      exit_valuation: defaultValues?.exit_valuation ?? 0,
-      simulate_dilution: defaultValues?.simulate_dilution ?? false,
-      dilution_rounds: defaultValues?.dilution_rounds ?? DEFAULT_DILUTION_ROUNDS,
+      monthly_salary: initialValues?.monthly_salary ?? 0,
+      total_equity_grant_pct: initialValues?.total_equity_grant_pct ?? 0,
+      vesting_period: initialValues?.vesting_period ?? 4,
+      cliff_period: initialValues?.cliff_period ?? 1,
+      exit_valuation: initialValues?.exit_valuation ?? 0,
+      simulate_dilution: initialValues?.simulate_dilution ?? false,
+      dilution_rounds: initialValues?.dilution_rounds ?? DEFAULT_DILUTION_ROUNDS,
     },
     mode: "onChange",
   });
+
+  // Sync form with external value changes (e.g., when loading examples)
+  React.useEffect(() => {
+    if (value) {
+      form.reset(value);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   const watchedValues = form.watch();
   useDeepCompareEffect(() => {

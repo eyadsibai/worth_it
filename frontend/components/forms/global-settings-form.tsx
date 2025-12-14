@@ -10,21 +10,36 @@ import { SliderField } from "./form-fields";
 import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 
 interface GlobalSettingsFormProps {
+  /** External value to sync with (e.g., from Zustand store) */
+  value?: GlobalSettingsForm | null;
+  /** @deprecated Use `value` prop instead for controlled form synchronization */
   defaultValues?: Partial<GlobalSettingsForm>;
   onChange?: (data: GlobalSettingsForm) => void;
 }
 
 export function GlobalSettingsFormComponent({
+  value,
   defaultValues,
   onChange,
 }: GlobalSettingsFormProps) {
+  // Use value prop if available, otherwise fall back to defaultValues
+  const initialValues = value ?? defaultValues;
+
   const form = useForm<GlobalSettingsForm>({
     resolver: zodResolver(GlobalSettingsFormSchema),
     defaultValues: {
-      exit_year: defaultValues?.exit_year ?? 5,
+      exit_year: initialValues?.exit_year ?? 5,
     },
     mode: "onChange",
   });
+
+  // Sync form with external value changes (e.g., when loading examples)
+  React.useEffect(() => {
+    if (value) {
+      form.reset(value);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
   // Watch for changes and notify parent
   const watchedValues = form.watch();
