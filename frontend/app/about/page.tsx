@@ -30,7 +30,7 @@ export default function AboutPage() {
 
         {/* Features Grid */}
         <div className="grid gap-6 md:grid-cols-2">
-          <Card className="glass-card border-l-4 border-l-chart-1/50">
+          <Card className="terminal-card border-l-4 border-l-chart-1/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-chart-1" />
@@ -43,7 +43,7 @@ export default function AboutPage() {
             </CardContent>
           </Card>
 
-          <Card className="glass-card border-l-4 border-l-chart-2/50">
+          <Card className="terminal-card border-l-4 border-l-chart-2/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Calculator className="h-4 w-4 text-chart-2" />
@@ -56,7 +56,7 @@ export default function AboutPage() {
             </CardContent>
           </Card>
 
-          <Card className="glass-card border-l-4 border-l-chart-3/50">
+          <Card className="terminal-card border-l-4 border-l-chart-3/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-chart-3" />
@@ -69,7 +69,7 @@ export default function AboutPage() {
             </CardContent>
           </Card>
 
-          <Card className="glass-card border-l-4 border-l-chart-4/50">
+          <Card className="terminal-card border-l-4 border-l-chart-4/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <GitBranch className="h-4 w-4 text-chart-4" />
@@ -84,7 +84,7 @@ export default function AboutPage() {
         </div>
 
         {/* How It Works */}
-        <Card className="glass-card">
+        <Card className="terminal-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <span className="text-accent font-mono">$</span> How It Works

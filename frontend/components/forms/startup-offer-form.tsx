@@ -35,7 +35,7 @@ export function StartupOfferFormComponent({
   }, [value?.equity_type]);
 
   return (
-    <Card className="glass-card animate-slide-up border-l-4 border-l-primary/50">
+    <Card className="terminal-card animate-slide-up border-l-4 border-l-primary/50">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-primary"></div>

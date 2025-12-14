@@ -200,28 +200,6 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
   }
 
-  /* Glass card - Fundcy style */
-  .glass-card {
-    @apply bg-card rounded-2xl;
-    @apply transition-all duration-200 ease-out;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 2px 8px rgba(0, 0, 0, 0.04);
-  }
-
-  .glass-card:hover {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
-  }
-
-  /* Editorial card - Fundcy style */
-  .editorial-card {
-    @apply bg-card rounded-2xl;
-    @apply transition-all duration-200 ease-out;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 2px 8px rgba(0, 0, 0, 0.04);
-  }
-
-  .editorial-card:hover {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
-  }
-
   /* Data card - for numbers and metrics */
   .data-card {
     @apply bg-secondary/50 rounded-xl p-4;
