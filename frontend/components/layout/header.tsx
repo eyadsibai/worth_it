@@ -1,18 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { TrendingUp, Search } from "lucide-react";
+import { TrendingUp, Search, Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { useCommandPalette } from "@/components/command-palette";
+import { useSidebar } from "./sidebar-context";
 
 export function Header() {
   const { setOpen } = useCommandPalette();
+  const sidebar = useSidebar();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur-sm">
       <div className="container flex h-14 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5 group">
+        <div className="flex items-center gap-2">
+          {/* Mobile hamburger menu */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={sidebar.toggle}
+            aria-label="Toggle sidebar menu"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+
+          <Link href="/" className="flex items-center gap-2.5 group">
           <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10 border border-primary/20 transition-all group-hover:bg-primary/15 group-hover:border-primary/30">
             <TrendingUp className="h-4 w-4 text-primary" />
           </div>
@@ -20,6 +34,7 @@ export function Header() {
             Worth It
           </span>
         </Link>
+        </div>
 
         <div className="flex items-center gap-1">
           <nav className="hidden md:flex items-center mr-2">
