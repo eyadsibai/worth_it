@@ -4,7 +4,7 @@ import * as React from "react";
 import { Header } from "./header";
 import { Sidebar } from "./sidebar";
 import { SidebarProvider, useSidebar } from "./sidebar-context";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/lib/hooks";
 
 interface AppShellProps {
@@ -27,6 +27,7 @@ function AppShellContent({ sidebar, children }: AppShellProps) {
         {sidebar && isMobile && (
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetContent side="left" className="w-[85vw] max-w-[420px] p-0">
+              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
               <Sidebar>{sidebar}</Sidebar>
             </SheetContent>
           </Sheet>
