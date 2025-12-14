@@ -77,12 +77,12 @@ function CustomTooltip({
               />
               {entry.name}
             </span>
-            <span className="font-mono">{formatCurrency(entry.value)}</span>
+            <span className="tabular-nums">{formatCurrency(entry.value)}</span>
           </div>
         ))}
         <div className="border-t mt-2 pt-2 flex justify-between font-medium">
           <span>Total</span>
-          <span className="font-mono">{formatCurrency(total)}</span>
+          <span className="tabular-nums">{formatCurrency(total)}</span>
         </div>
       </div>
     );

@@ -147,11 +147,11 @@ export function ConvertibleNoteForm({
           <InformationBox className="p-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Accrued Interest at Maturity:</span>
-              <span className="font-mono">${accruedInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+              <span className="tabular-nums">${accruedInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
             </div>
             <div className="flex justify-between mt-1">
               <span className="text-muted-foreground">Total at Maturity:</span>
-              <span className="font-mono font-medium">${totalAtMaturity.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+              <span className="tabular-nums font-medium">${totalAtMaturity.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
             </div>
           </InformationBox>
         )}

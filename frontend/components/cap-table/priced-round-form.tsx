@@ -108,19 +108,19 @@ export function PricedRoundForm({
           <InformationBox className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Post-Money Valuation:</span>
-              <span className="font-mono font-medium">SAR {postMoney.toLocaleString()}</span>
+              <span className="tabular-nums font-medium">SAR {postMoney.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Dilution:</span>
-              <span className="font-mono text-amber-500">{dilutionPct.toFixed(2)}%</span>
+              <span className="tabular-nums text-amber-500">{dilutionPct.toFixed(2)}%</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Price Per Share:</span>
-              <span className="font-mono">SAR {pricePerShare.toFixed(4)}</span>
+              <span className="tabular-nums">SAR {pricePerShare.toFixed(4)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">New Shares Issued:</span>
-              <span className="font-mono">{newShares.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+              <span className="tabular-nums">{newShares.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
             </div>
           </InformationBox>
         )}

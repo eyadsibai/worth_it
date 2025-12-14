@@ -498,7 +498,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
             <TabsContent value="table" className="space-y-4">
               <div className="rounded-lg border border-border overflow-hidden">
                 <div className="max-h-[500px] overflow-auto">
-                  <table className="w-full font-mono text-sm">
+                  <table className="w-full tabular-nums text-sm">
                     <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm">
                       <tr>
                         <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-medium text-muted-foreground">Year</th>

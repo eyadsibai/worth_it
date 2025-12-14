@@ -243,7 +243,7 @@ export function CapTableManager({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Reserved for Options</Label>
-                <span className="text-sm font-mono">{capTable.option_pool_pct}%</span>
+                <span className="text-sm tabular-nums">{capTable.option_pool_pct}%</span>
               </div>
               <Slider
                 value={[capTable.option_pool_pct]}
@@ -265,7 +265,7 @@ export function CapTableManager({
             >
               <div className="flex justify-between text-sm">
                 <span>Stakeholders</span>
-                <span className="font-mono">
+                <span className="tabular-nums">
                   <AnimatedPercentage
                     value={capTable.stakeholders.reduce((sum, s) => sum + s.ownership_pct, 0)}
                     decimals={1}
@@ -274,14 +274,14 @@ export function CapTableManager({
               </div>
               <div className="flex justify-between text-sm">
                 <span>Option Pool</span>
-                <span className="font-mono">
+                <span className="tabular-nums">
                   <AnimatedPercentage value={capTable.option_pool_pct} decimals={0} />
                 </span>
               </div>
               <div className="border-t pt-2 flex justify-between font-medium">
                 <span>Total Allocated</span>
                 <span
-                  className={`font-mono ${
+                  className={`tabular-nums ${
                     totalOwnership > 100 ? "text-destructive" : "text-terminal"
                   }`}
                 >
@@ -337,7 +337,7 @@ export function CapTableManager({
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
-                            <span className="text-lg font-mono font-semibold">
+                            <span className="text-lg tabular-nums font-semibold">
                               <AnimatedPercentage value={stakeholder.ownership_pct} />
                             </span>
                             <ConfirmationDialog

@@ -76,10 +76,10 @@ export function DilutionTable({ data }: DilutionTableProps) {
                   </Badge>
                 </div>
               </TableCell>
-              <TableCell className="text-right font-mono">
+              <TableCell className="text-right tabular-nums">
                 {row.isNew ? "—" : `${row.beforePct.toFixed(1)}%`}
               </TableCell>
-              <TableCell className="text-right font-mono">
+              <TableCell className="text-right tabular-nums">
                 {row.afterPct.toFixed(1)}%
               </TableCell>
               <TableCell className="text-right">
@@ -91,7 +91,7 @@ export function DilutionTable({ data }: DilutionTableProps) {
                 ) : (
                   <span className="inline-flex items-center gap-1 text-destructive">
                     <TrendingDown className="h-3 w-3" aria-hidden="true" />
-                    <span className="font-mono text-sm">
+                    <span className="tabular-nums text-sm">
                       {row.dilutionPct.toFixed(1)}%
                     </span>
                   </span>

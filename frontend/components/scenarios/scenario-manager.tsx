@@ -206,7 +206,6 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                   onClick={handleCompare}
                   variant="outline"
                   size="sm"
-                  className="font-mono"
                 >
                   Compare ({selectedScenarios.size})
                 </Button>
@@ -215,7 +214,6 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                 onClick={() => setShowClearConfirm(true)}
                 variant="destructive"
                 size="sm"
-                className="font-mono"
               >
                 Clear All
               </Button>
@@ -231,7 +229,7 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                 placeholder="Search scenarios..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 font-mono text-sm"
+                className="pl-9 text-sm"
               />
             </div>
 
@@ -241,14 +239,14 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                 value={filterOption}
                 onValueChange={(value) => setFilterOption(value as FilterOption)}
               >
-                <SelectTrigger className="w-[130px] font-mono text-xs">
+                <SelectTrigger className="w-[130px] text-xs">
                   <Filter className="h-3.5 w-3.5 mr-1.5" />
                   <SelectValue placeholder="Filter" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all" className="font-mono text-xs">All Types</SelectItem>
-                  <SelectItem value="RSU" className="font-mono text-xs">RSU</SelectItem>
-                  <SelectItem value="STOCK_OPTIONS" className="font-mono text-xs">Options</SelectItem>
+                  <SelectItem value="all" className="text-xs">All Types</SelectItem>
+                  <SelectItem value="RSU" className="text-xs">RSU</SelectItem>
+                  <SelectItem value="STOCK_OPTIONS" className="text-xs">Options</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -256,17 +254,17 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                 value={sortOption}
                 onValueChange={(value) => setSortOption(value as SortOption)}
               >
-                <SelectTrigger className="w-[140px] font-mono text-xs">
+                <SelectTrigger className="w-[140px] text-xs">
                   <ArrowUpDown className="h-3.5 w-3.5 mr-1.5" />
                   <SelectValue placeholder="Sort" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="newest" className="font-mono text-xs">Newest First</SelectItem>
-                  <SelectItem value="oldest" className="font-mono text-xs">Oldest First</SelectItem>
-                  <SelectItem value="name-asc" className="font-mono text-xs">Name A-Z</SelectItem>
-                  <SelectItem value="name-desc" className="font-mono text-xs">Name Z-A</SelectItem>
-                  <SelectItem value="outcome-best" className="font-mono text-xs">Best Outcome</SelectItem>
-                  <SelectItem value="outcome-worst" className="font-mono text-xs">Worst Outcome</SelectItem>
+                  <SelectItem value="newest" className="text-xs">Newest First</SelectItem>
+                  <SelectItem value="oldest" className="text-xs">Oldest First</SelectItem>
+                  <SelectItem value="name-asc" className="text-xs">Name A-Z</SelectItem>
+                  <SelectItem value="name-desc" className="text-xs">Name Z-A</SelectItem>
+                  <SelectItem value="outcome-best" className="text-xs">Best Outcome</SelectItem>
+                  <SelectItem value="outcome-worst" className="text-xs">Worst Outcome</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -297,7 +295,7 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <h4 className="font-semibold text-sm mb-1">{scenario.name}</h4>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
                           <Calendar className="h-3 w-3" />
                           {new Date(scenario.timestamp).toLocaleString()}
                         </div>
@@ -360,29 +358,29 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
 
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
-                        <div className="text-muted-foreground font-mono mb-0.5">Equity Type</div>
-                        <Badge variant="outline" className="font-mono text-xs">
+                        <div className="text-xs uppercase tracking-wide text-muted-foreground mb-0.5">Equity Type</div>
+                        <Badge variant="outline" className="text-xs">
                           {scenario.equity.type === "RSU" ? "RSU" : "Options"}
                         </Badge>
                       </div>
                       <div>
-                        <div className="text-muted-foreground font-mono mb-0.5">Exit Year</div>
-                        <div className="font-mono font-medium">Year {scenario.globalSettings.exitYear}</div>
+                        <div className="text-xs uppercase tracking-wide text-muted-foreground mb-0.5">Exit Year</div>
+                        <div className="font-medium tabular-nums">Year {scenario.globalSettings.exitYear}</div>
                       </div>
                       <div className="col-span-2">
-                        <div className="text-muted-foreground font-mono mb-0.5">Net Outcome</div>
+                        <div className="text-xs uppercase tracking-wide text-muted-foreground mb-0.5">Net Outcome</div>
                         <div className="flex items-center gap-2">
                           {isPositive ? (
                             <TrendingUp className="h-4 w-4 text-terminal" />
                           ) : (
                             <TrendingDown className="h-4 w-4 text-destructive" />
                           )}
-                          <span className={`font-mono font-semibold ${isPositive ? "text-terminal" : "text-destructive"}`}>
+                          <span className={`tabular-nums font-semibold ${isPositive ? "text-terminal" : "text-destructive"}`}>
                             {formatCurrency(scenario.results.netOutcome)}
                           </span>
                           <Badge
                             variant={isPositive ? "default" : "destructive"}
-                            className={isPositive ? "bg-terminal/15 text-terminal hover:bg-terminal/20 border border-terminal/30 font-mono text-xs" : "font-mono text-xs"}
+                            className={isPositive ? "bg-terminal/15 text-terminal hover:bg-terminal/20 border border-terminal/30 text-xs" : "text-xs"}
                           >
                             {isPositive ? "WORTH IT" : "NOT WORTH IT"}
                           </Badge>
@@ -398,7 +396,7 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                         }}
                         variant="outline"
                         size="sm"
-                        className="w-full mt-3 font-mono text-xs"
+                        className="w-full mt-3 text-xs"
                       >
                         Load Scenario
                       </Button>
@@ -414,8 +412,8 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
       <Dialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-mono">Clear All Scenarios?</DialogTitle>
-            <DialogDescription className="font-mono">
+            <DialogTitle>Clear All Scenarios?</DialogTitle>
+            <DialogDescription>
               This will permanently delete all {scenarios.length} saved scenario{scenarios.length !== 1 ? "s" : ""}.
               This action cannot be undone.
             </DialogDescription>
@@ -424,14 +422,12 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
             <Button
               onClick={() => setShowClearConfirm(false)}
               variant="outline"
-              className="font-mono"
             >
               Cancel
             </Button>
             <Button
               onClick={handleClearAll}
               variant="destructive"
-              className="font-mono"
             >
               Clear All
             </Button>
@@ -443,14 +439,14 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
       <Dialog open={editingNotesTimestamp !== null} onOpenChange={(open) => !open && handleCloseEditNotes()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="font-mono">Edit Notes</DialogTitle>
-            <DialogDescription className="font-mono">
+            <DialogTitle>Edit Notes</DialogTitle>
+            <DialogDescription>
               Add or update notes for this scenario.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-notes" className="font-mono text-sm">
+              <Label htmlFor="edit-notes" className="text-sm">
                 Notes
               </Label>
               <Textarea
@@ -458,7 +454,7 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                 placeholder="Add any notes or comments about this scenario..."
                 value={editingNotesValue}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditingNotesValue(e.target.value)}
-                className="font-mono min-h-[100px] resize-none"
+                className="min-h-[100px] resize-none"
                 rows={4}
               />
             </div>
@@ -467,13 +463,11 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
             <Button
               onClick={handleCloseEditNotes}
               variant="outline"
-              className="font-mono"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSaveNotes}
-              className="font-mono"
             >
               Save Notes
             </Button>

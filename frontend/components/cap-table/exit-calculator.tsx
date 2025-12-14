@@ -132,7 +132,7 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
                     {row.type.replace("_", " ")}
                   </TableCell>
                   <TableCell className="text-right">{row.ownershipPct.toFixed(2)}%</TableCell>
-                  <TableCell className="text-right font-mono">
+                  <TableCell className="text-right tabular-nums">
                     <HighlightOnChange value={row.payout}>
                       {formatCurrency(row.payout)}
                     </HighlightOnChange>
@@ -143,7 +143,7 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
                 <TableCell>Total</TableCell>
                 <TableCell />
                 <TableCell className="text-right">{totalAllocatedPct.toFixed(2)}%</TableCell>
-                <TableCell className="text-right font-mono text-terminal">
+                <TableCell className="text-right tabular-nums text-terminal">
                   <HighlightOnChange value={totalPayout}>
                     {formatCurrency(totalPayout)}
                   </HighlightOnChange>

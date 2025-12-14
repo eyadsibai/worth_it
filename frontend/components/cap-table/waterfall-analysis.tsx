@@ -169,7 +169,7 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
             <Card className="terminal-card border-destructive/30">
               <CardContent className="py-8 text-center">
                 <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
-                <p className="mt-4 text-destructive font-mono">
+                <p className="mt-4 text-destructive">
                   {waterfallMutation.error?.message || "Calculation failed"}
                 </p>
                 <Button
@@ -223,7 +223,7 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
                           key={step.step_number}
                           className="flex items-start gap-4 p-3 rounded-lg bg-muted/50"
                         >
-                          <Badge variant="outline" className="font-mono shrink-0">
+                          <Badge variant="outline" className="tabular-nums shrink-0">
                             {step.step_number}
                           </Badge>
                           <div className="flex-1 min-w-0">
@@ -233,10 +233,10 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
                             </p>
                           </div>
                           <div className="text-right shrink-0">
-                            <p className="font-mono font-medium">
+                            <p className="tabular-nums font-medium">
                               ${(step.amount / 1_000_000).toFixed(2)}M
                             </p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground tabular-nums">
                               Remaining: ${(step.remaining_proceeds / 1_000_000).toFixed(2)}M
                             </p>
                           </div>

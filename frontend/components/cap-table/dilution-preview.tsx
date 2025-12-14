@@ -86,19 +86,19 @@ export function DilutionPreview({
           <div className="flex gap-4 text-sm text-muted-foreground">
             <span>
               Post-money:{" "}
-              <span className="font-mono text-foreground">
+              <span className="tabular-nums text-foreground">
                 ${(summaryStats.postMoneyValuation / 1_000_000).toFixed(1)}M
               </span>
             </span>
             <span>
               New investor:{" "}
-              <span className="font-mono text-terminal">
+              <span className="tabular-nums text-terminal">
                 {summaryStats.newInvestorPct.toFixed(1)}%
               </span>
             </span>
             <span>
               Dilution:{" "}
-              <span className="font-mono text-destructive">
+              <span className="tabular-nums text-destructive">
                 {summaryStats.avgDilutionPct.toFixed(1)}%
               </span>
             </span>

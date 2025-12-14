@@ -94,19 +94,19 @@ export function WaterfallTable({ distribution }: WaterfallTableProps) {
         row.investment_amount !== undefined
           ? formatCurrency(row.investment_amount)
           : "-",
-      className: "text-right font-mono",
+      className: "text-right tabular-nums",
     },
     {
       key: "payout",
       header: "Payout",
       cell: (row) => formatCurrency(row.payout_amount),
-      className: "text-right font-mono",
+      className: "text-right tabular-nums",
     },
     {
       key: "pct",
       header: "% of Exit",
       cell: (row) => `${(row.payout_pct ?? 0).toFixed(1)}%`,
-      className: "text-right font-mono",
+      className: "text-right tabular-nums",
     },
     {
       key: "roi",
@@ -143,7 +143,7 @@ export function WaterfallTable({ distribution }: WaterfallTableProps) {
       <CardHeader>
         <CardTitle className="flex items-center justify-between flex-wrap gap-2">
           <span>Stakeholder Payouts</span>
-          <Badge variant="outline" className="font-mono">
+          <Badge variant="outline" className="tabular-nums">
             Exit: {formatCurrency(distribution.exit_valuation)}
           </Badge>
         </CardTitle>
@@ -163,13 +163,13 @@ export function WaterfallTable({ distribution }: WaterfallTableProps) {
         <div className="mt-4 p-4 rounded-lg bg-muted/50 grid grid-cols-2 gap-4">
           <div className="text-center">
             <p className="text-sm text-muted-foreground">Common Shareholders</p>
-            <p className="text-2xl font-mono font-semibold text-chart-1">
+            <p className="text-2xl tabular-nums font-semibold text-chart-1">
               {(distribution.common_pct ?? 0).toFixed(1)}%
             </p>
           </div>
           <div className="text-center">
             <p className="text-sm text-muted-foreground">Preferred Shareholders</p>
-            <p className="text-2xl font-mono font-semibold text-chart-3">
+            <p className="text-2xl tabular-nums font-semibold text-chart-3">
               {(distribution.preferred_pct ?? 0).toFixed(1)}%
             </p>
           </div>

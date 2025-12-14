@@ -115,10 +115,10 @@ export function ResponsiveTable<T>({
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                   {otherColumns.map((col) => (
                     <div key={col.key}>
-                      <div className="text-xs text-muted-foreground font-mono mb-0.5">
+                      <div className="text-xs text-muted-foreground mb-0.5">
                         {col.header}
                       </div>
-                      <div className={cn("font-mono", col.className)}>
+                      <div className={cn("tabular-nums", col.className)}>
                         {col.cell(row, index)}
                       </div>
                     </div>
@@ -202,10 +202,10 @@ export function ResponsiveTableFooter({ items }: TableFooterProps) {
     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm font-medium">
       {items.map((item) => (
         <div key={item.label}>
-          <div className="text-xs text-muted-foreground font-mono mb-0.5">
+          <div className="text-xs text-muted-foreground mb-0.5">
             {item.label}
           </div>
-          <div className={cn("font-mono", item.className)}>
+          <div className={cn("tabular-nums", item.className)}>
             {item.value}
           </div>
         </div>

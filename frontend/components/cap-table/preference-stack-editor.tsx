@@ -297,7 +297,7 @@ export function PreferenceStackEditor({
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Preference Stack ({tiers.length} tiers)</span>
-              <Badge variant="outline" className="font-mono">
+              <Badge variant="outline" className="tabular-nums">
                 Total: {formatCurrency(totalInvested)}
               </Badge>
             </CardTitle>
@@ -316,7 +316,7 @@ export function PreferenceStackEditor({
                   >
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <GripVertical className="h-4 w-4" />
-                      <span className="font-mono text-sm w-6">{tier.seniority}</span>
+                      <span className="tabular-nums text-sm w-6">{tier.seniority}</span>
                     </div>
 
                     <div className="flex-1">
@@ -368,7 +368,7 @@ export function PreferenceStackEditor({
             <div className="mt-4 p-4 rounded-lg bg-muted/50 space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Total Preference Amount</span>
-                <span className="font-mono">
+                <span className="tabular-nums">
                   {formatCurrency(
                     tiers.reduce(
                       (sum, t) => sum + t.investment_amount * t.liquidation_multiplier,
@@ -379,7 +379,7 @@ export function PreferenceStackEditor({
               </div>
               <div className="flex justify-between text-sm">
                 <span>Participating Tiers</span>
-                <span className="font-mono">
+                <span className="tabular-nums">
                   {tiers.filter((t) => t.participating).length} of {tiers.length}
                 </span>
               </div>

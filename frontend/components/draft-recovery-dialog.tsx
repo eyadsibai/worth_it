@@ -90,7 +90,7 @@ export function DraftRecoveryDialog({
     <AlertDialog open={open}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle className="font-mono">
+          <AlertDialogTitle>
             Resume where you left off?
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
@@ -99,7 +99,7 @@ export function DraftRecoveryDialog({
                 Found unsaved work from {relativeTime}.
               </p>
               {summaryItems.length > 0 && (
-                <div className="bg-muted/50 rounded-lg p-3 font-mono text-sm space-y-1">
+                <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1 tabular-nums">
                   {summaryItems.map((item, index) => (
                     <p key={index} className="text-foreground">{item}</p>
                   ))}
@@ -109,10 +109,10 @@ export function DraftRecoveryDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onDiscard} className="font-mono">
+          <AlertDialogCancel onClick={onDiscard}>
             Discard
           </AlertDialogCancel>
-          <AlertDialogAction onClick={onRestore} className="font-mono">
+          <AlertDialogAction onClick={onRestore}>
             Restore Draft
           </AlertDialogAction>
         </AlertDialogFooter>

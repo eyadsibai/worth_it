@@ -46,7 +46,7 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
         <ScrollArea className="w-full">
           <div className="min-w-max">
             {/* Comparison Table */}
-            <table className="w-full font-mono text-sm border-collapse">
+            <table className="w-full text-sm border-collapse tabular-nums">
               <thead className="sticky top-0 bg-secondary/80 backdrop-blur-sm">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs uppercase tracking-wider font-medium text-muted-foreground border-b border-border">
@@ -78,7 +78,7 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
                   <td className="px-4 py-3 font-medium text-muted-foreground">Equity Type</td>
                   {scenarios.map((scenario) => (
                     <td key={scenario.timestamp} className="px-4 py-3">
-                      <Badge variant="outline" className="font-mono text-xs">
+                      <Badge variant="outline" className="text-xs">
                         {scenario.equity.type === "RSU" ? "RSU" : "Options"}
                       </Badge>
                     </td>
@@ -287,7 +287,7 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
                         <div className="mt-1">
                           <Badge
                             variant={isPositive ? "default" : "destructive"}
-                            className={isPositive ? "bg-terminal/15 text-terminal hover:bg-terminal/20 border border-terminal/30 font-mono text-xs" : "font-mono text-xs"}
+                            className={isPositive ? "bg-terminal/15 text-terminal hover:bg-terminal/20 border border-terminal/30 text-xs" : "text-xs"}
                           >
                             {isPositive ? "WORTH IT" : "NOT WORTH IT"}
                           </Badge>

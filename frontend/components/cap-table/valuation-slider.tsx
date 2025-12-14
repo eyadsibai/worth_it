@@ -119,7 +119,7 @@ export function ValuationSlider({
                 onChange={handleInputChange}
                 onBlur={handleInputBlur}
                 onKeyDown={handleInputKeyDown}
-                className="text-4xl font-mono font-bold w-32 text-center border-none shadow-none focus-visible:ring-0 p-0"
+                className="text-4xl tabular-nums font-bold w-32 text-center border-none shadow-none focus-visible:ring-0 p-0"
               />
               <span className="absolute right-0 top-1/2 -translate-y-1/2 text-lg text-muted-foreground">
                 M
@@ -157,7 +157,7 @@ export function ValuationSlider({
                 variant={value === qs.value ? "default" : "outline"}
                 size="sm"
                 onClick={() => onChange(qs.value)}
-                className="font-mono"
+                className="tabular-nums"
               >
                 {qs.label}
               </Button>
@@ -184,7 +184,7 @@ export function ValuationSlider({
                     variant="ghost"
                     size="sm"
                     onClick={() => onChange(breakeven)}
-                    className="h-auto py-0 px-2 font-mono text-xs"
+                    className="h-auto py-0 px-2 tabular-nums text-xs"
                   >
                     {formatCurrency(breakeven)}
                   </Button>

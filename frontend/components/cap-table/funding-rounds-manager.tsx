@@ -137,7 +137,7 @@ export function FundingRoundsManager({
           transition={{ duration: 0.2 }}
         >
           <div className="text-muted-foreground">Total Raised</div>
-          <div className="text-lg font-mono font-medium text-terminal">
+          <div className="text-lg tabular-nums font-medium text-terminal">
             $ <AnimatedNumber
               value={totalRaised}
               formatValue={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(2)}M` : v.toLocaleString()}
@@ -150,7 +150,7 @@ export function FundingRoundsManager({
           transition={{ duration: 0.2 }}
         >
           <div className="text-muted-foreground">SAFEs</div>
-          <div className="text-lg font-mono">
+          <div className="text-lg tabular-nums">
             <AnimatedNumber value={safes.length} />
           </div>
         </motion.div>
@@ -160,7 +160,7 @@ export function FundingRoundsManager({
           transition={{ duration: 0.2 }}
         >
           <div className="text-muted-foreground">Notes</div>
-          <div className="text-lg font-mono">
+          <div className="text-lg tabular-nums">
             <AnimatedNumber value={notes.length} />
           </div>
         </motion.div>
@@ -170,7 +170,7 @@ export function FundingRoundsManager({
           transition={{ duration: 0.2 }}
         >
           <div className="text-muted-foreground">Rounds</div>
-          <div className="text-lg font-mono">
+          <div className="text-lg tabular-nums">
             <AnimatedNumber value={rounds.length} />
           </div>
         </motion.div>
