@@ -148,7 +148,15 @@ playwright/
     ├── 05-rsu-scenario-flow.spec.ts  # Full RSU scenario E2E
     ├── 06-stock-options-scenario-flow.spec.ts # Full options E2E
     ├── 07-monte-carlo.spec.ts       # Monte Carlo simulation tests
-    └── 08-ui-features.spec.ts       # Theme, accessibility tests
+    ├── 08-ui-features.spec.ts       # Theme, accessibility tests
+    ├── 09-waterfall-analysis.spec.ts # Waterfall distribution tests
+    ├── 10-export-functionality.spec.ts # CSV/PDF export tests
+    ├── 11-scenario-management.spec.ts # Scenario CRUD tests
+    ├── 12-api-validation.spec.ts    # API input validation tests
+    ├── 13-calculation-accuracy.spec.ts # Numerical accuracy tests
+    ├── 14-websocket-integration.spec.ts # WebSocket Monte Carlo tests
+    ├── 15-cross-feature.spec.ts     # Multi-feature integration tests
+    └── 16-error-handling.spec.ts    # Error boundary tests
 ```
 
 ### Writing E2E Tests

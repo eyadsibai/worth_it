@@ -14,7 +14,7 @@ frontend/docs/design-references/fundcy-detail.webp
 **DO NOT SKIP THIS STEP.** Read the images. Study them. Clone the design exactly.
 
 These images show the Fundcy financial dashboard - the EXACT aesthetic we are cloning:
-- `fundcy-dashboard-1.webp` - Full dashboard layout with sidebar, cards, bar chart
+- `fundcy-dashboard-1.webp` - Full dashboard layout with cards, bar chart
 - `fundcy-dashboard-2.webp` - Dashboard with transaction history table, status badges
 - `fundcy-components.webp` - Card component breakdown, spacing, shadows
 - `fundcy-detail.webp` - Close-up of typography, currency formatting, chart tooltips
@@ -28,7 +28,7 @@ These images show the Fundcy financial dashboard - the EXACT aesthetic we are cl
 ### Visual Reference Summary
 
 From the reference images, Fundcy uses:
-- **Layout**: Fixed sidebar (280px) + fluid main content on very light gray background
+- **Layout**: Fixed header (56px) + fluid main content on very light gray background
 - **Cards**: Pure white, borderless, subtle shadow, 16px radius
 - **Colors**: Multi-tone green palette (forest → lime → teal)
 - **Typography**: Large currency with muted decimals, small uppercase labels
@@ -285,45 +285,6 @@ const FundcyTooltip = ({ active, payload, label }) => {
 </span>
 ```
 
-### Sidebar Navigation
-
-```tsx
-<aside className="w-[280px] bg-white h-screen p-6 flex flex-col">
-  {/* Logo */}
-  <div className="flex items-center gap-3 mb-8">
-    <div className="w-10 h-10 rounded-xl bg-terminal flex items-center justify-center">
-      <FIcon className="text-white" />
-    </div>
-    <span className="text-xl font-semibold">Fundcy</span>
-  </div>
-
-  {/* Search */}
-  <div className="relative mb-6">
-    <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-    <Input placeholder="Search..." className="pl-10 bg-muted border-0" />
-    <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">⌘S</kbd>
-  </div>
-
-  {/* Menu */}
-  <nav className="space-y-1">
-    <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Menu</p>
-
-    {/* Active item */}
-    <a className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary text-white">
-      <HomeIcon className="h-5 w-5" />
-      <span>Dashboard</span>
-    </a>
-
-    {/* Inactive item with badge */}
-    <a className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted">
-      <ChartIcon className="h-5 w-5 text-muted-foreground" />
-      <span>Analytics</span>
-      <span className="ml-auto bg-muted px-2 py-0.5 rounded text-xs">2</span>
-    </a>
-  </nav>
-</aside>
-```
-
 ### Data Table (Transaction History)
 
 ```tsx
@@ -415,7 +376,7 @@ npm run test:unit
 npm run test:unit:coverage
 ```
 
-**Total: 262 frontend unit tests**
+**Total: 565 frontend unit tests** (run `npm run test:unit` to verify)
 
 ### Pre-Commit Checklist
 
@@ -446,17 +407,28 @@ frontend/
 ├── __tests__/                   # Unit tests
 ├── app/                         # Next.js App Router pages
 ├── components/
+│   ├── cap-table/               # Cap table management components
 │   ├── charts/                  # Recharts visualizations
 │   ├── forms/                   # React Hook Form components
-│   ├── layout/                  # Layout components (Header, Sidebar)
+│   ├── layout/                  # Layout components (AppShell, Header)
 │   ├── results/                 # Results dashboard
+│   ├── scenarios/               # Scenario management components
 │   └── ui/                      # shadcn/ui base components
 ├── lib/
 │   ├── api-client.ts           # Type-safe API client
+│   ├── constants/              # App-wide constants
+│   ├── dilution-utils.ts       # Dilution calculation helpers
+│   ├── employee-scenario-utils.ts # Employee equity scenario helpers
+│   ├── export-utils.ts         # CSV/PDF export utilities
+│   ├── format-utils.ts         # Number/currency formatting
+│   ├── hooks/                  # Custom React hooks
+│   ├── motion.tsx              # Framer Motion components
+│   ├── providers.tsx           # React context providers
+│   ├── scenario-utils.ts       # Scenario management helpers
 │   ├── schemas.ts              # Zod validation schemas
 │   ├── store.ts                # Zustand store
-│   ├── export-utils.ts         # CSV/PDF export utilities
-│   └── hooks/                  # Custom React hooks
+│   ├── utils.ts                # General utilities (cn helper)
+│   └── validation.ts           # Form validation helpers
 └── vitest.config.ts
 ```
 

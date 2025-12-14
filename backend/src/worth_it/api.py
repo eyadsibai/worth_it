@@ -51,6 +51,10 @@ from worth_it.monte_carlo import (
     run_sensitivity_analysis as mc_sensitivity_analysis,
 )
 from worth_it.services import CapTableService, StartupService
+from worth_it.services.serializers import (
+    convert_equity_type_in_params,
+    convert_equity_type_in_startup_params,
+)
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -66,26 +70,6 @@ limiter = Limiter(
 # Service instances for dependency injection
 startup_service = StartupService()
 cap_table_service = CapTableService()
-
-
-def convert_equity_type_to_enum(params: dict) -> None:
-    """Convert equity_type string to EquityType enum in startup_params.
-
-    DEPRECATED: Use convert_equity_type_in_params from services.serializers instead.
-
-    This function modifies the params dict in-place, converting the equity_type
-    field from a string to a calculations.EquityType enum if needed.
-
-    Args:
-        params: Dictionary containing startup_params with potential string equity_type
-    """
-    if "startup_params" in params and "equity_type" in params["startup_params"]:
-        # Copy nested dict to avoid mutating the original
-        params["startup_params"] = params["startup_params"].copy()
-        if isinstance(params["startup_params"]["equity_type"], str):
-            params["startup_params"]["equity_type"] = calculations.EquityType(
-                params["startup_params"]["equity_type"],
-            )
 
 
 # Create FastAPI app
@@ -193,11 +177,9 @@ async def calculate_opportunity_cost(request: Request, body: OpportunityCostRequ
         monthly_df = pd.DataFrame(body.monthly_data)
 
         # Convert equity_type string to EquityType enum if needed
-        startup_params = body.startup_params.copy() if body.startup_params else None
-        if startup_params and "equity_type" in startup_params:
-            params_wrapper = {"startup_params": startup_params}
-            convert_equity_type_to_enum(params_wrapper)
-            startup_params = params_wrapper["startup_params"]
+        startup_params = convert_equity_type_in_startup_params(
+            body.startup_params.copy() if body.startup_params else None
+        )
 
         df = calculations.calculate_annual_opportunity_cost(
             monthly_df=monthly_df,
@@ -283,8 +265,7 @@ async def run_monte_carlo(request: Request, body: MonteCarloRequest):
     """
     try:
         # Convert equity_type string to EquityType enum if needed
-        base_params = body.base_params.copy()
-        convert_equity_type_to_enum(base_params)
+        base_params = convert_equity_type_in_params(body.base_params.copy())
 
         results = mc_run_simulation(
             num_simulations=body.num_simulations,
@@ -324,13 +305,7 @@ async def websocket_monte_carlo(websocket: WebSocket):
         request = MonteCarloRequest(**request_data)
 
         # Convert equity_type string to EquityType enum if needed
-        base_params = request.base_params.copy()
-        if "startup_params" in base_params and "equity_type" in base_params["startup_params"]:
-            base_params["startup_params"] = base_params["startup_params"].copy()
-            if isinstance(base_params["startup_params"]["equity_type"], str):
-                base_params["startup_params"]["equity_type"] = calculations.EquityType(
-                    base_params["startup_params"]["equity_type"],
-                )
+        base_params = convert_equity_type_in_params(request.base_params.copy())
 
         # Send initial progress
         await websocket.send_json(
@@ -424,8 +399,7 @@ async def run_sensitivity(request: Request, body: SensitivityAnalysisRequest):
     """
     try:
         # Convert equity_type string to EquityType enum if needed
-        base_params = body.base_params.copy()
-        convert_equity_type_to_enum(base_params)
+        base_params = convert_equity_type_in_params(body.base_params.copy())
 
         df = mc_sensitivity_analysis(
             base_params=base_params,
