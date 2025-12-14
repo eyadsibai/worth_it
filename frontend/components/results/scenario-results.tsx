@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import type { StartupScenarioResponse, GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm } from "@/lib/schemas";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { RESULT_EXPLANATIONS, generateResultsSummary } from "@/lib/constants/result-explanations";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CumulativeComparisonChart } from "@/components/charts/cumulative-comparison-chart";
 import { OpportunityCostChart } from "@/components/charts/opportunity-cost-chart";
 import { formatCurrency } from "@/lib/format-utils";
@@ -57,14 +58,52 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
 
   if (isLoading) {
     return (
-      <Card className="terminal-card">
-        <CardContent className="p-12 text-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-            <p className="text-muted-foreground font-mono text-sm">Processing...</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6 animate-fade-in">
+        {/* Skeleton Metric Cards */}
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
+          {[...Array(5)].map((_, i) => (
+            <Card key={i} className="terminal-card overflow-hidden">
+              <CardHeader className="pb-2 pt-4 px-4">
+                <Skeleton className="h-3 w-20" />
+              </CardHeader>
+              <CardContent className="pb-4 px-4 space-y-2">
+                <Skeleton className="h-6 w-28" />
+                <Skeleton className="h-3 w-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Skeleton Summary Card */}
+        <Card className="terminal-card border-l-4 border-l-muted">
+          <CardContent className="py-4 px-5">
+            <div className="flex items-start gap-3">
+              <Skeleton className="h-5 w-5 rounded-full flex-shrink-0" />
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2 mt-3" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Skeleton Detailed Analysis */}
+        <Card className="terminal-card">
+          <CardHeader className="pb-4">
+            <Skeleton className="h-5 w-36" />
+            <Skeleton className="h-3 w-48 mt-2" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-8 w-48 mb-4" />
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
