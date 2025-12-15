@@ -15,12 +15,13 @@ class DilutionRound(TypedDict, total=False):
     """Configuration for a dilution funding round.
 
     Attributes:
-        year: The year when the dilution round occurs
+        year: The year when the dilution round occurs (negative = years ago for completed rounds)
         dilution: Percentage of dilution (0.0 to 1.0)
         new_salary: New monthly salary after this round (optional)
         is_safe_note: Whether this is a SAFE note (optional)
         valuation_at_sale: Valuation at time of secondary sale (optional)
         percent_to_sell: Percentage of equity to sell (optional, 0.0 to 1.0)
+        status: Round status - "completed" (past) or "upcoming" (future)
     """
 
     year: int
@@ -29,6 +30,7 @@ class DilutionRound(TypedDict, total=False):
     is_safe_note: bool
     valuation_at_sale: float
     percent_to_sell: float
+    status: str  # "completed" | "upcoming"
 
 
 class RSUParams(TypedDict, total=False):
@@ -39,12 +41,14 @@ class RSUParams(TypedDict, total=False):
         target_exit_valuation: Expected company valuation at exit
         simulate_dilution: Whether to simulate dilution rounds
         dilution_rounds: List of dilution round configurations
+        company_stage: Current stage of the company (pre-seed, seed, series-a, etc.)
     """
 
     equity_pct: float
     target_exit_valuation: float
     simulate_dilution: bool
     dilution_rounds: list[DilutionRound]
+    company_stage: str | None  # "pre-seed" | "seed" | "series-a" | "series-b" | "series-c" | "series-d" | "pre-ipo"
 
 
 class OptionsParams(TypedDict, total=False):

@@ -20,12 +20,16 @@ export interface ExampleScenario {
 /**
  * Pre-configured example scenarios for quick exploration.
  * Each represents a typical startup stage with realistic values.
+ *
+ * Funding rounds have a `status` field:
+ * - "completed": Past rounds that already happened (dilution applied to starting equity)
+ * - "upcoming": Future rounds that will dilute your equity going forward
  */
 export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
   {
     id: "early-stage",
     name: "Early-stage Startup (Seed)",
-    description: "$8K salary, 0.5% equity",
+    description: "$8K salary, 0.5% equity, joining post-Seed",
     stage: "early",
     globalSettings: {
       exit_year: 5,
@@ -43,7 +47,32 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
       vesting_period: 4,
       cliff_period: 1,
       simulate_dilution: true,
+      company_stage: "seed",
       dilution_rounds: [
+        // COMPLETED: Historical rounds (company already raised these)
+        {
+          round_name: "Pre-Seed",
+          round_type: "SAFE_NOTE",
+          year: -2,
+          dilution_pct: 10,
+          pre_money_valuation: 3000000,
+          amount_raised: 300000,
+          salary_change: 0,
+          enabled: true,
+          status: "completed",
+        },
+        {
+          round_name: "Seed",
+          round_type: "SAFE_NOTE",
+          year: -1,
+          dilution_pct: 15,
+          pre_money_valuation: 8000000,
+          amount_raised: 1500000,
+          salary_change: 0,
+          enabled: true,
+          status: "completed",
+        },
+        // UPCOMING: Future rounds to model
         {
           round_name: "Series A",
           round_type: "PRICED_ROUND",
@@ -53,6 +82,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           amount_raised: 5000000,
           salary_change: 1000,
           enabled: true,
+          status: "upcoming",
         },
         {
           round_name: "Series B",
@@ -63,6 +93,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           amount_raised: 15000000,
           salary_change: 2000,
           enabled: true,
+          status: "upcoming",
         },
       ],
       exit_valuation: 100000000,
@@ -71,7 +102,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
   {
     id: "growth-stage",
     name: "Growth-stage (Series B)",
-    description: "$12K salary, 0.1% equity",
+    description: "$12K salary, 0.1% equity, joining post-Series B",
     stage: "growth",
     globalSettings: {
       exit_year: 4,
@@ -89,7 +120,43 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
       vesting_period: 4,
       cliff_period: 1,
       simulate_dilution: true,
+      company_stage: "series-b",
       dilution_rounds: [
+        // COMPLETED: Historical rounds (company already raised these)
+        {
+          round_name: "Seed",
+          round_type: "SAFE_NOTE",
+          year: -3,
+          dilution_pct: 15,
+          pre_money_valuation: 8000000,
+          amount_raised: 1500000,
+          salary_change: 0,
+          enabled: true,
+          status: "completed",
+        },
+        {
+          round_name: "Series A",
+          round_type: "PRICED_ROUND",
+          year: -2,
+          dilution_pct: 20,
+          pre_money_valuation: 25000000,
+          amount_raised: 6000000,
+          salary_change: 0,
+          enabled: true,
+          status: "completed",
+        },
+        {
+          round_name: "Series B",
+          round_type: "PRICED_ROUND",
+          year: -1,
+          dilution_pct: 18,
+          pre_money_valuation: 80000000,
+          amount_raised: 18000000,
+          salary_change: 0,
+          enabled: true,
+          status: "completed",
+        },
+        // UPCOMING: Future rounds to model
         {
           round_name: "Series C",
           round_type: "PRICED_ROUND",
@@ -99,6 +166,18 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           amount_raised: 50000000,
           salary_change: 1500,
           enabled: true,
+          status: "upcoming",
+        },
+        {
+          round_name: "Series D",
+          round_type: "PRICED_ROUND",
+          year: 4,
+          dilution_pct: 10,
+          pre_money_valuation: 800000000,
+          amount_raised: 80000000,
+          salary_change: 2000,
+          enabled: false,
+          status: "upcoming",
         },
       ],
       exit_valuation: 500000000,
@@ -107,7 +186,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
   {
     id: "late-stage",
     name: "Late-stage (Pre-IPO)",
-    description: "$16K salary, 0.05% equity",
+    description: "$16K salary, 0.05% equity, joining pre-IPO",
     stage: "late",
     globalSettings: {
       exit_year: 2,
@@ -124,8 +203,67 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
       total_equity_grant_pct: 0.05,
       vesting_period: 4,
       cliff_period: 1,
-      simulate_dilution: false,
-      dilution_rounds: [],
+      simulate_dilution: true,
+      company_stage: "pre-ipo",
+      dilution_rounds: [
+        // COMPLETED: Historical rounds (company already raised these)
+        {
+          round_name: "Seed",
+          round_type: "SAFE_NOTE",
+          year: -6,
+          dilution_pct: 15,
+          pre_money_valuation: 10000000,
+          amount_raised: 2000000,
+          salary_change: 0,
+          enabled: true,
+          status: "completed",
+        },
+        {
+          round_name: "Series A",
+          round_type: "PRICED_ROUND",
+          year: -5,
+          dilution_pct: 20,
+          pre_money_valuation: 50000000,
+          amount_raised: 12000000,
+          salary_change: 0,
+          enabled: true,
+          status: "completed",
+        },
+        {
+          round_name: "Series B",
+          round_type: "PRICED_ROUND",
+          year: -4,
+          dilution_pct: 18,
+          pre_money_valuation: 200000000,
+          amount_raised: 45000000,
+          salary_change: 0,
+          enabled: true,
+          status: "completed",
+        },
+        {
+          round_name: "Series C",
+          round_type: "PRICED_ROUND",
+          year: -2,
+          dilution_pct: 15,
+          pre_money_valuation: 600000000,
+          amount_raised: 100000000,
+          salary_change: 0,
+          enabled: true,
+          status: "completed",
+        },
+        {
+          round_name: "Series D",
+          round_type: "PRICED_ROUND",
+          year: -1,
+          dilution_pct: 10,
+          pre_money_valuation: 1500000000,
+          amount_raised: 150000000,
+          salary_change: 0,
+          enabled: true,
+          status: "completed",
+        },
+        // UPCOMING: No more dilution expected before IPO
+      ],
       exit_valuation: 2000000000,
     },
   },

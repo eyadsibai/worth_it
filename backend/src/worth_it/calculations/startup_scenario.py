@@ -82,12 +82,32 @@ def calculate_startup_scenario(
             results_df["CumulativeDilution"] = 1 - total_dilution
             sorted_rounds = []
         elif rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
-            sorted_rounds = sorted(rsu_params["dilution_rounds"], key=lambda r: r["year"])
+            all_rounds = rsu_params["dilution_rounds"]
 
-            # Handle SAFE note conversion timing
+            # Separate completed (historical) and upcoming (future) rounds
+            # Completed rounds: status == "completed" OR year < 0 (negative years = past)
+            # Upcoming rounds: status == "upcoming" OR (no status AND year >= 0)
+            completed_rounds = [
+                r for r in all_rounds
+                if r.get("status") == "completed" or (r.get("status") is None and r.get("year", 0) < 0)
+            ]
+            upcoming_rounds = [
+                r for r in all_rounds
+                if r.get("status") == "upcoming" or (r.get("status") is None and r.get("year", 0) >= 0)
+            ]
+
+            # Calculate historical dilution factor (applied from day 0)
+            # This represents dilution that happened before the user joined
+            historical_dilution_factor = 1.0
+            for r in completed_rounds:
+                dilution = r.get("dilution", 0)
+                historical_dilution_factor *= 1 - dilution
+
+            # Sort upcoming rounds by year for time-based application
+            sorted_rounds = sorted(upcoming_rounds, key=lambda r: r["year"])
+
+            # Handle SAFE note conversion timing for upcoming rounds
             # SAFE notes don't dilute immediately - they convert at the next priced round
-
-            # First, determine conversion timing for SAFE notes
             safe_conversion_year = {}  # Map SAFE rounds to their conversion year
             for r in sorted_rounds:
                 if r.get("is_safe_note", False):
@@ -105,9 +125,10 @@ def calculate_startup_scenario(
             # Now calculate yearly dilution factors
             yearly_dilution_factors = []
             for year in results_df.index:
-                cumulative_dilution_factor = 1.0
+                # Start with historical dilution (always applied)
+                cumulative_dilution_factor = historical_dilution_factor
 
-                # Apply dilution from all rounds that should affect this year
+                # Apply dilution from upcoming rounds that should affect this year
                 for r in sorted_rounds:
                     is_safe = r.get("is_safe_note", False)
                     dilution = r.get("dilution", 0)
@@ -127,6 +148,9 @@ def calculate_startup_scenario(
             results_df["CumulativeDilution"] = yearly_dilution_factors
             total_dilution = 1 - results_df["CumulativeDilution"].iloc[-1]
             diluted_equity_pct = initial_equity_pct * results_df["CumulativeDilution"].iloc[-1]
+
+            # Update sorted_rounds to include all rounds for equity sale calculations
+            sorted_rounds = sorted(all_rounds, key=lambda r: r["year"])
         else:
             results_df["CumulativeDilution"] = 1.0
             total_dilution = 0.0

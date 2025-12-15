@@ -6,14 +6,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from "@/components/ui/form";
 import { NumberInputField, SliderField } from "./form-fields";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { DilutionRoundFormComponent } from "./dilution-round-form";
+import { CompletedRoundsSection } from "./completed-rounds-section";
+import { CompanyStageSelector } from "./company-stage-selector";
 import { RSUFormSchema } from "@/lib/schemas";
 import type { RSUForm, DilutionRoundForm } from "@/lib/schemas";
 import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 import { isValidRSUData } from "@/lib/validation";
 import { DEFAULT_DILUTION_ROUNDS } from "@/lib/constants/funding-rounds";
 import { TOOLTIPS } from "@/lib/constants/tooltips";
+import { Plus, Rocket } from "lucide-react";
 
 interface RSUFormProps {
   /** External value to sync with (e.g., from Zustand store) */
@@ -38,6 +42,7 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
       cliff_period: initialValues?.cliff_period ?? 1,
       exit_valuation: initialValues?.exit_valuation ?? 0,
       simulate_dilution: initialValues?.simulate_dilution ?? false,
+      company_stage: initialValues?.company_stage,
       dilution_rounds: initialValues?.dilution_rounds ?? DEFAULT_DILUTION_ROUNDS,
     },
     mode: "onChange",
@@ -64,6 +69,65 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
   }, [watchedValues, form.formState.isValid, onChange]);
 
   const simulateDilution = form.watch("simulate_dilution");
+  const allRounds = (watchedValues.dilution_rounds as DilutionRoundForm[]) ?? [];
+
+  // Split rounds into completed and upcoming
+  const completedRounds = allRounds.filter((r) => r.status === "completed");
+  const upcomingRounds = allRounds.filter((r) => r.status === "upcoming" || !r.status);
+
+  // Get indices mapping for completed and upcoming rounds
+  const completedRoundIndices = allRounds
+    .map((r, i) => (r.status === "completed" ? i : -1))
+    .filter((i) => i !== -1);
+  const upcomingRoundIndices = allRounds
+    .map((r, i) => (r.status === "upcoming" || !r.status ? i : -1))
+    .filter((i) => i !== -1);
+
+  // Handle removing an upcoming round
+  const handleRemoveRound = (indexInUpcoming: number) => {
+    const originalIndex = upcomingRoundIndices[indexInUpcoming];
+    const currentRounds = form.getValues("dilution_rounds");
+    const newRounds = currentRounds.filter((_, i) => i !== originalIndex);
+    form.setValue("dilution_rounds", newRounds);
+  };
+
+  // Handle adding a new upcoming round
+  const handleAddRound = () => {
+    const currentRounds = form.getValues("dilution_rounds");
+
+    // Find the next available round name
+    const existingNames = new Set(currentRounds.map((r) => r.round_name));
+    const roundOptions = ["Series A", "Series B", "Series C", "Series D", "Series E", "Series F"];
+    let newRoundName = "Custom Round";
+    for (const name of roundOptions) {
+      if (!existingNames.has(name)) {
+        newRoundName = name;
+        break;
+      }
+    }
+
+    // Find the max year among upcoming rounds
+    const maxYear = Math.max(
+      ...currentRounds
+        .filter((r) => r.status === "upcoming" || !r.status)
+        .map((r) => r.year),
+      0
+    );
+
+    const newRound: DilutionRoundForm = {
+      round_name: newRoundName,
+      round_type: "PRICED_ROUND",
+      year: maxYear + 1,
+      dilution_pct: 15,
+      pre_money_valuation: 50_000_000,
+      amount_raised: 10_000_000,
+      salary_change: 0,
+      enabled: false,
+      status: "upcoming",
+    };
+
+    form.setValue("dilution_rounds", [...currentRounds, newRound]);
+  };
 
   return (
     <Form {...form}>
@@ -138,9 +202,9 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
                 <Checkbox checked={field.value} onCheckedChange={field.onChange} />
               </FormControl>
               <div className="space-y-1 leading-none">
-                <FormLabel>Simulate Future Fundraising & Dilution</FormLabel>
+                <FormLabel>Simulate Fundraising & Dilution</FormLabel>
                 <FormDescription>
-                  Model how future funding rounds will dilute your equity
+                  Model how past and future funding rounds affect your equity
                 </FormDescription>
               </div>
             </FormItem>
@@ -148,30 +212,77 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
         />
 
         {simulateDilution && (
-          <Accordion type="single" collapsible className="w-full" defaultValue="dilution-rounds">
-            <AccordionItem value="dilution-rounds">
-              <AccordionTrigger>Funding Rounds Configuration</AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-4 p-4">
-                  <p className="text-sm text-muted-foreground">
-                    Configure funding rounds that will dilute your equity. Each round can include dilution percentage, valuation, amount raised, and salary changes.
-                  </p>
+          <div className="space-y-6">
+            {/* Company Stage Selector */}
+            <CompanyStageSelector form={form} />
 
-                  <div className="space-y-3">
-                    {(watchedValues.dilution_rounds as DilutionRoundForm[])?.map((round, index) => (
-                      <DilutionRoundFormComponent
-                        key={`${round.round_name}-${index}`}
-                        form={form}
-                        roundIndex={index}
-                        roundName={round.round_name}
-                        canRemove={false}
-                      />
-                    ))}
+            {/* Completed Rounds (Historical) */}
+            <CompletedRoundsSection
+              form={form}
+              completedRounds={completedRounds}
+              completedRoundIndices={completedRoundIndices}
+            />
+
+            {/* Upcoming Rounds (Future) */}
+            <Accordion type="single" collapsible className="w-full" defaultValue="upcoming-rounds">
+              <AccordionItem value="upcoming-rounds">
+                <AccordionTrigger>
+                  <div className="flex items-center gap-2">
+                    <Rocket className="h-4 w-4" />
+                    <span>Future Funding Rounds</span>
+                    {upcomingRounds.length > 0 && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        ({upcomingRounds.filter((r) => r.enabled).length} enabled)
+                      </span>
+                    )}
                   </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-4 p-4">
+                    <p className="text-sm text-muted-foreground">
+                      Configure future funding rounds that will dilute your equity. Enable the rounds
+                      you expect to happen and adjust their parameters.
+                    </p>
+
+                    {upcomingRounds.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p>No future rounds configured.</p>
+                        <p className="text-sm">Add a round to model future dilution.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {upcomingRounds.map((round, idx) => {
+                          const originalIndex = upcomingRoundIndices[idx];
+                          return (
+                            <DilutionRoundFormComponent
+                              key={`${round.round_name}-${originalIndex}`}
+                              form={form}
+                              roundIndex={originalIndex}
+                              roundName={round.round_name}
+                              canRemove={true}
+                              onRemove={() => handleRemoveRound(idx)}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Add Round Button */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddRound}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Funding Round
+                    </Button>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
         )}
       </form>
     </Form>
