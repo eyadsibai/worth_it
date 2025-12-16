@@ -1740,3 +1740,234 @@ class TestCalculateWaterfall:
         # Investment: $5M, Payout: $15M (30% of $50M after conversion)
         # ROI = $15M / $5M = 3.0x
         assert investor_payout["roi"] == pytest.approx(3.0)
+
+
+# --- Tests for Completed vs Upcoming Dilution Rounds ---
+
+
+class TestCompletedRoundsDilution:
+    """Tests for the completed/upcoming round status functionality in dilution calculations."""
+
+    @pytest.fixture
+    def opportunity_cost_df(self):
+        """Create a sample opportunity cost DataFrame for testing."""
+        monthly_df = calculations.create_monthly_data_grid(
+            exit_year=5,
+            current_job_monthly_salary=10000,
+            startup_monthly_salary=8000,
+            current_job_salary_growth_rate=0.0,
+        )
+        return calculations.calculate_annual_opportunity_cost(
+            monthly_df=monthly_df,
+            annual_roi=0.05,
+            investment_frequency="Annually"
+        )
+
+    def test_completed_rounds_applied_from_year_zero(self, opportunity_cost_df):
+        """
+        Completed rounds (historical) should apply dilution from year 0.
+        This represents dilution that already happened before the employee joined.
+        """
+        startup_params = {
+            "equity_type": EquityType.RSU,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "exit_year": 5,
+            "rsu_params": {
+                "equity_pct": 0.01,  # 1% equity
+                "target_exit_valuation": 100_000_000,
+                "simulate_dilution": True,
+                "dilution_rounds": [
+                    {
+                        "year": -2,  # Happened 2 years ago
+                        "dilution": 0.20,  # 20% dilution
+                        "status": "completed",
+                    },
+                ],
+            },
+            "options_params": {},
+        }
+
+        result = calculations.calculate_startup_scenario(opportunity_cost_df, startup_params)
+
+        # Historical 20% dilution should be applied from year 0
+        # Final dilution should be 20% (just the completed round)
+        assert result["total_dilution"] == pytest.approx(0.20, rel=0.01)
+
+        # Cumulative dilution should be 0.8 (1 - 0.20) for all years
+        cumulative_dilution = result["results_df"]["CumulativeDilution"]
+        for val in cumulative_dilution:
+            assert val == pytest.approx(0.80, rel=0.01)
+
+    def test_upcoming_rounds_applied_from_their_year(self, opportunity_cost_df):
+        """
+        Upcoming rounds should only apply dilution starting from their specified year.
+        """
+        startup_params = {
+            "equity_type": EquityType.RSU,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "exit_year": 5,
+            "rsu_params": {
+                "equity_pct": 0.01,  # 1% equity
+                "target_exit_valuation": 100_000_000,
+                "simulate_dilution": True,
+                "dilution_rounds": [
+                    {
+                        "year": 3,  # Will happen in year 3
+                        "dilution": 0.15,  # 15% dilution
+                        "status": "upcoming",
+                    },
+                ],
+            },
+            "options_params": {},
+        }
+
+        result = calculations.calculate_startup_scenario(opportunity_cost_df, startup_params)
+        cumulative_dilution = result["results_df"]["CumulativeDilution"]
+
+        # Years 1-2: No dilution yet (factor = 1.0)
+        assert cumulative_dilution.iloc[0] == pytest.approx(1.0, rel=0.01)  # Year 1
+        assert cumulative_dilution.iloc[1] == pytest.approx(1.0, rel=0.01)  # Year 2
+
+        # Years 3-5: 15% dilution applied (factor = 0.85)
+        assert cumulative_dilution.iloc[2] == pytest.approx(0.85, rel=0.01)  # Year 3
+        assert cumulative_dilution.iloc[3] == pytest.approx(0.85, rel=0.01)  # Year 4
+        assert cumulative_dilution.iloc[4] == pytest.approx(0.85, rel=0.01)  # Year 5
+
+    def test_mixed_completed_and_upcoming_rounds(self, opportunity_cost_df):
+        """
+        Mix of completed and upcoming rounds should apply correctly:
+        - Completed rounds: dilution from year 0
+        - Upcoming rounds: dilution from their specified year
+        """
+        startup_params = {
+            "equity_type": EquityType.RSU,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "exit_year": 5,
+            "rsu_params": {
+                "equity_pct": 0.01,  # 1% equity
+                "target_exit_valuation": 100_000_000,
+                "simulate_dilution": True,
+                "dilution_rounds": [
+                    # Completed: Seed (happened 2 years ago)
+                    {
+                        "year": -2,
+                        "dilution": 0.15,  # 15% dilution
+                        "status": "completed",
+                    },
+                    # Completed: Series A (happened 1 year ago)
+                    {
+                        "year": -1,
+                        "dilution": 0.20,  # 20% dilution
+                        "status": "completed",
+                    },
+                    # Upcoming: Series B (in year 2)
+                    {
+                        "year": 2,
+                        "dilution": 0.18,  # 18% dilution
+                        "status": "upcoming",
+                    },
+                    # Upcoming: Series C (in year 4)
+                    {
+                        "year": 4,
+                        "dilution": 0.12,  # 12% dilution
+                        "status": "upcoming",
+                    },
+                ],
+            },
+            "options_params": {},
+        }
+
+        result = calculations.calculate_startup_scenario(opportunity_cost_df, startup_params)
+        cumulative_dilution = result["results_df"]["CumulativeDilution"]
+
+        # Historical dilution: (1 - 0.15) * (1 - 0.20) = 0.85 * 0.80 = 0.68
+        historical_factor = 0.85 * 0.80
+
+        # Year 1: Only historical
+        assert cumulative_dilution.iloc[0] == pytest.approx(historical_factor, rel=0.01)
+
+        # Year 2: Historical + Series B = 0.68 * 0.82 = 0.5576
+        year_2_factor = historical_factor * 0.82
+        assert cumulative_dilution.iloc[1] == pytest.approx(year_2_factor, rel=0.01)
+
+        # Year 3: Same as year 2 (no new round)
+        assert cumulative_dilution.iloc[2] == pytest.approx(year_2_factor, rel=0.01)
+
+        # Year 4: Historical + Series B + Series C = 0.5576 * 0.88 = 0.49069
+        year_4_factor = year_2_factor * 0.88
+        assert cumulative_dilution.iloc[3] == pytest.approx(year_4_factor, rel=0.01)
+
+        # Year 5: Same as year 4
+        assert cumulative_dilution.iloc[4] == pytest.approx(year_4_factor, rel=0.01)
+
+        # Total dilution should be ~51% (1 - 0.49069)
+        assert result["total_dilution"] == pytest.approx(1 - year_4_factor, rel=0.01)
+
+    def test_negative_years_treated_as_completed(self, opportunity_cost_df):
+        """
+        Rounds with negative years should be treated as completed (historical)
+        even without explicit status field.
+        """
+        startup_params = {
+            "equity_type": EquityType.RSU,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "exit_year": 5,
+            "rsu_params": {
+                "equity_pct": 0.01,
+                "target_exit_valuation": 100_000_000,
+                "simulate_dilution": True,
+                "dilution_rounds": [
+                    {
+                        "year": -1,  # Negative year = completed
+                        "dilution": 0.25,
+                        # No status field - should infer from negative year
+                    },
+                ],
+            },
+            "options_params": {},
+        }
+
+        result = calculations.calculate_startup_scenario(opportunity_cost_df, startup_params)
+        cumulative_dilution = result["results_df"]["CumulativeDilution"]
+
+        # Dilution should be applied from year 0 (0.75 factor)
+        for val in cumulative_dilution:
+            assert val == pytest.approx(0.75, rel=0.01)
+
+    def test_rounds_without_status_default_to_upcoming(self, opportunity_cost_df):
+        """
+        Rounds without status field and with non-negative years should be
+        treated as upcoming (backward compatibility).
+        """
+        startup_params = {
+            "equity_type": EquityType.RSU,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "exit_year": 5,
+            "rsu_params": {
+                "equity_pct": 0.01,
+                "target_exit_valuation": 100_000_000,
+                "simulate_dilution": True,
+                "dilution_rounds": [
+                    {
+                        "year": 2,
+                        "dilution": 0.20,
+                        # No status field - should default to upcoming
+                    },
+                ],
+            },
+            "options_params": {},
+        }
+
+        result = calculations.calculate_startup_scenario(opportunity_cost_df, startup_params)
+        cumulative_dilution = result["results_df"]["CumulativeDilution"]
+
+        # Years 1: No dilution (factor = 1.0)
+        assert cumulative_dilution.iloc[0] == pytest.approx(1.0, rel=0.01)
+
+        # Years 2+: Dilution applied (factor = 0.80)
+        assert cumulative_dilution.iloc[1] == pytest.approx(0.80, rel=0.01)

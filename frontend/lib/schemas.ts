@@ -18,6 +18,20 @@ export type InvestmentFrequency = z.infer<typeof InvestmentFrequencyEnum>;
 export const RoundTypeEnum = z.enum(["SAFE_NOTE", "PRICED_ROUND"]);
 export type RoundType = z.infer<typeof RoundTypeEnum>;
 
+export const RoundStatusEnum = z.enum(["completed", "upcoming"]);
+export type RoundStatus = z.infer<typeof RoundStatusEnum>;
+
+export const CompanyStageEnum = z.enum([
+  "pre-seed",
+  "seed",
+  "series-a",
+  "series-b",
+  "series-c",
+  "series-d",
+  "pre-ipo",
+]);
+export type CompanyStage = z.infer<typeof CompanyStageEnum>;
+
 // ============================================================================
 // Request Schemas
 // ============================================================================
@@ -187,12 +201,13 @@ export type CurrentJobForm = z.infer<typeof CurrentJobFormSchema>;
 export const DilutionRoundFormSchema = z.object({
   round_name: z.string(),
   round_type: RoundTypeEnum,
-  year: z.number().min(0).max(20),
+  year: z.number().min(-10).max(20), // Negative years = completed rounds (years ago)
   dilution_pct: z.number().min(0).max(100),
   pre_money_valuation: z.number().min(0),
   amount_raised: z.number().min(0),
   salary_change: z.number(),
   enabled: z.boolean(),
+  status: RoundStatusEnum.default("upcoming"), // NEW: completed = past, upcoming = future
 });
 export type DilutionRoundForm = z.infer<typeof DilutionRoundFormSchema>;
 
@@ -203,6 +218,7 @@ export const RSUFormSchema = z.object({
   vesting_period: z.number().int().min(1).max(10).default(4),
   cliff_period: z.number().int().min(0).max(5).default(1),
   simulate_dilution: z.boolean().default(false),
+  company_stage: CompanyStageEnum.optional(), // NEW: helps auto-configure rounds
   dilution_rounds: z.array(DilutionRoundFormSchema),
   exit_valuation: z.number().min(0),
 });
