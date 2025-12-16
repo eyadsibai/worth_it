@@ -5,7 +5,11 @@ A comprehensive tool for comparing startup job offers against your current job, 
 ## 🎯 Features
 
 - **Equity Analysis**: Support for both RSUs and Stock Options
-- **Dilution Modeling**: Simulate multiple funding rounds and their impact
+- **Dilution Modeling**: Comprehensive funding round simulation
+  - **Company Stage Selection**: Choose your company's current stage (Pre-Seed through Pre-IPO)
+  - **Completed Rounds**: Model historical funding rounds that already occurred before you joined
+  - **Future Rounds**: Project upcoming funding rounds and their dilution impact
+  - **Dilution Summary**: Visual breakdown of historical vs. projected dilution with equity remaining display
 - **Secondary Sales**: Model selling equity during funding rounds
 - **Monte Carlo Simulation**: Probabilistic analysis of outcomes
 - **Opportunity Cost**: Calculate the true cost of lower startup salary
@@ -140,9 +144,18 @@ startup_params = {
     "cliff_years": 1,
     "exit_year": 5,
     "rsu_params": {
-        "equity_pct": 0.05,
-        "target_exit_valuation": 25_000_000,
-        "simulate_dilution": False,
+        "equity_pct": 0.01,  # 1% equity
+        "target_exit_valuation": 100_000_000,  # $100M exit
+        "simulate_dilution": True,
+        "company_stage": "series-a",  # Company is post-Series A
+        "dilution_rounds": [
+            # Completed rounds (historical - already happened before joining)
+            {"year": -2, "dilution": 0.15, "status": "completed"},  # Seed
+            {"year": -1, "dilution": 0.20, "status": "completed"},  # Series A
+            # Upcoming rounds (future - will dilute going forward)
+            {"year": 2, "dilution": 0.18, "status": "upcoming"},   # Series B
+            {"year": 4, "dilution": 0.15, "status": "upcoming"},   # Series C
+        ],
     },
     "options_params": {},
 }
