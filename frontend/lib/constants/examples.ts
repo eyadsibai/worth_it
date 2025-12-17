@@ -298,6 +298,7 @@ export const FIELD_HINTS = {
   // Stock Options specific
   strike_price: "Usually: company's 409A valuation",
   current_share_price: "Based on latest funding round",
+  exit_price_per_share: "Target: 3-10x current price at exit",
   number_of_options: "Typical early hire: 10K-100K options",
   shares_outstanding: "Check cap table or ask HR",
 } as const;
@@ -324,6 +325,7 @@ export const FIELD_EXAMPLES = {
   // Stock Options specific
   strike_price: 1.5,
   current_share_price: 5,
+  exit_price_per_share: 15, // Higher than current, reflects expected growth at exit
   number_of_options: 50000,
   shares_outstanding: 10000000,
 } as const;

@@ -20,12 +20,14 @@ export function useFirstVisit() {
 
   // Mark user as onboarded
   const markAsOnboarded = useCallback(() => {
+    if (typeof window === "undefined") return;
     localStorage.setItem(STORAGE_KEY, "true");
     setIsFirstVisit(false);
   }, []);
 
   // Reset onboarding state (for "Show tutorial again" feature)
   const resetOnboarding = useCallback(() => {
+    if (typeof window === "undefined") return;
     localStorage.removeItem(STORAGE_KEY);
     setIsFirstVisit(true);
   }, []);

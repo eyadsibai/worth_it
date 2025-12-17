@@ -184,8 +184,8 @@ export function StockOptionsFormComponent({
           min={0}
           step={1}
           prefix="$"
-          exampleValue={FIELD_EXAMPLES.current_share_price}
-          hint={FIELD_HINTS.current_share_price}
+          exampleValue={FIELD_EXAMPLES.exit_price_per_share}
+          hint={FIELD_HINTS.exit_price_per_share}
         />
       </form>
     </Form>
