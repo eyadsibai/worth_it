@@ -237,6 +237,16 @@ export function SliderField({
   const [isEditing, setIsEditing] = React.useState(false);
   const [editValue, setEditValue] = React.useState("");
   const inputRef = React.useRef<HTMLInputElement>(null);
+  // Track if edit was cancelled to prevent blur handler from applying changes
+  const editCancelledRef = React.useRef(false);
+
+  // Focus input when entering edit mode (React-idiomatic approach)
+  React.useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
 
   return (
     <FormField
@@ -257,32 +267,46 @@ export function SliderField({
         };
 
         const handleEditClick = () => {
+          editCancelledRef.current = false;
           setEditValue(String(field.value));
           setIsEditing(true);
-          // Focus input after state update
-          setTimeout(() => inputRef.current?.focus(), 0);
+        };
+
+        // Helper to parse and clamp value (eliminates duplication)
+        const commitValue = () => {
+          // Handle empty or whitespace-only input - keep previous value
+          if (editValue.trim() === "") {
+            setIsEditing(false);
+            return;
+          }
+          const parsed = Number(editValue);
+          // Handle invalid (non-numeric) input - keep previous value
+          if (isNaN(parsed)) {
+            setIsEditing(false);
+            return;
+          }
+          const clamped = Math.max(min, Math.min(max, parsed));
+          field.onChange(clamped);
+          setIsEditing(false);
         };
 
         const handleInputBlur = () => {
-          const parsed = Number(editValue);
-          if (!isNaN(parsed)) {
-            const clamped = Math.max(min, Math.min(max, parsed));
-            field.onChange(clamped);
+          // Don't apply changes if edit was cancelled (Escape key)
+          if (editCancelledRef.current) {
+            editCancelledRef.current = false;
+            return;
           }
-          setIsEditing(false);
+          commitValue();
         };
 
         const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
           if (e.key === "Enter") {
             e.preventDefault();
-            const parsed = Number(editValue);
-            if (!isNaN(parsed)) {
-              const clamped = Math.max(min, Math.min(max, parsed));
-              field.onChange(clamped);
-            }
-            setIsEditing(false);
+            commitValue();
           } else if (e.key === "Escape") {
             e.preventDefault();
+            // Mark as cancelled so blur handler doesn't apply changes
+            editCancelledRef.current = true;
             setIsEditing(false);
           }
         };

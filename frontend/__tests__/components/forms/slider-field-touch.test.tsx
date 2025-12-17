@@ -170,6 +170,56 @@ describe("SliderField touch-friendly enhancements", () => {
       await user.clear(input);
       await user.type(input, "8");
       await user.keyboard("{Escape}");
+      // Verify original value is preserved
+      expect(screen.getByRole("button", { name: /edit years value/i })).toHaveTextContent("5");
+      // Verify input is closed (not in edit mode)
+      expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+    });
+
+    it("keeps previous value when invalid (non-numeric) input is entered", async () => {
+      const user = userEvent.setup();
+      render(
+        <SliderTestWrapper defaultValues={{ years: 5, percentage: 50 }}>
+          {(form) => <SliderField form={form} name="years" label="Years" min={1} max={10} />}
+        </SliderTestWrapper>
+      );
+      await user.click(screen.getByRole("button", { name: /edit years value/i }));
+      const input = screen.getByRole("spinbutton");
+      await user.clear(input);
+      await user.type(input, "abc");
+      await user.keyboard("{Enter}");
+      // Should keep original value when input is invalid
+      expect(screen.getByRole("button", { name: /edit years value/i })).toHaveTextContent("5");
+    });
+
+    it("keeps previous value when empty input is submitted", async () => {
+      const user = userEvent.setup();
+      render(
+        <SliderTestWrapper defaultValues={{ years: 5, percentage: 50 }}>
+          {(form) => <SliderField form={form} name="years" label="Years" min={1} max={10} />}
+        </SliderTestWrapper>
+      );
+      await user.click(screen.getByRole("button", { name: /edit years value/i }));
+      const input = screen.getByRole("spinbutton");
+      await user.clear(input);
+      await user.keyboard("{Enter}");
+      // Should keep original value when input is empty
+      expect(screen.getByRole("button", { name: /edit years value/i })).toHaveTextContent("5");
+    });
+
+    it("does not apply escaped value on subsequent blur", async () => {
+      const user = userEvent.setup();
+      render(
+        <SliderTestWrapper defaultValues={{ years: 5, percentage: 50 }}>
+          {(form) => <SliderField form={form} name="years" label="Years" min={1} max={10} />}
+        </SliderTestWrapper>
+      );
+      await user.click(screen.getByRole("button", { name: /edit years value/i }));
+      const input = screen.getByRole("spinbutton");
+      await user.clear(input);
+      await user.type(input, "9");
+      await user.keyboard("{Escape}");
+      // Value should remain unchanged after Escape
       expect(screen.getByRole("button", { name: /edit years value/i })).toHaveTextContent("5");
     });
   });
