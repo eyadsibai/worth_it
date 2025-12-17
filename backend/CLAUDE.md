@@ -47,7 +47,7 @@ uv run pyright src/
 uv run pytest --cov=src --cov-report=html
 ```
 
-**Total: 96 backend tests** (run `uv run pytest --collect-only -q` to verify)
+**Total: 101 backend tests** (run `uv run pytest --collect-only -q` to verify)
 
 ### Pre-Commit Checklist
 
@@ -117,7 +117,7 @@ backend/
 - Framework-agnostic financial calculations
 - Modular package in `calculations/` with domain-specific modules
 - Can be used standalone without web frameworks
-- Covered by comprehensive test suite (96 tests)
+- Covered by comprehensive test suite (101 tests)
 
 ## Adding a New API Endpoint
 

@@ -23,6 +23,7 @@ import type {
 } from "@/lib/schemas";
 import type { ScenarioData } from "@/lib/export-utils";
 import { getExampleById } from "@/lib/constants/examples";
+import { getFounderTemplateById } from "@/lib/constants/founder-templates";
 
 export type AppMode = "employee" | "founder";
 
@@ -65,6 +66,7 @@ interface AppState {
 
   // Example Loading
   loadExample: (exampleId: string) => boolean;
+  loadFounderTemplate: (templateId: string) => boolean;
 
   // Derived State Helpers
   hasEmployeeFormData: () => boolean;
@@ -121,6 +123,20 @@ export const useAppStore = create<AppState>()(
           currentJob: example.currentJob,
           equityDetails: example.equityDetails,
           monteCarloResults: null,
+        });
+        return true;
+      },
+
+      loadFounderTemplate: (templateId) => {
+        const template = getFounderTemplateById(templateId);
+        if (!template) return false;
+
+        // Atomically update cap table state and switch to founder mode
+        set({
+          appMode: "founder",
+          capTable: template.capTable,
+          instruments: template.instruments || [],
+          preferenceTiers: template.preferenceTiers || [],
         });
         return true;
       },
