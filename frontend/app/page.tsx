@@ -4,7 +4,9 @@ import * as React from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCalculateStartupScenario, useCreateMonthlyDataGrid, useCalculateOpportunityCost } from "@/lib/api-client";
-import { Loader2, XCircle, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { ErrorCard } from "@/components/ui/error-card";
+import type { ErrorType } from "@/components/ui/error-card";
 import { GlobalSettingsFormComponent } from "@/components/forms/global-settings-form";
 import { CurrentJobFormComponent } from "@/components/forms/current-job-form";
 import { StartupOfferFormComponent } from "@/components/forms/startup-offer-form";
@@ -273,6 +275,32 @@ export default function Home() {
     opportunityCostMutation.isPending ||
     startupScenarioMutation.isPending;
 
+  // Helper function to determine error type from error message
+  const getErrorType = React.useCallback((error: Error | null): ErrorType => {
+    if (!error) return "generic";
+    const message = error.message.toLowerCase();
+    if (message.includes("network") || message.includes("fetch") || message.includes("connection")) {
+      return "network";
+    }
+    if (message.includes("invalid") || message.includes("validation") || message.includes("required")) {
+      return "validation";
+    }
+    if (message.includes("calculation") || message.includes("compute") || message.includes("overflow")) {
+      return "calculation";
+    }
+    return "generic";
+  }, []);
+
+  // Handler for retrying failed calculations
+  const handleRetryCalculation = React.useCallback(() => {
+    // Reset all mutations and re-trigger the calculation chain
+    monthlyDataMutation.reset();
+    opportunityCostMutation.reset();
+    startupScenarioMutation.reset();
+    // The useEffect hooks will automatically re-trigger calculations
+    // since we have all the debounced data ready
+  }, [monthlyDataMutation, opportunityCostMutation, startupScenarioMutation]);
+
   return (
     <AppShell>
       <div className="container py-8 space-y-8">
@@ -491,19 +519,16 @@ export default function Home() {
 
 
         {startupScenarioMutation.isError && (
-          <Card className="terminal-card border-destructive/30 animate-scale-in">
-            <CardContent className="py-12 text-center">
-              <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
-                <XCircle className="h-8 w-8 text-destructive" />
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium text-destructive font-mono">ERROR</h3>
-                  <p className="text-sm text-muted-foreground font-mono leading-relaxed">
-                    {startupScenarioMutation.error?.message || "Calculation failed"}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ErrorCard
+            title="Calculation Failed"
+            message={startupScenarioMutation.error?.message || "Unable to complete the calculation. Please check your inputs and try again."}
+            errorType={getErrorType(startupScenarioMutation.error)}
+            errorDetails={startupScenarioMutation.error?.stack}
+            onRetry={handleRetryCalculation}
+            retryLabel="Retry Calculation"
+            isRetrying={isCalculating}
+            showDetailsToggle={!!startupScenarioMutation.error?.stack}
+          />
         )}
             </div>
           </div>
