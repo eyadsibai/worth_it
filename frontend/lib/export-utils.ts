@@ -621,7 +621,7 @@ export function exportScenarioComparisonPDF(scenarios: ScenarioData[]): void {
 
   // Comparison Table
   // Y positioning: winner box ends at ~70, tie text ends at ~58, no winner starts at 42
-  let startY = winner ? (winner.isTie ? 70 : 80) : 50;
+  const startY = winner ? (winner.isTie ? 70 : 80) : 50;
   doc.setFontSize(14);
   doc.text("Side-by-Side Comparison", 14, startY);
 
