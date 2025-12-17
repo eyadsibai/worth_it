@@ -159,12 +159,14 @@ def calculate_metric_diffs(scenarios: list[dict]) -> list[MetricDiff]:
     result = []
 
     for metric in metrics_config:
-        key = metric["key"]
+        key = str(metric["key"])
+        label = str(metric["label"])
+        higher_is_better = bool(metric["higher_is_better"])
         values = [s["results"][key] for s in scenarios]
         scenario_names = [s["name"] for s in scenarios]
 
         # Find best and worst values
-        if metric["higher_is_better"]:
+        if higher_is_better:
             best_value = max(values)
             worst_value = min(values)
         else:
@@ -189,13 +191,13 @@ def calculate_metric_diffs(scenarios: list[dict]) -> list[MetricDiff]:
         result.append(
             MetricDiff(
                 metric=key,
-                label=metric["label"],
+                label=label,
                 values=values,
                 scenario_names=scenario_names,
                 absolute_diff=absolute_diff,
                 percentage_diff=percentage_diff,
                 better_scenario=better_scenario,
-                higher_is_better=metric["higher_is_better"],
+                higher_is_better=higher_is_better,
             )
         )
 
