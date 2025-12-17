@@ -38,6 +38,33 @@ describe("AppShell", () => {
     vi.clearAllMocks();
   });
 
+  describe("accessibility", () => {
+    it("renders skip link for keyboard navigation", () => {
+      render(
+        <AppShell>
+          <div>Main content</div>
+        </AppShell>
+      );
+
+      const skipLink = screen.getByRole("link", {
+        name: /skip to main content/i,
+      });
+      expect(skipLink).toBeInTheDocument();
+      expect(skipLink).toHaveAttribute("href", "#main-content");
+    });
+
+    it("main element has id for skip link target", () => {
+      render(
+        <AppShell>
+          <div>Main content</div>
+        </AppShell>
+      );
+
+      const mainElement = screen.getByRole("main");
+      expect(mainElement).toHaveAttribute("id", "main-content");
+    });
+  });
+
   describe("basic rendering", () => {
     it("renders header with logo", () => {
       render(

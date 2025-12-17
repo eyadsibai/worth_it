@@ -10,6 +10,7 @@ import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 import { isValidStockOptionsData } from "@/lib/validation";
 import type { StockOptionsForm } from "@/lib/schemas";
 import { TOOLTIPS } from "@/lib/constants/tooltips";
+import { FIELD_HINTS, FIELD_EXAMPLES } from "@/lib/constants/examples";
 
 // Simplified schema for the form
 const StockOptionsFormSimplifiedSchema = z.object({
@@ -94,8 +95,9 @@ export function StockOptionsFormComponent({
           min={0}
           step={100}
           prefix="$"
-          placeholder="8000"
           formatDisplay={true}
+          exampleValue={FIELD_EXAMPLES.startup_monthly_salary}
+          hint={FIELD_HINTS.startup_monthly_salary}
         />
 
         <NumberInputField
@@ -105,8 +107,9 @@ export function StockOptionsFormComponent({
           tooltip={TOOLTIPS.numOptions}
           min={0}
           step={1000}
-          placeholder="10000"
           formatDisplay={true}
+          exampleValue={FIELD_EXAMPLES.number_of_options}
+          hint={FIELD_HINTS.number_of_options}
         />
 
         <NumberInputField
@@ -117,7 +120,8 @@ export function StockOptionsFormComponent({
           min={0}
           step={0.01}
           prefix="$"
-          placeholder="1.00"
+          exampleValue={FIELD_EXAMPLES.strike_price}
+          hint={FIELD_HINTS.strike_price}
         />
 
         <div className="grid grid-cols-2 gap-4">
@@ -180,7 +184,8 @@ export function StockOptionsFormComponent({
           min={0}
           step={1}
           prefix="$"
-          placeholder="10.00"
+          exampleValue={FIELD_EXAMPLES.exit_price_per_share}
+          hint={FIELD_HINTS.exit_price_per_share}
         />
       </form>
     </Form>

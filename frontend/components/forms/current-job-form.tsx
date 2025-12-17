@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { NumberInputField, SliderField, SelectField } from "./form-fields";
 import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 import { TOOLTIPS } from "@/lib/constants/tooltips";
+import { FIELD_HINTS, FIELD_EXAMPLES } from "@/lib/constants/examples";
 
 interface CurrentJobFormProps {
   /** External value to sync with (e.g., from Zustand store) */
@@ -73,8 +74,9 @@ export function CurrentJobFormComponent({
               min={0}
               step={100}
               prefix="$"
-              placeholder="10000"
               formatDisplay={true}
+              exampleValue={FIELD_EXAMPLES.monthly_salary}
+              hint={FIELD_HINTS.monthly_salary}
             />
 
             <SliderField

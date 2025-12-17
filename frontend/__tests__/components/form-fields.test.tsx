@@ -342,6 +342,144 @@ describe("NumberInputField", () => {
   });
 });
 
+describe("NumberInputField with hint and example props", () => {
+  const NumberTestSchema = z.object({
+    salary: z.number().min(0),
+  });
+
+  type NumberTestFormData = z.infer<typeof NumberTestSchema>;
+
+  function NumberTestWrapper({
+    children,
+    defaultValue = 0,
+  }: {
+    children: (form: ReturnType<typeof useForm<NumberTestFormData>>) => React.ReactNode;
+    defaultValue?: number;
+  }) {
+    const form = useForm<NumberTestFormData>({
+      resolver: zodResolver(NumberTestSchema) as unknown as undefined,
+      defaultValues: { salary: defaultValue },
+    });
+
+    return (
+      <Form {...form}>
+        <form>{children(form)}</form>
+      </Form>
+    );
+  }
+
+  it("renders hint text below the input", () => {
+    render(
+      <NumberTestWrapper>
+        {(form) => (
+          <NumberInputField
+            form={form}
+            name="salary"
+            label="Monthly Salary"
+            hint="Tech average: SAR 8K-15K"
+          />
+        )}
+      </NumberTestWrapper>
+    );
+
+    expect(screen.getByText("Tech average: SAR 8K-15K")).toBeInTheDocument();
+  });
+
+  it("renders hint with muted styling", () => {
+    render(
+      <NumberTestWrapper>
+        {(form) => (
+          <NumberInputField
+            form={form}
+            name="salary"
+            label="Monthly Salary"
+            hint="Tech average: SAR 8K-15K"
+          />
+        )}
+      </NumberTestWrapper>
+    );
+
+    const hint = screen.getByText("Tech average: SAR 8K-15K");
+    expect(hint).toHaveClass("text-muted-foreground");
+  });
+
+  it("uses exampleValue as placeholder when provided", () => {
+    render(
+      <NumberTestWrapper>
+        {(form) => (
+          <NumberInputField
+            form={form}
+            name="salary"
+            label="Monthly Salary"
+            exampleValue={10000}
+            formatDisplay={true}
+          />
+        )}
+      </NumberTestWrapper>
+    );
+
+    // The placeholder should show the formatted example value
+    const input = screen.getByRole("textbox");
+    expect(input).toHaveAttribute("placeholder", "e.g. 10,000");
+  });
+
+  it("placeholder prop takes precedence over exampleValue", () => {
+    render(
+      <NumberTestWrapper>
+        {(form) => (
+          <NumberInputField
+            form={form}
+            name="salary"
+            label="Monthly Salary"
+            placeholder="Enter salary"
+            exampleValue={10000}
+          />
+        )}
+      </NumberTestWrapper>
+    );
+
+    const input = screen.getByRole("spinbutton");
+    expect(input).toHaveAttribute("placeholder", "Enter salary");
+  });
+
+  it("renders both hint and description when both provided", () => {
+    render(
+      <NumberTestWrapper>
+        {(form) => (
+          <NumberInputField
+            form={form}
+            name="salary"
+            label="Monthly Salary"
+            description="Your gross monthly salary"
+            hint="Tech average: SAR 8K-15K"
+          />
+        )}
+      </NumberTestWrapper>
+    );
+
+    expect(screen.getByText("Your gross monthly salary")).toBeInTheDocument();
+    expect(screen.getByText("Tech average: SAR 8K-15K")).toBeInTheDocument();
+  });
+
+  it("does not render hint when not provided", () => {
+    render(
+      <NumberTestWrapper>
+        {(form) => (
+          <NumberInputField
+            form={form}
+            name="salary"
+            label="Monthly Salary"
+          />
+        )}
+      </NumberTestWrapper>
+    );
+
+    // Should not have any hint element
+    const hints = screen.queryByText(/average/i);
+    expect(hints).not.toBeInTheDocument();
+  });
+});
+
 describe("SliderField", () => {
   // Use a different schema for slider tests
   const SliderTestSchema = z.object({

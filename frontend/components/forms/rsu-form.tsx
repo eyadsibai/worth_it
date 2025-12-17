@@ -18,6 +18,7 @@ import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 import { isValidRSUData } from "@/lib/validation";
 import { DEFAULT_DILUTION_ROUNDS } from "@/lib/constants/funding-rounds";
 import { TOOLTIPS } from "@/lib/constants/tooltips";
+import { FIELD_HINTS, FIELD_EXAMPLES } from "@/lib/constants/examples";
 import { Plus, Rocket } from "lucide-react";
 
 interface RSUFormProps {
@@ -141,8 +142,9 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
           min={0}
           step={100}
           prefix="$"
-          placeholder="8000"
           formatDisplay={true}
+          exampleValue={FIELD_EXAMPLES.startup_monthly_salary}
+          hint={FIELD_HINTS.startup_monthly_salary}
         />
 
         <NumberInputField
@@ -154,7 +156,8 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
           max={100}
           step={0.01}
           suffix="%"
-          placeholder="0.5"
+          exampleValue={FIELD_EXAMPLES.total_equity_grant_pct}
+          hint={FIELD_HINTS.total_equity_grant_pct}
         />
 
         <div className="grid grid-cols-2 gap-4">
@@ -189,8 +192,9 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
           min={0}
           step={1000000}
           prefix="$"
-          placeholder="100000000"
           formatDisplay={true}
+          exampleValue={FIELD_EXAMPLES.exit_valuation}
+          hint={FIELD_HINTS.exit_valuation}
         />
 
         <FormField
