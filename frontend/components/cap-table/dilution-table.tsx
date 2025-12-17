@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { TrendingDown, Star } from "lucide-react";
-import type { DilutionData } from "@/lib/dilution-utils";
+import type { DilutionData } from "@/lib/schemas";
 
 interface DilutionTableProps {
   data: DilutionData[];

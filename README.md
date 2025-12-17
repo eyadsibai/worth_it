@@ -70,16 +70,25 @@ worth_it/
              │ REST + WebSocket
              ▼
 ┌──────────────────────────┐
-│  FastAPI Backend (8000)  │  9 REST endpoints + WS
+│  FastAPI Backend (8000)  │  11 REST endpoints + WS
 │  Pydantic Models         │  Real-time Monte Carlo
 └────────────┬─────────────┘
              │ Pure Functions
              ▼
 ┌──────────────────────────┐
 │  Core Calculations       │  NumPy + Pandas
-│  Framework-Agnostic      │  100+ unit tests
+│  Framework-Agnostic      │  148 unit tests
 └──────────────────────────┘
 ```
+
+### Responsibility Split
+
+| Layer | Responsibilities |
+|-------|------------------|
+| **Frontend** | UI rendering, user interaction, API calls, display formatting |
+| **Backend** | All calculations, business logic, data validation, transformations |
+
+**Key Principle**: All business logic lives in the backend. The frontend calls APIs and renders results—it never duplicates calculation logic. See [CLAUDE.md](CLAUDE.md) for detailed guidelines.
 
 ## ✨ Features
 
@@ -114,14 +123,14 @@ worth_it/
 
 ## 🧪 Testing
 
-**Backend (101 tests):**
+**Backend (148 tests):**
 ```bash
 cd backend
 uv run pytest                          # Run all tests
 uv run pytest --cov=src --cov-report   # With coverage
 ```
 
-**Frontend (614 tests):**
+**Frontend (688 tests):**
 ```bash
 cd frontend
 npm run test:unit     # Run all unit tests
@@ -146,7 +155,7 @@ See [playwright/README.md](playwright/README.md) for detailed E2E testing docume
 **Backend:**
 - FastAPI + Pydantic + WebSocket
 - NumPy, Pandas, SciPy for calculations
-- pytest with 101 tests
+- pytest with 148 tests
 - uv for dependency management
 
 **Frontend:**
@@ -154,7 +163,7 @@ See [playwright/README.md](playwright/README.md) for detailed E2E testing docume
 - shadcn/ui (Radix UI + Tailwind CSS)
 - React Hook Form + Zod + TanStack Query
 - Recharts + Framer Motion for visualizations
-- Vitest with 614 tests
+- Vitest with 688 tests
 
 **E2E Testing:**
 - Playwright for automated browser testing

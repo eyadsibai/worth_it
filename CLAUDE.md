@@ -34,6 +34,52 @@ cd frontend && npm install && npm run dev
 - **Use shadcn MCP** when working with UI components
 - **ALWAYS VIEW DESIGN REFERENCES** before any UI work - Read the images in `frontend/docs/design-references/` using the Read tool. Clone Fundcy exactly.
 
+## Frontend/Backend Responsibility Split
+
+**CRITICAL: All business logic belongs in the backend. The frontend is purely for presentation.**
+
+### Backend Responsibilities (Python/FastAPI)
+- **All calculations** - financial, statistical, mathematical
+- **Business logic** - comparisons, winners, insights generation
+- **Data validation** - Pydantic models validate inputs
+- **Data transformations** - any logic that processes data
+
+### Frontend Responsibilities (TypeScript/Next.js)
+- **UI rendering** - components, layouts, styling
+- **User interaction** - forms, clicks, navigation
+- **API calls** - fetch data from backend via `api-client.ts`
+- **Type transformation** - snake_case (API) → camelCase (components)
+- **Display formatting** - currency formatting, date formatting for display only
+
+### What NOT to Put in Frontend
+```typescript
+// ❌ WRONG - Business logic in frontend
+function calculateDilution(stakeholders, amount) { ... }
+function identifyWinner(scenarios) { ... }
+function generateInsights(data) { ... }
+
+// ✅ CORRECT - Call backend API
+const { data } = await apiClient.getDilutionPreview(request);
+const { data } = await apiClient.compareScenarios(scenarios);
+```
+
+### Why This Matters
+1. **Single source of truth** - Logic in one place, not duplicated
+2. **Easier testing** - Backend logic has pure function tests
+3. **Consistency** - Same calculations regardless of client
+4. **Maintainability** - Change logic once, not in two codebases
+
+### Adding New Features Checklist
+When adding a feature that involves calculations or business logic:
+1. ✅ Implement calculation in `backend/src/worth_it/calculations/`
+2. ✅ Add Pydantic models in `backend/src/worth_it/models.py`
+3. ✅ Create API endpoint in `backend/src/worth_it/api.py`
+4. ✅ Write backend tests first (TDD)
+5. ✅ Add Zod schemas in `frontend/lib/schemas.ts`
+6. ✅ Add API client method in `frontend/lib/api-client.ts`
+7. ✅ Build UI components that call the API
+8. ❌ DO NOT duplicate calculation logic in frontend
+
 ## Architecture Overview
 
 ### Data Flow

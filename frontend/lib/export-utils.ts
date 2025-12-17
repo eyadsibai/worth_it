@@ -10,11 +10,11 @@ import type {
 } from "@/lib/schemas";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import {
-  identifyWinner,
-  calculateMetricDiffs,
-  generateComparisonInsights,
-} from "@/lib/comparison-utils";
+import type {
+  FrontendWinnerResult,
+  FrontendMetricDiff,
+  FrontendComparisonInsight,
+} from "@/lib/schemas";
 
 /**
  * Interface for saved scenario data in localStorage.
@@ -577,10 +577,26 @@ function formatNumber(value: number): string {
 }
 
 /**
+ * Pre-computed comparison data for PDF export.
+ * This data should be computed via the backend API.
+ */
+export interface ComparisonDataForExport {
+  winner: FrontendWinnerResult | null;
+  diffs: FrontendMetricDiff[];
+  insights: FrontendComparisonInsight[];
+}
+
+/**
  * Export scenario comparison as a professional PDF report
  * Compares multiple scenarios side-by-side with winner highlighting
+ *
+ * @param scenarios - Array of scenario data to compare
+ * @param comparisonData - Pre-computed comparison metrics from backend API
  */
-export function exportScenarioComparisonPDF(scenarios: ScenarioData[]): void {
+export function exportScenarioComparisonPDF(
+  scenarios: ScenarioData[],
+  comparisonData?: ComparisonDataForExport
+): void {
   // Handle edge cases
   if (scenarios.length === 0) {
     return;
@@ -589,10 +605,10 @@ export function exportScenarioComparisonPDF(scenarios: ScenarioData[]): void {
   const doc = new jsPDF();
   const timestamp = getExportDateString();
 
-  // Calculate comparison metrics
-  const winner = scenarios.length >= 2 ? identifyWinner(scenarios) : null;
-  const diffs = scenarios.length >= 2 ? calculateMetricDiffs(scenarios) : [];
-  const insights = scenarios.length >= 2 ? generateComparisonInsights(scenarios) : [];
+  // Use pre-computed comparison metrics if provided
+  const winner = comparisonData?.winner ?? null;
+  const diffs = comparisonData?.diffs ?? [];
+  const insights = comparisonData?.insights ?? [];
 
   // Title
   doc.setFontSize(24);
@@ -625,9 +641,9 @@ export function exportScenarioComparisonPDF(scenarios: ScenarioData[]): void {
   doc.setFontSize(14);
   doc.text("Side-by-Side Comparison", 14, startY);
 
-  // Build comparison data
+  // Build comparison table data
   const comparisonHeaders = ["Metric", ...scenarios.map((s) => s.name)];
-  const comparisonData = [
+  const comparisonTableRows = [
     ["Equity Type", ...scenarios.map((s) => s.equity.type === "RSU" ? "RSU" : "Options")],
     ["Exit Year", ...scenarios.map((s) => `Year ${s.globalSettings.exitYear}`)],
     ["Current Salary", ...scenarios.map((s) => `$${formatNumber(s.currentJob.monthlySalary)}/mo`)],
@@ -644,7 +660,7 @@ export function exportScenarioComparisonPDF(scenarios: ScenarioData[]): void {
   autoTable(doc, {
     startY: startY + 5,
     head: [comparisonHeaders],
-    body: comparisonData,
+    body: comparisonTableRows,
     theme: "striped",
     headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
     styles: { fontSize: 9 },

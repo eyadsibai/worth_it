@@ -29,6 +29,10 @@ import type {
   CapTableConversionResponse,
   WaterfallRequest,
   WaterfallResponse,
+  DilutionPreviewRequest,
+  DilutionPreviewResponse,
+  ScenarioComparisonRequest,
+  ScenarioComparisonResponse,
 } from "./schemas";
 
 // ============================================================================
@@ -174,6 +178,28 @@ class APIClient {
     return data;
   }
 
+  // Dilution Preview (Funding Round Impact)
+  async getDilutionPreview(
+    request: DilutionPreviewRequest
+  ): Promise<DilutionPreviewResponse> {
+    const { data } = await this.client.post<DilutionPreviewResponse>(
+      "/api/dilution/preview",
+      request
+    );
+    return data;
+  }
+
+  // Scenario Comparison
+  async compareScenarios(
+    request: ScenarioComparisonRequest
+  ): Promise<ScenarioComparisonResponse> {
+    const { data } = await this.client.post<ScenarioComparisonResponse>(
+      "/api/scenarios/compare",
+      request
+    );
+    return data;
+  }
+
   // WebSocket URL for Monte Carlo
   getMonteCarloWebSocketURL(): string {
     return `${this.wsURL}/ws/monte-carlo`;
@@ -270,6 +296,22 @@ export function useCalculateWaterfall() {
   return useMutation({
     mutationFn: (request: WaterfallRequest) =>
       apiClient.calculateWaterfall(request),
+  });
+}
+
+// Dilution Preview (Funding Round Impact)
+export function useGetDilutionPreview() {
+  return useMutation({
+    mutationFn: (request: DilutionPreviewRequest) =>
+      apiClient.getDilutionPreview(request),
+  });
+}
+
+// Scenario Comparison
+export function useCompareScenarios() {
+  return useMutation({
+    mutationFn: (request: ScenarioComparisonRequest) =>
+      apiClient.compareScenarios(request),
   });
 }
 

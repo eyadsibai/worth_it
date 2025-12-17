@@ -988,3 +988,295 @@ class TestRateLimiting:
         assert Settings.RATE_LIMIT_MONTE_CARLO_PER_MINUTE == 10, (
             "Monte Carlo limit should be 10/min"
         )
+
+
+class TestDilutionPreviewAPI:
+    """Tests for the dilution preview endpoint."""
+
+    def test_basic_dilution_preview(self):
+        """Test basic dilution preview with stakeholders."""
+        request_data = {
+            "stakeholders": [
+                {"name": "Founder A", "type": "founder", "ownership_pct": 60.0},
+                {"name": "Founder B", "type": "founder", "ownership_pct": 30.0},
+            ],
+            "option_pool_pct": 10.0,
+            "pre_money_valuation": 10000000,
+            "amount_raised": 2500000,
+            "investor_name": "Series A Investor",
+        }
+
+        response = client.post("/api/dilution/preview", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        # Check structure
+        assert "dilution_results" in data
+        assert "post_money_valuation" in data
+        assert "dilution_factor" in data
+
+        # Verify calculations
+        assert data["post_money_valuation"] == 12500000
+        assert data["dilution_factor"] == pytest.approx(0.8)
+
+        # Should have 4 results: 2 founders + option pool + new investor
+        assert len(data["dilution_results"]) == 4
+
+        # Verify new investor entry
+        new_investor = next(d for d in data["dilution_results"] if d["is_new"])
+        assert new_investor["name"] == "Series A Investor"
+        assert new_investor["after_pct"] == pytest.approx(20.0)
+
+    def test_dilution_preview_no_stakeholders(self):
+        """Test dilution preview with no existing stakeholders."""
+        request_data = {
+            "stakeholders": [],
+            "option_pool_pct": 10.0,
+            "pre_money_valuation": 5000000,
+            "amount_raised": 1000000,
+            "investor_name": "Seed Investor",
+        }
+
+        response = client.post("/api/dilution/preview", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should have option pool + new investor only
+        assert len(data["dilution_results"]) == 2
+
+    def test_dilution_preview_default_investor_name(self):
+        """Test that default investor name is used."""
+        request_data = {
+            "stakeholders": [{"name": "Founder", "type": "founder", "ownership_pct": 90.0}],
+            "option_pool_pct": 10.0,
+            "pre_money_valuation": 1000000,
+            "amount_raised": 250000,
+        }
+
+        response = client.post("/api/dilution/preview", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        new_investor = next(d for d in data["dilution_results"] if d["is_new"])
+        assert new_investor["name"] == "New Investor"
+
+    def test_dilution_preview_validation_error(self):
+        """Test that invalid inputs are rejected."""
+        # Negative pre_money_valuation
+        request_data = {
+            "stakeholders": [],
+            "option_pool_pct": 10.0,
+            "pre_money_valuation": -1000000,
+            "amount_raised": 250000,
+        }
+
+        response = client.post("/api/dilution/preview", json=request_data)
+        assert response.status_code == 422  # Validation error
+
+    def test_dilution_preview_various_stakeholder_types(self):
+        """Test dilution with different stakeholder types."""
+        request_data = {
+            "stakeholders": [
+                {"name": "CEO", "type": "founder", "ownership_pct": 40.0},
+                {"name": "Engineer", "type": "employee", "ownership_pct": 5.0},
+                {"name": "VC", "type": "investor", "ownership_pct": 15.0},
+                {"name": "Advisor", "type": "advisor", "ownership_pct": 2.0},
+            ],
+            "option_pool_pct": 0.0,
+            "pre_money_valuation": 20000000,
+            "amount_raised": 5000000,
+            "investor_name": "Series A",
+        }
+
+        response = client.post("/api/dilution/preview", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        # All stakeholder types should be preserved
+        types = {d["type"] for d in data["dilution_results"]}
+        assert "founder" in types
+        assert "employee" in types
+        assert "investor" in types
+        assert "advisor" in types
+        assert "new_investor" in types
+
+
+class TestScenarioComparisonAPI:
+    """Tests for the scenario comparison endpoint."""
+
+    def test_basic_comparison(self):
+        """Test basic scenario comparison."""
+        request_data = {
+            "scenarios": [
+                {
+                    "name": "Current Job",
+                    "results": {
+                        "netOutcome": 500000,
+                        "finalPayoutValue": 0,
+                        "finalOpportunityCost": 0,
+                        "breakeven": None,
+                    },
+                    "equity": {"monthlySalary": 15000},
+                },
+                {
+                    "name": "Startup Offer",
+                    "results": {
+                        "netOutcome": 750000,
+                        "finalPayoutValue": 900000,
+                        "finalOpportunityCost": 150000,
+                        "breakeven": "Year 3",
+                    },
+                    "equity": {"monthlySalary": 10000},
+                },
+            ]
+        }
+
+        response = client.post("/api/scenarios/compare", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        # Check structure
+        assert "winner" in data
+        assert "metric_diffs" in data
+        assert "insights" in data
+
+        # Verify winner
+        assert data["winner"]["winner_name"] == "Startup Offer"
+        assert data["winner"]["winner_index"] == 1
+        assert data["winner"]["net_outcome_advantage"] == 250000
+        assert data["winner"]["is_tie"] is False
+
+    def test_comparison_with_tie(self):
+        """Test scenario comparison with tied outcomes."""
+        request_data = {
+            "scenarios": [
+                {
+                    "name": "Option A",
+                    "results": {
+                        "netOutcome": 500000,
+                        "finalPayoutValue": 500000,
+                        "finalOpportunityCost": 0,
+                    },
+                    "equity": {"monthlySalary": 10000},
+                },
+                {
+                    "name": "Option B",
+                    "results": {
+                        "netOutcome": 500000,
+                        "finalPayoutValue": 500000,
+                        "finalOpportunityCost": 0,
+                    },
+                    "equity": {"monthlySalary": 10000},
+                },
+            ]
+        }
+
+        response = client.post("/api/scenarios/compare", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["winner"]["is_tie"] is True
+
+    def test_comparison_returns_metric_diffs(self):
+        """Test that metric differences are calculated."""
+        request_data = {
+            "scenarios": [
+                {
+                    "name": "A",
+                    "results": {
+                        "netOutcome": 100000,
+                        "finalPayoutValue": 200000,
+                        "finalOpportunityCost": 100000,
+                    },
+                    "equity": {"monthlySalary": 10000},
+                },
+                {
+                    "name": "B",
+                    "results": {
+                        "netOutcome": 200000,
+                        "finalPayoutValue": 300000,
+                        "finalOpportunityCost": 100000,
+                    },
+                    "equity": {"monthlySalary": 10000},
+                },
+            ]
+        }
+
+        response = client.post("/api/scenarios/compare", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should have diffs for net_outcome, final_payout_value, final_opportunity_cost
+        assert len(data["metric_diffs"]) == 3
+
+        net_diff = next(d for d in data["metric_diffs"] if d["metric"] == "net_outcome")
+        assert net_diff["absolute_diff"] == 100000
+        assert net_diff["better_scenario"] == "B"
+
+    def test_comparison_generates_insights(self):
+        """Test that insights are generated."""
+        request_data = {
+            "scenarios": [
+                {
+                    "name": "High Salary",
+                    "results": {
+                        "netOutcome": 400000,
+                        "finalPayoutValue": 0,
+                        "finalOpportunityCost": 0,
+                    },
+                    "equity": {"monthlySalary": 20000},
+                },
+                {
+                    "name": "Startup",
+                    "results": {
+                        "netOutcome": 600000,
+                        "finalPayoutValue": 800000,
+                        "finalOpportunityCost": 200000,
+                        "breakeven": "Year 4",
+                    },
+                    "equity": {"monthlySalary": 10000},
+                },
+            ]
+        }
+
+        response = client.post("/api/scenarios/compare", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should have at least one insight
+        assert len(data["insights"]) >= 1
+
+        # Should have winner insight
+        winner_insights = [i for i in data["insights"] if i["type"] == "winner"]
+        assert len(winner_insights) == 1
+
+    def test_comparison_single_scenario_returns_empty_diffs(self):
+        """Test that single scenario returns empty metric diffs."""
+        request_data = {
+            "scenarios": [
+                {
+                    "name": "Only Option",
+                    "results": {
+                        "netOutcome": 500000,
+                        "finalPayoutValue": 500000,
+                        "finalOpportunityCost": 0,
+                    },
+                    "equity": {"monthlySalary": 10000},
+                }
+            ]
+        }
+
+        response = client.post("/api/scenarios/compare", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        # Single scenario: no diffs, no insights
+        assert data["metric_diffs"] == []
+        assert data["insights"] == []
+
+    def test_comparison_validation_error(self):
+        """Test that empty scenarios list is rejected."""
+        request_data = {"scenarios": []}
+
+        response = client.post("/api/scenarios/compare", json=request_data)
+        assert response.status_code == 422  # Validation error

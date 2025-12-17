@@ -575,3 +575,226 @@ export const FounderScenarioSchema = z.object({
   updatedAt: z.string(), // ISO date string
 });
 export type FounderScenario = z.infer<typeof FounderScenarioSchema>;
+
+// ============================================================================
+// Dilution Preview API Schemas
+// ============================================================================
+
+export const DilutionStakeholderInputSchema = z.object({
+  name: z.string().min(1),
+  type: StakeholderTypeEnum,
+  ownership_pct: z.number().min(0).max(100),
+});
+export type DilutionStakeholderInput = z.infer<typeof DilutionStakeholderInputSchema>;
+
+export const DilutionPreviewRequestSchema = z.object({
+  stakeholders: z.array(DilutionStakeholderInputSchema).default([]),
+  option_pool_pct: z.number().min(0).max(100).default(0),
+  pre_money_valuation: z.number().gt(0),
+  amount_raised: z.number().gt(0),
+  investor_name: z.string().min(1).default("New Investor"),
+});
+export type DilutionPreviewRequest = z.infer<typeof DilutionPreviewRequestSchema>;
+
+export const DilutionPartyTypeEnum = z.enum([
+  "founder",
+  "employee",
+  "investor",
+  "advisor",
+  "option_pool",
+  "new_investor",
+]);
+export type DilutionPartyType = z.infer<typeof DilutionPartyTypeEnum>;
+
+export const DilutionResultItemSchema = z.object({
+  name: z.string(),
+  type: DilutionPartyTypeEnum,
+  before_pct: z.number(),
+  after_pct: z.number(),
+  dilution_pct: z.number(),
+  is_new: z.boolean(),
+});
+export type DilutionResultItem = z.infer<typeof DilutionResultItemSchema>;
+
+export const DilutionPreviewResponseSchema = z.object({
+  dilution_results: z.array(DilutionResultItemSchema),
+  post_money_valuation: z.number(),
+  dilution_factor: z.number(),
+});
+export type DilutionPreviewResponse = z.infer<typeof DilutionPreviewResponseSchema>;
+
+// ============================================================================
+// Scenario Comparison API Schemas
+// ============================================================================
+
+export const ScenarioResultsInfoSchema = z.object({
+  net_outcome: z.number(),
+  final_payout_value: z.number(),
+  final_opportunity_cost: z.number(),
+  breakeven: z.string().nullable().optional(),
+});
+export type ScenarioResultsInfo = z.infer<typeof ScenarioResultsInfoSchema>;
+
+export const ScenarioEquityInfoSchema = z.object({
+  monthly_salary: z.number(),
+});
+export type ScenarioEquityInfo = z.infer<typeof ScenarioEquityInfoSchema>;
+
+export const ScenarioInputSchema = z.object({
+  name: z.string().min(1),
+  results: ScenarioResultsInfoSchema,
+  equity: ScenarioEquityInfoSchema,
+});
+export type ScenarioInput = z.infer<typeof ScenarioInputSchema>;
+
+export const ScenarioComparisonRequestSchema = z.object({
+  scenarios: z.array(ScenarioInputSchema).min(1),
+});
+export type ScenarioComparisonRequest = z.infer<typeof ScenarioComparisonRequestSchema>;
+
+export const WinnerResultSchema = z.object({
+  winner_name: z.string(),
+  winner_index: z.number().int(),
+  net_outcome_advantage: z.number(),
+  is_tie: z.boolean(),
+});
+export type WinnerResult = z.infer<typeof WinnerResultSchema>;
+
+export const MetricDiffSchema = z.object({
+  metric: z.string(),
+  label: z.string(),
+  values: z.array(z.number()),
+  scenario_names: z.array(z.string()),
+  absolute_diff: z.number(),
+  percentage_diff: z.number(),
+  better_scenario: z.string(),
+  higher_is_better: z.boolean(),
+});
+export type MetricDiff = z.infer<typeof MetricDiffSchema>;
+
+export const ComparisonInsightTypeEnum = z.enum(["winner", "tradeoff", "observation"]);
+export const ComparisonInsightIconEnum = z.enum(["trophy", "scale", "info"]);
+
+export const ComparisonInsightSchema = z.object({
+  type: ComparisonInsightTypeEnum,
+  title: z.string(),
+  description: z.string(),
+  scenario_name: z.string().nullable().optional(),
+  icon: ComparisonInsightIconEnum.nullable().optional(),
+});
+export type ComparisonInsight = z.infer<typeof ComparisonInsightSchema>;
+
+export const ScenarioComparisonResponseSchema = z.object({
+  winner: WinnerResultSchema,
+  metric_diffs: z.array(MetricDiffSchema),
+  insights: z.array(ComparisonInsightSchema),
+});
+export type ScenarioComparisonResponse = z.infer<typeof ScenarioComparisonResponseSchema>;
+
+// ============================================================================
+// Frontend-compatible types (camelCase wrappers for UI components)
+// ============================================================================
+
+/**
+ * Frontend-friendly dilution data interface using camelCase.
+ * Used by UI components that display dilution preview results.
+ */
+export interface DilutionData {
+  name: string;
+  type: DilutionPartyType;
+  beforePct: number;
+  afterPct: number;
+  dilutionPct: number;
+  isNew: boolean;
+}
+
+/**
+ * Transform API dilution result to frontend format.
+ */
+export function transformDilutionResult(item: DilutionResultItem): DilutionData {
+  return {
+    name: item.name,
+    type: item.type,
+    beforePct: item.before_pct,
+    afterPct: item.after_pct,
+    dilutionPct: item.dilution_pct,
+    isNew: item.is_new,
+  };
+}
+
+/**
+ * Frontend-friendly comparison insight interface using camelCase.
+ * Used by UI components that display comparison results.
+ */
+export interface FrontendComparisonInsight {
+  type: "winner" | "tradeoff" | "observation";
+  title: string;
+  description: string;
+  scenarioName?: string;
+  icon?: "trophy" | "scale" | "info";
+}
+
+/**
+ * Transform API comparison insight to frontend format.
+ */
+export function transformComparisonInsight(item: ComparisonInsight): FrontendComparisonInsight {
+  return {
+    type: item.type,
+    title: item.title,
+    description: item.description,
+    scenarioName: item.scenario_name ?? undefined,
+    icon: item.icon ?? undefined,
+  };
+}
+
+/**
+ * Frontend-friendly winner result interface using camelCase.
+ */
+export interface FrontendWinnerResult {
+  winnerName: string;
+  winnerIndex: number;
+  netOutcomeAdvantage: number;
+  isTie: boolean;
+}
+
+/**
+ * Transform API winner result to frontend format.
+ */
+export function transformWinnerResult(item: WinnerResult): FrontendWinnerResult {
+  return {
+    winnerName: item.winner_name,
+    winnerIndex: item.winner_index,
+    netOutcomeAdvantage: item.net_outcome_advantage,
+    isTie: item.is_tie,
+  };
+}
+
+/**
+ * Frontend-friendly metric diff interface using camelCase.
+ */
+export interface FrontendMetricDiff {
+  metric: string;
+  label: string;
+  values: number[];
+  scenarioNames: string[];
+  absoluteDiff: number;
+  percentageDiff: number;
+  betterScenario: string;
+  higherIsBetter: boolean;
+}
+
+/**
+ * Transform API metric diff to frontend format.
+ */
+export function transformMetricDiff(item: MetricDiff): FrontendMetricDiff {
+  return {
+    metric: item.metric,
+    label: item.label,
+    values: item.values,
+    scenarioNames: item.scenario_names,
+    absoluteDiff: item.absolute_diff,
+    percentageDiff: item.percentage_diff,
+    betterScenario: item.better_scenario,
+    higherIsBetter: item.higher_is_better,
+  };
+}
