@@ -3,6 +3,8 @@
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Target } from "lucide-react";
 import {
   MonteCarloHistogram,
   MonteCarloEcdf,
@@ -24,10 +26,27 @@ interface MonteCarloVisualizationsProps {
   simulatedValuations: number[];
 }
 
+const STORAGE_KEY = "monte-carlo-expanded";
+
 export function MonteCarloVisualizations({
   netOutcomes,
   simulatedValuations,
 }: MonteCarloVisualizationsProps) {
+  // Expand/collapse state with localStorage persistence
+  const [isExpanded, setIsExpanded] = React.useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(STORAGE_KEY) === "true";
+    }
+    return false;
+  });
+
+  // Persist preference to localStorage
+  const handleToggleExpanded = React.useCallback(() => {
+    const newValue = !isExpanded;
+    setIsExpanded(newValue);
+    localStorage.setItem(STORAGE_KEY, String(newValue));
+  }, [isExpanded]);
+
   // Calculate statistics
   const stats: MonteCarloStats = React.useMemo(() => {
     const sorted = [...netOutcomes].sort((a, b) => a - b);
@@ -47,6 +66,18 @@ export function MonteCarloVisualizations({
 
     return { mean, median, std, min, max, p10, p25, p75, p90, positiveRate };
   }, [netOutcomes]);
+
+  // Generate plain-English headline based on success rate
+  const headline = React.useMemo(() => {
+    const successPct = Math.round(stats.positiveRate);
+    if (stats.positiveRate >= 70) {
+      return `${successPct}% chance of a positive outcome`;
+    } else if (stats.positiveRate >= 50) {
+      return `${successPct}% chance of a positive outcome`;
+    } else {
+      return `${successPct}% chance of a positive outcome`;
+    }
+  }, [stats.positiveRate]);
 
   // Prepare histogram data
   const histogramData: HistogramBin[] = React.useMemo(() => {
@@ -108,46 +139,124 @@ export function MonteCarloVisualizations({
           Analysis of {netOutcomes.length.toLocaleString()} simulation scenarios
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="histogram">
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="histogram">Histogram</TabsTrigger>
-            <TabsTrigger value="ecdf">ECDF</TabsTrigger>
-            <TabsTrigger value="box">Box Plot</TabsTrigger>
-            <TabsTrigger value="scatter">Scatter</TabsTrigger>
-            <TabsTrigger value="stats">Statistics</TabsTrigger>
-            <TabsTrigger value="pdf">PDF</TabsTrigger>
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-          </TabsList>
+      <CardContent className="space-y-6">
+        {/* Plain-English Summary Headline */}
+        <div
+          data-testid="monte-carlo-headline"
+          className="text-2xl font-semibold text-center py-4"
+        >
+          {headline}
+        </div>
 
-          <TabsContent value="histogram" className="space-y-4">
-            <MonteCarloHistogram data={histogramData} />
-          </TabsContent>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-muted/50 rounded-lg p-4 flex flex-col items-center">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <Target className="h-4 w-4" />
+              <span>Expected Value</span>
+            </div>
+            <span className="text-xl font-semibold tabular-nums">
+              {formatCurrency(stats.mean)}
+            </span>
+          </div>
+          <div className="bg-muted/50 rounded-lg p-4 flex flex-col items-center">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              {stats.positiveRate >= 50 ? (
+                <TrendingUp className="h-4 w-4 text-terminal" />
+              ) : (
+                <TrendingDown className="h-4 w-4 text-destructive" />
+              )}
+              <span>Success Probability</span>
+            </div>
+            <span
+              className={`text-xl font-semibold tabular-nums ${
+                stats.positiveRate >= 50 ? "text-terminal" : "text-destructive"
+              }`}
+            >
+              {stats.positiveRate.toFixed(1)}%
+            </span>
+          </div>
+          <div className="bg-muted/50 rounded-lg p-4 flex flex-col items-center">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <span>Range</span>
+            </div>
+            <span className="text-xl font-semibold tabular-nums">
+              {formatCurrency(stats.min)} to {formatCurrency(stats.max)}
+            </span>
+          </div>
+        </div>
 
-          <TabsContent value="ecdf" className="space-y-4">
-            <MonteCarloEcdf data={ecdfData} />
-          </TabsContent>
+        {/* Histogram Section (always visible) */}
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-muted-foreground">
+            Distribution of Outcomes
+          </h3>
+          <MonteCarloHistogram data={histogramData} />
+        </div>
 
-          <TabsContent value="box" className="space-y-4">
-            <MonteCarloBoxPlot data={boxPlotData} />
-          </TabsContent>
+        {/* Expand/Collapse Button */}
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={handleToggleExpanded}
+            className="gap-2"
+          >
+            {isExpanded ? (
+              <>
+                <ChevronUp className="h-4 w-4" />
+                Hide detailed analysis
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4" />
+                See detailed analysis
+              </>
+            )}
+          </Button>
+        </div>
 
-          <TabsContent value="scatter" className="space-y-4">
-            <MonteCarloScatter data={scatterData} />
-          </TabsContent>
+        {/* Detailed Analysis Tabs (only when expanded) */}
+        {isExpanded && (
+          <Tabs defaultValue="histogram">
+            <TabsList className="grid w-full grid-cols-7">
+              <TabsTrigger value="histogram">Histogram</TabsTrigger>
+              <TabsTrigger value="ecdf">ECDF</TabsTrigger>
+              <TabsTrigger value="box">Box Plot</TabsTrigger>
+              <TabsTrigger value="scatter">Scatter</TabsTrigger>
+              <TabsTrigger value="stats">Statistics</TabsTrigger>
+              <TabsTrigger value="pdf">PDF</TabsTrigger>
+              <TabsTrigger value="summary">Summary</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="stats" className="space-y-4">
-            <MonteCarloStatistics stats={stats} />
-          </TabsContent>
+            <TabsContent value="histogram" className="space-y-4">
+              <MonteCarloHistogram data={histogramData} />
+            </TabsContent>
 
-          <TabsContent value="pdf" className="space-y-4">
-            <MonteCarloPdf data={histogramData} />
-          </TabsContent>
+            <TabsContent value="ecdf" className="space-y-4">
+              <MonteCarloEcdf data={ecdfData} />
+            </TabsContent>
 
-          <TabsContent value="summary" className="space-y-4">
-            <MonteCarloSummary stats={stats} simulationCount={netOutcomes.length} />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="box" className="space-y-4">
+              <MonteCarloBoxPlot data={boxPlotData} />
+            </TabsContent>
+
+            <TabsContent value="scatter" className="space-y-4">
+              <MonteCarloScatter data={scatterData} />
+            </TabsContent>
+
+            <TabsContent value="stats" className="space-y-4">
+              <MonteCarloStatistics stats={stats} />
+            </TabsContent>
+
+            <TabsContent value="pdf" className="space-y-4">
+              <MonteCarloPdf data={histogramData} />
+            </TabsContent>
+
+            <TabsContent value="summary" className="space-y-4">
+              <MonteCarloSummary stats={stats} simulationCount={netOutcomes.length} />
+            </TabsContent>
+          </Tabs>
+        )}
       </CardContent>
     </Card>
   );
