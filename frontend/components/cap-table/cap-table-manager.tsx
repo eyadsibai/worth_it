@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, Users, Landmark, PieChart, BarChart3 } from "lucide-react";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import { ErrorCard } from "@/components/ui/error-card";
 import { StakeholderForm } from "./stakeholder-form";
 import { OwnershipChart } from "./ownership-chart";
 import { ExitCalculator } from "./exit-calculator";

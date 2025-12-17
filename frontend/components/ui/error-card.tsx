@@ -116,7 +116,7 @@ export function ErrorCard({
             <p className="text-xs text-muted-foreground uppercase tracking-wide">
               This usually happens when:
             </p>
-            <ul className="text-sm text-muted-foreground space-y-1.5" aria-label="Possible causes">
+            <ul className="text-sm text-muted-foreground space-y-1.5">
               {displaySuggestions.map((suggestion, index) => (
                 <li key={index} className="flex items-start gap-2">
                   <span className="text-destructive/60 mt-1" aria-hidden="true">•</span>

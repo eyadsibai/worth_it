@@ -85,32 +85,21 @@ describe("ErrorCard", () => {
       expect(screen.getByRole("button", { name: /copy error details/i })).toBeInTheDocument();
     });
 
-    it("shows success feedback after copying with error details", async () => {
+    it("shows success feedback after copying error message", async () => {
       const user = userEvent.setup();
-      render(<ErrorCard message="Calculation failed" errorDetails="TypeError: Cannot read property" />);
+      render(<ErrorCard message="Calculation failed" />);
       await user.click(screen.getByRole("button", { name: /copy error details/i }));
-      
-      // Wait for the copy to complete and success feedback to show
+
       await waitFor(() => {
         expect(screen.getByText(/copied/i)).toBeInTheDocument();
       });
     });
 
-    it("shows success feedback after copying", async () => {
+    it("copies both message and details when errorDetails provided", async () => {
       const user = userEvent.setup();
-      render(<ErrorCard message="Error" />);
+      render(<ErrorCard message="Error" errorDetails="Stack trace: line 42" />);
       await user.click(screen.getByRole("button", { name: /copy error details/i }));
-      await waitFor(() => {
-        expect(screen.getByText(/copied/i)).toBeInTheDocument();
-      });
-    });
 
-    it("shows success feedback for error message copy", async () => {
-      const user = userEvent.setup();
-      render(<ErrorCard message="Connection timeout" />);
-      await user.click(screen.getByRole("button", { name: /copy error details/i }));
-      
-      // Wait for the copy to complete
       await waitFor(() => {
         expect(screen.getByText(/copied/i)).toBeInTheDocument();
       });

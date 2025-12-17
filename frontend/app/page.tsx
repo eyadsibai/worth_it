@@ -293,13 +293,38 @@ export default function Home() {
 
   // Handler for retrying failed calculations
   const handleRetryCalculation = React.useCallback(() => {
-    // Reset all mutations and re-trigger the calculation chain
+    // Reset all mutations
     monthlyDataMutation.reset();
     opportunityCostMutation.reset();
     startupScenarioMutation.reset();
-    // The useEffect hooks will automatically re-trigger calculations
-    // since we have all the debounced data ready
-  }, [monthlyDataMutation, opportunityCostMutation, startupScenarioMutation]);
+
+    // Explicitly re-trigger the initial calculation to restart the chain
+    // The useEffect hooks depend on mutation.data, not mutation state,
+    // so we must manually trigger the first mutation after reset
+    if (hasDebouncedData) {
+      const monthlyDataRequest = {
+        exit_year: debouncedGlobalSettings.exit_year,
+        current_job_monthly_salary: debouncedCurrentJob.monthly_salary,
+        startup_monthly_salary: debouncedEquityDetails.monthly_salary,
+        current_job_salary_growth_rate: debouncedCurrentJob.annual_salary_growth_rate / 100,
+        dilution_rounds:
+          debouncedEquityDetails.equity_type === "RSU" && debouncedEquityDetails.simulate_dilution
+            ? debouncedEquityDetails.dilution_rounds
+                .filter((r) => r.enabled)
+                .map((r) => ({
+                  round_name: r.round_name,
+                  round_type: r.round_type,
+                  year: r.year,
+                  dilution_pct: r.dilution_pct ? r.dilution_pct / 100 : undefined,
+                  pre_money_valuation: r.pre_money_valuation,
+                  amount_raised: r.amount_raised,
+                  salary_change: r.salary_change,
+                }))
+            : null,
+      };
+      monthlyDataMutation.mutate(monthlyDataRequest);
+    }
+  }, [monthlyDataMutation, opportunityCostMutation, startupScenarioMutation, hasDebouncedData, debouncedGlobalSettings, debouncedCurrentJob, debouncedEquityDetails]);
 
   return (
     <AppShell>
