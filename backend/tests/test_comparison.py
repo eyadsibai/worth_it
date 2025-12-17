@@ -8,10 +8,10 @@ from __future__ import annotations
 import pytest
 
 from worth_it.calculations.comparison import (
-    identify_winner,
     calculate_metric_diffs,
     generate_comparison_insights,
     get_comparison_metrics,
+    identify_winner,
 )
 
 

@@ -58,6 +58,7 @@ export function DilutionPreview({
     debouncedPreMoney,
     debouncedAmount,
     debouncedInvestorName,
+    dilutionMutation,
   ]);
 
   // Transform API response to frontend format

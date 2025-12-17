@@ -27,6 +27,21 @@ from worth_it.calculations.cap_table import (
     convert_instruments,
 )
 
+# Scenario comparison calculations
+from worth_it.calculations.comparison import (
+    calculate_metric_diffs,
+    generate_comparison_insights,
+    get_comparison_metrics,
+    identify_winner,
+)
+
+# Dilution preview calculations
+from worth_it.calculations.dilution import (
+    DilutionParty,
+    DilutionPreviewResult,
+    calculate_dilution_preview,
+)
+
 # Financial metrics (IRR, NPV, dilution)
 from worth_it.calculations.financial_metrics import (
     calculate_dilution_from_valuation,
@@ -48,21 +63,6 @@ from worth_it.calculations.startup_scenario import (
 # Waterfall analysis
 from worth_it.calculations.waterfall import (
     calculate_waterfall,
-)
-
-# Dilution preview calculations
-from worth_it.calculations.dilution import (
-    calculate_dilution_preview,
-    DilutionParty,
-    DilutionPreviewResult,
-)
-
-# Scenario comparison calculations
-from worth_it.calculations.comparison import (
-    identify_winner,
-    calculate_metric_diffs,
-    generate_comparison_insights,
-    get_comparison_metrics,
 )
 
 # Re-export Monte Carlo functions for backward compatibility.

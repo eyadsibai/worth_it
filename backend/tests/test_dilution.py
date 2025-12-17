@@ -8,7 +8,6 @@ from __future__ import annotations
 import pytest
 
 from worth_it.calculations.dilution import (
-    DilutionParty,
     calculate_dilution_preview,
 )
 

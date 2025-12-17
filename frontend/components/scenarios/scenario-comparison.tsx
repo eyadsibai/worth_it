@@ -59,7 +59,7 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
     }));
 
     compareMutation.mutate({ scenarios: apiScenarios });
-  }, [scenarios]);
+  }, [scenarios, compareMutation]);
 
   // Transform API response to frontend format
   const winner: FrontendWinnerResult | null = React.useMemo(() => {
