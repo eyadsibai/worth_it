@@ -167,7 +167,7 @@ describe("BottomNav", () => {
     it("active button has aria-current attribute", () => {
       render(<BottomNav {...defaultProps} activeSection="forms" />);
       const formsButton = screen.getByRole("button", { name: /forms/i });
-      expect(formsButton).toHaveAttribute("aria-current", "true");
+      expect(formsButton).toHaveAttribute("aria-current", "page");
     });
   });
 

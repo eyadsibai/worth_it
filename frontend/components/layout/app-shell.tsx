@@ -20,17 +20,10 @@ export function AppShell({ children }: AppShellProps) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  // Scroll to results section
+  // Scroll to results section (scrolls down past the forms area)
   const handleResultsClick = React.useCallback(() => {
     setActiveSection("results");
-    // Find the results section and scroll to it
-    const resultsSection = document.querySelector('[data-section="results"]');
-    if (resultsSection) {
-      resultsSection.scrollIntoView({ behavior: "smooth" });
-    } else {
-      // Fallback: scroll down past the forms
-      window.scrollTo({ top: window.innerHeight * 0.6, behavior: "smooth" });
-    }
+    window.scrollTo({ top: window.innerHeight * 0.6, behavior: "smooth" });
   }, []);
 
   // Save scenario - trigger command palette with save action
