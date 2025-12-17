@@ -7,7 +7,7 @@ import type {
   PreferenceTier,
   StakeholderPayout,
 } from "@/lib/schemas";
-import { formatCurrency } from "@/lib/format-utils";
+import { formatCurrency, formatCurrencyCompact } from "@/lib/format-utils";
 
 interface WaterfallSummaryProps {
   distribution: WaterfallDistribution | null;
@@ -48,14 +48,6 @@ export function WaterfallSummary({
       )
     : undefined;
 
-  // Format exit value for display
-  const formatExitValue = (value: number): string => {
-    if (value >= 1_000_000) {
-      return `$${(value / 1_000_000).toFixed(1)} million`;
-    }
-    return formatCurrency(value);
-  };
-
   // Check if there are preference tiers
   const hasPreferences = preferenceTiers.length > 0;
 
@@ -71,7 +63,7 @@ export function WaterfallSummary({
           <p>
             At an exit valuation of{" "}
             <span className="font-semibold text-foreground">
-              {formatExitValue(exitValuation)}
+              {formatCurrencyCompact(exitValuation)}
             </span>
             , here&apos;s how the money flows:
           </p>
@@ -127,9 +119,8 @@ export function WaterfallSummary({
                       <span className="flex h-6 w-6 items-center justify-center rounded-full bg-foreground/10 text-xs font-semibold">
                         {step.step_number}
                       </span>
-                      <span className="font-medium text-sm" aria-label={step.description}>
-                        {/* Use zero-width space to prevent "preference" text query match */}
-                        {step.description.replace(/preference/gi, 'prefer\u200Bence')}
+                      <span className="font-medium text-sm" data-testid={`step-description-${step.step_number}`}>
+                        {step.description}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -231,22 +222,33 @@ export function WaterfallSummary({
 }
 
 /**
- * Get appropriate color class for a waterfall step based on its description
+ * Color mapping for waterfall step types.
+ * Maps step type identifiers to chart color classes.
+ */
+const STEP_TYPE_COLORS: Record<string, string> = {
+  "series-b": "bg-chart-1/5 border-chart-1/20",
+  senior: "bg-chart-1/5 border-chart-1/20",
+  "series-a": "bg-chart-2/5 border-chart-2/20",
+  seed: "bg-chart-3/5 border-chart-3/20",
+  "pro-rata": "bg-chart-4/5 border-chart-4/20",
+  remaining: "bg-chart-4/5 border-chart-4/20",
+};
+
+/**
+ * Get appropriate color class for a waterfall step based on its description.
+ * Uses a lookup table for maintainability.
  */
 function getStepColorClass(description: string): string {
   const lowerDesc = description.toLowerCase();
 
-  if (lowerDesc.includes("series b") || lowerDesc.includes("senior")) {
-    return "bg-chart-1/5 border-chart-1/20";
+  // Check each key pattern against the description
+  for (const [key, colorClass] of Object.entries(STEP_TYPE_COLORS)) {
+    // Convert key to pattern (e.g., "series-b" → "series b")
+    const pattern = key.replace(/-/g, " ");
+    if (lowerDesc.includes(pattern)) {
+      return colorClass;
+    }
   }
-  if (lowerDesc.includes("series a")) {
-    return "bg-chart-2/5 border-chart-2/20";
-  }
-  if (lowerDesc.includes("seed")) {
-    return "bg-chart-3/5 border-chart-3/20";
-  }
-  if (lowerDesc.includes("pro-rata") || lowerDesc.includes("remaining")) {
-    return "bg-chart-4/5 border-chart-4/20";
-  }
+
   return "bg-muted/50";
 }

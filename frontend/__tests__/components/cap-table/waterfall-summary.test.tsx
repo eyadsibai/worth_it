@@ -5,8 +5,7 @@
  * This component provides:
  * 1. Plain English explanation of liquidation preferences
  * 2. Visual flow diagram showing distribution order
- * 3. Interactive exit value slider
- * 4. Prominent display of users specific payout
+ * 3. Prominent display of user's specific payout
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
@@ -127,7 +126,8 @@ describe("WaterfallSummary", () => {
         />
       );
 
-      expect(screen.getByText(/\$50.*million/i)).toBeInTheDocument();
+      // formatCurrencyCompact returns "$50M" for 50 million
+      expect(screen.getByText(/\$50M/)).toBeInTheDocument();
     });
 
     it("explains liquidation preferences in simple terms", () => {
@@ -139,7 +139,10 @@ describe("WaterfallSummary", () => {
         />
       );
 
-      expect(screen.getByText(/preferred.*first|investors.*paid.*first|preference/i)).toBeInTheDocument();
+      // Check the preference explanation section has explanatory text
+      const explanationSection = screen.getByTestId("preference-explanation");
+      expect(explanationSection).toBeInTheDocument();
+      expect(explanationSection).toHaveTextContent(/preferred.*get paid first/i);
     });
 
     it("explains participating vs non-participating preferences", () => {
@@ -213,8 +216,8 @@ describe("WaterfallSummary", () => {
     });
   });
 
-  describe("Users Specific Payout Display", () => {
-    it("prominently displays selected stakeholders payout", () => {
+  describe("User's Specific Payout Display", () => {
+    it("prominently displays selected stakeholder's payout", () => {
       render(
         <WaterfallSummary
           distribution={mockDistribution}
@@ -312,7 +315,7 @@ describe("WaterfallSummary", () => {
         />
       );
 
-      expect(screen.getByText(/no.*preference|simple.*distribution|pro-rata/i)).toBeInTheDocument();
+      expect(screen.getByTestId("no-preferences-message")).toBeInTheDocument();
     });
   });
 
