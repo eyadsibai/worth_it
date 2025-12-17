@@ -24,6 +24,7 @@ import { DraftRecoveryDialog } from "@/components/draft-recovery-dialog";
 import { ExampleLoader } from "@/components/forms/example-loader";
 import { WelcomeModal } from "@/components/onboarding/welcome-modal";
 import { useFirstVisit } from "@/lib/hooks/use-first-visit";
+import { TemplatePicker } from "@/components/templates/template-picker";
 import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
 
 export default function Home() {
@@ -299,14 +300,24 @@ export default function Home() {
 
         {/* Founder Mode Content */}
         {appMode === "founder" && (
-          <CapTableManager
-            capTable={capTable}
-            onCapTableChange={setCapTable}
-            instruments={instruments}
-            onInstrumentsChange={setInstruments}
-            preferenceTiers={preferenceTiers}
-            onPreferenceTiersChange={setPreferenceTiers}
-          />
+          <>
+            {/* Show template picker when cap table is empty */}
+            {capTable.stakeholders.length === 0 && (
+              <Card className="terminal-card animate-scale-in">
+                <CardContent className="py-8">
+                  <TemplatePicker mode="founder" />
+                </CardContent>
+              </Card>
+            )}
+            <CapTableManager
+              capTable={capTable}
+              onCapTableChange={setCapTable}
+              instruments={instruments}
+              onInstrumentsChange={setInstruments}
+              preferenceTiers={preferenceTiers}
+              onPreferenceTiersChange={setPreferenceTiers}
+            />
+          </>
         )}
 
         {/* Employee Mode Content */}
@@ -353,13 +364,18 @@ export default function Home() {
                   </>
                 ) : (
                   <>
-                    <div className="font-mono text-6xl text-accent/20 select-none">_</div>
-                    <div className="space-y-3">
-                      <h3 className="text-lg font-medium text-foreground">Awaiting Input</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed font-mono">
-                        Complete the configuration forms to generate your financial analysis.
-                      </p>
+                    <TemplatePicker mode="employee" />
+                    <div className="relative my-6">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-border" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">or enter manually</span>
+                      </div>
                     </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed font-mono">
+                      Complete the configuration forms on the left to generate your financial analysis.
+                    </p>
                   </>
                 )}
               </div>

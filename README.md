@@ -4,7 +4,7 @@
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![Next.js 16](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
 
-Modern financial analysis tool for evaluating startup job offers with real-time calculations, Monte Carlo simulations, and interactive visualizations.
+Modern financial analysis tool for evaluating startup job offers with real-time calculations, Monte Carlo simulations, cap table modeling, and interactive visualizations. Features both **Employee Mode** (analyze job offers) and **Founder Mode** (cap table & waterfall analysis).
 
 ## 🚀 Quick Start
 
@@ -38,7 +38,7 @@ worth_it/
 │   │   ├── config.py          # Configuration
 │   │   ├── types.py           # TypedDict definitions
 │   │   └── exceptions.py      # Custom exceptions
-│   ├── tests/                 # Test suite (~50 tests)
+│   ├── tests/                 # Test suite (100+ tests)
 │   ├── pyproject.toml         # Python dependencies
 │   └── README.md              # Backend docs
 ├── frontend/                   # Next.js React frontend
@@ -52,7 +52,7 @@ worth_it/
 │   │   └── schemas.ts        # Zod validation
 │   ├── package.json           # Node dependencies
 │   └── README.md              # Frontend docs
-├── playwright/                 # E2E Playwright tests (8 test suites)
+├── playwright/                 # E2E Playwright tests (17 test suites)
 ├── scripts/                    # Utility scripts
 ├── docs/                       # Additional documentation
 └── README.md                   # This file
@@ -77,19 +77,34 @@ worth_it/
              ▼
 ┌──────────────────────────┐
 │  Core Calculations       │  NumPy + Pandas
-│  Framework-Agnostic      │  ~50 unit tests
+│  Framework-Agnostic      │  100+ unit tests
 └──────────────────────────┘
 ```
 
 ## ✨ Features
 
+### Employee Mode
 - **Real-time Calculations**: Instant scenario analysis as you type
-- **Monte Carlo Simulations**: WebSocket-powered probabilistic modeling
+- **Monte Carlo Simulations**: WebSocket-powered probabilistic modeling with live progress
 - **7 Interactive Visualizations**: Histogram, ECDF, Box Plot, Scatter, PDF, Stats, Summary
-- **Dilution Modeling**: Track equity across 6 funding rounds
 - **RSU vs Stock Options**: Compare different equity compensation types
-- **Dark Mode**: Beautiful UI that adapts to your preference
-- **Type-Safe**: Full TypeScript + Zod validation on frontend, Pydantic on backend
+- **Scenario Management**: Save, duplicate, compare, and export scenarios
+- **What-If Analysis**: Quick adjustment panel for sensitivity testing
+
+### Founder Mode
+- **Cap Table Management**: Track ownership across multiple funding rounds
+- **Waterfall Analysis**: Model exit distributions with liquidation preferences
+- **Dilution Modeling**: Visualize equity dilution across 6+ funding rounds
+- **Preference Stack Editor**: Configure participation caps and preferences
+
+### Core Features
+- **Onboarding Flow**: Guided welcome modal for first-time users
+- **Command Palette**: Quick actions via Cmd+K (or Ctrl+K)
+- **Auto-Save & Recovery**: Draft forms saved automatically with recovery dialog
+- **Data Export**: PDF, CSV, and JSON export options
+- **Dark/Light Mode**: Beautiful UI that adapts to your preference
+- **Accessibility**: Skip links, live regions, reduced motion support
+- **Type-Safe**: Full TypeScript + Zod on frontend, Pydantic on backend
 
 ## 📖 Documentation
 
@@ -99,26 +114,29 @@ worth_it/
 
 ## 🧪 Testing
 
-**Backend:**
+**Backend (101 tests):**
 ```bash
 cd backend
-uv run pytest                          # Run all ~50 tests
-uv run pytest --cov=src --cov-report  # With coverage
+uv run pytest                          # Run all tests
+uv run pytest --cov=src --cov-report   # With coverage
 ```
 
-**Frontend:**
+**Frontend (614 tests):**
 ```bash
 cd frontend
-npm run type-check  # TypeScript validation
-npm run lint        # ESLint
+npm run test:unit     # Run all unit tests
+npm run type-check    # TypeScript validation
+npm run lint          # ESLint
 ```
 
-**E2E Tests (Playwright):**
+**E2E Tests (17 test suites):**
 ```bash
-npm run test:e2e        # Run all E2E tests
-npm run test:e2e:ui     # Run tests in UI mode
-npm run test:e2e:headed # Run tests with visible browser
-npm run test:e2e:report # View test report
+./scripts/run-e2e-tests.sh    # Convenience script (recommended)
+
+# Or manually:
+cd playwright && npx playwright test           # Run all E2E tests
+cd playwright && npx playwright test --ui      # UI mode
+cd playwright && npx playwright test --headed  # Visible browser
 ```
 
 See [playwright/README.md](playwright/README.md) for detailed E2E testing documentation.
@@ -128,18 +146,19 @@ See [playwright/README.md](playwright/README.md) for detailed E2E testing docume
 **Backend:**
 - FastAPI + Pydantic + WebSocket
 - NumPy, Pandas, SciPy for calculations
-- pytest with ~50 tests
+- pytest with 101 tests
 - uv for dependency management
 
 **Frontend:**
 - Next.js 16 + TypeScript + Turbopack
 - shadcn/ui (Radix UI + Tailwind CSS)
 - React Hook Form + Zod + TanStack Query
-- Recharts for data visualization
+- Recharts + Framer Motion for visualizations
+- Vitest with 614 tests
 
 **E2E Testing:**
 - Playwright for automated browser testing
-- 8 test suites covering full user flows
+- 17 test suites covering full user flows
 - Automated CI/CD integration
 
 ## 🤝 Contributing
@@ -149,8 +168,8 @@ See [playwright/README.md](playwright/README.md) for detailed E2E testing docume
 3. Make your changes
 4. Run tests:
    - Backend: `cd backend && uv run pytest`
-   - Frontend: `cd frontend && npm run type-check && npm run lint`
-   - E2E: `npm run test:e2e`
+   - Frontend: `cd frontend && npm run test:unit && npm run type-check && npm run lint`
+   - E2E: `./scripts/run-e2e-tests.sh`
 5. Submit a pull request
 
 ## 📄 License
