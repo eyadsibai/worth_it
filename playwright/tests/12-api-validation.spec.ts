@@ -201,6 +201,114 @@ test.describe('API Response Schema Validation', () => {
     expect(Array.isArray(data.distributions_by_valuation)).toBeTruthy();
     expect(typeof data.breakeven_points).toBe('object');
   });
+
+  test('dilution preview endpoint should return valid schema', async ({ page }) => {
+    const response = await page.request.post(`${API_BASE_URL}/api/dilution/preview`, {
+      data: {
+        stakeholders: [
+          { name: 'Founder 1', type: 'founder', ownership_pct: 50 },
+          { name: 'Founder 2', type: 'founder', ownership_pct: 30 },
+        ],
+        option_pool_pct: 10,
+        pre_money_valuation: 10000000,
+        amount_raised: 2000000,
+        investor_name: 'Series A Investor',
+      },
+    });
+
+    expect(response.ok()).toBeTruthy();
+    const data = await response.json();
+
+    // Dilution preview returns dilution_results, post_money_valuation, and dilution_factor
+    expect(data).toHaveProperty('dilution_results');
+    expect(data).toHaveProperty('post_money_valuation');
+    expect(data).toHaveProperty('dilution_factor');
+    expect(Array.isArray(data.dilution_results)).toBeTruthy();
+    expect(typeof data.post_money_valuation).toBe('number');
+    expect(typeof data.dilution_factor).toBe('number');
+
+    // Verify post-money calculation: $10M pre + $2M raised = $12M post
+    expect(data.post_money_valuation).toBe(12000000);
+
+    // Verify dilution factor: pre/post = 10M/12M = 0.8333...
+    expect(data.dilution_factor).toBeCloseTo(0.8333, 3);
+
+    // Verify result structure
+    const firstResult = data.dilution_results[0];
+    expect(firstResult).toHaveProperty('name');
+    expect(firstResult).toHaveProperty('type');
+    expect(firstResult).toHaveProperty('before_pct');
+    expect(firstResult).toHaveProperty('after_pct');
+    expect(firstResult).toHaveProperty('dilution_pct');
+    expect(firstResult).toHaveProperty('is_new');
+  });
+
+  test('scenario comparison endpoint should return valid schema', async ({ page }) => {
+    const response = await page.request.post(`${API_BASE_URL}/api/scenarios/compare`, {
+      data: {
+        scenarios: [
+          {
+            name: 'Conservative Option',
+            results: {
+              net_outcome: 150000,
+              final_payout_value: 300000,
+              final_opportunity_cost: 150000,
+              breakeven: null,
+            },
+            equity: {
+              monthly_salary: 12000,
+            },
+          },
+          {
+            name: 'Aggressive Option',
+            results: {
+              net_outcome: 350000,
+              final_payout_value: 600000,
+              final_opportunity_cost: 250000,
+              breakeven: null,
+            },
+            equity: {
+              monthly_salary: 10000,
+            },
+          },
+        ],
+      },
+    });
+
+    expect(response.ok()).toBeTruthy();
+    const data = await response.json();
+
+    // Scenario comparison returns winner, metric_diffs, and insights
+    expect(data).toHaveProperty('winner');
+    expect(data).toHaveProperty('metric_diffs');
+    expect(data).toHaveProperty('insights');
+
+    // Verify winner structure
+    expect(data.winner).toHaveProperty('winner_name');
+    expect(data.winner).toHaveProperty('net_outcome_advantage');
+    expect(data.winner).toHaveProperty('is_tie');
+
+    // Verify winner is identified correctly (Aggressive has higher net_outcome)
+    expect(data.winner.winner_name).toBe('Aggressive Option');
+    expect(data.winner.net_outcome_advantage).toBe(200000);
+    expect(data.winner.is_tie).toBe(false);
+
+    // Verify metric_diffs structure
+    expect(Array.isArray(data.metric_diffs)).toBeTruthy();
+    expect(data.metric_diffs.length).toBeGreaterThan(0);
+    const firstDiff = data.metric_diffs[0];
+    expect(firstDiff).toHaveProperty('metric');
+    expect(firstDiff).toHaveProperty('label');
+    expect(firstDiff).toHaveProperty('values');
+    expect(firstDiff).toHaveProperty('scenario_names');
+    expect(firstDiff).toHaveProperty('absolute_diff');
+    expect(firstDiff).toHaveProperty('percentage_diff');
+    expect(firstDiff).toHaveProperty('better_scenario');
+    expect(firstDiff).toHaveProperty('higher_is_better');
+
+    // Verify insights structure
+    expect(Array.isArray(data.insights)).toBeTruthy();
+  });
 });
 
 test.describe('API Error Response Handling', () => {
