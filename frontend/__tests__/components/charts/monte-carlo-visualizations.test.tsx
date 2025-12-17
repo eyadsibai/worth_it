@@ -190,6 +190,27 @@ describe("MonteCarloVisualizations - Simplified View", () => {
       );
     });
 
+    it("saves collapsed preference to localStorage when toggling back", async () => {
+      const user = userEvent.setup();
+      render(
+        <MonteCarloVisualizations
+          netOutcomes={mockNetOutcomes}
+          simulatedValuations={mockSimulatedValuations}
+        />
+      );
+
+      // Expand first
+      await user.click(screen.getByRole("button", { name: /see detailed analysis/i }));
+
+      // Then collapse
+      await user.click(screen.getByRole("button", { name: /hide detailed analysis/i }));
+
+      expect(localStorageMock.setItem).toHaveBeenLastCalledWith(
+        "monte-carlo-expanded",
+        "false"
+      );
+    });
+
     it("restores expanded state from localStorage on mount", () => {
       localStorageMock.getItem.mockReturnValue("true");
 
@@ -206,8 +227,8 @@ describe("MonteCarloVisualizations - Simplified View", () => {
   });
 
   describe("Plain-English Summary", () => {
-    it("shows positive outcome message when success rate >= 70%", () => {
-      // Create data with high positive rate
+    it("shows 'Strong outlook' message when success rate >= 70%", () => {
+      // Create data with high positive rate (80%)
       const highPositiveOutcomes = Array.from({ length: 100 }, (_, i) =>
         i < 80 ? 50000 + Math.random() * 100000 : -10000 - Math.random() * 20000
       );
@@ -219,10 +240,12 @@ describe("MonteCarloVisualizations - Simplified View", () => {
         />
       );
 
-      expect(screen.getByTestId("monte-carlo-headline")).toHaveTextContent(/chance.*positive/i);
+      const headline = screen.getByTestId("monte-carlo-headline");
+      expect(headline).toHaveTextContent(/strong outlook/i);
+      expect(headline).toHaveTextContent(/chance.*positive/i);
     });
 
-    it("shows moderate risk message when success rate is 50-70%", () => {
+    it("shows 'Moderate outlook' message when success rate is 50-70%", () => {
       // Create data with moderate positive rate (~60%)
       const moderateOutcomes = Array.from({ length: 100 }, (_, i) =>
         i < 60 ? 50000 + Math.random() * 100000 : -10000 - Math.random() * 50000
@@ -235,10 +258,12 @@ describe("MonteCarloVisualizations - Simplified View", () => {
         />
       );
 
-      expect(screen.getByTestId("monte-carlo-headline")).toBeInTheDocument();
+      const headline = screen.getByTestId("monte-carlo-headline");
+      expect(headline).toHaveTextContent(/moderate outlook/i);
+      expect(headline).toHaveTextContent(/chance.*positive/i);
     });
 
-    it("shows caution message when success rate < 50%", () => {
+    it("shows 'Caution' message when success rate < 50%", () => {
       // Create data with low positive rate (~30%)
       const lowPositiveOutcomes = Array.from({ length: 100 }, (_, i) =>
         i < 30 ? 50000 + Math.random() * 100000 : -10000 - Math.random() * 50000
@@ -251,7 +276,9 @@ describe("MonteCarloVisualizations - Simplified View", () => {
         />
       );
 
-      expect(screen.getByTestId("monte-carlo-headline")).toBeInTheDocument();
+      const headline = screen.getByTestId("monte-carlo-headline");
+      expect(headline).toHaveTextContent(/caution/i);
+      expect(headline).toHaveTextContent(/only.*%.*chance/i);
     });
   });
 });

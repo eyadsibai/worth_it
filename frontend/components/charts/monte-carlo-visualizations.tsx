@@ -4,7 +4,7 @@ import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Target } from "lucide-react";
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Target, ArrowLeftRight } from "lucide-react";
 import {
   MonteCarloHistogram,
   MonteCarloEcdf,
@@ -71,11 +71,11 @@ export function MonteCarloVisualizations({
   const headline = React.useMemo(() => {
     const successPct = Math.round(stats.positiveRate);
     if (stats.positiveRate >= 70) {
-      return `${successPct}% chance of a positive outcome`;
+      return `Strong outlook: ${successPct}% chance of a positive outcome`;
     } else if (stats.positiveRate >= 50) {
-      return `${successPct}% chance of a positive outcome`;
+      return `Moderate outlook: ${successPct}% chance of a positive outcome`;
     } else {
-      return `${successPct}% chance of a positive outcome`;
+      return `Caution: only ${successPct}% chance of a positive outcome`;
     }
   }, [stats.positiveRate]);
 
@@ -178,7 +178,8 @@ export function MonteCarloVisualizations({
           </div>
           <div className="bg-muted/50 rounded-lg p-4 flex flex-col items-center">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-              <span>Range</span>
+              <ArrowLeftRight className="h-4 w-4" />
+              <span>Outcome Range</span>
             </div>
             <span className="text-xl font-semibold tabular-nums">
               {formatCurrency(stats.min)} to {formatCurrency(stats.max)}
@@ -186,13 +187,15 @@ export function MonteCarloVisualizations({
           </div>
         </div>
 
-        {/* Histogram Section (always visible) */}
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            Distribution of Outcomes
-          </h3>
-          <MonteCarloHistogram data={histogramData} />
-        </div>
+        {/* Histogram Section (visible only when collapsed to avoid duplication) */}
+        {!isExpanded && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Distribution of Outcomes
+            </h3>
+            <MonteCarloHistogram data={histogramData} />
+          </div>
+        )}
 
         {/* Expand/Collapse Button */}
         <div className="flex justify-center">
