@@ -10,6 +10,11 @@ import type {
 } from "@/lib/schemas";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import {
+  identifyWinner,
+  calculateMetricDiffs,
+  generateComparisonInsights,
+} from "@/lib/comparison-utils";
 
 /**
  * Interface for saved scenario data in localStorage.
@@ -569,6 +574,166 @@ export function exportScenarioAsPDF(
  */
 function formatNumber(value: number): string {
   return Math.round(value).toLocaleString();
+}
+
+/**
+ * Export scenario comparison as a professional PDF report
+ * Compares multiple scenarios side-by-side with winner highlighting
+ */
+export function exportScenarioComparisonPDF(scenarios: ScenarioData[]): void {
+  // Handle edge cases
+  if (scenarios.length === 0) {
+    return;
+  }
+
+  const doc = new jsPDF();
+  const timestamp = getExportDateString();
+
+  // Calculate comparison metrics
+  const winner = scenarios.length >= 2 ? identifyWinner(scenarios) : null;
+  const diffs = scenarios.length >= 2 ? calculateMetricDiffs(scenarios) : [];
+  const insights = scenarios.length >= 2 ? generateComparisonInsights(scenarios) : [];
+
+  // Title
+  doc.setFontSize(24);
+  doc.text("Scenario Comparison Report", 14, 22);
+
+  doc.setFontSize(10);
+  doc.setTextColor(100);
+  doc.text(`Generated: ${timestamp}`, 14, 30);
+  doc.text(`Comparing ${scenarios.length} scenario${scenarios.length !== 1 ? "s" : ""}`, 14, 36);
+  doc.setTextColor(0);
+
+  // Winner Summary (if applicable)
+  if (winner && !winner.isTie && winner.netOutcomeAdvantage > 0) {
+    doc.setFontSize(14);
+    doc.text("Winner", 14, 50);
+    doc.setFontSize(11);
+    doc.text(`${winner.winnerName} - Best Choice`, 14, 58);
+    doc.setFontSize(10);
+    doc.text(`Net outcome advantage: $${formatNumber(winner.netOutcomeAdvantage)}`, 14, 66);
+  } else if (winner?.isTie) {
+    doc.setFontSize(14);
+    doc.text("Result: Tie", 14, 50);
+    doc.setFontSize(10);
+    doc.text("Both scenarios have equal net outcomes", 14, 58);
+  }
+
+  // Comparison Table
+  let startY = winner && !winner.isTie ? 80 : 50;
+  doc.setFontSize(14);
+  doc.text("Side-by-Side Comparison", 14, startY);
+
+  // Build comparison data
+  const comparisonHeaders = ["Metric", ...scenarios.map((s) => s.name)];
+  const comparisonData = [
+    ["Equity Type", ...scenarios.map((s) => s.equity.type === "RSU" ? "RSU" : "Options")],
+    ["Exit Year", ...scenarios.map((s) => `Year ${s.globalSettings.exitYear}`)],
+    ["Current Salary", ...scenarios.map((s) => `$${formatNumber(s.currentJob.monthlySalary)}/mo`)],
+    ["Startup Salary", ...scenarios.map((s) => `$${formatNumber(s.equity.monthlySalary)}/mo`)],
+    ["Final Payout", ...scenarios.map((s) => `$${formatNumber(s.results.finalPayoutValue)}`)],
+    ["Opportunity Cost", ...scenarios.map((s) => `$${formatNumber(s.results.finalOpportunityCost)}`)],
+    ["Net Outcome", ...scenarios.map((s) => {
+      const isWinner = winner && s.name === winner.winnerName && !winner.isTie;
+      return `$${formatNumber(s.results.netOutcome)}${isWinner ? " ★" : ""}`;
+    })],
+    ["Verdict", ...scenarios.map((s) => s.results.netOutcome >= 0 ? "WORTH IT" : "NOT WORTH IT")],
+  ];
+
+  autoTable(doc, {
+    startY: startY + 5,
+    head: [comparisonHeaders],
+    body: comparisonData,
+    theme: "striped",
+    headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
+    styles: { fontSize: 9 },
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let finalY = (doc as any).lastAutoTable?.finalY || startY + 100;
+
+  // Metric Differences Section
+  if (diffs.length > 0) {
+    if (finalY > PDF_CONFIG.BREAK_THRESHOLD) {
+      doc.addPage();
+      finalY = 20;
+    } else {
+      finalY += 15;
+    }
+
+    doc.setFontSize(14);
+    doc.text("Key Differences", 14, finalY);
+
+    const diffData = diffs.map((diff) => [
+      diff.label,
+      `$${formatNumber(diff.absoluteDiff)}`,
+      `${diff.percentageDiff.toFixed(1)}%`,
+      diff.betterScenario,
+    ]);
+
+    autoTable(doc, {
+      startY: finalY + 5,
+      head: [["Metric", "Difference", "% Change", "Better Option"]],
+      body: diffData,
+      theme: "striped",
+      headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
+      styles: { fontSize: 9 },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    finalY = (doc as any).lastAutoTable?.finalY || finalY + 50;
+  }
+
+  // Insights Section
+  if (insights.length > 0) {
+    if (finalY > PDF_CONFIG.BREAK_THRESHOLD) {
+      doc.addPage();
+      finalY = 20;
+    } else {
+      finalY += 15;
+    }
+
+    doc.setFontSize(14);
+    doc.text("Key Insights", 14, finalY);
+
+    const insightData = insights.map((insight) => [
+      insight.title,
+      insight.description,
+    ]);
+
+    autoTable(doc, {
+      startY: finalY + 5,
+      head: [["Insight", "Details"]],
+      body: insightData,
+      theme: "striped",
+      headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
+      styles: { fontSize: 9 },
+      columnStyles: { 1: { cellWidth: 100 } },
+    });
+  }
+
+  // Footer
+  const pageCount = doc.internal.pages.length - 1;
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text(
+      "Generated by Worth It - https://worth-it.app",
+      14,
+      doc.internal.pageSize.getHeight() - 10
+    );
+    doc.text(
+      `Page ${i} of ${pageCount}`,
+      doc.internal.pageSize.getWidth() - 30,
+      doc.internal.pageSize.getHeight() - 10
+    );
+  }
+
+  // Save the PDF
+  const scenarioNames = scenarios.map((s) => sanitizeFilename(s.name)).join("-vs-");
+  const pdfFilename = `comparison-${scenarioNames}-${timestamp}.pdf`;
+  doc.save(pdfFilename);
 }
 
 
