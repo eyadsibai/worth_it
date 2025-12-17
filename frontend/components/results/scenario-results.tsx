@@ -36,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { QuickAdjustPanel } from "@/components/results/quick-adjust-panel";
+import { LiveRegion } from "@/components/ui/live-region";
 
 interface ScenarioResultsProps {
   results: StartupScenarioResponse;
@@ -56,10 +57,27 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
   // Use adjusted results when available, otherwise use original results
   const displayResults = adjustedResults || results;
 
+  // Calculate net benefit (must be before any early returns to satisfy hooks rules)
+  const netBenefit = displayResults.final_payout_value - displayResults.final_opportunity_cost;
+  const isPositive = netBenefit >= 0;
+
+  // Generate announcement text for screen readers (must be called unconditionally)
+  const announcement = React.useMemo(() => {
+    if (isLoading) return "Calculating results...";
+    const formattedBenefit = formatCurrency(Math.abs(netBenefit));
+    if (isPositive) {
+      return `Calculation complete. Net benefit: ${formattedBenefit}. This offer is worth it.`;
+    }
+    return `Calculation complete. Net cost: ${formattedBenefit}. This offer is not worth it.`;
+  }, [isLoading, netBenefit, isPositive]);
+
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-fade-in">
-        {/* Skeleton Metric Cards */}
+      <>
+        {/* Screen reader announcement for loading */}
+        <LiveRegion>{announcement}</LiveRegion>
+        <div className="space-y-6 animate-fade-in">
+          {/* Skeleton Metric Cards */}
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
           {[...Array(5)].map((_, i) => (
             <Card key={i} className="terminal-card overflow-hidden">
@@ -103,12 +121,10 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
             </div>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      </>
     );
   }
-
-  const netBenefit = displayResults.final_payout_value - displayResults.final_opportunity_cost;
-  const isPositive = netBenefit >= 0;
 
   const handleSaveScenario = () => {
     if (!scenarioName.trim() || !globalSettings || !currentJob || !equityDetails) {
@@ -243,6 +259,9 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
 
   return (
     <>
+      {/* Screen reader announcement for calculation results */}
+      <LiveRegion>{announcement}</LiveRegion>
+
       <div className="space-y-6 animate-fade-in">
         {/* Save and Export Buttons */}
         <div className="flex justify-end gap-2">

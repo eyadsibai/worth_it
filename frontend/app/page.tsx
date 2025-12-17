@@ -21,6 +21,8 @@ import { useAppStore } from "@/lib/store";
 import { isValidEquityData } from "@/lib/validation";
 import { DraftRecoveryDialog } from "@/components/draft-recovery-dialog";
 import { ExampleLoader } from "@/components/forms/example-loader";
+import { WelcomeModal } from "@/components/onboarding/welcome-modal";
+import { useFirstVisit } from "@/lib/hooks/use-first-visit";
 import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
 
 export default function Home() {
@@ -65,6 +67,27 @@ export default function Home() {
   // Draft auto-save and recovery
   const [showDraftDialog, setShowDraftDialog] = React.useState(false);
   const [savedDraft, setSavedDraft] = React.useState<DraftData | null>(null);
+
+  // First-time user onboarding
+  const { isFirstVisit, isLoaded: isOnboardingLoaded, markAsOnboarded } = useFirstVisit();
+  const [showOnboarding, setShowOnboarding] = React.useState(false);
+
+  // Show onboarding modal for first-time visitors
+  React.useEffect(() => {
+    if (isOnboardingLoaded && isFirstVisit) {
+      setShowOnboarding(true);
+    }
+  }, [isOnboardingLoaded, isFirstVisit]);
+
+  const handleOnboardingComplete = React.useCallback(() => {
+    markAsOnboarded();
+    setShowOnboarding(false);
+  }, [markAsOnboarded]);
+
+  const handleOnboardingSkip = React.useCallback(() => {
+    markAsOnboarded();
+    setShowOnboarding(false);
+  }, [markAsOnboarded]);
 
   // Auto-save form data every 5 seconds (only in employee mode)
   useDraftAutoSave(
@@ -465,6 +488,13 @@ export default function Home() {
           onDiscard={handleDiscardDraft}
         />
       )}
+
+      {/* Onboarding Modal for First-Time Users */}
+      <WelcomeModal
+        open={showOnboarding}
+        onComplete={handleOnboardingComplete}
+        onSkip={handleOnboardingSkip}
+      />
     </AppShell>
   );
 }

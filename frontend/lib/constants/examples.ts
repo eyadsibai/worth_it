@@ -275,3 +275,55 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
 export function getExampleById(id: string): ExampleScenario | undefined {
   return EXAMPLE_SCENARIOS.find((scenario) => scenario.id === id);
 }
+
+/**
+ * Field hints providing context for typical value ranges.
+ * Used in form fields to help users understand what values are reasonable.
+ */
+export const FIELD_HINTS = {
+  // Current Job Form
+  monthly_salary: "Tech average: SAR 8K-18K",
+  annual_salary_growth_rate: "Typical: 3-7% annually",
+  assumed_annual_roi: "S&P 500 avg: 7-10%",
+
+  // Startup Offer - Common
+  startup_monthly_salary: "Usually 10-30% below market",
+  vesting_period: "Standard: 4 years",
+  cliff_period: "Standard: 1 year",
+
+  // RSU specific
+  total_equity_grant_pct: "Early: 0.1-2%, Growth: 0.01-0.1%",
+  exit_valuation: "Seed: SAR 50-200M, Series B: SAR 200M-1B",
+
+  // Stock Options specific
+  strike_price: "Usually: company's 409A valuation",
+  current_share_price: "Based on latest funding round",
+  number_of_options: "Typical early hire: 10K-100K options",
+  shares_outstanding: "Check cap table or ask HR",
+} as const;
+
+/**
+ * Example values for form field placeholders.
+ * Shown as "e.g. X" when field is empty.
+ */
+export const FIELD_EXAMPLES = {
+  // Current Job Form
+  monthly_salary: 12000,
+  annual_salary_growth_rate: 5,
+  assumed_annual_roi: 8,
+
+  // Startup Offer - Common
+  startup_monthly_salary: 10000,
+  vesting_period: 4,
+  cliff_period: 1,
+
+  // RSU specific
+  total_equity_grant_pct: 0.5,
+  exit_valuation: 100000000,
+
+  // Stock Options specific
+  strike_price: 1.5,
+  current_share_price: 5,
+  number_of_options: 50000,
+  shares_outstanding: 10000000,
+} as const;

@@ -408,3 +408,76 @@
     transform: translateY(0);
   }
 }
+
+/* =============================================================================
+   ACCESSIBILITY
+   ============================================================================= */
+
+/* Reduced Motion - Disable animations for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .page-enter,
+  .animate-slide-up,
+  .animate-scale-in,
+  .animate-fade-in,
+  .animate-glow-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* High Contrast Mode - Increase contrast for visibility */
+@media (prefers-contrast: high) {
+  :root {
+    --border: oklch(50% 0 0);
+    --muted-foreground: oklch(35% 0 0);
+    --ring: oklch(30% 0.15 155);
+  }
+
+  .dark {
+    --border: oklch(60% 0 0);
+    --muted-foreground: oklch(70% 0 0);
+  }
+
+  /* Stronger focus indicators */
+  :focus-visible {
+    outline: 3px solid var(--ring) !important;
+    outline-offset: 3px !important;
+  }
+
+  /* Higher contrast for cards */
+  .terminal-card {
+    border: 2px solid var(--border);
+  }
+
+  /* Ensure text meets contrast requirements */
+  .text-muted-foreground {
+    color: var(--muted-foreground);
+  }
+}
+
+/* Force Colors Mode - Windows High Contrast */
+@media (forced-colors: active) {
+  .terminal-card {
+    border: 1px solid CanvasText;
+  }
+
+  :focus-visible {
+    outline: 3px solid Highlight !important;
+  }
+
+  /* Ensure buttons are visible */
+  button,
+  [role="button"] {
+    border: 1px solid ButtonText;
+  }
+}

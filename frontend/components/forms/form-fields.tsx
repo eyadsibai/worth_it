@@ -74,6 +74,10 @@ interface NumberInputFieldProps extends FormFieldProps {
   prefix?: string;
   suffix?: string;
   formatDisplay?: boolean;
+  /** Hint text displayed below the input (e.g., "Tech average: SAR 8K-15K") */
+  hint?: string;
+  /** Example value shown as placeholder when no placeholder is set */
+  exampleValue?: number;
 }
 
 export function NumberInputField({
@@ -90,10 +94,19 @@ export function NumberInputField({
   suffix,
   formatDisplay = false,
   warningContext,
+  hint,
+  exampleValue,
 }: NumberInputFieldProps) {
   const [isFocused, setIsFocused] = React.useState(false);
   // Track raw input value for shorthand parsing (e.g., "50K")
   const [rawInput, setRawInput] = React.useState("");
+
+  // Compute placeholder: explicit placeholder takes precedence, then exampleValue
+  const computedPlaceholder = placeholder ?? (
+    exampleValue !== undefined
+      ? `e.g. ${formatNumberWithSeparators(exampleValue)}`
+      : undefined
+  );
 
   return (
     <FormField
@@ -133,7 +146,7 @@ export function NumberInputField({
                 <Input
                   // Use text type when formatDisplay enabled to allow shorthand input (e.g., "50K")
                   type={formatDisplay ? "text" : "number"}
-                  placeholder={placeholder}
+                  placeholder={computedPlaceholder}
                   min={!formatDisplay ? min : undefined}
                   max={!formatDisplay ? max : undefined}
                   step={!formatDisplay ? step : undefined}
@@ -194,6 +207,7 @@ export function NumberInputField({
             {description && <FormDescription>{description}</FormDescription>}
             <FormMessage />
             {hasWarning && <FormWarning>{warning}</FormWarning>}
+            {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
           </FormItem>
         );
       }}
