@@ -185,7 +185,7 @@ export function generateComparisonInsights(
       type: "observation",
       title: "Scenarios are equally valuable",
       description:
-        "Both scenarios have the same net outcome. Consider other factors like risk and timeline.",
+        "All scenarios have the same net outcome. Consider other factors like risk and timeline.",
       icon: "info",
     });
   }
@@ -194,7 +194,7 @@ export function generateComparisonInsights(
   const salaryDiffs = scenarios.map((s) => s.equity.monthlySalary);
   const maxSalary = Math.max(...salaryDiffs);
   const minSalary = Math.min(...salaryDiffs);
-  const salaryDiffPct = ((maxSalary - minSalary) / minSalary) * 100;
+  const salaryDiffPct = minSalary > 0 ? ((maxSalary - minSalary) / minSalary) * 100 : 0;
 
   if (salaryDiffPct > 10) {
     // Significant salary difference

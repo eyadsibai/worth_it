@@ -393,7 +393,7 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
                             <TrendingDown className="h-4 w-4 text-destructive" />
                           )}
                           <span
-                            className={`font-semibold tabular-nums ${isBest ? "text-terminal" : isPositive ? "text-terminal" : "text-destructive"}`}
+                            className={`font-semibold tabular-nums ${isBest || isPositive ? "text-terminal" : "text-destructive"}`}
                             data-testid={isBest ? "best-net-outcome" : undefined}
                           >
                             {formatCurrency(scenario.results.netOutcome)}

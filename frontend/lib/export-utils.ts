@@ -616,11 +616,12 @@ export function exportScenarioComparisonPDF(scenarios: ScenarioData[]): void {
     doc.setFontSize(14);
     doc.text("Result: Tie", 14, 50);
     doc.setFontSize(10);
-    doc.text("Both scenarios have equal net outcomes", 14, 58);
+    doc.text("All scenarios have equal net outcomes", 14, 58);
   }
 
   // Comparison Table
-  let startY = winner && !winner.isTie ? 80 : 50;
+  // Y positioning: winner box ends at ~70, tie text ends at ~58, no winner starts at 42
+  let startY = winner ? (winner.isTie ? 70 : 80) : 50;
   doc.setFontSize(14);
   doc.text("Side-by-Side Comparison", 14, startY);
 
