@@ -48,6 +48,10 @@ export function TemplatePicker({ mode }: TemplatePickerProps) {
       toast.success("Template loaded", {
         description: `${name} values applied to all forms.`,
       });
+    } else {
+      toast.error("Failed to load template", {
+        description: `Template "${name}" could not be found.`,
+      });
     }
   };
 
@@ -56,6 +60,10 @@ export function TemplatePicker({ mode }: TemplatePickerProps) {
     if (success) {
       toast.success("Template loaded", {
         description: `${name} cap table loaded.`,
+      });
+    } else {
+      toast.error("Failed to load template", {
+        description: `Template "${name}" could not be found.`,
       });
     }
   };

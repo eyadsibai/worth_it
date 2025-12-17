@@ -4,6 +4,7 @@ import type {
   FundingInstrument,
   PreferenceTier,
 } from "@/lib/schemas";
+import { generateId } from "@/lib/utils";
 
 export interface FounderTemplate {
   id: string;
@@ -12,13 +13,6 @@ export interface FounderTemplate {
   capTable: CapTable;
   instruments?: FundingInstrument[];
   preferenceTiers?: PreferenceTier[];
-}
-
-/**
- * Generate a unique ID for stakeholders and instruments
- */
-function generateId(): string {
-  return Math.random().toString(36).substring(2, 11);
 }
 
 /**

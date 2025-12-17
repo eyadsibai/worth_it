@@ -288,7 +288,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
       vesting_period: 4,
       cliff_period: 1,
       simulate_dilution: false, // Public companies - no dilution modeling
-      company_stage: "pre-ipo", // Closest approximation for established company
+      company_stage: "pre-ipo", // Schema has no "public" option; pre-ipo used since dilution is disabled
       dilution_rounds: [], // No dilution for public company RSUs
       exit_valuation: 500000000000, // $500B market cap (typical FAANG)
     },

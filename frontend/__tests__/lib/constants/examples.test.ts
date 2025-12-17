@@ -75,6 +75,33 @@ describe("EXAMPLE_SCENARIOS", () => {
   });
 });
 
+describe("big-tech template specific tests", () => {
+  const bigTech = getExampleById("big-tech");
+
+  it("uses RSU equity type", () => {
+    expect(bigTech?.equityDetails.equity_type).toBe("RSU");
+  });
+
+  it("has dilution simulation disabled (public company)", () => {
+    if (bigTech?.equityDetails.equity_type === "RSU") {
+      expect(bigTech.equityDetails.simulate_dilution).toBe(false);
+    }
+  });
+
+  it("has empty dilution rounds (no future funding)", () => {
+    if (bigTech?.equityDetails.equity_type === "RSU") {
+      expect(bigTech.equityDetails.dilution_rounds).toHaveLength(0);
+    }
+  });
+
+  it("has large exit valuation (public company market cap)", () => {
+    if (bigTech?.equityDetails.equity_type === "RSU") {
+      // FAANG market caps are typically $500B+
+      expect(bigTech.equityDetails.exit_valuation).toBeGreaterThanOrEqual(100_000_000_000);
+    }
+  });
+});
+
 describe("getExampleById", () => {
   it("returns scenario when ID exists", () => {
     const scenario = getExampleById("early-stage");
