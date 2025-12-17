@@ -35,8 +35,7 @@ export function SensitivityAnalysisPanel({
   const runAnalysis = React.useCallback(() => {
     const request = buildSensitivityRequest(globalSettings, currentJob, equityDetails);
     sensitivityMutation.mutate(request);
-    // Note: sensitivityMutation is excluded from deps - mutation objects are stable refs
-  }, [globalSettings, currentJob, equityDetails]);
+  }, [globalSettings, currentJob, equityDetails, sensitivityMutation]);
 
   // Transform results when available
   const sensitivityData = React.useMemo(() => {
