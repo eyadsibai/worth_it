@@ -5,15 +5,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, TrendingUp, TrendingDown, Trophy, Scale, Info, Download } from "lucide-react";
-import { type ScenarioData, exportScenarioComparisonPDF } from "@/lib/export-utils";
+import { X, TrendingUp, TrendingDown, Trophy, Scale, Info, Download, Loader2 } from "lucide-react";
+import { type ScenarioData, exportScenarioComparisonPDF, type ComparisonDataForExport } from "@/lib/export-utils";
 import { formatCurrency } from "@/lib/format-utils";
+import { useCompareScenarios } from "@/lib/api-client";
 import {
-  identifyWinner,
-  calculateMetricDiffs,
-  generateComparisonInsights,
-  type ComparisonInsight,
-} from "@/lib/comparison-utils";
+  transformWinnerResult,
+  transformMetricDiff,
+  transformComparisonInsight,
+  type FrontendWinnerResult,
+  type FrontendMetricDiff,
+  type FrontendComparisonInsight,
+} from "@/lib/schemas";
 
 interface ScenarioComparisonProps {
   scenarios: ScenarioData[];
@@ -23,7 +26,7 @@ interface ScenarioComparisonProps {
 /**
  * Get icon for insight type
  */
-function InsightIcon({ type }: { type: ComparisonInsight["icon"] }) {
+function InsightIcon({ type }: { type: FrontendComparisonInsight["icon"] }) {
   switch (type) {
     case "trophy":
       return <Trophy className="h-4 w-4 text-amber-500" />;
@@ -35,14 +38,51 @@ function InsightIcon({ type }: { type: ComparisonInsight["icon"] }) {
 }
 
 export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonProps) {
+  const compareMutation = useCompareScenarios();
+
+  // Call API when scenarios change and there are at least 2 scenarios
+  React.useEffect(() => {
+    if (scenarios.length < 2) return;
+
+    // Transform scenarios to API format
+    const apiScenarios = scenarios.map((s) => ({
+      name: s.name,
+      results: {
+        net_outcome: s.results.netOutcome,
+        final_payout_value: s.results.finalPayoutValue,
+        final_opportunity_cost: s.results.finalOpportunityCost,
+        breakeven: s.results.breakeven ?? null,
+      },
+      equity: {
+        monthly_salary: s.equity.monthlySalary,
+      },
+    }));
+
+    compareMutation.mutate({ scenarios: apiScenarios });
+  }, [scenarios]);
+
+  // Transform API response to frontend format
+  const winner: FrontendWinnerResult | null = React.useMemo(() => {
+    if (!compareMutation.data) return null;
+    return transformWinnerResult(compareMutation.data.winner);
+  }, [compareMutation.data]);
+
+  const diffs: FrontendMetricDiff[] = React.useMemo(() => {
+    if (!compareMutation.data) return [];
+    return compareMutation.data.metric_diffs.map(transformMetricDiff);
+  }, [compareMutation.data]);
+
+  const insights: FrontendComparisonInsight[] = React.useMemo(() => {
+    if (!compareMutation.data) return [];
+    return compareMutation.data.insights.map(transformComparisonInsight);
+  }, [compareMutation.data]);
+
   if (scenarios.length === 0) {
     return null;
   }
 
-  // Calculate comparison metrics
-  const winner = scenarios.length >= 2 ? identifyWinner(scenarios) : null;
-  const diffs = scenarios.length >= 2 ? calculateMetricDiffs(scenarios) : [];
-  const insights = scenarios.length >= 2 ? generateComparisonInsights(scenarios) : [];
+  // Show loading state for comparison data
+  const isLoadingComparison = scenarios.length >= 2 && compareMutation.isPending;
 
   // Find best net outcome for highlighting
   const netOutcomes = scenarios.map((s) => s.results.netOutcome);
@@ -62,9 +102,16 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            {scenarios.length >= 2 && (
+            {scenarios.length >= 2 && !isLoadingComparison && (
               <Button
-                onClick={() => exportScenarioComparisonPDF(scenarios)}
+                onClick={() => {
+                  const comparisonData: ComparisonDataForExport = {
+                    winner,
+                    diffs,
+                    insights,
+                  };
+                  exportScenarioComparisonPDF(scenarios, comparisonData);
+                }}
                 variant="outline"
                 size="sm"
                 className="gap-1.5"
@@ -86,8 +133,16 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Loading State */}
+        {isLoadingComparison && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Calculating comparison...</span>
+          </div>
+        )}
+
         {/* Winner Badge Section */}
-        {winner && !winner.isTie && winner.netOutcomeAdvantage > 0 && (
+        {!isLoadingComparison && winner && !winner.isTie && winner.netOutcomeAdvantage > 0 && (
           <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
             <Trophy className="h-6 w-6 text-amber-500" data-testid="trophy-icon" />
             <div>

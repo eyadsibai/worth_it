@@ -22,13 +22,18 @@ from worth_it.models import (
     CapTable,
     CapTableConversionRequest,
     CapTableConversionResponse,
+    ComparisonInsight,
     ConversionSummary,
     ConvertedInstrumentDetail,
     DilutionFromValuationRequest,
     DilutionFromValuationResponse,
+    DilutionPreviewRequest,
+    DilutionPreviewResponse,
+    DilutionResultItem,
     HealthCheckResponse,
     IRRRequest,
     IRRResponse,
+    MetricDiff,
     MonteCarloRequest,
     MonteCarloResponse,
     MonthlyDataGridRequest,
@@ -37,12 +42,15 @@ from worth_it.models import (
     NPVResponse,
     OpportunityCostRequest,
     OpportunityCostResponse,
+    ScenarioComparisonRequest,
+    ScenarioComparisonResponse,
     SensitivityAnalysisRequest,
     SensitivityAnalysisResponse,
     StartupScenarioRequest,
     StartupScenarioResponse,
     WaterfallRequest,
     WaterfallResponse,
+    WinnerResult,
 )
 from worth_it.monte_carlo import (
     run_monte_carlo_simulation as mc_run_simulation,
@@ -527,6 +535,127 @@ async def calculate_waterfall(request: Request, body: WaterfallRequest):
         )
     except (ValueError, TypeError, KeyError) as e:
         raise CalculationError("Invalid parameters for waterfall analysis") from e
+
+
+@app.post("/api/dilution/preview", response_model=DilutionPreviewResponse)
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def calculate_dilution_preview(request: Request, body: DilutionPreviewRequest):
+    """Calculate dilution impact of a new funding round on existing stakeholders.
+
+    This endpoint computes how ownership percentages change when new investment
+    comes in. It shows before/after ownership for each stakeholder, option pool,
+    and the new investor.
+
+    Key features:
+    - Calculates dilution factor from pre/post money valuation
+    - Shows percentage change for each existing stakeholder
+    - Handles option pool dilution
+    - Returns new investor ownership percentage
+    """
+    try:
+        # Convert Pydantic models to dicts for calculation
+        stakeholders = [
+            {"name": s.name, "type": s.type, "ownership_pct": s.ownership_pct}
+            for s in body.stakeholders
+        ]
+
+        result = calculations.calculate_dilution_preview(
+            stakeholders=stakeholders,
+            option_pool_pct=body.option_pool_pct,
+            pre_money_valuation=body.pre_money_valuation,
+            amount_raised=body.amount_raised,
+            investor_name=body.investor_name,
+        )
+
+        return DilutionPreviewResponse(
+            dilution_results=[
+                DilutionResultItem(
+                    name=item["name"],
+                    type=item["type"],
+                    before_pct=item["before_pct"],
+                    after_pct=item["after_pct"],
+                    dilution_pct=item["dilution_pct"],
+                    is_new=item["is_new"],
+                )
+                for item in result["dilution_results"]
+            ],
+            post_money_valuation=result["post_money_valuation"],
+            dilution_factor=result["dilution_factor"],
+        )
+    except (ValueError, TypeError, KeyError) as e:
+        raise CalculationError("Invalid parameters for dilution preview") from e
+
+
+@app.post("/api/scenarios/compare", response_model=ScenarioComparisonResponse)
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def compare_scenarios(request: Request, body: ScenarioComparisonRequest):
+    """Compare multiple scenarios to identify the best option.
+
+    This endpoint analyzes multiple scenarios and provides:
+    - Winner identification (highest net outcome)
+    - Metric differences (absolute and percentage)
+    - Human-readable insights about trade-offs
+
+    Key features:
+    - Identifies winning scenario by net outcome
+    - Detects ties when scenarios have equal outcomes
+    - Compares key metrics (net outcome, payout, opportunity cost)
+    - Generates insights about salary vs equity trade-offs
+    - Finds earliest breakeven scenario
+    """
+    try:
+        # Convert Pydantic models to dicts for calculation
+        scenarios = [
+            {
+                "name": s.name,
+                "results": {
+                    "net_outcome": s.results.net_outcome,
+                    "final_payout_value": s.results.final_payout_value,
+                    "final_opportunity_cost": s.results.final_opportunity_cost,
+                    "breakeven": s.results.breakeven,
+                },
+                "equity": {
+                    "monthly_salary": s.equity.monthly_salary,
+                },
+            }
+            for s in body.scenarios
+        ]
+
+        result = calculations.get_comparison_metrics(scenarios)
+
+        return ScenarioComparisonResponse(
+            winner=WinnerResult(
+                winner_name=result["winner"]["winner_name"],
+                winner_index=result["winner"]["winner_index"],
+                net_outcome_advantage=result["winner"]["net_outcome_advantage"],
+                is_tie=result["winner"]["is_tie"],
+            ),
+            metric_diffs=[
+                MetricDiff(
+                    metric=d["metric"],
+                    label=d["label"],
+                    values=d["values"],
+                    scenario_names=d["scenario_names"],
+                    absolute_diff=d["absolute_diff"],
+                    percentage_diff=d["percentage_diff"],
+                    better_scenario=d["better_scenario"],
+                    higher_is_better=d["higher_is_better"],
+                )
+                for d in result["metric_diffs"]
+            ],
+            insights=[
+                ComparisonInsight(
+                    type=i["type"],
+                    title=i["title"],
+                    description=i["description"],
+                    scenario_name=i.get("scenario_name"),
+                    icon=i.get("icon"),
+                )
+                for i in result["insights"]
+            ],
+        )
+    except (ValueError, TypeError, KeyError) as e:
+        raise CalculationError("Invalid parameters for scenario comparison") from e
 
 
 if __name__ == "__main__":

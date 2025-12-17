@@ -8,7 +8,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import type { DilutionData } from "@/lib/dilution-utils";
+import type { DilutionData } from "@/lib/schemas";
 
 // Color mapping for stakeholder types
 const TYPE_COLORS: Record<string, string> = {

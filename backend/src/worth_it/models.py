@@ -286,6 +286,122 @@ class HealthCheckResponse(BaseModel):
     version: str
 
 
+# --- Dilution Preview Models ---
+
+
+class DilutionStakeholderInput(BaseModel):
+    """Input stakeholder for dilution preview."""
+
+    name: str = Field(..., min_length=1)
+    type: Literal["founder", "employee", "investor", "advisor"]
+    ownership_pct: float = Field(..., ge=0, le=100)
+
+
+class DilutionPreviewRequest(BaseModel):
+    """Request for dilution preview calculation."""
+
+    stakeholders: list[DilutionStakeholderInput] = Field(default_factory=list)
+    option_pool_pct: float = Field(default=0, ge=0, le=100)
+    pre_money_valuation: float = Field(..., gt=0)
+    amount_raised: float = Field(..., gt=0)
+    investor_name: str = Field(default="New Investor", min_length=1)
+
+
+class DilutionResultItem(BaseModel):
+    """A single dilution result for one party."""
+
+    name: str
+    type: Literal["founder", "employee", "investor", "advisor", "option_pool", "new_investor"]
+    before_pct: float
+    after_pct: float
+    dilution_pct: float
+    is_new: bool
+
+
+class DilutionPreviewResponse(BaseModel):
+    """Response from dilution preview calculation."""
+
+    dilution_results: list[DilutionResultItem]
+    post_money_valuation: float
+    dilution_factor: float
+
+
+# --- Scenario Comparison Models ---
+
+
+class ScenarioEquityInfo(BaseModel):
+    """Equity information for a scenario."""
+
+    monthly_salary: float = Field(alias="monthlySalary")
+
+    model_config = {"populate_by_name": True}
+
+
+class ScenarioResultsInfo(BaseModel):
+    """Results information for a scenario."""
+
+    net_outcome: float = Field(alias="netOutcome")
+    final_payout_value: float = Field(alias="finalPayoutValue")
+    final_opportunity_cost: float = Field(alias="finalOpportunityCost")
+    breakeven: str | None = None
+
+    model_config = {"populate_by_name": True}
+
+
+class ScenarioInput(BaseModel):
+    """A single scenario for comparison."""
+
+    name: str = Field(..., min_length=1)
+    results: ScenarioResultsInfo
+    equity: ScenarioEquityInfo
+
+
+class ScenarioComparisonRequest(BaseModel):
+    """Request for scenario comparison."""
+
+    scenarios: list[ScenarioInput] = Field(..., min_length=1)
+
+
+class WinnerResult(BaseModel):
+    """Result of identifying the winning scenario."""
+
+    winner_name: str
+    winner_index: int
+    net_outcome_advantage: float
+    is_tie: bool
+
+
+class MetricDiff(BaseModel):
+    """Difference between scenarios for a specific metric."""
+
+    metric: str
+    label: str
+    values: list[float]
+    scenario_names: list[str]
+    absolute_diff: float
+    percentage_diff: float
+    better_scenario: str
+    higher_is_better: bool
+
+
+class ComparisonInsight(BaseModel):
+    """Insight generated from comparing scenarios."""
+
+    type: Literal["winner", "tradeoff", "observation"]
+    title: str
+    description: str
+    scenario_name: str | None = None
+    icon: Literal["trophy", "scale", "info"] | None = None
+
+
+class ScenarioComparisonResponse(BaseModel):
+    """Response from scenario comparison."""
+
+    winner: WinnerResult
+    metric_diffs: list[MetricDiff]
+    insights: list[ComparisonInsight]
+
+
 # --- Waterfall Analysis Models ---
 
 

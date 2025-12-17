@@ -50,6 +50,21 @@ from worth_it.calculations.waterfall import (
     calculate_waterfall,
 )
 
+# Dilution preview calculations
+from worth_it.calculations.dilution import (
+    calculate_dilution_preview,
+    DilutionParty,
+    DilutionPreviewResult,
+)
+
+# Scenario comparison calculations
+from worth_it.calculations.comparison import (
+    identify_winner,
+    calculate_metric_diffs,
+    generate_comparison_insights,
+    get_comparison_metrics,
+)
+
 # Re-export Monte Carlo functions for backward compatibility.
 # These functions live in monte_carlo.py but were historically exported from calculations.
 # NOTE: This creates a circular import (monte_carlo imports from calculations,
@@ -85,6 +100,15 @@ __all__ = [
     "convert_instruments",
     # Waterfall
     "calculate_waterfall",
+    # Dilution preview
+    "calculate_dilution_preview",
+    "DilutionParty",
+    "DilutionPreviewResult",
+    # Scenario comparison
+    "identify_winner",
+    "calculate_metric_diffs",
+    "generate_comparison_insights",
+    "get_comparison_metrics",
     # Monte Carlo (re-exported from monte_carlo.py)
     "get_random_variates_pert",
     "run_monte_carlo_simulation",
