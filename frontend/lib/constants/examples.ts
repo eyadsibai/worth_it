@@ -5,7 +5,7 @@ import type {
   StockOptionsForm,
 } from "@/lib/schemas";
 
-export type ExampleStage = "early" | "growth" | "late";
+export type ExampleStage = "early" | "growth" | "late" | "big-tech";
 
 export interface ExampleScenario {
   id: string;
@@ -265,6 +265,32 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
         // UPCOMING: No more dilution expected before IPO
       ],
       exit_valuation: 2000000000,
+    },
+  },
+  {
+    id: "big-tech",
+    name: "Big Tech / FAANG Offer",
+    description: "$20K salary, standard RSU package",
+    stage: "big-tech",
+    globalSettings: {
+      exit_year: 4,
+    },
+    currentJob: {
+      monthly_salary: 18000,
+      annual_salary_growth_rate: 4,
+      assumed_annual_roi: 8,
+      investment_frequency: "Monthly",
+    },
+    equityDetails: {
+      equity_type: "RSU",
+      monthly_salary: 20000,
+      total_equity_grant_pct: 0.002, // Very small % but of large public company
+      vesting_period: 4,
+      cliff_period: 1,
+      simulate_dilution: false, // Public companies - no dilution modeling
+      company_stage: "pre-ipo", // Schema has no "public" option; pre-ipo used since dilution is disabled
+      dilution_rounds: [], // No dilution for public company RSUs
+      exit_valuation: 500000000000, // $500B market cap (typical FAANG)
     },
   },
 ];

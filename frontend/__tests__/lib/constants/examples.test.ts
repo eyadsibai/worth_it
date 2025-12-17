@@ -11,8 +11,8 @@ import {
 } from "@/lib/schemas";
 
 describe("EXAMPLE_SCENARIOS", () => {
-  it("contains exactly 3 scenarios", () => {
-    expect(EXAMPLE_SCENARIOS).toHaveLength(3);
+  it("contains exactly 4 scenarios", () => {
+    expect(EXAMPLE_SCENARIOS).toHaveLength(4);
   });
 
   it("has unique IDs", () => {
@@ -21,11 +21,12 @@ describe("EXAMPLE_SCENARIOS", () => {
     expect(uniqueIds.size).toBe(ids.length);
   });
 
-  it("covers all stages: early, growth, late", () => {
+  it("covers all stages: early, growth, late, big-tech", () => {
     const stages = EXAMPLE_SCENARIOS.map((s) => s.stage);
     expect(stages).toContain("early");
     expect(stages).toContain("growth");
     expect(stages).toContain("late");
+    expect(stages).toContain("big-tech");
   });
 
   describe("each scenario has valid data", () => {
@@ -50,10 +51,18 @@ describe("EXAMPLE_SCENARIOS", () => {
           expect(result.success).toBe(true);
         });
 
-        it("has meaningful salary values (startup < current)", () => {
-          expect(scenario.equityDetails.monthly_salary).toBeLessThanOrEqual(
-            scenario.currentJob.monthly_salary
-          );
+        it("has meaningful salary values", () => {
+          // Big Tech offers may pay more than current job
+          // Startup offers typically pay less
+          if (scenario.stage === "big-tech") {
+            expect(scenario.equityDetails.monthly_salary).toBeGreaterThanOrEqual(
+              scenario.currentJob.monthly_salary
+            );
+          } else {
+            expect(scenario.equityDetails.monthly_salary).toBeLessThanOrEqual(
+              scenario.currentJob.monthly_salary
+            );
+          }
         });
 
         it("has positive exit valuation", () => {
@@ -63,6 +72,33 @@ describe("EXAMPLE_SCENARIOS", () => {
         });
       });
     });
+  });
+});
+
+describe("big-tech template specific tests", () => {
+  const bigTech = getExampleById("big-tech");
+
+  it("uses RSU equity type", () => {
+    expect(bigTech?.equityDetails.equity_type).toBe("RSU");
+  });
+
+  it("has dilution simulation disabled (public company)", () => {
+    if (bigTech?.equityDetails.equity_type === "RSU") {
+      expect(bigTech.equityDetails.simulate_dilution).toBe(false);
+    }
+  });
+
+  it("has empty dilution rounds (no future funding)", () => {
+    if (bigTech?.equityDetails.equity_type === "RSU") {
+      expect(bigTech.equityDetails.dilution_rounds).toHaveLength(0);
+    }
+  });
+
+  it("has large exit valuation (public company market cap)", () => {
+    if (bigTech?.equityDetails.equity_type === "RSU") {
+      // FAANG market caps are typically $500B+
+      expect(bigTech.equityDetails.exit_valuation).toBeGreaterThanOrEqual(100_000_000_000);
+    }
   });
 });
 
@@ -82,5 +118,6 @@ describe("getExampleById", () => {
     expect(getExampleById("early-stage")?.stage).toBe("early");
     expect(getExampleById("growth-stage")?.stage).toBe("growth");
     expect(getExampleById("late-stage")?.stage).toBe("late");
+    expect(getExampleById("big-tech")?.stage).toBe("big-tech");
   });
 });
