@@ -11,6 +11,7 @@ import { StartupOfferFormComponent } from "@/components/forms/startup-offer-form
 import { ScenarioResults } from "@/components/results/scenario-results";
 import { MonteCarloFormComponent } from "@/components/forms/monte-carlo-form";
 import { MonteCarloVisualizations } from "@/components/charts/monte-carlo-visualizations";
+import { SensitivityAnalysisPanel } from "@/components/results/sensitivity-analysis-panel";
 import { ScenarioManager } from "@/components/scenarios/scenario-manager";
 import { ScenarioComparison } from "@/components/scenarios/scenario-comparison";
 import { useDebounce, useDraftAutoSave, getDraft, clearDraft, useBeforeUnload, useSidebarFormStatus, type DraftData } from "@/lib/hooks";
@@ -470,6 +471,20 @@ export default function Home() {
                   />
                 )}
               </div>
+            ) : undefined}
+            sensitivityContent={hasDebouncedData ? (
+              <SensitivityAnalysisPanel
+                globalSettings={debouncedGlobalSettings}
+                currentJob={debouncedCurrentJob}
+                equityDetails={debouncedEquityDetails}
+                currentOutcome={
+                  startupScenarioMutation.data?.final_payout_value != null &&
+                  startupScenarioMutation.data?.final_opportunity_cost != null
+                    ? startupScenarioMutation.data.final_payout_value -
+                      startupScenarioMutation.data.final_opportunity_cost
+                    : 0
+                }
+              />
             ) : undefined}
           />
         )}

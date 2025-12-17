@@ -42,13 +42,14 @@ interface ScenarioResultsProps {
   results: StartupScenarioResponse;
   isLoading?: boolean;
   monteCarloContent?: React.ReactNode;
+  sensitivityContent?: React.ReactNode;
   globalSettings?: GlobalSettingsForm | null;
   currentJob?: CurrentJobForm | null;
   equityDetails?: RSUForm | StockOptionsForm | null;
   monteCarloStats?: MonteCarloExportStats;
 }
 
-export function ScenarioResults({ results, isLoading, monteCarloContent, globalSettings, currentJob, equityDetails, monteCarloStats }: ScenarioResultsProps) {
+export function ScenarioResults({ results, isLoading, monteCarloContent, sensitivityContent, globalSettings, currentJob, equityDetails, monteCarloStats }: ScenarioResultsProps) {
   const [showSaveDialog, setShowSaveDialog] = React.useState(false);
   const [scenarioName, setScenarioName] = React.useState("");
   const [scenarioNotes, setScenarioNotes] = React.useState("");
@@ -512,6 +513,11 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
                   Monte Carlo
                 </TabsTrigger>
               )}
+              {sensitivityContent && (
+                <TabsTrigger value="sensitivity" className="text-sm data-[state=active]:bg-accent/20 data-[state=active]:text-accent">
+                  Sensitivity
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="table" className="space-y-4">
@@ -597,6 +603,12 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, globalS
             {monteCarloContent && (
               <TabsContent value="monte-carlo" className="space-y-6">
                 {monteCarloContent}
+              </TabsContent>
+            )}
+
+            {sensitivityContent && (
+              <TabsContent value="sensitivity" className="space-y-6">
+                {sensitivityContent}
               </TabsContent>
             )}
           </Tabs>
