@@ -55,8 +55,8 @@ describe("SensitivityAnalysis", () => {
       />
     );
 
-    // Should have a heading for sensitivity analysis
-    expect(screen.getByText(/sensitivity analysis/i)).toBeInTheDocument();
+    // Should have headings for sensitivity analysis sections
+    expect(screen.getAllByText(/sensitivity analysis/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows empty state when no data", () => {

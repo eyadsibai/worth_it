@@ -9,7 +9,7 @@ import {
   calculateBreakevenThresholds,
   type SensitivityDataPoint,
 } from "@/lib/sensitivity-utils";
-import type { GlobalSettingsForm, CurrentJobForm, RSUForm } from "@/lib/schemas";
+import type { GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm } from "@/lib/schemas";
 
 // Test data factories
 function createGlobalSettings(overrides: Partial<GlobalSettingsForm> = {}): GlobalSettingsForm {
@@ -39,6 +39,20 @@ function createRSUEquity(overrides: Partial<RSUForm> = {}): RSUForm {
     exit_valuation: 500000000,
     simulate_dilution: false,
     dilution_rounds: [],
+    ...overrides,
+  };
+}
+
+function createStockOptionsEquity(overrides: Partial<StockOptionsForm> = {}): StockOptionsForm {
+  return {
+    equity_type: "STOCK_OPTIONS",
+    monthly_salary: 10000,
+    num_options: 50000,
+    strike_price: 1.0,
+    exit_price_per_share: 10.0,
+    exercise_strategy: "AT_EXIT",
+    vesting_period: 4,
+    cliff_period: 1,
     ...overrides,
   };
 }
@@ -92,9 +106,40 @@ describe("buildSensitivityRequest", () => {
     expect(roiConfig.mean).toBeCloseTo(0.07);
     expect(roiConfig.std_dev).toBeDefined();
   });
+
+  it("builds request with Stock Options equity type", () => {
+    const globalSettings = createGlobalSettings();
+    const currentJob = createCurrentJob();
+    const equity = createStockOptionsEquity({
+      num_options: 50000,
+      strike_price: 1.0,
+      exit_price_per_share: 10.0
+    });
+
+    const request = buildSensitivityRequest(globalSettings, currentJob, equity);
+
+    expect(request.base_params.equity_type).toBe("STOCK_OPTIONS");
+    expect(request.base_params.num_options).toBe(50000);
+    expect(request.base_params.strike_price).toBe(1.0);
+    expect(request.base_params.exit_price_per_share).toBe(10.0);
+  });
+
+  it("estimates valuation from exit_price_per_share for Stock Options", () => {
+    const globalSettings = createGlobalSettings();
+    const currentJob = createCurrentJob();
+    const equity = createStockOptionsEquity({ exit_price_per_share: 50.0 });
+
+    const request = buildSensitivityRequest(globalSettings, currentJob, equity);
+
+    // Valuation is estimated as exit_price_per_share * 1,000,000 (assumed shares)
+    const valuationConfig = request.sim_param_configs.valuation;
+    expect(valuationConfig.mode).toBe(50000000); // 50 * 1,000,000
+  });
 });
 
 describe("transformSensitivityResponse", () => {
+  const currentNetOutcome = 200000; // baseline for delta calculations
+
   it("transforms API response to chart-friendly format", () => {
     const apiResponse = {
       data: [
@@ -103,7 +148,7 @@ describe("transformSensitivityResponse", () => {
       ],
     };
 
-    const result = transformSensitivityResponse(apiResponse);
+    const result = transformSensitivityResponse(apiResponse, currentNetOutcome);
 
     expect(result).toHaveLength(2);
     expect(result[0].variable).toBe("Exit Valuation");
@@ -120,7 +165,7 @@ describe("transformSensitivityResponse", () => {
       ],
     };
 
-    const result = transformSensitivityResponse(apiResponse);
+    const result = transformSensitivityResponse(apiResponse, currentNetOutcome);
 
     expect(result[0].variable).toBe("Exit Valuation");
     expect(result[1].variable).toBe("Salary Growth");
@@ -129,24 +174,22 @@ describe("transformSensitivityResponse", () => {
   it("handles empty response gracefully", () => {
     const apiResponse = { data: null };
 
-    const result = transformSensitivityResponse(apiResponse);
+    const result = transformSensitivityResponse(apiResponse, currentNetOutcome);
 
     expect(result).toEqual([]);
   });
 
-  it("calculates impact range for tornado chart", () => {
+  it("calculates deltas relative to currentNetOutcome", () => {
     const apiResponse = {
       data: [
         { Variable: "Exit Valuation", Low: -100000, High: 500000, Impact: 600000 },
       ],
     };
 
-    const result = transformSensitivityResponse(apiResponse);
+    const result = transformSensitivityResponse(apiResponse, currentNetOutcome);
 
-    expect(result[0].lowDelta).toBeDefined();
-    expect(result[0].highDelta).toBeDefined();
-    // For tornado chart: lowDelta should be negative (from baseline)
-    // highDelta should be positive (from baseline)
+    expect(result[0].lowDelta).toBe(-100000 - currentNetOutcome); // -300000
+    expect(result[0].highDelta).toBe(500000 - currentNetOutcome); // 300000
   });
 });
 

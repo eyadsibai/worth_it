@@ -461,7 +461,13 @@ export default function Home() {
                 globalSettings={debouncedGlobalSettings}
                 currentJob={debouncedCurrentJob}
                 equityDetails={debouncedEquityDetails}
-                currentOutcome={startupScenarioMutation.data.final_payout_value - startupScenarioMutation.data.final_opportunity_cost}
+                currentOutcome={
+                  startupScenarioMutation.data?.final_payout_value != null &&
+                  startupScenarioMutation.data?.final_opportunity_cost != null
+                    ? startupScenarioMutation.data.final_payout_value -
+                      startupScenarioMutation.data.final_opportunity_cost
+                    : 0
+                }
               />
             ) : undefined}
           />

@@ -110,8 +110,10 @@ export function SensitivityAnalysis({
                   {threshold.description}
                   <br />
                   <span className="font-medium tabular-nums">
-                    Threshold: {threshold.unit}
-                    {formatCurrencyCompact(threshold.threshold).replace("$", "")}
+                    Threshold:{" "}
+                    {threshold.unit === "$"
+                      ? formatCurrencyCompact(threshold.threshold)
+                      : `${threshold.threshold.toFixed(threshold.unit === "%" ? 1 : 0)}${threshold.unit}`}
                   </span>
                 </AlertDescription>
               </Alert>
@@ -131,15 +133,20 @@ export function SensitivityAnalysis({
 
         {/* Impact summary table */}
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold">Variable Impact Summary</h4>
+          <h4 className="text-sm font-semibold" id="sensitivity-table-heading">
+            Variable Impact Summary
+          </h4>
           <div className="border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm" aria-labelledby="sensitivity-table-heading">
+              <caption className="sr-only">
+                Sensitivity analysis showing how each variable impacts the net outcome
+              </caption>
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="text-left p-3 font-medium">Variable</th>
-                  <th className="text-right p-3 font-medium">Low Scenario</th>
-                  <th className="text-right p-3 font-medium">High Scenario</th>
-                  <th className="text-right p-3 font-medium">Range</th>
+                  <th scope="col" className="text-left p-3 font-medium">Variable</th>
+                  <th scope="col" className="text-right p-3 font-medium">Low Scenario</th>
+                  <th scope="col" className="text-right p-3 font-medium">High Scenario</th>
+                  <th scope="col" className="text-right p-3 font-medium">Range</th>
                 </tr>
               </thead>
               <tbody>

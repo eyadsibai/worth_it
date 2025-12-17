@@ -98,7 +98,10 @@ export function TornadoChart({
             />
             <ReferenceLine x={0} stroke={colors.muted} strokeDasharray="3 3" />
 
-            {/* Low (negative) bars */}
+            {/* Low (negative impact) bars - shown in red/destructive color
+                Note: "Low" here means the outcome when the variable is at its low range.
+                We show this in destructive color because lower outcomes are generally worse.
+                The actual variable value direction depends on the variable type. */}
             <Bar dataKey="low" stackId="stack" radius={[4, 0, 0, 4]}>
               {chartData.map((entry, index) => (
                 <Cell
@@ -109,7 +112,7 @@ export function TornadoChart({
               ))}
             </Bar>
 
-            {/* High (positive) bars */}
+            {/* High (positive impact) bars - shown in green/chart3 color */}
             <Bar dataKey="high" stackId="stack" radius={[0, 4, 4, 0]}>
               {chartData.map((entry, index) => (
                 <Cell
@@ -187,7 +190,7 @@ function TornadoTooltip({
   const data = payload[0].payload;
 
   return (
-    <div className="bg-[hsl(220,15%,15%)] text-white px-3 py-2 rounded-xl shadow-lg text-sm">
+    <div className={`${CHART_TOOLTIP_STYLES} px-3 py-2 rounded-xl shadow-lg text-sm`}>
       <p className="font-medium mb-1">{data.name}</p>
       <div className="space-y-0.5 text-xs">
         <p>

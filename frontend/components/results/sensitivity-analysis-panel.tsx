@@ -35,13 +35,14 @@ export function SensitivityAnalysisPanel({
   const runAnalysis = React.useCallback(() => {
     const request = buildSensitivityRequest(globalSettings, currentJob, equityDetails);
     sensitivityMutation.mutate(request);
-  }, [globalSettings, currentJob, equityDetails, sensitivityMutation]);
+    // Note: sensitivityMutation is excluded from deps - mutation objects are stable refs
+  }, [globalSettings, currentJob, equityDetails]);
 
   // Transform results when available
   const sensitivityData = React.useMemo(() => {
     if (!sensitivityMutation.data) return null;
-    return transformSensitivityResponse(sensitivityMutation.data);
-  }, [sensitivityMutation.data]);
+    return transformSensitivityResponse(sensitivityMutation.data, currentOutcome);
+  }, [sensitivityMutation.data, currentOutcome]);
 
   // Calculate breakeven thresholds
   const breakevenThresholds = React.useMemo(() => {
@@ -102,7 +103,10 @@ export function SensitivityAnalysisPanel({
             {sensitivityMutation.isError && (
               <div className="p-4 border border-destructive rounded-lg bg-destructive/10 text-destructive text-sm">
                 <p className="font-medium">Analysis Error</p>
-                <p>{sensitivityMutation.error?.message || "An error occurred during analysis"}</p>
+                <p>
+                  {sensitivityMutation.error?.message ||
+                    "An error occurred during analysis. Please check your inputs and try again."}
+                </p>
               </div>
             )}
           </div>

@@ -46,9 +46,12 @@ export function buildSensitivityRequest(
 ): SensitivityAnalysisRequest {
   // Determine equity type and params
   const isRSU = "total_equity_grant_pct" in equity;
+  // For Stock Options, we estimate valuation from exit_price_per_share.
+  // Note: This assumes ~1M shares outstanding, which is a rough estimate.
+  // In practice, fully_diluted_shares would be needed for accurate valuation.
   const exitValuation = isRSU
     ? (equity as RSUForm).exit_valuation
-    : (equity as StockOptionsForm).exit_price_per_share * 1000000; // Estimate valuation
+    : (equity as StockOptionsForm).exit_price_per_share * 1000000;
 
   // Base parameters for calculation
   const base_params = {
@@ -104,33 +107,39 @@ export function buildSensitivityRequest(
 }
 
 /**
- * Transform API response to chart-friendly format
+ * Transform API response to chart-friendly format.
+ * Deltas are calculated relative to the current net outcome baseline.
  */
 export function transformSensitivityResponse(
-  response: SensitivityAnalysisResponse
+  response: SensitivityAnalysisResponse,
+  currentNetOutcome: number
 ): SensitivityDataPoint[] {
-  if (!response.data || response.data.length === 0) {
+  if (response.data == null || response.data.length === 0) {
     return [];
   }
 
-  // Transform and calculate delta values for tornado chart
-  const transformed = response.data.map((item) => {
+  const data = response.data;
+
+  // Transform and calculate delta values for tornado chart relative to current outcome
+  // Note: Type assertions are used here because the API schema uses z.any() for flexibility.
+  // The backend guarantees Variable, Low, High, Impact fields exist in each record.
+  const transformed = data.map((item) => {
     const low = item.Low as number;
     const high = item.High as number;
-    const baseline = (low + high) / 2; // Approximate baseline
 
     return {
       variable: item.Variable as string,
       low,
       high,
       impact: item.Impact as number,
-      lowDelta: low - baseline,
-      highDelta: high - baseline,
+      lowDelta: low - currentNetOutcome,
+      highDelta: high - currentNetOutcome,
     };
   });
 
   // Sort by impact descending (most influential first)
-  return transformed.sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
+  // Impact from backend is always positive, representing the outcome range
+  return transformed.sort((a, b) => b.impact - a.impact);
 }
 
 /**
@@ -166,21 +175,57 @@ export function calculateBreakevenThresholds(
 }
 
 /**
- * Calculate the threshold value where outcome becomes zero
+ * Calculate the threshold value of the variable where the net outcome becomes zero.
+ *
+ * We assume a linear relationship between the variable value and the outcome
+ * across the low/high range. The backend provides outcome *deltas* relative to
+ * the current outcome, so we reconstruct the actual outcomes at the low and
+ * high points, then linearly interpolate to find where outcome = 0.
  */
 function calculateThresholdValue(
   data: SensitivityDataPoint,
   currentOutcome: number
 ): number {
-  // Linear interpolation to find where outcome = 0
-  const range = data.high - data.low;
-  const impactRange = data.highDelta - data.lowDelta;
+  const lowValue = data.low;
+  const highValue = data.high;
 
-  if (impactRange === 0) return data.low;
+  // Reconstruct actual outcomes at the low and high scenario points
+  const lowOutcome = currentOutcome + data.lowDelta;
+  const highOutcome = currentOutcome + data.highDelta;
 
-  // Find the point where outcome crosses zero
-  const ratio = Math.abs(data.lowDelta) / Math.abs(impactRange);
-  return data.low + range * ratio;
+  // Degenerate case: outcome does not change across the range
+  if (lowOutcome === highOutcome) {
+    return lowValue;
+  }
+
+  // If one endpoint already has zero outcome, return that variable value directly
+  if (lowOutcome === 0) {
+    return lowValue;
+  }
+  if (highOutcome === 0) {
+    return highValue;
+  }
+
+  // If both outcomes are on the same side of zero, there is no breakeven within
+  // [lowValue, highValue]. Fall back to the lower bound to avoid NaN/Infinity.
+  if (lowOutcome * highOutcome > 0) {
+    return lowValue;
+  }
+
+  // Standard linear interpolation where outcome crosses zero:
+  // outcome(var) = lowOutcome + t * (highOutcome - lowOutcome)
+  // var          = lowValue  + t * (highValue  - lowValue)
+  // Solve for outcome(var) = 0:
+  //   0 = lowOutcome + t * (highOutcome - lowOutcome)
+  //   t = -lowOutcome / (highOutcome - lowOutcome)
+  const denominator = highOutcome - lowOutcome;
+  if (denominator === 0) {
+    // Extra guard, though we already handled equal outcomes above
+    return lowValue;
+  }
+
+  const t = -lowOutcome / denominator;
+  return lowValue + (highValue - lowValue) * t;
 }
 
 /**
@@ -197,29 +242,3 @@ function getUnitForVariable(variable: string): string {
   return units[variable] || "";
 }
 
-/**
- * Format variable names for display
- */
-export function formatVariableName(variable: string): string {
-  const displayNames: Record<string, string> = {
-    valuation: "Exit Valuation",
-    roi: "Investment ROI",
-    salary_growth: "Salary Growth",
-    dilution: "Dilution",
-    equity_pct: "Equity %",
-  };
-  return displayNames[variable] || variable;
-}
-
-/**
- * Get color for sensitivity bar based on impact direction
- */
-export function getSensitivityColor(
-  value: number,
-  isPositive: boolean
-): string {
-  if (isPositive) {
-    return value >= 0 ? "var(--chart-3)" : "var(--destructive)";
-  }
-  return value >= 0 ? "var(--destructive)" : "var(--chart-3)";
-}
