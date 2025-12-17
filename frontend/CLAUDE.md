@@ -376,7 +376,7 @@ npm run test:unit
 npm run test:unit:coverage
 ```
 
-**Total: 565 frontend unit tests** (run `npm run test:unit` to verify)
+**Total: 614 frontend unit tests** (run `npm run test:unit` to verify)
 
 ### Pre-Commit Checklist
 

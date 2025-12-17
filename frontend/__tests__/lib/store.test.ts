@@ -213,6 +213,55 @@ describe("loadExample", () => {
   });
 });
 
+describe("loadFounderTemplate", () => {
+  it("loads two-founders template and sets cap table state atomically", () => {
+    const result = useAppStore.getState().loadFounderTemplate("two-founders");
+
+    expect(result).toBe(true);
+
+    const state = useAppStore.getState();
+    expect(state.capTable.stakeholders).toHaveLength(2);
+    expect(state.capTable.option_pool_pct).toBe(15);
+    expect(state.capTable.total_shares).toBe(10000000);
+  });
+
+  it("loads post-seed template with instruments and preference tiers", () => {
+    const result = useAppStore.getState().loadFounderTemplate("post-seed");
+
+    expect(result).toBe(true);
+
+    const state = useAppStore.getState();
+    expect(state.capTable.stakeholders).toHaveLength(4);
+    expect(state.instruments.length).toBeGreaterThan(0);
+    expect(state.preferenceTiers.length).toBeGreaterThan(0);
+  });
+
+  it("loads series-a-ready template correctly", () => {
+    const result = useAppStore.getState().loadFounderTemplate("series-a-ready");
+
+    expect(result).toBe(true);
+
+    const state = useAppStore.getState();
+    expect(state.capTable.stakeholders).toHaveLength(5);
+    expect(state.capTable.option_pool_pct).toBe(20);
+  });
+
+  it("returns false for unknown template ID", () => {
+    const result = useAppStore.getState().loadFounderTemplate("nonexistent");
+
+    expect(result).toBe(false);
+    // State should remain unchanged
+    expect(useAppStore.getState().capTable.stakeholders).toHaveLength(0);
+  });
+
+  it("switches app mode to founder when loading template", () => {
+    useAppStore.getState().setAppMode("employee");
+    useAppStore.getState().loadFounderTemplate("two-founders");
+
+    expect(useAppStore.getState().appMode).toBe("founder");
+  });
+});
+
 describe("Results State", () => {
   it("sets Monte Carlo results", () => {
     const mockResults = {

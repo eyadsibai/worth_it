@@ -11,8 +11,8 @@ import {
 } from "@/lib/schemas";
 
 describe("EXAMPLE_SCENARIOS", () => {
-  it("contains exactly 3 scenarios", () => {
-    expect(EXAMPLE_SCENARIOS).toHaveLength(3);
+  it("contains exactly 4 scenarios", () => {
+    expect(EXAMPLE_SCENARIOS).toHaveLength(4);
   });
 
   it("has unique IDs", () => {
@@ -21,11 +21,12 @@ describe("EXAMPLE_SCENARIOS", () => {
     expect(uniqueIds.size).toBe(ids.length);
   });
 
-  it("covers all stages: early, growth, late", () => {
+  it("covers all stages: early, growth, late, big-tech", () => {
     const stages = EXAMPLE_SCENARIOS.map((s) => s.stage);
     expect(stages).toContain("early");
     expect(stages).toContain("growth");
     expect(stages).toContain("late");
+    expect(stages).toContain("big-tech");
   });
 
   describe("each scenario has valid data", () => {
@@ -50,10 +51,18 @@ describe("EXAMPLE_SCENARIOS", () => {
           expect(result.success).toBe(true);
         });
 
-        it("has meaningful salary values (startup < current)", () => {
-          expect(scenario.equityDetails.monthly_salary).toBeLessThanOrEqual(
-            scenario.currentJob.monthly_salary
-          );
+        it("has meaningful salary values", () => {
+          // Big Tech offers may pay more than current job
+          // Startup offers typically pay less
+          if (scenario.stage === "big-tech") {
+            expect(scenario.equityDetails.monthly_salary).toBeGreaterThanOrEqual(
+              scenario.currentJob.monthly_salary
+            );
+          } else {
+            expect(scenario.equityDetails.monthly_salary).toBeLessThanOrEqual(
+              scenario.currentJob.monthly_salary
+            );
+          }
         });
 
         it("has positive exit valuation", () => {
@@ -82,5 +91,6 @@ describe("getExampleById", () => {
     expect(getExampleById("early-stage")?.stage).toBe("early");
     expect(getExampleById("growth-stage")?.stage).toBe("growth");
     expect(getExampleById("late-stage")?.stage).toBe("late");
+    expect(getExampleById("big-tech")?.stage).toBe("big-tech");
   });
 });
