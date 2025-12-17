@@ -11,6 +11,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { DilutionRoundFormComponent } from "./dilution-round-form";
 import { CompletedRoundsSection } from "./completed-rounds-section";
 import { CompanyStageSelector } from "./company-stage-selector";
+import { DilutionSummaryCard } from "./dilution-summary-card";
 import { RSUFormSchema } from "@/lib/schemas";
 import type { RSUForm, DilutionRoundForm } from "@/lib/schemas";
 import { useDeepCompareEffect } from "@/lib/use-deep-compare";
@@ -215,6 +216,12 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
           <div className="space-y-6">
             {/* Company Stage Selector */}
             <CompanyStageSelector form={form} />
+
+            {/* Dilution Summary Card */}
+            <DilutionSummaryCard
+              completedRounds={completedRounds}
+              upcomingRounds={upcomingRounds}
+            />
 
             {/* Completed Rounds (Historical) */}
             <CompletedRoundsSection

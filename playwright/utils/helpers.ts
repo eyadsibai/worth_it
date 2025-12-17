@@ -19,7 +19,8 @@ export class WorthItHelpers {
    */
   async waitForAPIConnection() {
     // Wait for main heading to confirm page has loaded
-    await this.page.waitForSelector('text=/Job Offer Financial Analyzer/i', {
+    // UI now shows "Offer Analysis" or "Worth It" branding
+    await this.page.waitForSelector('text=/Offer Analysis|Worth It/i', {
       timeout: TIMEOUTS.navigation,
     });
 
@@ -79,8 +80,8 @@ export class WorthItHelpers {
    * shadcn/ui FormLabel doesn't use proper label-input associations (for/id attributes)
    */
   async fillCurrentJobForm(params = TEST_DATA.currentJob) {
-    // Scope to Current Job card to avoid matching other forms
-    const currentJobCard = this.page.locator('.glass-card').filter({ hasText: 'Current Job' });
+    // Scope to Current Job card to avoid matching other forms - uses terminal-card class
+    const currentJobCard = this.page.locator('.terminal-card').filter({ hasText: 'Current Job' });
     await currentJobCard.waitFor({ state: 'visible' });
 
     // Monthly Salary - first number input in the Current Job card
@@ -108,8 +109,8 @@ export class WorthItHelpers {
    * Note: UI uses tabs instead of radio buttons for equity type selection
    */
   async selectRSUEquityType() {
-    // Scope to Startup Offer card
-    const startupCard = this.page.locator('.glass-card').filter({ hasText: 'Startup Offer' });
+    // Scope to Startup Offer card - look for the card containing RSUs/Stock Options tabs
+    const startupCard = this.page.locator('.terminal-card').filter({ has: this.page.getByRole('tab', { name: 'RSUs' }) });
     await startupCard.waitFor({ state: 'visible' });
 
     // Find the RSUs tab
@@ -123,8 +124,8 @@ export class WorthItHelpers {
    * Note: UI uses tabs instead of radio buttons for equity type selection
    */
   async selectStockOptionsEquityType() {
-    // Scope to Startup Offer card
-    const startupCard = this.page.locator('.glass-card').filter({ hasText: 'Startup Offer' });
+    // Scope to Startup Offer card - look for the card containing RSUs/Stock Options tabs
+    const startupCard = this.page.locator('.terminal-card').filter({ has: this.page.getByRole('tab', { name: 'Stock Options' }) });
     await startupCard.waitFor({ state: 'visible' });
 
     // Find the Stock Options tab
