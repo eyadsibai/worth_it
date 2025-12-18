@@ -37,6 +37,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { QuickAdjustPanel } from "@/components/results/quick-adjust-panel";
 import { LiveRegion } from "@/components/ui/live-region";
+import { DecisionWizard, DecisionRecommendationDisplay } from "@/components/decision";
+import { Sparkles } from "lucide-react";
+import type { DecisionRecommendation, DecisionInputs, FinancialAnalysis } from "@/lib/decision-framework";
 
 interface ScenarioResultsProps {
   results: StartupScenarioResponse;
@@ -55,6 +58,11 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
   const [scenarioNotes, setScenarioNotes] = React.useState("");
   const [adjustedResults, setAdjustedResults] = React.useState<StartupScenarioResponse | null>(null);
 
+  // Decision Framework state
+  const [showDecisionWizard, setShowDecisionWizard] = React.useState(false);
+  const [decisionRecommendation, setDecisionRecommendation] = React.useState<DecisionRecommendation | null>(null);
+  const [decisionInputs, setDecisionInputs] = React.useState<DecisionInputs | null>(null);
+
   // Use adjusted results when available, otherwise use original results
   const displayResults = adjustedResults || results;
 
@@ -71,6 +79,31 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
     }
     return `Calculation complete. Net cost: ${formattedBenefit}. This offer is not worth it.`;
   }, [isLoading, netBenefit, isPositive]);
+
+  // Create financial analysis object for decision framework
+  const financialAnalysis: FinancialAnalysis = React.useMemo(() => ({
+    netBenefit,
+    // Use Monte Carlo profit probability if available, otherwise estimate from net benefit
+    positiveOutcomeProbability: monteCarloStats?.profitProbability ?? (isPositive ? 0.6 : 0.4),
+    expectedValue: monteCarloStats?.mean ?? netBenefit,
+    isWorthIt: isPositive,
+  }), [netBenefit, isPositive, monteCarloStats]);
+
+  // Decision wizard handlers
+  const handleDecisionComplete = React.useCallback((
+    recommendation: DecisionRecommendation,
+    inputs: DecisionInputs
+  ) => {
+    setDecisionRecommendation(recommendation);
+    setDecisionInputs(inputs);
+    setShowDecisionWizard(false);
+  }, []);
+
+  const handleRedoDecision = React.useCallback(() => {
+    setDecisionRecommendation(null);
+    setDecisionInputs(null);
+    setShowDecisionWizard(true);
+  }, []);
 
   if (isLoading) {
     return (
@@ -488,6 +521,51 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
           </CardContent>
         </Card>
       )}
+
+      {/* Decision Framework Section */}
+      {!decisionRecommendation && (
+        <Card className="terminal-card border-dashed border-2 border-primary/30 bg-primary/5">
+          <CardContent className="py-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-center sm:text-left">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-foreground">Want help making this decision?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Get a personalized recommendation based on your risk profile and career goals
+                  </p>
+                </div>
+              </div>
+              <Button onClick={() => setShowDecisionWizard(true)} className="shrink-0">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Start Decision Guide
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Decision Recommendation Display */}
+      {decisionRecommendation && decisionInputs && (
+        <DecisionRecommendationDisplay
+          recommendation={decisionRecommendation}
+          inputs={decisionInputs}
+          onRedo={handleRedoDecision}
+        />
+      )}
+
+      {/* Decision Wizard Dialog */}
+      <Dialog open={showDecisionWizard} onOpenChange={setShowDecisionWizard}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DecisionWizard
+            financialAnalysis={financialAnalysis}
+            onComplete={handleDecisionComplete}
+            onSkip={() => setShowDecisionWizard(false)}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Detailed Results Tabs */}
       <Card className="terminal-card">
