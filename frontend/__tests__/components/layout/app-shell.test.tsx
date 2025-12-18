@@ -5,6 +5,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { AppShell } from "@/components/layout/app-shell";
+import { WalkthroughProvider } from "@/lib/walkthrough";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
@@ -29,6 +30,14 @@ vi.mock("@/components/command-palette", () => ({
   }),
 }));
 
+const renderWithProviders = (children: React.ReactNode) => {
+  return render(
+    <WalkthroughProvider>
+      <AppShell>{children}</AppShell>
+    </WalkthroughProvider>
+  );
+};
+
 describe("AppShell", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -40,11 +49,7 @@ describe("AppShell", () => {
 
   describe("accessibility", () => {
     it("renders skip link for keyboard navigation", () => {
-      render(
-        <AppShell>
-          <div>Main content</div>
-        </AppShell>
-      );
+      renderWithProviders(<div>Main content</div>);
 
       const skipLink = screen.getByRole("link", {
         name: /skip to main content/i,
@@ -54,11 +59,7 @@ describe("AppShell", () => {
     });
 
     it("main element has id for skip link target", () => {
-      render(
-        <AppShell>
-          <div>Main content</div>
-        </AppShell>
-      );
+      renderWithProviders(<div>Main content</div>);
 
       const mainElement = screen.getByRole("main");
       expect(mainElement).toHaveAttribute("id", "main-content");
@@ -67,31 +68,19 @@ describe("AppShell", () => {
 
   describe("basic rendering", () => {
     it("renders header with logo", () => {
-      render(
-        <AppShell>
-          <div>Main content</div>
-        </AppShell>
-      );
+      renderWithProviders(<div>Main content</div>);
 
       expect(screen.getByText("Worth It")).toBeInTheDocument();
     });
 
     it("renders children in main area", () => {
-      render(
-        <AppShell>
-          <div data-testid="main-content">Main content</div>
-        </AppShell>
-      );
+      renderWithProviders(<div data-testid="main-content">Main content</div>);
 
       expect(screen.getByTestId("main-content")).toBeInTheDocument();
     });
 
     it("renders main element for content", () => {
-      render(
-        <AppShell>
-          <div data-testid="main-content">Main content</div>
-        </AppShell>
-      );
+      renderWithProviders(<div data-testid="main-content">Main content</div>);
 
       const mainElement = screen.getByRole("main");
       expect(mainElement).toBeInTheDocument();
@@ -99,11 +88,7 @@ describe("AppShell", () => {
     });
 
     it("renders bottom navigation for mobile", () => {
-      render(
-        <AppShell>
-          <div>Main content</div>
-        </AppShell>
-      );
+      renderWithProviders(<div>Main content</div>);
 
       const bottomNav = screen.getByRole("navigation", { name: /mobile navigation/i });
       expect(bottomNav).toBeInTheDocument();
@@ -113,11 +98,7 @@ describe("AppShell", () => {
 
   describe("layout structure", () => {
     it("has full-width layout", () => {
-      render(
-        <AppShell>
-          <div data-testid="main-content">Main content</div>
-        </AppShell>
-      );
+      renderWithProviders(<div data-testid="main-content">Main content</div>);
 
       const mainElement = screen.getByRole("main");
       expect(mainElement).toHaveClass("flex-1");
@@ -125,9 +106,11 @@ describe("AppShell", () => {
 
     it("applies noise background pattern", () => {
       const { container } = render(
-        <AppShell>
-          <div>Main content</div>
-        </AppShell>
+        <WalkthroughProvider>
+          <AppShell>
+            <div>Main content</div>
+          </AppShell>
+        </WalkthroughProvider>
       );
 
       const wrapper = container.firstChild as HTMLElement;
@@ -135,11 +118,7 @@ describe("AppShell", () => {
     });
 
     it("has mobile bottom padding to prevent content overlap with bottom nav", () => {
-      render(
-        <AppShell>
-          <div>Main content</div>
-        </AppShell>
-      );
+      renderWithProviders(<div>Main content</div>);
 
       const mainElement = screen.getByRole("main");
       expect(mainElement).toHaveClass("pb-20");

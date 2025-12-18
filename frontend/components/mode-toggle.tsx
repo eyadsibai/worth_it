@@ -29,6 +29,7 @@ export function ModeToggle({ mode, onModeChange }: ModeToggleProps) {
       className="inline-flex p-1 rounded-xl bg-muted/50 border border-border/50"
       role="tablist"
       aria-label="Application mode"
+      data-tour="cap-table-nav"
     >
       {(["employee", "founder"] as const).map((modeKey) => {
         const config = MODE_CONFIG[modeKey];

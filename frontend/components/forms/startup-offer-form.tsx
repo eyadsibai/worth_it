@@ -35,7 +35,7 @@ export function StartupOfferFormComponent({
   }, [value?.equity_type]);
 
   return (
-    <Card className="terminal-card animate-slide-up border-l-4 border-l-primary/50">
+    <Card className="terminal-card animate-slide-up border-l-4 border-l-primary/50" data-tour="startup-offer-card">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-primary"></div>
@@ -45,7 +45,7 @@ export function StartupOfferFormComponent({
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "rsu" | "options")}>
-          <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-lg">
+          <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-lg" data-tour="equity-type-selector">
             <TabsTrigger
               value="rsu"
               className="data-[state=active]:bg-card data-[state=active]:text-card-foreground data-[state=active]:shadow-sm transition-all"

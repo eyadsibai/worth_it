@@ -55,7 +55,7 @@ export function CurrentJobFormComponent({
   }, [watchedValues, form.formState.isValid, onChange]);
 
   return (
-    <Card className="terminal-card animate-slide-up border-l-4 border-l-chart-3/60">
+    <Card className="terminal-card animate-slide-up border-l-4 border-l-chart-3/60" data-tour="current-job-card">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-chart-3"></div>

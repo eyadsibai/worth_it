@@ -5,6 +5,7 @@ import { TrendingUp, Search } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { useCommandPalette } from "@/components/command-palette";
+import { TourLauncher } from "@/components/walkthrough";
 
 export function Header() {
   const { setOpen } = useCommandPalette();
@@ -64,6 +65,7 @@ export function Header() {
             <Search className="h-4 w-4" />
           </Button>
 
+          <TourLauncher />
           <ThemeToggle />
         </div>
       </div>

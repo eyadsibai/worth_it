@@ -263,7 +263,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
       {/* Screen reader announcement for calculation results */}
       <LiveRegion>{announcement}</LiveRegion>
 
-      <div className="space-y-6 animate-fade-in">
+      <div className="space-y-6 animate-fade-in" data-tour="results-section">
         {/* Save and Export Buttons */}
         <div className="flex justify-end gap-2">
           {/* Export Menu */}
