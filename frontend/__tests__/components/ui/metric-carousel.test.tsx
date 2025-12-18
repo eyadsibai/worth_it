@@ -55,7 +55,7 @@ describe("MetricCarousel", () => {
   it("renders dot indicators matching children count", () => {
     render(<MetricCarousel>{mockChildren}</MetricCarousel>);
 
-    const dots = screen.getAllByRole("button", { name: /go to slide/i });
+    const dots = screen.getAllByRole("tab", { name: /go to slide/i });
     expect(dots).toHaveLength(5);
   });
 
@@ -80,14 +80,14 @@ describe("MetricCarousel", () => {
   it("renders with showDots=false", () => {
     render(<MetricCarousel showDots={false}>{mockChildren}</MetricCarousel>);
 
-    const dots = screen.queryAllByRole("button", { name: /go to slide/i });
+    const dots = screen.queryAllByRole("tab", { name: /go to slide/i });
     expect(dots).toHaveLength(0);
   });
 
   it("dots have correct aria labels", () => {
     render(<MetricCarousel>{mockChildren}</MetricCarousel>);
 
-    const dots = screen.getAllByRole("button", { name: /go to slide/i });
+    const dots = screen.getAllByRole("tab", { name: /go to slide/i });
     expect(dots[0]).toHaveAttribute("aria-label", "Go to slide 1");
     expect(dots[4]).toHaveAttribute("aria-label", "Go to slide 5");
   });
@@ -95,9 +95,9 @@ describe("MetricCarousel", () => {
   it("first dot is active by default", () => {
     render(<MetricCarousel>{mockChildren}</MetricCarousel>);
 
-    const dots = screen.getAllByRole("button", { name: /go to slide/i });
-    // First dot should have active styling (aria-current)
-    expect(dots[0]).toHaveAttribute("aria-current", "true");
+    const dots = screen.getAllByRole("tab", { name: /go to slide/i });
+    // First dot should have active styling (aria-selected)
+    expect(dots[0]).toHaveAttribute("aria-selected", "true");
   });
 
   it("renders grid container for cards", () => {
@@ -111,7 +111,7 @@ describe("MetricCarousel", () => {
   it("handles empty children gracefully", () => {
     render(<MetricCarousel>{[]}</MetricCarousel>);
 
-    const dots = screen.queryAllByRole("button", { name: /go to slide/i });
+    const dots = screen.queryAllByRole("tab", { name: /go to slide/i });
     expect(dots).toHaveLength(0);
   });
 
@@ -124,7 +124,7 @@ describe("MetricCarousel", () => {
 
     expect(screen.getByTestId("single-card")).toBeInTheDocument();
     // Should still show 1 dot for single child
-    const dots = screen.getAllByRole("button", { name: /go to slide/i });
+    const dots = screen.getAllByRole("tab", { name: /go to slide/i });
     expect(dots).toHaveLength(1);
   });
 
@@ -134,7 +134,7 @@ describe("MetricCarousel", () => {
 
     render(<MetricCarousel>{mockChildren}</MetricCarousel>);
 
-    const dots = screen.getAllByRole("button", { name: /go to slide/i });
+    const dots = screen.getAllByRole("tab", { name: /go to slide/i });
     fireEvent.click(dots[2]); // Click third dot
 
     // Should attempt to scroll

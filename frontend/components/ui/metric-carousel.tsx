@@ -26,20 +26,35 @@ export function MetricCarousel({
   const childrenArray = React.Children.toArray(children);
   const childCount = childrenArray.length;
 
-  // Track scroll position to update active dot
+  // Track scroll position to update active dot (throttled with rAF for performance)
   React.useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
+    let animationFrameId: number | null = null;
+
     const handleScroll = () => {
-      const scrollLeft = container.scrollLeft;
-      const cardWidth = container.scrollWidth / childCount;
-      const newIndex = Math.round(scrollLeft / cardWidth);
-      setActiveIndex(Math.min(Math.max(newIndex, 0), childCount - 1));
+      // Throttle updates to at most once per animation frame
+      if (animationFrameId !== null) {
+        return;
+      }
+
+      animationFrameId = window.requestAnimationFrame(() => {
+        const scrollLeft = container.scrollLeft;
+        const cardWidth = container.scrollWidth / childCount || 1;
+        const newIndex = Math.round(scrollLeft / cardWidth);
+        setActiveIndex(Math.min(Math.max(newIndex, 0), childCount - 1));
+        animationFrameId = null;
+      });
     };
 
     container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => container.removeEventListener("scroll", handleScroll);
+    return () => {
+      if (animationFrameId !== null) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+      container.removeEventListener("scroll", handleScroll);
+    };
   }, [childCount]);
 
   // Scroll to specific card when dot is clicked
@@ -80,21 +95,21 @@ export function MetricCarousel({
         aria-label="Metrics carousel"
         className={cn(
           // Mobile: horizontal scroll with snap
+          // scrollbar-hide class handles all vendor prefixes for hiding scrollbar
           "flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide",
           // Desktop: grid layout
           "lg:grid lg:grid-cols-5 lg:overflow-visible lg:pb-0 lg:gap-4"
         )}
-        style={{
-          // Hide scrollbar but keep functionality
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-        }}
       >
         {childrenArray.map((child, index) => (
           <div
             key={index}
             className={cn(
-              // Mobile: fixed width cards that snap
+              // Mobile: fixed width cards that snap.
+              // NOTE: The 8px here is half of the container gap (`gap-4` = 16px),
+              // so that two cards fit side-by-side including the gap. If the gap
+              // value in the container changes, this width calculation must be
+              // updated accordingly.
               "flex-shrink-0 w-[calc(50%-8px)] snap-start",
               // Desktop: auto-fill grid
               "lg:w-auto lg:flex-shrink"
@@ -115,9 +130,9 @@ export function MetricCarousel({
           {childrenArray.map((_, index) => (
             <button
               key={index}
-              role="button"
+              role="tab"
               aria-label={`Go to slide ${index + 1}`}
-              aria-current={index === activeIndex ? "true" : undefined}
+              aria-selected={index === activeIndex}
               onClick={() => scrollToIndex(index)}
               className={cn(
                 "w-2 h-2 rounded-full transition-all duration-200",
