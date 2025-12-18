@@ -1,6 +1,6 @@
 /**
  * Tests for AppShell component
- * Tests the main layout wrapper with header and main content area
+ * Tests the main layout wrapper with header, bottom nav, and main content area
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -97,6 +97,18 @@ describe("AppShell", () => {
       expect(mainElement).toBeInTheDocument();
       expect(mainElement).toContainElement(screen.getByTestId("main-content"));
     });
+
+    it("renders bottom navigation for mobile", () => {
+      render(
+        <AppShell>
+          <div>Main content</div>
+        </AppShell>
+      );
+
+      const bottomNav = screen.getByRole("navigation", { name: /mobile navigation/i });
+      expect(bottomNav).toBeInTheDocument();
+      expect(bottomNav).toHaveClass("md:hidden");
+    });
   });
 
   describe("layout structure", () => {
@@ -120,6 +132,17 @@ describe("AppShell", () => {
 
       const wrapper = container.firstChild as HTMLElement;
       expect(wrapper).toHaveClass("bg-noise");
+    });
+
+    it("has mobile bottom padding to prevent content overlap with bottom nav", () => {
+      render(
+        <AppShell>
+          <div>Main content</div>
+        </AppShell>
+      );
+
+      const mainElement = screen.getByRole("main");
+      expect(mainElement).toHaveClass("pb-20");
     });
   });
 });
