@@ -23,6 +23,13 @@ export const metadata: Metadata = {
   description: "Analyze startup job offers with comprehensive financial modeling",
 };
 
+// Required for safe-area CSS utilities (env(safe-area-inset-*)) on devices with notches
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
