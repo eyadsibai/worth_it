@@ -14,13 +14,12 @@ import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { stats, recentScenarios, isLoading, refresh } = useDashboardStats();
+  const { stats, recentScenarios, isLoading } = useDashboardStats();
 
   const {
     setAppMode,
     setGlobalSettings,
     setCurrentJob,
-    setEquityDetails,
     setCapTable,
     setInstruments,
     setPreferenceTiers,
@@ -94,7 +93,6 @@ export default function DashboardPage() {
       setPreferenceTiers,
       setGlobalSettings,
       setCurrentJob,
-      setEquityDetails,
       router,
     ]
   );

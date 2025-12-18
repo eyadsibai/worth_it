@@ -40,6 +40,21 @@ function formatRelativeTime(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
+
+  // Handle future dates explicitly (e.g., clock skew or manipulation)
+  if (diffMs < 0) {
+    const futureMs = Math.abs(diffMs);
+    const futureMins = Math.floor(futureMs / 60000);
+    const futureHours = Math.floor(futureMs / 3600000);
+    const futureDays = Math.floor(futureMs / 86400000);
+
+    if (futureMins < 1) return "In a few seconds";
+    if (futureMins < 60) return `In ${futureMins}m`;
+    if (futureHours < 24) return `In ${futureHours}h`;
+    if (futureDays < 7) return `In ${futureDays}d`;
+    return date.toLocaleDateString();
+  }
+
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);

@@ -113,18 +113,20 @@ export function useDashboardStats(): UseDashboardStatsReturn {
           : 0;
 
       // Find best opportunity (highest net benefit among employee scenarios)
+      // Only surface a "best opportunity" when it has a positive net benefit.
       const bestEmployeeScenario = employeePreviews.length > 0
         ? employeePreviews.reduce((best, current) =>
             current.netBenefit > best.netBenefit ? current : best
           )
         : null;
 
-      const bestOpportunity = bestEmployeeScenario
-        ? {
-            name: bestEmployeeScenario.name,
-            netBenefit: bestEmployeeScenario.netBenefit,
-          }
-        : null;
+      const bestOpportunity =
+        bestEmployeeScenario && bestEmployeeScenario.netBenefit > 0
+          ? {
+              name: bestEmployeeScenario.name,
+              netBenefit: bestEmployeeScenario.netBenefit,
+            }
+          : null;
 
       // Combine and sort all scenarios by date (most recent first)
       const allPreviews: ScenarioPreview[] = [

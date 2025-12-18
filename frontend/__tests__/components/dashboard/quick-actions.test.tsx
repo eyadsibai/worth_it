@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 
 describe("QuickActions", () => {
@@ -7,7 +7,6 @@ describe("QuickActions", () => {
   const mockOnNewFounderAnalysis = vi.fn();
   const mockOnLoadExample = vi.fn();
   const mockOnCompareAll = vi.fn();
-  const mockOnExportSummary = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
