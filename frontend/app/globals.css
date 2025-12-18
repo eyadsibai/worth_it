@@ -512,6 +512,27 @@
   .no-print {
     /* Visible on screen, hidden on print - see @media print below */
   }
+
+  /*
+   * .print-include - Use this class on buttons/interactive elements that should
+   * remain visible when printing (e.g., labeled action indicators or export buttons
+   * in printed reports). By default, all buttons are hidden during print.
+   *
+   * Example: <button className="print-include">Download PDF</button>
+   */
+  .print-include {
+    /* Marker class - prevents element from being hidden during print */
+  }
+
+  /*
+   * .no-print-url - Use on links where the URL should NOT be displayed after
+   * the link text when printing.
+   *
+   * Example: <a href="https://example.com" className="no-print-url">Click here</a>
+   */
+  .no-print-url {
+    /* Marker class - prevents URL from being shown in print */
+  }
 }
 
 /* =============================================================================
@@ -624,22 +645,22 @@
   .glass-card,
   [class*="rounded-2xl"] {
     box-shadow: none !important;
-    border: 1px solid #e5e7eb !important;
+    border: 1px solid var(--border) !important;
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  /* Ensure cards have visible boundaries */
-  .bg-card,
-  .bg-white {
+  /* Ensure cards have visible boundaries (exclude cards with specific card classes to avoid double borders) */
+  .bg-card:not(.terminal-card):not(.glass-card),
+  .bg-white:not(.terminal-card):not(.glass-card) {
     background: white !important;
-    border: 1px solid #e5e7eb !important;
+    border: 1px solid var(--border) !important;
   }
 
   /* Data cards should be clearly separated */
   .data-card {
     background: #f9fafb !important;
-    border: 1px solid #e5e7eb !important;
+    border: 1px solid var(--border) !important;
   }
 
   /* -------------------------------------------------------------------------
@@ -697,7 +718,7 @@
   }
 
   th, td {
-    border: 1px solid #e5e7eb !important;
+    border: 1px solid var(--border) !important;
     padding: 8px !important;
     text-align: left !important;
   }
@@ -716,18 +737,19 @@
   }
 
   /* -------------------------------------------------------------------------
-     Links - show URL for reference
+     Links - show URL for reference (scoped to main content)
      ------------------------------------------------------------------------- */
-  a[href^="http"]:after {
+  main a[href^="http"]:not(.no-print-url):after {
     content: " (" attr(href) ")";
     font-size: 9pt;
     color: #6b7280;
   }
 
-  /* Don't show URL for internal links or buttons styled as links */
-  a[href^="#"]:after,
-  a[href^="/"]:after,
-  button a:after {
+  /* Don't show URL for internal links or buttons styled as links within main content */
+  main a[href^="#"]:after,
+  main a[href^="/"]:after,
+  main button a:after,
+  main a.no-print-url:after {
     content: none;
   }
 
@@ -771,26 +793,31 @@
 
   /* -------------------------------------------------------------------------
      Grid layout adjustments for print
+
+     Strategy: Only collapse single-column or unspecified grids to block layout.
+     Multi-column grids (grid-cols-2, grid-cols-3, etc.) are preserved.
      ------------------------------------------------------------------------- */
-  .grid {
+
+  /* Collapse single-column grids to block layout */
+  .grid:not([class*="grid-cols-"]):not([class*=":grid-cols-"]) {
     display: block !important;
   }
 
-  .grid > * {
+  .grid:not([class*="grid-cols-"]):not([class*=":grid-cols-"]) > * {
     margin-bottom: 16px !important;
   }
 
   /* Keep 2-column grids for side-by-side comparison */
   .grid-cols-2,
-  .md\\:grid-cols-2,
-  .lg\\:grid-cols-2 {
+  .md\:grid-cols-2,
+  .lg\:grid-cols-2 {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     gap: 16px !important;
   }
 
-  /* Metric cards - 3 columns for print */
-  .lg\\:grid-cols-5 {
+  /* Metric cards - 3 columns for print (reduces 5-col to 3 for better fit on A4) */
+  .lg\:grid-cols-5 {
     display: grid !important;
     grid-template-columns: repeat(3, 1fr) !important;
     gap: 12px !important;
@@ -826,15 +853,29 @@
 
   /* -------------------------------------------------------------------------
      Footer with print timestamp
+
+     Note: The data-print-date attribute should be set via JavaScript before
+     printing. If using window.print(), add a beforeprint event listener:
+
+       window.addEventListener('beforeprint', () => {
+         document.body.setAttribute('data-print-date', new Date().toLocaleDateString());
+       });
+
+     If no data-print-date is set, only "Printed from Worth It" will display.
      ------------------------------------------------------------------------- */
   body::after {
-    content: "Printed from Worth It - " attr(data-print-date);
+    content: "Printed from Worth It";
     display: block;
     text-align: center;
     font-size: 9pt;
     color: #9ca3af;
     margin-top: 24px;
     padding-top: 12px;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Show date if data-print-date attribute is set */
+  body[data-print-date]::after {
+    content: "Printed from Worth It - " attr(data-print-date);
   }
 }
