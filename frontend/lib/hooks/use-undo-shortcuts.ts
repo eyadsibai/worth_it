@@ -35,14 +35,18 @@ export function useUndoShortcuts({
         return;
       }
 
-      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+      // Use modern userAgentData API with fallback to deprecated navigator.platform
+      const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
+      const platform = nav.userAgentData?.platform ?? navigator.platform ?? "";
+      const isMac = /mac/i.test(platform) || navigator.userAgent?.includes("Mac");
       const modifier = isMac ? event.metaKey : event.ctrlKey;
 
       if (!modifier) return;
 
       // Redo: Cmd/Ctrl+Shift+Z or Cmd/Ctrl+Y
+      // Note: With Shift pressed, event.key returns uppercase "Z"
       if (
-        (event.key === "z" && event.shiftKey) ||
+        (event.key.toLowerCase() === "z" && event.shiftKey) ||
         event.key === "y"
       ) {
         event.preventDefault();

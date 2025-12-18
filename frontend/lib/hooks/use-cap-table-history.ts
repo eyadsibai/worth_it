@@ -59,6 +59,14 @@ export function useCapTableHistory({
   const isRestoringRef = useRef(false);
   const initializedRef = useRef(false);
 
+  // Subscribe to reactive state using selectors for proper reactivity
+  const canUndo = useHistoryStore((state) => state.past.length > 0);
+  const canRedo = useHistoryStore((state) => state.future.length > 0);
+  const undoLabel = useHistoryStore((state) => state.presentLabel);
+  const redoLabel = useHistoryStore((state) =>
+    state.future.length > 0 ? state.future[0]?.label ?? null : null
+  );
+
   // Initialize history with current state (only once)
   useEffect(() => {
     if (!initializedRef.current && capTable.stakeholders.length > 0) {
@@ -177,10 +185,11 @@ export function useCapTableHistory({
     setAll,
     undo,
     redo,
-    canUndo: historyStore.canUndo(),
-    canRedo: historyStore.canRedo(),
-    undoLabel: historyStore.getUndoLabel(),
-    redoLabel: historyStore.getRedoLabel(),
+    // These values are now reactive via Zustand selectors defined above
+    canUndo,
+    canRedo,
+    undoLabel,
+    redoLabel,
     clearHistory: historyStore.clear,
   };
 }

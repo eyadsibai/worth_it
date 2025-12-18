@@ -31,9 +31,14 @@ export function UndoRedoControls({
   className,
   size = "sm",
 }: UndoRedoControlsProps) {
+  // Use modern userAgentData API with fallback to deprecated navigator.platform
   const isMac =
     typeof navigator !== "undefined" &&
-    navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+    (() => {
+      const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
+      const platform = nav.userAgentData?.platform ?? navigator.platform ?? "";
+      return /mac/i.test(platform) || navigator.userAgent?.includes("Mac");
+    })();
   const modifierKey = isMac ? "⌘" : "Ctrl+";
 
   return (

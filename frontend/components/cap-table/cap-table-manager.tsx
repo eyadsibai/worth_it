@@ -63,7 +63,7 @@ export function CapTableManager({
   const {
     setCapTable,
     setInstruments,
-    setPreferenceTiers,
+    // setPreferenceTiers - available but not currently used
     setAll,
     undo,
     redo,
