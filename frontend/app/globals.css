@@ -491,16 +491,350 @@
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  
+
   .pt-safe {
     padding-top: env(safe-area-inset-top, 0px);
   }
-  
+
   .pl-safe {
     padding-left: env(safe-area-inset-left, 0px);
   }
-  
+
   .pr-safe {
     padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  /* Print visibility utilities */
+  .print-only {
+    display: none !important;
+  }
+
+  .no-print {
+    /* Visible on screen, hidden on print - see @media print below */
+  }
+}
+
+/* =============================================================================
+   PRINT STYLES
+   ============================================================================= */
+
+@media print {
+  /* -------------------------------------------------------------------------
+     Reset to light theme colors for printing
+     ------------------------------------------------------------------------- */
+  :root {
+    --background: oklch(100% 0 0) !important;
+    --foreground: oklch(15% 0.01 250) !important;
+    --card: oklch(100% 0 0) !important;
+    --card-foreground: oklch(15% 0.01 250) !important;
+    --muted: oklch(96% 0.003 250) !important;
+    --muted-foreground: oklch(40% 0.01 250) !important;
+    --border: oklch(85% 0.003 250) !important;
+  }
+
+  /* Force light mode regardless of user preference */
+  .dark {
+    --background: oklch(100% 0 0) !important;
+    --foreground: oklch(15% 0.01 250) !important;
+    --card: oklch(100% 0 0) !important;
+    --card-foreground: oklch(15% 0.01 250) !important;
+    --muted: oklch(96% 0.003 250) !important;
+    --muted-foreground: oklch(40% 0.01 250) !important;
+    --border: oklch(85% 0.003 250) !important;
+  }
+
+  /* -------------------------------------------------------------------------
+     Hide UI chrome and interactive elements
+     ------------------------------------------------------------------------- */
+  header,
+  nav,
+  .no-print,
+  [role="navigation"],
+  [data-bottom-nav],
+  button:not(.print-include),
+  [role="button"]:not(.print-include),
+  .skip-link,
+  [data-radix-popper-content-wrapper],
+  [data-radix-portal],
+  .command-palette,
+  .toast,
+  [role="dialog"],
+  [role="alertdialog"],
+  input[type="range"],
+  .slider,
+  [role="slider"] {
+    display: none !important;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  /* -------------------------------------------------------------------------
+     Page setup
+     ------------------------------------------------------------------------- */
+  @page {
+    size: A4;
+    margin: 1.5cm 1cm;
+  }
+
+  @page :first {
+    margin-top: 1cm;
+  }
+
+  /* -------------------------------------------------------------------------
+     Body and layout
+     ------------------------------------------------------------------------- */
+  html {
+    font-size: 11pt;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+    line-height: 1.4;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Remove fixed positioning and overflow constraints */
+  .min-h-screen,
+  .overflow-hidden,
+  .overflow-auto {
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Reset padding that was for fixed headers */
+  .pt-14 {
+    padding-top: 0 !important;
+  }
+
+  /* Remove bottom padding for mobile nav */
+  .pb-20 {
+    padding-bottom: 0 !important;
+  }
+
+  /* -------------------------------------------------------------------------
+     Cards and containers
+     ------------------------------------------------------------------------- */
+  .terminal-card,
+  .glass-card,
+  [class*="rounded-2xl"] {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Ensure cards have visible boundaries */
+  .bg-card,
+  .bg-white {
+    background: white !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  /* Data cards should be clearly separated */
+  .data-card {
+    background: #f9fafb !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  /* -------------------------------------------------------------------------
+     Typography adjustments
+     ------------------------------------------------------------------------- */
+  h1 {
+    font-size: 18pt !important;
+  }
+
+  h2 {
+    font-size: 14pt !important;
+  }
+
+  h3 {
+    font-size: 12pt !important;
+  }
+
+  /* Ensure data values are readable */
+  .data-value,
+  .data-value-lg {
+    font-size: 14pt !important;
+  }
+
+  /* Muted text should still be readable */
+  .text-muted-foreground,
+  .currency-decimal {
+    color: #4b5563 !important;
+  }
+
+  /* -------------------------------------------------------------------------
+     Charts and visualizations
+     ------------------------------------------------------------------------- */
+  .recharts-wrapper,
+  .recharts-surface,
+  svg {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    max-width: 100% !important;
+  }
+
+  /* Ensure chart colors print correctly */
+  .recharts-bar-rectangle,
+  .recharts-line,
+  .recharts-area {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* -------------------------------------------------------------------------
+     Tables
+     ------------------------------------------------------------------------- */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  th, td {
+    border: 1px solid #e5e7eb !important;
+    padding: 8px !important;
+    text-align: left !important;
+  }
+
+  th {
+    background: #f9fafb !important;
+    font-weight: 600 !important;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  /* -------------------------------------------------------------------------
+     Links - show URL for reference
+     ------------------------------------------------------------------------- */
+  a[href^="http"]:after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    color: #6b7280;
+  }
+
+  /* Don't show URL for internal links or buttons styled as links */
+  a[href^="#"]:after,
+  a[href^="/"]:after,
+  button a:after {
+    content: none;
+  }
+
+  /* -------------------------------------------------------------------------
+     Page break utilities
+     ------------------------------------------------------------------------- */
+  .page-break-before {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+
+  .page-break-after {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* -------------------------------------------------------------------------
+     Remove animations and transitions
+     ------------------------------------------------------------------------- */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .page-enter,
+  .animate-slide-up,
+  .animate-scale-in,
+  .animate-fade-in,
+  .animate-glow-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* -------------------------------------------------------------------------
+     Grid layout adjustments for print
+     ------------------------------------------------------------------------- */
+  .grid {
+    display: block !important;
+  }
+
+  .grid > * {
+    margin-bottom: 16px !important;
+  }
+
+  /* Keep 2-column grids for side-by-side comparison */
+  .grid-cols-2,
+  .md\\:grid-cols-2,
+  .lg\\:grid-cols-2 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Metric cards - 3 columns for print */
+  .lg\\:grid-cols-5 {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* -------------------------------------------------------------------------
+     Form fields - show values, hide inputs
+     ------------------------------------------------------------------------- */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+
+  /* Hide form controls that don't make sense on print */
+  .form-control,
+  [class*="Select"] {
+    border: none !important;
+    background: transparent !important;
+  }
+
+  /* -------------------------------------------------------------------------
+     Status indicators and badges
+     ------------------------------------------------------------------------- */
+  .bg-terminal\\/20,
+  .bg-destructive\\/20,
+  .bg-amber-100 {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* -------------------------------------------------------------------------
+     Footer with print timestamp
+     ------------------------------------------------------------------------- */
+  body::after {
+    content: "Printed from Worth It - " attr(data-print-date);
+    display: block;
+    text-align: center;
+    font-size: 9pt;
+    color: #9ca3af;
+    margin-top: 24px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
   }
 }
