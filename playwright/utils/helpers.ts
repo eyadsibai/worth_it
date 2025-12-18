@@ -323,20 +323,20 @@ export class WorthItHelpers {
    */
   async dismissWelcomeDialog() {
     try {
-      // Wait for either the Skip button or for the dialog to not appear
+      // Wait for the Skip button to appear (with timeout for when dialog doesn't show)
       const skipButton = this.page.getByRole('button', { name: 'Skip' });
-      const isVisible = await skipButton.isVisible({ timeout: 3000 }).catch(() => false);
+      await skipButton.waitFor({ state: 'visible', timeout: 3000 });
 
-      if (isVisible) {
-        await skipButton.click();
-        // Wait for the dialog overlay to disappear
-        await this.page.locator('[data-slot="dialog-overlay"]').waitFor({
-          state: 'hidden',
-          timeout: 5000
-        }).catch(() => {});
-      }
+      // Click the skip button to dismiss the dialog
+      await skipButton.click();
+
+      // Wait for the dialog to fully close
+      await this.page.locator('[data-slot="dialog-overlay"]').waitFor({
+        state: 'hidden',
+        timeout: 5000
+      }).catch(() => {});
     } catch {
-      // Dialog not present, continue
+      // Dialog not present or already dismissed, continue
     }
   }
 }

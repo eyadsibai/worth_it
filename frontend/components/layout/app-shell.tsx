@@ -26,14 +26,10 @@ export function AppShell({ children }: AppShellProps) {
     window.scrollTo({ top: window.innerHeight * 0.6, behavior: "smooth" });
   }, []);
 
-  // Save scenario - trigger command palette with save action
-  const handleSaveClick = React.useCallback(() => {
-    // Open command palette which has save functionality
-    openCommandPalette(true);
-  }, [openCommandPalette]);
-
-  // More menu - open command palette for additional options
-  const handleMoreClick = React.useCallback(() => {
+  // Open command palette - shared by Save and More buttons
+  // These are separate callbacks intentionally for future differentiation
+  // (e.g., Save could pre-select "save scenario", More could show all commands)
+  const handleCommandPalette = React.useCallback(() => {
     openCommandPalette(true);
   }, [openCommandPalette]);
 
@@ -53,8 +49,8 @@ export function AppShell({ children }: AppShellProps) {
         activeSection={activeSection}
         onFormsClick={handleFormsClick}
         onResultsClick={handleResultsClick}
-        onSaveClick={handleSaveClick}
-        onMoreClick={handleMoreClick}
+        onSaveClick={handleCommandPalette}
+        onMoreClick={handleCommandPalette}
       />
     </div>
   );
