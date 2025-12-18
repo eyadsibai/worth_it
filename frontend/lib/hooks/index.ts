@@ -14,3 +14,4 @@ export {
 } from "./use-form-status";
 export { useSidebarFormStatus } from "./use-sidebar-form-status";
 export { useChartColors, CHART_TOOLTIP_STYLES, type ChartColors } from "./use-chart-colors";
+export { useDashboardStats } from "./use-dashboard-stats";
