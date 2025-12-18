@@ -315,4 +315,28 @@ export class WorthItHelpers {
     const data = await response.json();
     expect(data.status).toBe('healthy');
   }
+
+  /**
+   * Dismiss the welcome dialog if present
+   * The app shows a welcome dialog on first visit that needs to be dismissed
+   * before interacting with other UI elements
+   */
+  async dismissWelcomeDialog() {
+    try {
+      // Wait for the Skip button to appear (with timeout for when dialog doesn't show)
+      const skipButton = this.page.getByRole('button', { name: 'Skip' });
+      await skipButton.waitFor({ state: 'visible', timeout: 3000 });
+
+      // Click the skip button to dismiss the dialog
+      await skipButton.click();
+
+      // Wait for the dialog to fully close
+      await this.page.locator('[data-slot="dialog-overlay"]').waitFor({
+        state: 'hidden',
+        timeout: 5000
+      }).catch(() => {});
+    } catch {
+      // Dialog not present or already dismissed, continue
+    }
+  }
 }
