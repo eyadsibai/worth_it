@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, Users, Landmark, PieChart, BarChart3 } from "lucide-react";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { UndoRedoControls } from "@/components/ui/undo-redo-controls";
 import { StakeholderForm } from "./stakeholder-form";
 import { OwnershipChart } from "./ownership-chart";
 import { ExitCalculator } from "./exit-calculator";
@@ -25,6 +26,7 @@ import {
 } from "@/lib/motion";
 import { generateId } from "@/lib/utils";
 import { useConvertInstruments } from "@/lib/api-client";
+import { useCapTableHistory } from "@/lib/hooks";
 import type {
   Stakeholder,
   StakeholderFormData,
@@ -57,6 +59,27 @@ export function CapTableManager({
   const [activeSection, setActiveSection] = React.useState<"cap-table" | "funding" | "waterfall">("cap-table");
   const convertInstruments = useConvertInstruments();
 
+  // Wrap state changes with undo/redo history tracking
+  const {
+    setCapTable,
+    setInstruments,
+    setPreferenceTiers,
+    setAll,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    undoLabel,
+    redoLabel,
+  } = useCapTableHistory({
+    capTable,
+    instruments,
+    preferenceTiers,
+    onCapTableChange,
+    onInstrumentsChange,
+    onPreferenceTiersChange,
+  });
+
   // Handle automatic conversion when a priced round is added
   const handlePricedRoundAdded = React.useCallback(
     (round: PricedRound) => {
@@ -86,7 +109,7 @@ export function CapTableManager({
         {
           onSuccess: (result) => {
             // Update cap table with new stakeholders from conversion
-            onCapTableChange(result.updated_cap_table);
+            setCapTable(result.updated_cap_table, `Convert instruments for ${round.round_name}`);
 
             // Mark converted instruments as "converted"
             const convertedIds = new Set(
@@ -98,7 +121,7 @@ export function CapTableManager({
               }
               return inst;
             });
-            onInstrumentsChange(updatedInstruments);
+            setInstruments(updatedInstruments, "Mark instruments as converted");
 
             // Log success (toast can be added later)
             console.log(
@@ -114,7 +137,7 @@ export function CapTableManager({
         }
       );
     },
-    [capTable, instruments, convertInstruments, onCapTableChange, onInstrumentsChange]
+    [capTable, instruments, convertInstruments, setCapTable, setInstruments]
   );
 
   const handleAddStakeholder = (formData: StakeholderFormData) => {
@@ -135,38 +158,56 @@ export function CapTableManager({
         : undefined,
     };
 
-    onCapTableChange({
-      ...capTable,
-      stakeholders: [...capTable.stakeholders, newStakeholder],
-    });
+    setCapTable(
+      {
+        ...capTable,
+        stakeholders: [...capTable.stakeholders, newStakeholder],
+      },
+      `Add ${formData.name}`
+    );
   };
 
   const handleRemoveStakeholder = (id: string) => {
-    onCapTableChange({
-      ...capTable,
-      stakeholders: capTable.stakeholders.filter((s) => s.id !== id),
-    });
+    const stakeholder = capTable.stakeholders.find((s) => s.id === id);
+    setCapTable(
+      {
+        ...capTable,
+        stakeholders: capTable.stakeholders.filter((s) => s.id !== id),
+      },
+      `Remove ${stakeholder?.name || "stakeholder"}`
+    );
   };
 
   const handleOptionPoolChange = (value: number[]) => {
-    onCapTableChange({
-      ...capTable,
-      option_pool_pct: value[0],
-    });
+    setCapTable(
+      {
+        ...capTable,
+        option_pool_pct: value[0],
+      },
+      `Set option pool to ${value[0]}%`
+    );
   };
 
   const handleAddInstrument = (instrument: FundingInstrument) => {
-    onInstrumentsChange([...instruments, instrument]);
+    const instrumentName = "name" in instrument ? instrument.name : `${instrument.type} instrument`;
+    setInstruments([...instruments, instrument], `Add ${instrumentName}`);
   };
 
   const handleRemoveInstrument = (id: string) => {
-    onInstrumentsChange(instruments.filter((i) => i.id !== id));
+    const instrument = instruments.find((i) => i.id === id);
+    const instrumentName = instrument && "name" in instrument ? instrument.name : "instrument";
+    setInstruments(instruments.filter((i) => i.id !== id), `Remove ${instrumentName}`);
   };
 
   const handleLoadScenario = (scenario: FounderScenario) => {
-    onCapTableChange(scenario.capTable);
-    onInstrumentsChange(scenario.instruments);
-    onPreferenceTiersChange(scenario.preferenceTiers);
+    setAll(
+      {
+        capTable: scenario.capTable,
+        instruments: scenario.instruments,
+        preferenceTiers: scenario.preferenceTiers,
+      },
+      `Load ${scenario.name}`
+    );
   };
 
   const totalOwnership =
@@ -207,10 +248,20 @@ export function CapTableManager({
             Waterfall
           </TabsTrigger>
         </TabsList>
-          <ExportMenu
-            capTable={capTable}
-            instruments={instruments}
-          />
+          <div className="flex items-center gap-2">
+            <UndoRedoControls
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onUndo={undo}
+              onRedo={redo}
+              undoLabel={undoLabel}
+              redoLabel={redoLabel}
+            />
+            <ExportMenu
+              capTable={capTable}
+              instruments={instruments}
+            />
+          </div>
         </div>
 
         <TabsContent value="cap-table" className="space-y-6 mt-6">
