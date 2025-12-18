@@ -234,6 +234,20 @@ export function SliderField({
   formatValue,
   warningContext,
 }: SliderFieldProps) {
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editValue, setEditValue] = React.useState("");
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  // Track if edit was cancelled to prevent blur handler from applying changes
+  const editCancelledRef = React.useRef(false);
+
+  // Focus input when entering edit mode (React-idiomatic approach)
+  React.useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
   return (
     <FormField
       control={form.control}
@@ -241,6 +255,61 @@ export function SliderField({
       render={({ field, fieldState }) => {
         const warning = getFieldWarning(name, field.value, warningContext);
         const hasWarning = !!warning && !fieldState.error;
+
+        const handleDecrement = () => {
+          const newValue = Math.max(min, field.value - step);
+          field.onChange(newValue);
+        };
+
+        const handleIncrement = () => {
+          const newValue = Math.min(max, field.value + step);
+          field.onChange(newValue);
+        };
+
+        const handleEditClick = () => {
+          editCancelledRef.current = false;
+          setEditValue(String(field.value));
+          setIsEditing(true);
+        };
+
+        // Helper to parse and clamp value (eliminates duplication)
+        const commitValue = () => {
+          // Handle empty or whitespace-only input - keep previous value
+          if (editValue.trim() === "") {
+            setIsEditing(false);
+            return;
+          }
+          const parsed = Number(editValue);
+          // Handle invalid (non-numeric) input - keep previous value
+          if (isNaN(parsed)) {
+            setIsEditing(false);
+            return;
+          }
+          const clamped = Math.max(min, Math.min(max, parsed));
+          field.onChange(clamped);
+          setIsEditing(false);
+        };
+
+        const handleInputBlur = () => {
+          // Don't apply changes if edit was cancelled (Escape key)
+          if (editCancelledRef.current) {
+            editCancelledRef.current = false;
+            return;
+          }
+          commitValue();
+        };
+
+        const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commitValue();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            // Mark as cancelled so blur handler doesn't apply changes
+            editCancelledRef.current = true;
+            setIsEditing(false);
+          }
+        };
 
         return (
           <FormItem>
@@ -255,9 +324,51 @@ export function SliderField({
                   isDirty={fieldState.isDirty}
                 />
               </div>
-              <span className="text-sm font-medium">
-                {formatValue ? formatValue(field.value) : field.value}
-              </span>
+              {/* Touch-friendly value controls */}
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleDecrement}
+                  disabled={field.value <= min}
+                  aria-label={`Decrease ${label}`}
+                  className="flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 touch-target"
+                >
+                  −
+                </button>
+                {isEditing ? (
+                  <input
+                    ref={inputRef}
+                    type="number"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={handleInputBlur}
+                    onKeyDown={handleInputKeyDown}
+                    min={min}
+                    max={max}
+                    step={step}
+                    className="h-8 w-16 rounded-md border border-input bg-background px-2 text-center text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring"
+                    aria-label={`${label} value`}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleEditClick}
+                    aria-label={`Edit ${label} value`}
+                    className="h-8 min-w-[4rem] rounded-md border border-input bg-background px-2 text-center text-sm font-medium hover:bg-accent hover:text-accent-foreground touch-target"
+                  >
+                    {formatValue ? formatValue(field.value) : field.value}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleIncrement}
+                  disabled={field.value >= max}
+                  aria-label={`Increase ${label}`}
+                  className="flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 touch-target"
+                >
+                  +
+                </button>
+              </div>
             </div>
             <FormControl>
               <Slider
