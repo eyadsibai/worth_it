@@ -116,27 +116,38 @@ export function Spotlight({
   React.useEffect(() => {
     if (!isOpen || !step) return;
 
-    const findTarget = () => {
+    // Only measure and update the target's bounding rect.
+    // This function is safe to use as a scroll/resize handler (no side effects that trigger more scroll events).
+    const updateTargetRect = () => {
       const target = document.querySelector(step.target);
       if (target) {
         const rect = target.getBoundingClientRect();
         setTargetRect(rect);
-
-        // Scroll element into view if needed
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
       } else {
         setTargetRect(null);
       }
     };
 
-    findTarget();
-    // Re-find on resize
-    window.addEventListener("resize", findTarget);
-    window.addEventListener("scroll", findTarget);
+    // Scroll the element into view once when the step opens/changes.
+    // This is separate from updateTargetRect to prevent infinite scroll loops.
+    const scrollToTarget = () => {
+      const target = document.querySelector(step.target);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    };
+
+    // Initial update and scroll
+    updateTargetRect();
+    scrollToTarget();
+
+    // Re-find rect on resize/scroll (but don't scroll again)
+    window.addEventListener("resize", updateTargetRect);
+    window.addEventListener("scroll", updateTargetRect);
 
     return () => {
-      window.removeEventListener("resize", findTarget);
-      window.removeEventListener("scroll", findTarget);
+      window.removeEventListener("resize", updateTargetRect);
+      window.removeEventListener("scroll", updateTargetRect);
     };
   }, [isOpen, step]);
 

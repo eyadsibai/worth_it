@@ -1,5 +1,5 @@
-import { render, screen, act, renderHook } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { act, renderHook } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { WalkthroughProvider, useWalkthrough } from "@/lib/walkthrough/context";
 import { tours } from "@/lib/walkthrough/tours";
 
