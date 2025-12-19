@@ -7,7 +7,6 @@ import { Form } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Calculator, TrendingUp, DollarSign, Target, Loader2 } from "lucide-react";
 import { RevenueMultipleForm } from "./revenue-multiple-form";
 import { DCFForm } from "./dcf-form";
@@ -219,17 +218,6 @@ export function ValuationCalculator() {
       });
     } catch (error) {
       console.error("Comparison failed:", error);
-    }
-  };
-
-  const getActiveForm = () => {
-    switch (activeMethod) {
-      case "revenue_multiple":
-        return revenueMultipleForm;
-      case "dcf":
-        return dcfForm;
-      case "vc_method":
-        return vcMethodForm;
     }
   };
 
