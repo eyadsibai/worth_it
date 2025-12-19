@@ -131,6 +131,44 @@ describe("apiClient", () => {
 });
 
 // =============================================================================
+// WebSocket URL Protocol Detection Tests
+// =============================================================================
+
+describe("getWebSocketURL", () => {
+  // We test the exported pure function
+  it("returns ws:// for http: protocol", async () => {
+    const { getWebSocketURL } = await import("@/lib/api-client");
+    const url = getWebSocketURL("http:", "localhost:3000");
+    expect(url).toBe("ws://localhost:3000");
+  });
+
+  it("returns wss:// for https: protocol", async () => {
+    const { getWebSocketURL } = await import("@/lib/api-client");
+    const url = getWebSocketURL("https:", "myapp.vercel.app");
+    expect(url).toBe("wss://myapp.vercel.app");
+  });
+
+  it("returns ws://localhost:8000 when protocol is empty (SSR fallback)", async () => {
+    const { getWebSocketURL } = await import("@/lib/api-client");
+    const url = getWebSocketURL("", "");
+    expect(url).toBe("ws://localhost:8000");
+  });
+
+  it("uses backend port override when provided", async () => {
+    const { getWebSocketURL } = await import("@/lib/api-client");
+    // When frontend is on :3000, we need to connect to backend on :8000
+    const url = getWebSocketURL("http:", "localhost:3000", 8000);
+    expect(url).toBe("ws://localhost:8000");
+  });
+
+  it("does not override port in production URLs", async () => {
+    const { getWebSocketURL } = await import("@/lib/api-client");
+    const url = getWebSocketURL("https:", "api.example.com");
+    expect(url).toBe("wss://api.example.com");
+  });
+});
+
+// =============================================================================
 // WebSocket Hook Tests
 // =============================================================================
 
