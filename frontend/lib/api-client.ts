@@ -33,6 +33,12 @@ import type {
   DilutionPreviewResponse,
   ScenarioComparisonRequest,
   ScenarioComparisonResponse,
+  RevenueMultipleRequest,
+  DCFRequest,
+  VCMethodRequest,
+  ValuationResult,
+  ValuationCompareRequest,
+  ValuationCompareResponse,
 } from "./schemas";
 
 // ============================================================================
@@ -200,6 +206,50 @@ class APIClient {
     return data;
   }
 
+  // ============================================================================
+  // Valuation Calculator Methods
+  // ============================================================================
+
+  // Revenue Multiple Valuation
+  async calculateRevenueMultiple(
+    request: RevenueMultipleRequest
+  ): Promise<ValuationResult> {
+    const { data } = await this.client.post<ValuationResult>(
+      "/api/valuation/revenue-multiple",
+      request
+    );
+    return data;
+  }
+
+  // DCF (Discounted Cash Flow) Valuation
+  async calculateDCF(request: DCFRequest): Promise<ValuationResult> {
+    const { data } = await this.client.post<ValuationResult>(
+      "/api/valuation/dcf",
+      request
+    );
+    return data;
+  }
+
+  // VC Method Valuation
+  async calculateVCMethod(request: VCMethodRequest): Promise<ValuationResult> {
+    const { data } = await this.client.post<ValuationResult>(
+      "/api/valuation/vc-method",
+      request
+    );
+    return data;
+  }
+
+  // Compare Multiple Valuation Methods
+  async compareValuations(
+    request: ValuationCompareRequest
+  ): Promise<ValuationCompareResponse> {
+    const { data } = await this.client.post<ValuationCompareResponse>(
+      "/api/valuation/compare",
+      request
+    );
+    return data;
+  }
+
   // WebSocket URL for Monte Carlo
   getMonteCarloWebSocketURL(): string {
     return `${this.wsURL}/ws/monte-carlo`;
@@ -312,6 +362,41 @@ export function useCompareScenarios() {
   return useMutation({
     mutationFn: (request: ScenarioComparisonRequest) =>
       apiClient.compareScenarios(request),
+  });
+}
+
+// ============================================================================
+// Valuation Calculator Hooks
+// ============================================================================
+
+// Revenue Multiple Valuation
+export function useCalculateRevenueMultiple() {
+  return useMutation({
+    mutationFn: (request: RevenueMultipleRequest) =>
+      apiClient.calculateRevenueMultiple(request),
+  });
+}
+
+// DCF (Discounted Cash Flow) Valuation
+export function useCalculateDCF() {
+  return useMutation({
+    mutationFn: (request: DCFRequest) => apiClient.calculateDCF(request),
+  });
+}
+
+// VC Method Valuation
+export function useCalculateVCMethod() {
+  return useMutation({
+    mutationFn: (request: VCMethodRequest) =>
+      apiClient.calculateVCMethod(request),
+  });
+}
+
+// Compare Multiple Valuation Methods
+export function useCompareValuations() {
+  return useMutation({
+    mutationFn: (request: ValuationCompareRequest) =>
+      apiClient.compareValuations(request),
   });
 }
 

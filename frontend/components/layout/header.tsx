@@ -33,6 +33,12 @@ export function Header() {
               Analysis
             </Link>
             <Link
+              href="/valuation"
+              className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors hover:bg-secondary text-muted-foreground hover:text-foreground"
+            >
+              Valuation
+            </Link>
+            <Link
               href="/about"
               className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors hover:bg-secondary text-muted-foreground hover:text-foreground"
             >

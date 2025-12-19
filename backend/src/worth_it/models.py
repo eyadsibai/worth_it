@@ -462,3 +462,120 @@ class WaterfallResponse(BaseModel):
 
     distributions_by_valuation: list[WaterfallDistribution]
     breakeven_points: dict[str, float]  # {"founders": 25M, "series_a": 5M}
+
+
+# --- Valuation Calculator Models (#229) ---
+
+
+class RevenueMultipleRequest(BaseModel):
+    """Request for Revenue Multiple valuation method."""
+
+    annual_revenue: float = Field(..., ge=0, description="Annual revenue (ARR or TTM)")
+    revenue_multiple: float = Field(
+        ..., gt=0, le=100, description="Revenue multiple (e.g., 10x)"
+    )
+    growth_rate: float | None = Field(
+        default=None, ge=-1, le=10, description="YoY revenue growth rate (e.g., 0.5 for 50%)"
+    )
+    industry_benchmark_multiple: float | None = Field(
+        default=None, gt=0, description="Industry average revenue multiple for comparison"
+    )
+
+
+class DCFRequest(BaseModel):
+    """Request for Discounted Cash Flow valuation method."""
+
+    projected_cash_flows: list[float] = Field(
+        ..., min_length=1, description="Projected annual free cash flows"
+    )
+    discount_rate: float = Field(
+        ..., gt=0, le=1, description="WACC or required rate of return (e.g., 0.12 for 12%)"
+    )
+    terminal_growth_rate: float | None = Field(
+        default=None, ge=0, lt=1, description="Perpetual growth rate for terminal value"
+    )
+
+    @model_validator(mode="after")
+    def validate_growth_vs_discount(self) -> DCFRequest:
+        """Terminal growth must be less than discount rate."""
+        if (
+            self.terminal_growth_rate is not None
+            and self.terminal_growth_rate >= self.discount_rate
+        ):
+            raise ValueError(
+                f"Terminal growth rate ({self.terminal_growth_rate}) must be less than "
+                f"discount rate ({self.discount_rate})"
+            )
+        return self
+
+
+class VCMethodRequest(BaseModel):
+    """Request for VC Method valuation."""
+
+    projected_exit_value: float = Field(
+        ..., gt=0, description="Expected exit valuation (acquisition/IPO)"
+    )
+    exit_year: int = Field(..., ge=1, le=15, description="Years until exit")
+    target_return_multiple: float | None = Field(
+        default=None, gt=1, description="Target return multiple (e.g., 10x)"
+    )
+    target_irr: float | None = Field(
+        default=None, gt=0, le=2, description="Target IRR (e.g., 0.5 for 50%)"
+    )
+    expected_dilution: float = Field(
+        default=0, ge=0, lt=1, description="Expected dilution from future rounds"
+    )
+    investment_amount: float | None = Field(
+        default=None, gt=0, description="Investment amount for pre-money calculation"
+    )
+    exit_probability: float = Field(
+        default=1.0, gt=0, le=1, description="Probability of achieving projected exit"
+    )
+
+    @model_validator(mode="after")
+    def validate_multiple_or_irr(self) -> VCMethodRequest:
+        """Must provide either target multiple or IRR."""
+        if self.target_return_multiple is None and self.target_irr is None:
+            raise ValueError("Must provide either target_return_multiple or target_irr")
+        return self
+
+
+class ValuationResultResponse(BaseModel):
+    """Response from a valuation method."""
+
+    method: Literal["revenue_multiple", "dcf", "vc_method"]
+    valuation: float
+    confidence: float
+    inputs: dict[str, Any]
+    notes: str
+
+
+class ValuationCompareRequest(BaseModel):
+    """Request to calculate and compare multiple valuation methods."""
+
+    revenue_multiple: RevenueMultipleRequest | None = None
+    dcf: DCFRequest | None = None
+    vc_method: VCMethodRequest | None = None
+
+    @model_validator(mode="after")
+    def validate_at_least_one_method(self) -> ValuationCompareRequest:
+        """At least one valuation method must be provided."""
+        if all(
+            m is None
+            for m in [self.revenue_multiple, self.dcf, self.vc_method]
+        ):
+            raise ValueError("At least one valuation method must be provided")
+        return self
+
+
+class ValuationCompareResponse(BaseModel):
+    """Response from valuation comparison."""
+
+    results: list[ValuationResultResponse]
+    min_valuation: float
+    max_valuation: float
+    average_valuation: float
+    weighted_average: float
+    range_pct: float
+    outliers: list[str]
+    insights: list[str]

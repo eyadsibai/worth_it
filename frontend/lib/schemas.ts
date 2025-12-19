@@ -798,3 +798,186 @@ export function transformMetricDiff(item: MetricDiff): FrontendMetricDiff {
     higherIsBetter: item.higher_is_better,
   };
 }
+
+// ============================================================================
+// Valuation Calculator Schemas (#229)
+// ============================================================================
+
+// Valuation method type enum
+export const ValuationMethodEnum = z.enum(["revenue_multiple", "dcf", "vc_method"]);
+export type ValuationMethod = z.infer<typeof ValuationMethodEnum>;
+
+// Revenue Multiple method request
+export const RevenueMultipleRequestSchema = z.object({
+  annual_revenue: z.number().min(0),
+  revenue_multiple: z.number().gt(0).max(100),
+  growth_rate: z.number().min(-1).max(10).optional(),
+  industry_benchmark_multiple: z.number().gt(0).optional(),
+});
+export type RevenueMultipleRequest = z.infer<typeof RevenueMultipleRequestSchema>;
+
+// DCF method request
+export const DCFRequestSchema = z.object({
+  projected_cash_flows: z.array(z.number()).min(1),
+  discount_rate: z.number().gt(0).max(1),
+  terminal_growth_rate: z.number().min(0).max(1).optional(),
+});
+export type DCFRequest = z.infer<typeof DCFRequestSchema>;
+
+// VC Method request
+export const VCMethodRequestSchema = z.object({
+  projected_exit_value: z.number().gt(0),
+  exit_year: z.number().int().min(1).max(15),
+  target_return_multiple: z.number().gt(1).optional(),
+  target_irr: z.number().gt(0).max(2).optional(),
+  expected_dilution: z.number().min(0).max(1).default(0),
+  investment_amount: z.number().gt(0).optional(),
+  exit_probability: z.number().gt(0).max(1).default(1),
+});
+export type VCMethodRequest = z.infer<typeof VCMethodRequestSchema>;
+
+// Valuation result from a single method
+export const ValuationResultSchema = z.object({
+  method: ValuationMethodEnum,
+  valuation: z.number(),
+  confidence: z.number().min(0).max(1),
+  inputs: z.record(z.string(), z.unknown()),
+  notes: z.string(),
+});
+export type ValuationResult = z.infer<typeof ValuationResultSchema>;
+
+// Combined valuation comparison request
+export const ValuationCompareRequestSchema = z.object({
+  revenue_multiple: RevenueMultipleRequestSchema.optional(),
+  dcf: DCFRequestSchema.optional(),
+  vc_method: VCMethodRequestSchema.optional(),
+});
+export type ValuationCompareRequest = z.infer<typeof ValuationCompareRequestSchema>;
+
+// Valuation comparison response
+export const ValuationCompareResponseSchema = z.object({
+  results: z.array(ValuationResultSchema),
+  min_valuation: z.number(),
+  max_valuation: z.number(),
+  average_valuation: z.number(),
+  weighted_average: z.number(),
+  range_pct: z.number(),
+  outliers: z.array(z.string()),
+  insights: z.array(z.string()),
+});
+export type ValuationCompareResponse = z.infer<typeof ValuationCompareResponseSchema>;
+
+// ============================================================================
+// Valuation Calculator Frontend Types (camelCase)
+// ============================================================================
+
+/**
+ * Frontend-friendly valuation result interface using camelCase.
+ */
+export interface FrontendValuationResult {
+  method: ValuationMethod;
+  valuation: number;
+  confidence: number;
+  inputs: Record<string, unknown>;
+  notes: string;
+}
+
+/**
+ * Transform API valuation result to frontend format.
+ */
+export function transformValuationResult(item: ValuationResult): FrontendValuationResult {
+  return {
+    method: item.method,
+    valuation: item.valuation,
+    confidence: item.confidence,
+    inputs: item.inputs,
+    notes: item.notes,
+  };
+}
+
+/**
+ * Frontend-friendly valuation comparison interface using camelCase.
+ */
+export interface FrontendValuationComparison {
+  results: FrontendValuationResult[];
+  minValuation: number;
+  maxValuation: number;
+  averageValuation: number;
+  weightedAverage: number;
+  rangePct: number;
+  outliers: string[];
+  insights: string[];
+}
+
+/**
+ * Transform API valuation comparison to frontend format.
+ */
+export function transformValuationComparison(
+  response: ValuationCompareResponse
+): FrontendValuationComparison {
+  return {
+    results: response.results.map(transformValuationResult),
+    minValuation: response.min_valuation,
+    maxValuation: response.max_valuation,
+    averageValuation: response.average_valuation,
+    weightedAverage: response.weighted_average,
+    rangePct: response.range_pct,
+    outliers: response.outliers,
+    insights: response.insights,
+  };
+}
+
+// ============================================================================
+// Valuation Calculator Form Schemas
+// ============================================================================
+
+/**
+ * Form schema for Revenue Multiple method input.
+ */
+export const RevenueMultipleFormSchema = z.object({
+  annualRevenue: z.number().min(0, "Revenue must be positive"),
+  revenueMultiple: z.number().gt(0, "Multiple must be positive").max(100, "Multiple too high"),
+  growthRate: z.number().min(-100).max(1000).optional(),
+  industryBenchmarkMultiple: z.number().gt(0).optional(),
+});
+export type RevenueMultipleFormData = z.infer<typeof RevenueMultipleFormSchema>;
+
+/**
+ * Form schema for DCF method input.
+ * Uses objects with value property for react-hook-form useFieldArray compatibility.
+ */
+export const DCFFormSchema = z.object({
+  projectedCashFlows: z.array(z.object({ value: z.number() })).min(1, "At least one cash flow required"),
+  discountRate: z.number().gt(0, "Discount rate must be positive").max(100, "Rate too high"),
+  terminalGrowthRate: z.number().min(0).max(100).optional(),
+});
+export type DCFFormData = z.infer<typeof DCFFormSchema>;
+
+/**
+ * Form schema for VC Method input.
+ * Note: Fields with required defaults must not use .default() to get required types for react-hook-form
+ */
+export const VCMethodFormSchema = z.object({
+  projectedExitValue: z.number().gt(0, "Exit value must be positive"),
+  exitYear: z.number().int().min(1).max(15),
+  returnType: z.enum(["multiple", "irr"]),
+  targetReturnMultiple: z.number().gt(1).optional(),
+  targetIRR: z.number().gt(0).max(200).optional(), // Percentage form (50 = 50%)
+  expectedDilution: z.number().min(0).max(100), // Percentage form
+  investmentAmount: z.number().gt(0).optional(),
+  exitProbability: z.number().gt(0).max(100), // Percentage form
+});
+export type VCMethodFormData = z.infer<typeof VCMethodFormSchema>;
+
+/**
+ * Combined form schema for valuation calculator.
+ */
+export const ValuationCalculatorFormSchema = z.object({
+  enableRevenueMultiple: z.boolean().default(true),
+  enableDcf: z.boolean().default(false),
+  enableVcMethod: z.boolean().default(false),
+  revenueMultiple: RevenueMultipleFormSchema.optional(),
+  dcf: DCFFormSchema.optional(),
+  vcMethod: VCMethodFormSchema.optional(),
+});
+export type ValuationCalculatorFormData = z.infer<typeof ValuationCalculatorFormSchema>;
