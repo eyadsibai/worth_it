@@ -67,7 +67,10 @@ describe("buildSensitivityRequest", () => {
 
     expect(request.base_params).toBeDefined();
     expect(request.base_params.exit_year).toBe(5);
-    expect(request.base_params.monthly_salary).toBe(15000);
+    expect(request.base_params.current_job_monthly_salary).toBe(15000);
+    // Verify nested startup_params structure
+    expect(request.base_params.startup_params).toBeDefined();
+    expect(request.base_params.startup_params.equity_type).toBe("RSU");
   });
 
   it("includes sim_param_configs for key variables", () => {
@@ -118,10 +121,11 @@ describe("buildSensitivityRequest", () => {
 
     const request = buildSensitivityRequest(globalSettings, currentJob, equity);
 
-    expect(request.base_params.equity_type).toBe("STOCK_OPTIONS");
-    expect(request.base_params.num_options).toBe(50000);
-    expect(request.base_params.strike_price).toBe(1.0);
-    expect(request.base_params.exit_price_per_share).toBe(10.0);
+    // Verify nested startup_params structure for Stock Options
+    expect(request.base_params.startup_params.equity_type).toBe("STOCK_OPTIONS");
+    expect(request.base_params.startup_params.options_params.num_options).toBe(50000);
+    expect(request.base_params.startup_params.options_params.strike_price).toBe(1.0);
+    expect(request.base_params.startup_params.options_params.target_exit_price_per_share).toBe(10.0);
   });
 
   it("estimates valuation from exit_price_per_share for Stock Options", () => {
