@@ -119,6 +119,7 @@ export function VersionHistoryPanel({
                   variant="ghost"
                   size="icon"
                   onClick={closeHistoryPanel}
+                  aria-label="Close version history"
                 >
                   <X className="h-5 w-5" />
                 </Button>

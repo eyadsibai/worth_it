@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Minus, RefreshCw, Percent, DollarSign } from "lucide-react";
+import { Plus, Minus, RefreshCw, Percent } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { VersionDiff, StakeholderDiff, FundingDiff } from "./types";
 import type { FundingInstrument } from "@/lib/schemas";

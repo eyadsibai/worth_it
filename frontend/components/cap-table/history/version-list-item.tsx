@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, RotateCcw, Eye, Trash2 } from "lucide-react";
+import { Clock, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { CapTableVersion } from "./types";
@@ -98,21 +98,10 @@ export function VersionListItem({
           className="h-7 w-7"
           onClick={(e) => {
             e.stopPropagation();
-            onSelect();
-          }}
-          title="View diff"
-        >
-          <Eye className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={(e) => {
-            e.stopPropagation();
             onRestore();
           }}
           title="Restore this version"
+          aria-label="Restore this version"
         >
           <RotateCcw className="h-3.5 w-3.5" />
         </Button>
@@ -125,6 +114,7 @@ export function VersionListItem({
             onDelete();
           }}
           title="Delete this version"
+          aria-label="Delete this version"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>

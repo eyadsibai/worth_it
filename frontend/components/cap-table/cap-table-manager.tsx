@@ -68,20 +68,21 @@ export function CapTableManager({
   // Version history for persistent snapshots
   const { addVersion, loadVersionsFromStorage } = useVersionHistory();
 
-  // Load saved versions on mount
+  // Load saved versions on mount.
+  // NOTE: `loadVersionsFromStorage` is a stable action from the Zustand store,
+  // so including it in the dependency array is safe and satisfies exhaustive-deps.
   React.useEffect(() => {
     loadVersionsFromStorage();
   }, [loadVersionsFromStorage]);
 
-  // Create snapshot from current state
-  const createSnapshot = React.useCallback((): CapTableSnapshot => {
-    return {
-      stakeholders: capTable.stakeholders,
-      fundingInstruments: instruments,
-      optionPoolPct: capTable.option_pool_pct,
-      totalShares: capTable.total_shares,
-    };
-  }, [capTable, instruments]);
+  // Memoize the current snapshot to avoid recreating on every render.
+  // This is passed to VersionHistoryPanel for diff computation.
+  const currentSnapshot = React.useMemo((): CapTableSnapshot => ({
+    stakeholders: capTable.stakeholders,
+    fundingInstruments: instruments,
+    optionPoolPct: capTable.option_pool_pct,
+    totalShares: capTable.total_shares,
+  }), [capTable.stakeholders, instruments, capTable.option_pool_pct, capTable.total_shares]);
 
   // Wrap state changes with undo/redo history tracking
   const {
@@ -203,7 +204,7 @@ export function CapTableManager({
     };
 
     // Save version before change
-    addVersion(createSnapshot(), "stakeholder_added", formData.name);
+    addVersion(currentSnapshot, "stakeholder_added", formData.name);
 
     setCapTable(
       {
@@ -218,7 +219,7 @@ export function CapTableManager({
     const stakeholder = capTable.stakeholders.find((s) => s.id === id);
 
     // Save version before change
-    addVersion(createSnapshot(), "stakeholder_removed", stakeholder?.name);
+    addVersion(currentSnapshot, "stakeholder_removed", stakeholder?.name);
 
     setCapTable(
       {
@@ -243,7 +244,7 @@ export function CapTableManager({
     const instrumentName = getInstrumentDisplayName(instrument);
 
     // Save version before change
-    addVersion(createSnapshot(), "funding_added", instrumentName);
+    addVersion(currentSnapshot, "funding_added", instrumentName);
 
     setInstruments([...instruments, instrument], `Add ${instrumentName}`);
   };
@@ -531,7 +532,7 @@ export function CapTableManager({
 
       {/* Version History Panel */}
       <VersionHistoryPanel
-        currentSnapshot={createSnapshot()}
+        currentSnapshot={currentSnapshot}
         onRestore={handleRestoreVersion}
       />
     </div>
