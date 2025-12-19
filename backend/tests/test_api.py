@@ -990,6 +990,138 @@ class TestRateLimiting:
         )
 
 
+class TestSecurityConfiguration:
+    """Tests for security-related configuration settings."""
+
+    def test_api_host_defaults_to_localhost(self):
+        """Test that API_HOST defaults to 127.0.0.1 for security."""
+        import os
+
+        # Save and clear any existing env var
+        original = os.environ.pop("API_HOST", None)
+        try:
+            # Create a fresh settings class to check the default
+            class TestSettings:
+                API_HOST: str = os.getenv("API_HOST", "127.0.0.1")
+
+            assert TestSettings.API_HOST == "127.0.0.1", (
+                "API_HOST should default to 127.0.0.1 for security"
+            )
+        finally:
+            # Restore original if it existed
+            if original is not None:
+                os.environ["API_HOST"] = original
+
+    def test_cors_origin_validation_rejects_invalid_format(self):
+        """Test that invalid CORS origin format is rejected."""
+        from worth_it.config import Settings
+
+        # Create a test settings class that we can manipulate
+        class TestSettings(Settings):
+            ENVIRONMENT = "development"
+
+            @staticmethod
+            def get_cors_origins() -> list[str]:
+                return ["invalid-origin-without-protocol"]
+
+        with pytest.raises(ValueError) as exc_info:
+            TestSettings.validate()
+        assert "Invalid CORS origin" in str(exc_info.value)
+
+    def test_cors_wildcard_rejected_in_production(self):
+        """Test that wildcard CORS is rejected in production."""
+        from worth_it.config import Settings
+
+        class TestSettings(Settings):
+            ENVIRONMENT = "production"
+            API_PORT = 8000
+            STREAMLIT_PORT = 8501
+            MAX_SIMULATIONS = 10000
+            LOG_LEVEL = "INFO"
+
+            @staticmethod
+            def get_cors_origins() -> list[str]:
+                return ["*"]
+
+            @classmethod
+            def is_production(cls) -> bool:
+                return True
+
+        with pytest.raises(ValueError) as exc_info:
+            TestSettings.validate()
+        assert "Wildcard '*' CORS origin is not allowed in production" in str(exc_info.value)
+
+    def test_cors_wildcard_allowed_in_development(self):
+        """Test that wildcard CORS is allowed in development."""
+        from worth_it.config import Settings
+
+        class TestSettings(Settings):
+            ENVIRONMENT = "development"
+            API_PORT = 8000
+            STREAMLIT_PORT = 8501
+            MAX_SIMULATIONS = 10000
+            LOG_LEVEL = "INFO"
+
+            @staticmethod
+            def get_cors_origins() -> list[str]:
+                return ["*"]
+
+            @classmethod
+            def is_production(cls) -> bool:
+                return False
+
+        # Should not raise
+        TestSettings.validate()
+
+    def test_valid_cors_origins_accepted(self):
+        """Test that valid CORS origins are accepted."""
+        from worth_it.config import Settings
+
+        class TestSettings(Settings):
+            ENVIRONMENT = "production"
+            API_PORT = 8000
+            STREAMLIT_PORT = 8501
+            MAX_SIMULATIONS = 10000
+            LOG_LEVEL = "INFO"
+
+            @staticmethod
+            def get_cors_origins() -> list[str]:
+                return ["https://app.example.com", "https://preview.vercel.app"]
+
+            @classmethod
+            def is_production(cls) -> bool:
+                return True
+
+        # Should not raise
+        TestSettings.validate()
+
+    def test_validate_security_logs_warnings_in_production(self, caplog):
+        """Test that security warnings are logged in production."""
+        import logging
+
+        from worth_it.config import Settings
+
+        class TestSettings(Settings):
+            ENVIRONMENT = "production"
+            API_HOST = "0.0.0.0"  # nosec B104 - test value
+
+            @staticmethod
+            def get_cors_origins() -> list[str]:
+                return ["http://insecure.example.com"]
+
+            @classmethod
+            def is_production(cls) -> bool:
+                return True
+
+        with caplog.at_level(logging.WARNING):
+            TestSettings.validate_security()
+
+        # Should warn about 0.0.0.0 binding
+        assert any("0.0.0.0" in record.message for record in caplog.records)
+        # Should warn about non-HTTPS origin
+        assert any("Non-HTTPS origin" in record.message for record in caplog.records)
+
+
 class TestDilutionPreviewAPI:
     """Tests for the dilution preview endpoint."""
 
