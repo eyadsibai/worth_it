@@ -184,18 +184,20 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
           />
         </div>
 
-        <NumberInputField
-          form={form}
-          name="exit_valuation"
-          label="Exit Valuation"
-          tooltip={TOOLTIPS.exitValuation}
-          min={0}
-          step={1000000}
-          prefix="$"
-          formatDisplay={true}
-          exampleValue={FIELD_EXAMPLES.exit_valuation}
-          hint={FIELD_HINTS.exit_valuation}
-        />
+        <div data-tour="exit-valuation-input">
+          <NumberInputField
+            form={form}
+            name="exit_valuation"
+            label="Exit Valuation"
+            tooltip={TOOLTIPS.exitValuation}
+            min={0}
+            step={1000000}
+            prefix="$"
+            formatDisplay={true}
+            exampleValue={FIELD_EXAMPLES.exit_valuation}
+            hint={FIELD_HINTS.exit_valuation}
+          />
+        </div>
 
         <FormField
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

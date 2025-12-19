@@ -5,6 +5,8 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CommandPalette, useCommandPalette } from "@/components/command-palette";
+import { WalkthroughProvider } from "@/lib/walkthrough";
+import { WalkthroughOverlay } from "@/components/walkthrough";
 
 function CommandPaletteWrapper() {
   const { open, setOpen } = useCommandPalette();
@@ -33,8 +35,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
         enableSystem
         disableTransitionOnChange
       >
-        {children}
-        <CommandPaletteWrapper />
+        <WalkthroughProvider>
+          {children}
+          <WalkthroughOverlay />
+          <CommandPaletteWrapper />
+        </WalkthroughProvider>
         <ReactQueryDevtools initialIsOpen={false} />
       </ThemeProvider>
     </QueryClientProvider>
