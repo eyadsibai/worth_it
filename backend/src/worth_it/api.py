@@ -778,24 +778,24 @@ async def compare_valuation_methods(request: Request, body: ValuationCompareRequ
 
         # Calculate each provided method
         if body.revenue_multiple is not None:
-            params = calculations.RevenueMultipleParams(
+            rm_params = calculations.RevenueMultipleParams(
                 annual_revenue=body.revenue_multiple.annual_revenue,
                 revenue_multiple=body.revenue_multiple.revenue_multiple,
                 growth_rate=body.revenue_multiple.growth_rate,
                 industry_benchmark_multiple=body.revenue_multiple.industry_benchmark_multiple,
             )
-            results.append(calculations.calculate_revenue_multiple(params))
+            results.append(calculations.calculate_revenue_multiple(rm_params))
 
         if body.dcf is not None:
-            params = calculations.DCFParams(
+            dcf_params = calculations.DCFParams(
                 projected_cash_flows=body.dcf.projected_cash_flows,
                 discount_rate=body.dcf.discount_rate,
                 terminal_growth_rate=body.dcf.terminal_growth_rate,
             )
-            results.append(calculations.calculate_dcf(params))
+            results.append(calculations.calculate_dcf(dcf_params))
 
         if body.vc_method is not None:
-            params = calculations.VCMethodParams(
+            vc_params = calculations.VCMethodParams(
                 projected_exit_value=body.vc_method.projected_exit_value,
                 exit_year=body.vc_method.exit_year,
                 target_return_multiple=body.vc_method.target_return_multiple,
@@ -804,7 +804,7 @@ async def compare_valuation_methods(request: Request, body: ValuationCompareRequ
                 investment_amount=body.vc_method.investment_amount,
                 exit_probability=body.vc_method.exit_probability,
             )
-            results.append(calculations.calculate_vc_method(params))
+            results.append(calculations.calculate_vc_method(vc_params))
 
         # Compare results
         comparison = calculations.compare_valuations(results)

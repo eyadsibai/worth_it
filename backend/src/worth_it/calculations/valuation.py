@@ -316,7 +316,7 @@ def calculate_vc_method(params: VCMethodParams) -> ValuationResult:
         "post_money_valuation": post_money_valuation,
     }
 
-    if pre_money_valuation is not None:
+    if pre_money_valuation is not None and params.investment_amount is not None:
         inputs["pre_money_valuation"] = pre_money_valuation
         inputs["investment_amount"] = params.investment_amount
 
@@ -378,7 +378,7 @@ def compare_valuations(results: list[ValuationResult]) -> ValuationComparison:
     range_pct = (max_val - min_val) / min_val if min_val > 0 else 0
 
     # Identify outliers (> 1.5x from average)
-    outliers = []
+    outliers: list[str] = []
     for r in results:
         deviation = abs(r.valuation - avg_val) / avg_val if avg_val > 0 else 0
         if deviation > 0.5:  # More than 50% from average
