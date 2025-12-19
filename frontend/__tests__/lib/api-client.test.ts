@@ -180,8 +180,8 @@ describe("getWebSocketURL", () => {
     process.env.NEXT_PUBLIC_WS_URL = "wss://custom-ws.example.com";
 
     // Re-import to pick up the new env value
-    const module = await import("@/lib/api-client");
-    const url = module.getWebSocketURL("http:", "localhost:3000", 8000);
+    const apiClientModule = await import("@/lib/api-client");
+    const url = apiClientModule.getWebSocketURL("http:", "localhost:3000", 8000);
     expect(url).toBe("wss://custom-ws.example.com");
 
     // Restore
