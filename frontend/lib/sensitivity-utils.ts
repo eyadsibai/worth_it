@@ -37,7 +37,12 @@ export interface BreakevenThreshold {
 }
 
 /**
- * Build a sensitivity analysis request from form data
+ * Build a sensitivity analysis request from form data.
+ *
+ * The base_params structure must match what run_monte_carlo_simulation_vectorized
+ * expects in the backend (monte_carlo.py). Key requirements:
+ * - current_job_monthly_salary (not monthly_salary)
+ * - nested startup_params object containing equity_type, vesting info, and rsu_params/options_params
  */
 export function buildSensitivityRequest(
   globalSettings: GlobalSettingsForm,
@@ -53,27 +58,42 @@ export function buildSensitivityRequest(
     ? (equity as RSUForm).exit_valuation
     : (equity as StockOptionsForm).exit_price_per_share * 1000000;
 
-  // Base parameters for calculation
+  // Build nested startup_params to match backend Monte Carlo structure
+  const startup_params = isRSU
+    ? {
+        equity_type: "RSU" as const,
+        total_vesting_years: equity.vesting_period,
+        cliff_years: equity.cliff_period,
+        rsu_params: {
+          equity_pct: (equity as RSUForm).total_equity_grant_pct / 100,
+          target_exit_valuation: (equity as RSUForm).exit_valuation,
+          simulate_dilution: false,
+          dilution_rounds: [],
+        },
+      }
+    : {
+        equity_type: "STOCK_OPTIONS" as const,
+        total_vesting_years: equity.vesting_period,
+        cliff_years: equity.cliff_period,
+        options_params: {
+          num_options: (equity as StockOptionsForm).num_options,
+          strike_price: (equity as StockOptionsForm).strike_price,
+          target_exit_price_per_share: (equity as StockOptionsForm).exit_price_per_share,
+          exercise_strategy: (equity as StockOptionsForm).exercise_strategy || "Exercise at Exit",
+          exercise_year: (equity as StockOptionsForm).exercise_year || globalSettings.exit_year,
+        },
+      };
+
+  // Base parameters for calculation - matches run_monte_carlo_simulation_vectorized expectations
   const base_params = {
     exit_year: globalSettings.exit_year,
-    monthly_salary: currentJob.monthly_salary,
+    current_job_monthly_salary: currentJob.monthly_salary,
     startup_monthly_salary: equity.monthly_salary,
     current_job_salary_growth_rate: currentJob.annual_salary_growth_rate / 100,
     annual_roi: currentJob.assumed_annual_roi / 100,
     investment_frequency: currentJob.investment_frequency,
-    equity_type: isRSU ? "RSU" : "STOCK_OPTIONS",
-    total_vesting_years: equity.vesting_period,
-    cliff_years: equity.cliff_period,
-    ...(isRSU
-      ? {
-          equity_pct: (equity as RSUForm).total_equity_grant_pct,
-          target_exit_valuation: (equity as RSUForm).exit_valuation,
-        }
-      : {
-          num_options: (equity as StockOptionsForm).num_options,
-          strike_price: (equity as StockOptionsForm).strike_price,
-          exit_price_per_share: (equity as StockOptionsForm).exit_price_per_share,
-        }),
+    failure_probability: 0.6, // 60% failure rate (realistic estimate)
+    startup_params,
   };
 
   // Simulation parameter configurations
