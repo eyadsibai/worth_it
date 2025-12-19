@@ -15,3 +15,6 @@ export {
 export { useSidebarFormStatus } from "./use-sidebar-form-status";
 export { useChartColors, CHART_TOOLTIP_STYLES, type ChartColors } from "./use-chart-colors";
 export { useDashboardStats } from "./use-dashboard-stats";
+export { useHistoryStore, createHistoryStore, type HistoryEntry } from "./use-history";
+export { useUndoShortcuts } from "./use-undo-shortcuts";
+export { useCapTableHistory, type CapTableState } from "./use-cap-table-history";

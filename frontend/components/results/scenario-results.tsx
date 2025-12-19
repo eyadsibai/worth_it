@@ -37,6 +37,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { QuickAdjustPanel } from "@/components/results/quick-adjust-panel";
 import { LiveRegion } from "@/components/ui/live-region";
+import { MetricCarousel } from "@/components/ui/metric-carousel";
 
 interface ScenarioResultsProps {
   results: StartupScenarioResponse;
@@ -79,7 +80,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
         <LiveRegion>{announcement}</LiveRegion>
         <div className="space-y-6 animate-fade-in">
           {/* Skeleton Metric Cards */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
+        <MetricCarousel>
           {[...Array(5)].map((_, i) => (
             <Card key={i} className="terminal-card overflow-hidden">
               <CardHeader className="pb-2 pt-4 px-4">
@@ -91,7 +92,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
               </CardContent>
             </Card>
           ))}
-        </div>
+        </MetricCarousel>
 
         {/* Skeleton Summary Card */}
         <Card className="terminal-card border-l-4 border-l-muted">
@@ -348,10 +349,10 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
         )}
 
         {/* Key Metrics Cards */}
-        {/* Grid: 2 cols on mobile, skip 3-col (causes truncation at 768px), jump to 5 cols on lg */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
+        {/* Carousel on mobile, 5-col grid on desktop */}
+        <MetricCarousel>
         {/* Final Payout */}
-        <Card className="terminal-card overflow-hidden">
+        <Card className="terminal-card overflow-hidden h-full">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardDescription className="data-label text-xs flex items-center gap-1">
               <span className="hidden sm:inline">Final Payout</span>
@@ -368,7 +369,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
         </Card>
 
         {/* Opportunity Cost */}
-        <Card className="terminal-card overflow-hidden">
+        <Card className="terminal-card overflow-hidden h-full">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardDescription className="data-label text-xs flex items-center gap-1">
               <span className="hidden sm:inline">Opportunity Cost</span>
@@ -388,7 +389,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
         </Card>
 
         {/* Net Benefit */}
-        <Card className="terminal-card overflow-hidden">
+        <Card className="terminal-card overflow-hidden h-full">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardDescription className="data-label text-xs flex items-center gap-1">
               Net Benefit
@@ -419,7 +420,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
 
         {/* Dilution (if applicable) */}
         {displayResults.total_dilution !== null && displayResults.total_dilution !== undefined && (
-          <Card className="terminal-card overflow-hidden">
+          <Card className="terminal-card overflow-hidden h-full">
             <CardHeader className="pb-2 pt-4 px-4">
               <CardDescription className="data-label text-xs flex items-center gap-1">
                 <span className="hidden sm:inline">Total Dilution</span>
@@ -439,7 +440,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
         )}
 
         {/* Break-Even */}
-        <Card className="terminal-card overflow-hidden">
+        <Card className="terminal-card overflow-hidden h-full">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardDescription className="data-label text-xs flex items-center gap-1">
               Break-Even
@@ -457,7 +458,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
             </p>
           </CardContent>
         </Card>
-      </div>
+        </MetricCarousel>
 
       {/* Plain-English Summary */}
       {globalSettings && (
