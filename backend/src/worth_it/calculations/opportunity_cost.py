@@ -12,7 +12,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from worth_it.calculations.base import annual_to_monthly_roi
+from worth_it.calculations.base import EquityType, annual_to_monthly_roi
 
 
 def create_monthly_data_grid(
@@ -102,7 +102,7 @@ def calculate_annual_opportunity_cost(
 
     # --- Handle Cash from Equity Sales ---
     equity_type = startup_params.get("equity_type") if startup_params else None
-    if equity_type and equity_type.value == "Equity (RSUs)" and startup_params is not None:
+    if equity_type and equity_type == EquityType.RSU and startup_params is not None:
         # Type guard for type checker - startup_params is guaranteed non-None here
         rsu_params = startup_params["rsu_params"]
         dilution_rounds = rsu_params.get("dilution_rounds", [])

@@ -16,7 +16,7 @@ from scipy import stats
 
 # Import core calculation functions from submodules to avoid circular import
 # (calculations/__init__.py re-exports monte_carlo functions for backward compatibility)
-from worth_it.calculations.base import annual_to_monthly_roi
+from worth_it.calculations.base import EquityType, annual_to_monthly_roi
 from worth_it.calculations.opportunity_cost import (
     calculate_annual_opportunity_cost,
     create_monthly_data_grid,
@@ -204,7 +204,7 @@ def run_monte_carlo_simulation_vectorized(
     if exit_year < startup_params["cliff_years"]:
         final_vested_pct = 0
 
-    if startup_params["equity_type"].value == "Equity (RSUs)":
+    if startup_params["equity_type"] == EquityType.RSU:
         rsu_params = startup_params["rsu_params"]
 
         if "dilution" in sim_params and not np.all(np.isnan(sim_params["dilution"])):
@@ -378,7 +378,7 @@ def run_monte_carlo_simulation_iterative(
             dilution_val if not np.isnan(dilution_val) else None
         )
 
-        if sim_startup_params["equity_type"].value == "Equity (RSUs)":
+        if sim_startup_params["equity_type"] == EquityType.RSU:
             sim_startup_params["rsu_params"] = sim_startup_params["rsu_params"].copy()
             sim_startup_params["rsu_params"]["target_exit_valuation"] = sim_params["valuation"][i]
         else:

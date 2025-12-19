@@ -80,7 +80,7 @@ def test_startup_scenario_rsu():
     monthly_data = monthly_response.json()["data"]
 
     startup_params = {
-        "equity_type": "Equity (RSUs)",
+        "equity_type": "RSU",
         "total_vesting_years": 4,
         "cliff_years": 1,
         "exit_year": 4,
@@ -130,7 +130,7 @@ def test_startup_scenario_results_df_column_names():
     monthly_data = monthly_response.json()["data"]
 
     startup_params = {
-        "equity_type": "Equity (RSUs)",
+        "equity_type": "RSU",
         "total_vesting_years": 4,
         "cliff_years": 1,
         "exit_year": 4,
@@ -200,7 +200,7 @@ def test_startup_scenario_options():
     monthly_data = monthly_response.json()["data"]
 
     startup_params = {
-        "equity_type": "Stock Options",
+        "equity_type": "STOCK_OPTIONS",
         "total_vesting_years": 4,
         "cliff_years": 1,
         "exit_year": 4,
@@ -275,7 +275,7 @@ def test_monte_carlo_simulation():
             "annual_roi": 0.05,
             "investment_frequency": "Annually",
             "startup_params": {
-                "equity_type": "Equity (RSUs)",
+                "equity_type": "RSU",
                 "total_vesting_years": 4,
                 "cliff_years": 1,
                 "rsu_params": {
@@ -312,7 +312,7 @@ def test_sensitivity_analysis():
             "annual_roi": 0.05,
             "investment_frequency": "Annually",
             "startup_params": {
-                "equity_type": "Equity (RSUs)",
+                "equity_type": "RSU",
                 "total_vesting_years": 4,
                 "cliff_years": 1,
                 "rsu_params": {
@@ -485,7 +485,7 @@ class TestWebSocketMonteCarlo:
                 "annual_roi": 0.05,
                 "investment_frequency": "Annually",
                 "startup_params": {
-                    "equity_type": "Equity (RSUs)",
+                    "equity_type": "RSU",
                     "total_vesting_years": 4,
                     "cliff_years": 1,
                     "rsu_params": {
