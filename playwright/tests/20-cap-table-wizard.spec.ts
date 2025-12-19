@@ -117,7 +117,7 @@ test.describe('Cap Table Wizard - Complete Flow', () => {
     await expect(page.getByText('Bob Cofounder')).toBeVisible();
   });
 
-  test('should complete wizard with advisors', async ({ page }) => {
+  test('should include advisor in wizard completion', async ({ page }) => {
     // Step 1: Founders
     const nameInputs = page.getByPlaceholder(/Founder name/i);
     await nameInputs.first().fill('Carol CEO');

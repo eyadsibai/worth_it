@@ -53,11 +53,8 @@ export function WizardProgress({
             key={index}
             className={cn(
               "w-2 h-2 rounded-full transition-colors",
-              index < currentStep
-                ? "bg-primary"
-                : index === currentStep - 1
-                  ? "bg-primary"
-                  : "bg-muted-foreground/30"
+              // Steps before current are filled, others are muted
+              index < currentStep ? "bg-primary" : "bg-muted-foreground/30"
             )}
           />
         ))}

@@ -71,7 +71,7 @@ export function StepOptionPool({
       <Card className="p-4 bg-muted/50">
         <p className="text-sm text-muted-foreground">
           💡 The option pool is carved out from founder equity proportionally.
-          For example, a 15% pool reduces each founder&apos;s stake by 15%.
+          For example, a 15% pool reduces each founder's stake by 15%.
         </p>
       </Card>
 

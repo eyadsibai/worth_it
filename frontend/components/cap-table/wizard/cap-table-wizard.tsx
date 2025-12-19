@@ -150,7 +150,7 @@ export function CapTableWizard({ onComplete, onSkip }: CapTableWizardProps) {
           type: "SAFE",
           investor_name: funding.investorName,
           investment_amount: funding.amount,
-          valuation_cap: funding.valuationCap || undefined,
+          valuation_cap: funding.valuationCap, // undefined if not set
           discount_pct: undefined,
           pro_rata_rights: false,
           mfn_clause: false,
@@ -165,7 +165,7 @@ export function CapTableWizard({ onComplete, onSkip }: CapTableWizardProps) {
           principal_amount: funding.amount,
           interest_rate: 5, // Default 5%
           interest_type: "simple",
-          valuation_cap: funding.valuationCap || undefined,
+          valuation_cap: funding.valuationCap, // undefined if not set
           discount_pct: undefined,
           maturity_months: 24, // Default 2 years
           date: new Date().toISOString().split("T")[0],
@@ -177,7 +177,8 @@ export function CapTableWizard({ onComplete, onSkip }: CapTableWizardProps) {
           id,
           type: "PRICED_ROUND",
           round_name: funding.investorName,
-          pre_money_valuation: funding.valuationCap || 10_000_000,
+          // Use nullish coalescing to only fallback when undefined/null (not 0)
+          pre_money_valuation: funding.valuationCap ?? 10_000_000,
           amount_raised: funding.amount,
           price_per_share: 1, // Will be calculated
           new_shares_issued: 0, // Will be calculated during conversion

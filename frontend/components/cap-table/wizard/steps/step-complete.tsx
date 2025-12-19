@@ -37,7 +37,7 @@ export function StepComplete({ data, onComplete }: StepCompleteProps) {
         </div>
         <h2 className="text-2xl font-semibold">Your cap table is ready!</h2>
         <p className="text-muted-foreground">
-          Here&apos;s a summary of what we&apos;ve set up
+          Here's a summary of what we've set up
         </p>
       </motion.div>
 
@@ -106,6 +106,7 @@ export function StepComplete({ data, onComplete }: StepCompleteProps) {
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
+                  {/* formatCurrency displays full values (e.g., $10,000,000) for precision */}
                   <h3 className="font-medium">Funding</h3>
                   <Badge variant="secondary">{formatCurrency(totalFundingAmount)}</Badge>
                 </div>

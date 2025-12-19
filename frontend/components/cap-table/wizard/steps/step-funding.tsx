@@ -118,7 +118,7 @@ export function StepFunding({
         {/* Choice Buttons */}
         <div className="flex justify-center gap-4 pt-4">
           <Button variant="outline" size="lg" onClick={handleSkip}>
-            Not yet, skip
+            No, skip this
           </Button>
           <Button size="lg" onClick={handleYes}>
             Yes, add funding
