@@ -599,6 +599,190 @@ class TestWebSocketMonteCarlo:
             assert len(complete_msg["net_outcomes"]) == 20  # num_simulations
             assert len(complete_msg["simulated_valuations"]) == 20
 
+    def test_websocket_exceeds_max_simulations(self):
+        """Test that requesting more than MAX_SIMULATIONS is rejected."""
+        with client.websocket_connect("/ws/monte-carlo") as websocket:
+            # Request more simulations than the default limit (10000)
+            request = self._get_valid_request()
+            request["num_simulations"] = 50001  # Exceeds default MAX_SIMULATIONS
+            websocket.send_json(request)
+
+            msg = websocket.receive_json()
+            assert msg["type"] == "error"
+            assert "maximum" in msg["message"].lower() or "exceed" in msg["message"].lower()
+
+
+class TestWebSocketSecurity:
+    """Tests for WebSocket security features (Issue #245)."""
+
+    def test_config_has_websocket_security_settings(self):
+        """Test that WebSocket security settings are configurable."""
+        from worth_it.config import settings
+
+        # Verify security settings exist
+        assert hasattr(settings, "WS_MAX_CONCURRENT_PER_IP")
+        assert hasattr(settings, "WS_SIMULATION_TIMEOUT_SECONDS")
+
+        # Verify default values
+        assert settings.WS_MAX_CONCURRENT_PER_IP == 5
+        assert settings.WS_SIMULATION_TIMEOUT_SECONDS == 60
+
+    def test_config_validation_catches_invalid_ws_concurrent(self):
+        """Test that invalid WS_MAX_CONCURRENT_PER_IP values are caught by validation."""
+        from worth_it.config import Settings
+
+        # Test validation logic directly with invalid values
+        # The Settings class validates ranges in its validate() method
+
+        # Create a Settings subclass to test with invalid values
+        class InvalidConcurrentSettings(Settings):
+            WS_MAX_CONCURRENT_PER_IP = 0  # Invalid: must be >= 1
+
+        test_settings = InvalidConcurrentSettings()
+        try:
+            test_settings.validate()
+            raise AssertionError("Should have raised validation error for WS_MAX_CONCURRENT_PER_IP=0")
+        except ValueError as e:
+            assert "WS_MAX_CONCURRENT_PER_IP" in str(e)
+
+    def test_config_validation_catches_invalid_ws_timeout(self):
+        """Test that invalid WS_SIMULATION_TIMEOUT_SECONDS values are caught by validation."""
+        from worth_it.config import Settings
+
+        # Create a Settings subclass to test with invalid timeout
+        class InvalidTimeoutSettings(Settings):
+            WS_SIMULATION_TIMEOUT_SECONDS = 3  # Invalid: must be >= 5
+
+        test_settings = InvalidTimeoutSettings()
+        try:
+            test_settings.validate()
+            raise AssertionError("Should have raised validation error for WS_SIMULATION_TIMEOUT_SECONDS=3")
+        except ValueError as e:
+            assert "WS_SIMULATION_TIMEOUT_SECONDS" in str(e)
+
+    def test_monte_carlo_request_validates_against_config(self):
+        """Test that MonteCarloRequest validates num_simulations against config."""
+        from pydantic import ValidationError as PydanticValidationError
+
+        from worth_it.config import settings
+        from worth_it.models import MonteCarloRequest
+
+        # Valid base_params with all required fields
+        valid_base_params = {
+            "exit_year": 5,
+            "current_job_monthly_salary": 10000,
+            "startup_monthly_salary": 8000,
+            "current_job_salary_growth_rate": 0.03,
+            "annual_roi": 0.05,
+            "investment_frequency": "Monthly",
+            "startup_params": {
+                "equity_type": "RSU",
+                "total_vesting_years": 4,
+                "cliff_years": 1,
+                "rsu_params": {
+                    "equity_pct": 0.05,
+                    "target_exit_valuation": 20_000_000,
+                    "simulate_dilution": False,
+                },
+                "options_params": {},
+            },
+            "failure_probability": 0.25,
+        }
+
+        # Valid request
+        valid_request = MonteCarloRequest(
+            num_simulations=100,
+            base_params=valid_base_params,
+            sim_param_configs={},
+        )
+        assert valid_request.num_simulations == 100
+
+        # Request exceeding MAX_SIMULATIONS should fail
+        try:
+            MonteCarloRequest(
+                num_simulations=settings.MAX_SIMULATIONS + 1,
+                base_params=valid_base_params,
+                sim_param_configs={},
+            )
+            raise AssertionError("Should have raised validation error")
+        except (ValueError, PydanticValidationError) as e:
+            error_msg = str(e)
+            assert "exceeds" in error_msg.lower() or "maximum" in error_msg.lower()
+
+
+class TestWebSocketConnectionTracker:
+    """Unit tests for the WebSocket connection tracker."""
+
+    def test_connection_tracker_allows_within_limit(self):
+        """Test that connections within the limit are allowed."""
+        import asyncio
+
+        from worth_it.api import WebSocketConnectionTracker
+
+        async def run_test():
+            tracker = WebSocketConnectionTracker()
+            client_ip = "192.168.1.100"
+
+            # First connection should succeed
+            assert await tracker.register_connection(client_ip) is True
+            assert tracker.get_active_connections(client_ip) == 1
+
+            # Unregister
+            await tracker.unregister_connection(client_ip)
+            assert tracker.get_active_connections(client_ip) == 0
+
+        asyncio.run(run_test())
+
+    def test_connection_tracker_blocks_over_limit(self):
+        """Test that connections over the limit are blocked."""
+        import asyncio
+
+        from worth_it.api import WebSocketConnectionTracker
+        from worth_it.config import settings
+
+        async def run_test():
+            tracker = WebSocketConnectionTracker()
+            client_ip = "192.168.1.101"
+
+            # Register max connections
+            for _ in range(settings.WS_MAX_CONCURRENT_PER_IP):
+                assert await tracker.register_connection(client_ip) is True
+
+            # Next should fail
+            assert await tracker.register_connection(client_ip) is False
+
+            # Clean up
+            for _ in range(settings.WS_MAX_CONCURRENT_PER_IP):
+                await tracker.unregister_connection(client_ip)
+
+        asyncio.run(run_test())
+
+    def test_connection_tracker_independent_per_ip(self):
+        """Test that different IPs have independent connection limits."""
+        import asyncio
+
+        from worth_it.api import WebSocketConnectionTracker
+        from worth_it.config import settings
+
+        async def run_test():
+            tracker = WebSocketConnectionTracker()
+            ip1 = "192.168.1.1"
+            ip2 = "192.168.1.2"
+
+            # Fill ip1's limit
+            for _ in range(settings.WS_MAX_CONCURRENT_PER_IP):
+                await tracker.register_connection(ip1)
+
+            # ip2 should still be able to connect
+            assert await tracker.register_connection(ip2) is True
+
+            # Clean up
+            for _ in range(settings.WS_MAX_CONCURRENT_PER_IP):
+                await tracker.unregister_connection(ip1)
+            await tracker.unregister_connection(ip2)
+
+        asyncio.run(run_test())
+
 
 class TestCapTableConversion:
     """Tests for the cap table conversion endpoint."""
