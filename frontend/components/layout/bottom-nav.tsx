@@ -52,8 +52,9 @@ export function BottomNav({
   return (
     <nav
       data-testid="bottom-nav"
+      data-bottom-nav
       aria-label="Mobile navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/50 pb-safe md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/50 pb-safe md:hidden no-print"
     >
       <div className="flex justify-around py-2">
         <NavItem
