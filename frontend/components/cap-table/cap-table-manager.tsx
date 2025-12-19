@@ -18,6 +18,12 @@ import { WaterfallAnalysis } from "./waterfall-analysis";
 import { ExportMenu } from "./export-menu";
 import { ScenarioManager } from "./scenario-manager";
 import {
+  HistoryTriggerButton,
+  VersionHistoryPanel,
+  useVersionHistory,
+  type CapTableSnapshot,
+} from "./history";
+import {
   motion,
   MotionFadeInUp,
   MotionList,
@@ -67,6 +73,25 @@ export function CapTableManager({
   const [showWizard, setShowWizard] = React.useState(false);
   const convertInstruments = useConvertInstruments();
 
+  // Version history for persistent snapshots
+  const { addVersion, loadVersionsFromStorage } = useVersionHistory();
+
+  // Load saved versions on mount.
+  // NOTE: `loadVersionsFromStorage` is a stable action from the Zustand store,
+  // so including it in the dependency array is safe and satisfies exhaustive-deps.
+  React.useEffect(() => {
+    loadVersionsFromStorage();
+  }, [loadVersionsFromStorage]);
+
+  // Memoize the current snapshot to avoid recreating on every render.
+  // This is passed to VersionHistoryPanel for diff computation.
+  const currentSnapshot = React.useMemo((): CapTableSnapshot => ({
+    stakeholders: capTable.stakeholders,
+    fundingInstruments: instruments,
+    optionPoolPct: capTable.option_pool_pct,
+    totalShares: capTable.total_shares,
+  }), [capTable.stakeholders, instruments, capTable.option_pool_pct, capTable.total_shares]);
+
   // Show wizard if cap table is empty and wizard hasn't been skipped
   const shouldShowWizard = showWizard || (capTable.stakeholders.length === 0 && !wizardSkipped);
 
@@ -108,6 +133,26 @@ export function CapTableManager({
     onInstrumentsChange,
     onPreferenceTiersChange,
   });
+
+  // Handle restoring from version history
+  const handleRestoreVersion = React.useCallback(
+    (snapshot: CapTableSnapshot) => {
+      setAll(
+        {
+          capTable: {
+            ...capTable,
+            stakeholders: snapshot.stakeholders,
+            option_pool_pct: snapshot.optionPoolPct,
+            total_shares: snapshot.totalShares,
+          },
+          instruments: snapshot.fundingInstruments,
+          preferenceTiers,
+        },
+        "Restore from history"
+      );
+    },
+    [capTable, preferenceTiers, setAll]
+  );
 
   // Handle automatic conversion when a priced round is added
   const handlePricedRoundAdded = React.useCallback(
@@ -187,6 +232,9 @@ export function CapTableManager({
         : undefined,
     };
 
+    // Save version before change
+    addVersion(currentSnapshot, "stakeholder_added", formData.name);
+
     setCapTable(
       {
         ...capTable,
@@ -198,6 +246,10 @@ export function CapTableManager({
 
   const handleRemoveStakeholder = (id: string) => {
     const stakeholder = capTable.stakeholders.find((s) => s.id === id);
+
+    // Save version before change
+    addVersion(currentSnapshot, "stakeholder_removed", stakeholder?.name);
+
     setCapTable(
       {
         ...capTable,
@@ -218,8 +270,26 @@ export function CapTableManager({
   };
 
   const handleAddInstrument = (instrument: FundingInstrument) => {
-    const instrumentName = "name" in instrument ? instrument.name : `${instrument.type} instrument`;
+    const instrumentName = getInstrumentDisplayName(instrument);
+
+    // Save version before change
+    addVersion(currentSnapshot, "funding_added", instrumentName);
+
     setInstruments([...instruments, instrument], `Add ${instrumentName}`);
+  };
+
+  // Helper to get display name for funding instruments
+  const getInstrumentDisplayName = (instrument: FundingInstrument): string => {
+    switch (instrument.type) {
+      case "SAFE":
+        return `SAFE from ${instrument.investor_name}`;
+      case "CONVERTIBLE_NOTE":
+        return `Note from ${instrument.investor_name}`;
+      case "PRICED_ROUND":
+        return instrument.round_name;
+      default:
+        return "instrument";
+    }
   };
 
   const handleRemoveInstrument = (id: string) => {
@@ -305,6 +375,7 @@ export function CapTableManager({
               undoLabel={undoLabel}
               redoLabel={redoLabel}
             />
+            <HistoryTriggerButton />
             <ExportMenu
               capTable={capTable}
               instruments={instruments}
@@ -506,6 +577,12 @@ export function CapTableManager({
           />
         </TabsContent>
       </Tabs>
+
+      {/* Version History Panel */}
+      <VersionHistoryPanel
+        currentSnapshot={currentSnapshot}
+        onRestore={handleRestoreVersion}
+      />
     </div>
   );
 }
