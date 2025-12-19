@@ -88,13 +88,16 @@ test.describe('Valuation Calculator', () => {
     });
 
     test('should allow adding cash flow years', async ({ page }) => {
+      // Count initial cash flow inputs
+      const initialInputs = await page.locator('input[name^="projectedCashFlows"]').count();
+
       // Click Add Year button
       const addButton = page.getByRole('button', { name: /Add Year/i });
       await addButton.click();
 
-      // Should have more year inputs
-      const yearInputs = page.locator('text=Year').all();
-      expect((await yearInputs).length).toBeGreaterThan(0);
+      // Should have one more cash flow input
+      const newInputs = await page.locator('input[name^="projectedCashFlows"]').count();
+      expect(newInputs).toBe(initialInputs + 1);
     });
 
     test('should calculate DCF valuation', async ({ page }) => {
@@ -104,8 +107,10 @@ test.describe('Valuation Calculator', () => {
       // Click calculate
       await page.getByRole('button', { name: /Calculate Valuation/i }).click();
 
-      // Should show valuation result
-      await expect(page.getByText(/Valuation/i)).toBeVisible({ timeout: 10000 });
+      // Should show valuation result card with DCF method indicator
+      await expect(page.getByText(/DCF/i)).toBeVisible({ timeout: 10000 });
+      // Should show a dollar amount result
+      await expect(page.getByText(/\$[\d,]+/)).toBeVisible({ timeout: 10000 });
     });
   });
 
@@ -154,6 +159,13 @@ test.describe('Valuation Calculator', () => {
 
       // Should now show IRR input instead of multiple
       await expect(page.locator('input[name="targetIRR"]')).toBeVisible();
+
+      // Fill IRR value and verify calculation works
+      await page.locator('input[name="targetIRR"]').fill('50');
+      await page.getByRole('button', { name: /Calculate Valuation/i }).click();
+
+      // Should show valuation result with dollar amount
+      await expect(page.getByText(/\$[\d,]+/)).toBeVisible({ timeout: 10000 });
     });
   });
 

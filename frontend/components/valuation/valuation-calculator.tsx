@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calculator, TrendingUp, DollarSign, Target, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { RevenueMultipleForm } from "./revenue-multiple-form";
 import { DCFForm } from "./dcf-form";
 import { VCMethodForm } from "./vc-method-form";
@@ -115,7 +116,9 @@ export function ValuationCalculator() {
       const result = transformValuationResult(response);
       updateMethodResult("revenue_multiple", result, null);
     } catch (error) {
-      updateMethodResult("revenue_multiple", null, (error as Error).message);
+      const message = (error as Error).message;
+      updateMethodResult("revenue_multiple", null, message);
+      toast.error("Calculation failed", { description: message });
     }
   };
 
@@ -132,7 +135,9 @@ export function ValuationCalculator() {
       const result = transformValuationResult(response);
       updateMethodResult("dcf", result, null);
     } catch (error) {
-      updateMethodResult("dcf", null, (error as Error).message);
+      const message = (error as Error).message;
+      updateMethodResult("dcf", null, message);
+      toast.error("Calculation failed", { description: message });
     }
   };
 
@@ -155,7 +160,9 @@ export function ValuationCalculator() {
       const result = transformValuationResult(response);
       updateMethodResult("vc_method", result, null);
     } catch (error) {
-      updateMethodResult("vc_method", null, (error as Error).message);
+      const message = (error as Error).message;
+      updateMethodResult("vc_method", null, message);
+      toast.error("Calculation failed", { description: message });
     }
   };
 
@@ -216,8 +223,14 @@ export function ValuationCalculator() {
       comparisonResult.results.forEach((r) => {
         updateMethodResult(r.method as ValuationMethod, r, null);
       });
+      toast.success("Comparison complete", {
+        description: `Analyzed ${comparisonResult.results.length} valuation methods`,
+      });
     } catch (error) {
       console.error("Comparison failed:", error);
+      toast.error("Comparison failed", {
+        description: (error as Error).message || "Failed to compare valuation methods",
+      });
     }
   };
 

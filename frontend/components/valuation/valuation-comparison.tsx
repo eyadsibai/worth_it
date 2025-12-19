@@ -138,55 +138,61 @@ export function ValuationComparison({ comparison }: ValuationComparisonProps) {
           </div>
         </div>
 
-        {/* Bar Chart */}
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E5E7EB" />
-              <XAxis
-                type="number"
-                tickFormatter={(value) => `$${(value / 1000000).toFixed(0)}M`}
-                tick={{ fontSize: 12, fill: "#6B7280" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                type="category"
-                dataKey="name"
-                tick={{ fontSize: 12, fill: "#6B7280" }}
-                axisLine={false}
-                tickLine={false}
-                width={100}
-              />
-              <Tooltip content={<ChartTooltip />} />
-              <ReferenceLine
-                x={comparison.weightedAverage}
-                stroke={CHART_COLORS.reference}
-                strokeDasharray="3 3"
-                label={{
-                  value: "Weighted Avg",
-                  position: "top",
-                  fill: CHART_COLORS.reference,
-                  fontSize: 10,
-                }}
-              />
-              <Bar dataKey="valuation" radius={[0, 4, 4, 0]}>
-                {chartData.map((entry, index) => (
-                  <Cell
-                    key={entry.method}
-                    fill={
-                      index === 0
-                        ? CHART_COLORS.primary
-                        : index === 1
-                        ? CHART_COLORS.secondary
-                        : CHART_COLORS.tertiary
-                    }
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        {/* Bar Chart - only show when comparing 2+ methods */}
+        {chartData.length >= 2 ? (
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E5E7EB" />
+                <XAxis
+                  type="number"
+                  tickFormatter={(value) => `$${(value / 1000000).toFixed(0)}M`}
+                  tick={{ fontSize: 12, fill: "#6B7280" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  tick={{ fontSize: 12, fill: "#6B7280" }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={100}
+                />
+                <Tooltip content={<ChartTooltip />} />
+                <ReferenceLine
+                  x={comparison.weightedAverage}
+                  stroke={CHART_COLORS.reference}
+                  strokeDasharray="3 3"
+                  label={{
+                    value: "Weighted Avg",
+                    position: "top",
+                    fill: CHART_COLORS.reference,
+                    fontSize: 10,
+                  }}
+                />
+                <Bar dataKey="valuation" radius={[0, 4, 4, 0]}>
+                  {chartData.map((entry, index) => (
+                    <Cell
+                      key={entry.method}
+                      fill={
+                        index === 0
+                          ? CHART_COLORS.primary
+                          : index === 1
+                          ? CHART_COLORS.secondary
+                          : CHART_COLORS.tertiary
+                      }
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <p>Add more valuation methods to see a comparison chart</p>
+          </div>
+        )}
 
         {/* Outliers Warning */}
         {comparison.outliers.length > 0 && (
