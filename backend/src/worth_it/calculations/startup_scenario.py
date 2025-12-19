@@ -12,6 +12,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from worth_it.calculations.base import EquityType
+
 
 def calculate_startup_scenario(
     opportunity_cost_df: pd.DataFrame, startup_params: dict[str, Any]
@@ -70,7 +72,7 @@ def calculate_startup_scenario(
 
     output = {}
 
-    if equity_type.value == "Equity (RSUs)":
+    if equity_type == EquityType.RSU:
         rsu_params = startup_params["rsu_params"]
         initial_equity_pct = rsu_params.get("equity_pct", 0.0)
         diluted_equity_pct = initial_equity_pct

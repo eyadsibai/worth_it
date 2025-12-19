@@ -13,10 +13,15 @@ import numpy as np
 
 
 class EquityType(str, Enum):
-    """Enum for different types of equity."""
+    """Enum for different types of equity.
 
-    RSU = "Equity (RSUs)"
-    STOCK_OPTIONS = "Stock Options"
+    Values are standardized to match frontend schema values:
+    - RSU: Restricted Stock Units
+    - STOCK_OPTIONS: Stock Options (ISO/NSO)
+    """
+
+    RSU = "RSU"
+    STOCK_OPTIONS = "STOCK_OPTIONS"
 
 
 def annual_to_monthly_roi(annual_roi: float | np.ndarray) -> float | np.ndarray:

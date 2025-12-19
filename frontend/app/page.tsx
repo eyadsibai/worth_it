@@ -231,7 +231,7 @@ export default function Home() {
       startup_params:
         debouncedEquityDetails.equity_type === "RSU"
           ? {
-              equity_type: "Equity (RSUs)",
+              equity_type: "RSU",
               total_vesting_years: debouncedEquityDetails.vesting_period,
               cliff_years: debouncedEquityDetails.cliff_period,
               rsu_params: {
@@ -254,7 +254,7 @@ export default function Home() {
               },
             }
           : {
-              equity_type: "Stock Options",
+              equity_type: "STOCK_OPTIONS",
               num_options: debouncedEquityDetails.num_options,
               strike_price: debouncedEquityDetails.strike_price,
               total_vesting_years: debouncedEquityDetails.vesting_period,
@@ -482,7 +482,7 @@ export default function Home() {
                     investment_frequency: debouncedCurrentJob.investment_frequency,
                     failure_probability: 0.6, // 60% failure rate (realistic: 50-70% of startups fail within 5 years)
                     startup_params: debouncedEquityDetails.equity_type === "RSU" ? {
-                      equity_type: "Equity (RSUs)",
+                      equity_type: "RSU",
                       total_vesting_years: debouncedEquityDetails.vesting_period,
                       cliff_years: debouncedEquityDetails.cliff_period,
                       rsu_params: {
@@ -502,7 +502,7 @@ export default function Home() {
                           : [],
                       },
                     } : {
-                      equity_type: "Stock Options",
+                      equity_type: "STOCK_OPTIONS",
                       total_vesting_years: debouncedEquityDetails.vesting_period,
                       cliff_years: debouncedEquityDetails.cliff_period,
                       options_params: {
