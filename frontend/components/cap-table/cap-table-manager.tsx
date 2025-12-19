@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, Users, Landmark, PieChart, BarChart3 } from "lucide-react";
+import { Trash2, Users, Landmark, PieChart, BarChart3, Wand2 } from "lucide-react";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { UndoRedoControls } from "@/components/ui/undo-redo-controls";
 import { StakeholderForm } from "./stakeholder-form";
@@ -27,6 +27,7 @@ import {
 import { generateId } from "@/lib/utils";
 import { useConvertInstruments } from "@/lib/api-client";
 import { useCapTableHistory } from "@/lib/hooks";
+import { CapTableWizard } from "./wizard";
 import type {
   Stakeholder,
   StakeholderFormData,
@@ -48,6 +49,8 @@ interface CapTableManagerProps {
   onPreferenceTiersChange: (tiers: PreferenceTier[]) => void;
 }
 
+const WIZARD_SKIPPED_KEY = "cap-table-wizard-skipped";
+
 export function CapTableManager({
   capTable,
   onCapTableChange,
@@ -57,7 +60,33 @@ export function CapTableManager({
   onPreferenceTiersChange,
 }: CapTableManagerProps) {
   const [activeSection, setActiveSection] = React.useState<"cap-table" | "funding" | "waterfall">("cap-table");
+  const [wizardSkipped, setWizardSkipped] = React.useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem(WIZARD_SKIPPED_KEY) === "true";
+  });
+  const [showWizard, setShowWizard] = React.useState(false);
   const convertInstruments = useConvertInstruments();
+
+  // Show wizard if cap table is empty and wizard hasn't been skipped
+  const shouldShowWizard = showWizard || (capTable.stakeholders.length === 0 && !wizardSkipped);
+
+  const handleWizardComplete = (newCapTable: CapTable, newInstruments: FundingInstrument[]) => {
+    onCapTableChange(newCapTable);
+    onInstrumentsChange(newInstruments);
+    setShowWizard(false);
+    localStorage.setItem(WIZARD_SKIPPED_KEY, "true");
+    setWizardSkipped(true);
+  };
+
+  const handleWizardSkip = () => {
+    localStorage.setItem(WIZARD_SKIPPED_KEY, "true");
+    setWizardSkipped(true);
+    setShowWizard(false);
+  };
+
+  const handleRunWizard = () => {
+    setShowWizard(true);
+  };
 
   // Wrap state changes with undo/redo history tracking
   const {
@@ -229,6 +258,16 @@ export function CapTableManager({
     }
   };
 
+  // Show wizard if conditions are met
+  if (shouldShowWizard) {
+    return (
+      <CapTableWizard
+        onComplete={handleWizardComplete}
+        onSkip={handleWizardSkip}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Section Tabs */}
@@ -249,6 +288,15 @@ export function CapTableManager({
           </TabsTrigger>
         </TabsList>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRunWizard}
+              className="hidden sm:flex"
+            >
+              <Wand2 className="h-4 w-4 mr-2" />
+              Wizard
+            </Button>
             <UndoRedoControls
               canUndo={canUndo}
               canRedo={canRedo}
