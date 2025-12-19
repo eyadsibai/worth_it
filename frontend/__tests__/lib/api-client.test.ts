@@ -131,6 +131,69 @@ describe("apiClient", () => {
 });
 
 // =============================================================================
+// WebSocket URL Protocol Detection Tests
+// =============================================================================
+
+describe("getWebSocketURL", () => {
+  // We test the exported pure function
+  it("returns ws:// for http: protocol on non-localhost host", async () => {
+    const { getWebSocketURL } = await import("@/lib/api-client");
+    // Test with non-localhost to reflect production-like usage
+    const url = getWebSocketURL("http:", "example.com");
+    expect(url).toBe("ws://example.com");
+  });
+
+  it("returns wss:// for https: protocol", async () => {
+    const { getWebSocketURL } = await import("@/lib/api-client");
+    const url = getWebSocketURL("https:", "myapp.vercel.app");
+    expect(url).toBe("wss://myapp.vercel.app");
+  });
+
+  it("returns ws://localhost:8000 when protocol is empty (SSR fallback)", async () => {
+    const { getWebSocketURL } = await import("@/lib/api-client");
+    const url = getWebSocketURL("", "");
+    expect(url).toBe("ws://localhost:8000");
+  });
+
+  it("uses backend port override when provided for localhost", async () => {
+    const { getWebSocketURL } = await import("@/lib/api-client");
+    // When frontend is on :3000, we need to connect to backend on :8000
+    const url = getWebSocketURL("http:", "localhost:3000", 8000);
+    expect(url).toBe("ws://localhost:8000");
+  });
+
+  it("does not override port in production URLs", async () => {
+    const { getWebSocketURL } = await import("@/lib/api-client");
+    const url = getWebSocketURL("https:", "api.example.com");
+    expect(url).toBe("wss://api.example.com");
+  });
+
+  it("does not match hosts containing 'localhost' in domain name", async () => {
+    const { getWebSocketURL } = await import("@/lib/api-client");
+    // "mylocalhost.com" should NOT trigger port override
+    const url = getWebSocketURL("http:", "mylocalhost.com", 8000);
+    expect(url).toBe("ws://mylocalhost.com");
+  });
+
+  it("respects NEXT_PUBLIC_WS_URL environment variable", async () => {
+    const originalEnv = process.env.NEXT_PUBLIC_WS_URL;
+    process.env.NEXT_PUBLIC_WS_URL = "wss://custom-ws.example.com";
+
+    // Re-import to pick up the new env value
+    const apiClientModule = await import("@/lib/api-client");
+    const url = apiClientModule.getWebSocketURL("http:", "localhost:3000", 8000);
+    expect(url).toBe("wss://custom-ws.example.com");
+
+    // Restore
+    if (originalEnv === undefined) {
+      delete process.env.NEXT_PUBLIC_WS_URL;
+    } else {
+      process.env.NEXT_PUBLIC_WS_URL = originalEnv;
+    }
+  });
+});
+
+// =============================================================================
 // WebSocket Hook Tests
 // =============================================================================
 

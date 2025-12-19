@@ -42,6 +42,51 @@ import type {
 } from "./schemas";
 
 // ============================================================================
+// WebSocket URL Helper
+// ============================================================================
+
+/**
+ * Generates the appropriate WebSocket URL based on the current protocol.
+ * - Uses wss:// for HTTPS pages (secure WebSocket)
+ * - Uses ws:// for HTTP pages (insecure WebSocket)
+ * - Falls back to ws://localhost:8000 during SSR or when window is unavailable
+ *
+ * Note: Port override only applies to "localhost" hostname, not 127.0.0.1 or IPv6.
+ * For other local addresses, use the NEXT_PUBLIC_WS_URL environment variable.
+ *
+ * @param protocol - The page protocol (e.g., "https:", "http:")
+ * @param host - The page host (e.g., "localhost:3000", "example.com")
+ * @param backendPort - Optional port override for localhost development (e.g., 8000)
+ * @returns The WebSocket URL with appropriate protocol
+ */
+export function getWebSocketURL(
+  protocol: string,
+  host: string,
+  backendPort?: number
+): string {
+  // Environment variable takes precedence
+  if (process.env.NEXT_PUBLIC_WS_URL) {
+    return process.env.NEXT_PUBLIC_WS_URL;
+  }
+
+  // SSR fallback - no window available
+  if (!protocol || !host) {
+    return "ws://localhost:8000";
+  }
+
+  // Determine WebSocket protocol based on page protocol
+  const wsProtocol = protocol === "https:" ? "wss:" : "ws:";
+
+  // For local development, allow overriding the port (frontend on :3000, backend on :8000)
+  // Use precise check to avoid matching hosts like "mylocalhost.com"
+  if (backendPort && (host === "localhost" || host.startsWith("localhost:"))) {
+    return `${wsProtocol}//localhost:${backendPort}`;
+  }
+
+  return `${wsProtocol}//${host}`;
+}
+
+// ============================================================================
 // API Client Class
 // ============================================================================
 
@@ -52,7 +97,19 @@ class APIClient {
 
   constructor() {
     this.baseURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    this.wsURL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
+
+    // Detect protocol for WebSocket URL
+    // In browser: use window.location to determine http/https
+    // In SSR: fall back to localhost
+    if (typeof window !== "undefined") {
+      this.wsURL = getWebSocketURL(
+        window.location.protocol,
+        window.location.host,
+        8000 // Backend port for local development
+      );
+    } else {
+      this.wsURL = getWebSocketURL("", "");
+    }
 
     this.client = axios.create({
       baseURL: this.baseURL,
