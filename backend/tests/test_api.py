@@ -1280,3 +1280,153 @@ class TestScenarioComparisonAPI:
 
         response = client.post("/api/scenarios/compare", json=request_data)
         assert response.status_code == 422  # Validation error
+
+
+class TestBaseParamsValidation:
+    """Tests for base_params validation in Monte Carlo and Sensitivity Analysis."""
+
+    def test_monte_carlo_missing_exit_year(self):
+        """Test Monte Carlo rejects request missing exit_year."""
+        request_data = {
+            "num_simulations": 50,
+            "base_params": {
+                # exit_year is missing
+                "current_job_monthly_salary": 10000,
+                "startup_monthly_salary": 8000,
+                "current_job_salary_growth_rate": 0.03,
+                "annual_roi": 0.05,
+                "investment_frequency": "Annually",
+                "startup_params": {
+                    "equity_type": "RSU",
+                    "total_vesting_years": 4,
+                    "cliff_years": 1,
+                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                },
+                "failure_probability": 0.25,
+            },
+            "sim_param_configs": {},
+        }
+        response = client.post("/api/monte-carlo", json=request_data)
+        assert response.status_code == 422
+        data = response.json()
+        assert "exit_year" in str(data["detail"])
+
+    def test_monte_carlo_invalid_exit_year_too_low(self):
+        """Test Monte Carlo rejects exit_year below 1."""
+        request_data = {
+            "num_simulations": 50,
+            "base_params": {
+                "exit_year": 0,  # Invalid - too low
+                "current_job_monthly_salary": 10000,
+                "startup_monthly_salary": 8000,
+                "current_job_salary_growth_rate": 0.03,
+                "annual_roi": 0.05,
+                "investment_frequency": "Annually",
+                "startup_params": {
+                    "equity_type": "RSU",
+                    "total_vesting_years": 4,
+                    "cliff_years": 1,
+                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                },
+                "failure_probability": 0.25,
+            },
+            "sim_param_configs": {},
+        }
+        response = client.post("/api/monte-carlo", json=request_data)
+        assert response.status_code == 422
+        data = response.json()
+        assert "exit_year" in str(data["detail"])
+
+    def test_monte_carlo_invalid_exit_year_too_high(self):
+        """Test Monte Carlo rejects exit_year above 20."""
+        request_data = {
+            "num_simulations": 50,
+            "base_params": {
+                "exit_year": 25,  # Invalid - too high
+                "current_job_monthly_salary": 10000,
+                "startup_monthly_salary": 8000,
+                "current_job_salary_growth_rate": 0.03,
+                "annual_roi": 0.05,
+                "investment_frequency": "Annually",
+                "startup_params": {
+                    "equity_type": "RSU",
+                    "total_vesting_years": 4,
+                    "cliff_years": 1,
+                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                },
+                "failure_probability": 0.25,
+            },
+            "sim_param_configs": {},
+        }
+        response = client.post("/api/monte-carlo", json=request_data)
+        assert response.status_code == 422
+        data = response.json()
+        assert "exit_year" in str(data["detail"])
+
+    def test_sensitivity_missing_exit_year(self):
+        """Test Sensitivity Analysis rejects request missing exit_year."""
+        request_data = {
+            "base_params": {
+                # exit_year is missing
+                "current_job_monthly_salary": 10000,
+                "startup_monthly_salary": 8000,
+                "current_job_salary_growth_rate": 0.03,
+                "annual_roi": 0.05,
+                "investment_frequency": "Annually",
+                "startup_params": {
+                    "equity_type": "RSU",
+                    "total_vesting_years": 4,
+                    "cliff_years": 1,
+                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                },
+                "failure_probability": 0.25,
+            },
+            "sim_param_configs": {},
+        }
+        response = client.post("/api/sensitivity-analysis", json=request_data)
+        assert response.status_code == 422
+        data = response.json()
+        assert "exit_year" in str(data["detail"])
+
+    def test_sensitivity_invalid_exit_year(self):
+        """Test Sensitivity Analysis rejects invalid exit_year."""
+        request_data = {
+            "base_params": {
+                "exit_year": -1,  # Invalid
+                "current_job_monthly_salary": 10000,
+                "startup_monthly_salary": 8000,
+                "current_job_salary_growth_rate": 0.03,
+                "annual_roi": 0.05,
+                "investment_frequency": "Annually",
+                "startup_params": {
+                    "equity_type": "RSU",
+                    "total_vesting_years": 4,
+                    "cliff_years": 1,
+                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                },
+                "failure_probability": 0.25,
+            },
+            "sim_param_configs": {},
+        }
+        response = client.post("/api/sensitivity-analysis", json=request_data)
+        assert response.status_code == 422
+        data = response.json()
+        assert "exit_year" in str(data["detail"])
+
+    def test_monte_carlo_missing_multiple_required_fields(self):
+        """Test Monte Carlo reports all missing required fields."""
+        request_data = {
+            "num_simulations": 50,
+            "base_params": {
+                "current_job_monthly_salary": 10000,
+                # Missing: exit_year, startup_monthly_salary, annual_roi, etc.
+            },
+            "sim_param_configs": {},
+        }
+        response = client.post("/api/monte-carlo", json=request_data)
+        assert response.status_code == 422
+        data = response.json()
+        detail = str(data["detail"])
+        # Should mention multiple missing fields
+        assert "exit_year" in detail
+        assert "startup_monthly_salary" in detail

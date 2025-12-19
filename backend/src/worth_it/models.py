@@ -200,18 +200,82 @@ class NPVRequest(BaseModel):
 
 
 class MonteCarloRequest(BaseModel):
-    """Request model for Monte Carlo simulation."""
+    """Request model for Monte Carlo simulation.
+
+    Validates that base_params contains required fields including exit_year.
+    """
 
     num_simulations: int = Field(..., ge=1, le=10000)
     base_params: dict[str, Any]  # BaseParams - kept flexible for dynamic structure
     sim_param_configs: dict[str, Any]  # SimParamConfigs - kept flexible for dynamic structure
 
+    @model_validator(mode="after")
+    def validate_base_params_required_fields(self) -> MonteCarloRequest:
+        """Validate that base_params contains all required fields."""
+        required_fields = [
+            "exit_year",
+            "current_job_monthly_salary",
+            "startup_monthly_salary",
+            "current_job_salary_growth_rate",
+            "annual_roi",
+            "investment_frequency",
+            "failure_probability",
+            "startup_params",
+        ]
+        missing = [f for f in required_fields if f not in self.base_params]
+        if missing:
+            raise ValueError(
+                f"base_params missing required field(s): {', '.join(missing)}. "
+                f"Ensure all required fields are included in the request payload."
+            )
+
+        # Validate exit_year is a positive integer
+        exit_year = self.base_params.get("exit_year")
+        if not isinstance(exit_year, int) or exit_year < 1 or exit_year > 20:
+            raise ValueError(
+                f"exit_year must be an integer between 1 and 20, got: {exit_year}"
+            )
+
+        return self
+
 
 class SensitivityAnalysisRequest(BaseModel):
-    """Request model for sensitivity analysis."""
+    """Request model for sensitivity analysis.
+
+    Validates that base_params contains required fields including exit_year.
+    """
 
     base_params: dict[str, Any]  # BaseParams - kept flexible for dynamic structure
     sim_param_configs: dict[str, Any]  # SimParamConfigs - kept flexible for dynamic structure
+
+    @model_validator(mode="after")
+    def validate_base_params_required_fields(self) -> SensitivityAnalysisRequest:
+        """Validate that base_params contains all required fields."""
+        required_fields = [
+            "exit_year",
+            "current_job_monthly_salary",
+            "startup_monthly_salary",
+            "current_job_salary_growth_rate",
+            "annual_roi",
+            "investment_frequency",
+            "failure_probability",
+            "startup_params",
+        ]
+        missing = [f for f in required_fields if f not in self.base_params]
+        if missing:
+            raise ValueError(
+                f"base_params missing required field(s): {', '.join(missing)}. "
+                f"Ensure all required fields are included in the request payload."
+            )
+
+        # Validate exit_year is a positive integer
+        exit_year = self.base_params.get("exit_year")
+        if not isinstance(exit_year, int) or exit_year < 1 or exit_year > 20:
+            raise ValueError(
+                f"exit_year must be an integer between 1 and 20, got: {exit_year}"
+            )
+
+        return self
 
 
 class DilutionFromValuationRequest(BaseModel):
