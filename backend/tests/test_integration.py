@@ -156,42 +156,408 @@ def test_monte_carlo_simulation(client):
     assert len(mc_results["simulated_valuations"]) == 50
 
 
-def test_sensitivity_analysis(client):
-    """Test sensitivity analysis endpoint."""
-    base_params = {
-        "exit_year": 5,
-        "current_job_monthly_salary": 30000,
-        "startup_monthly_salary": 20000,
-        "current_job_salary_growth_rate": 0.03,
-        "annual_roi": 0.054,
-        "investment_frequency": "Monthly",
-        "startup_params": {
-            "equity_type": EquityType.RSU.value,
-            "total_vesting_years": 4,
-            "cliff_years": 1,
-            "rsu_params": {
-                "equity_pct": 0.05,
-                "target_exit_valuation": 25_000_000,
-                "simulate_dilution": False,
+class TestSensitivityAnalysisIntegration:
+    """Comprehensive integration tests for sensitivity analysis."""
+
+    def test_sensitivity_analysis_basic(self, client):
+        """Test basic sensitivity analysis with RSU scenario."""
+        base_params = {
+            "exit_year": 5,
+            "current_job_monthly_salary": 30000,
+            "startup_monthly_salary": 20000,
+            "current_job_salary_growth_rate": 0.03,
+            "annual_roi": 0.054,
+            "investment_frequency": "Monthly",
+            "startup_params": {
+                "equity_type": EquityType.RSU.value,
+                "total_vesting_years": 4,
+                "cliff_years": 1,
+                "rsu_params": {
+                    "equity_pct": 0.05,
+                    "target_exit_valuation": 25_000_000,
+                    "simulate_dilution": False,
+                },
+                "options_params": {},
             },
-            "options_params": {},
-        },
-        "failure_probability": 0.0,
-    }
+            "failure_probability": 0.0,
+        }
 
-    sim_param_configs = {
-        "valuation": {"min_val": 10_000_000, "max_val": 40_000_000, "mode": 25_000_000},
-        "roi": {"mean": 0.054, "std_dev": 0.02},
-    }
+        sim_param_configs = {
+            "valuation": {"min_val": 10_000_000, "max_val": 40_000_000, "mode": 25_000_000},
+            "roi": {"mean": 0.054, "std_dev": 0.02},
+        }
 
-    sa_request = {
-        "base_params": base_params,
-        "sim_param_configs": sim_param_configs,
-    }
-    response = client.post("/api/sensitivity-analysis", json=sa_request)
-    assert response.status_code == 200
-    sa_results = response.json()
-    assert len(sa_results["data"]) > 0
+        sa_request = {
+            "base_params": base_params,
+            "sim_param_configs": sim_param_configs,
+        }
+        response = client.post("/api/sensitivity-analysis", json=sa_request)
+        assert response.status_code == 200
+        sa_results = response.json()
+        assert len(sa_results["data"]) > 0
+
+    def test_sensitivity_analysis_result_structure(self, client):
+        """Test that sensitivity analysis returns properly structured data."""
+        base_params = {
+            "exit_year": 5,
+            "current_job_monthly_salary": 25000,
+            "startup_monthly_salary": 18000,
+            "current_job_salary_growth_rate": 0.03,
+            "annual_roi": 0.05,
+            "investment_frequency": "Monthly",
+            "startup_params": {
+                "equity_type": EquityType.RSU.value,
+                "total_vesting_years": 4,
+                "cliff_years": 1,
+                "rsu_params": {
+                    "equity_pct": 0.03,
+                    "target_exit_valuation": 50_000_000,
+                    "simulate_dilution": False,
+                },
+                "options_params": {},
+            },
+            "failure_probability": 0.0,
+        }
+
+        sim_param_configs = {
+            "valuation": {"min_val": 20_000_000, "max_val": 80_000_000, "mode": 50_000_000},
+            "roi": {"mean": 0.05, "std_dev": 0.01},
+            "salary_growth": {"min_val": 0.01, "max_val": 0.05, "mode": 0.03},
+        }
+
+        response = client.post(
+            "/api/sensitivity-analysis",
+            json={"base_params": base_params, "sim_param_configs": sim_param_configs},
+        )
+        assert response.status_code == 200
+        data = response.json()["data"]
+
+        # Each row should have Variable, Low, High, Impact
+        for row in data:
+            assert "Variable" in row
+            assert "Low" in row
+            assert "High" in row
+            assert "Impact" in row
+
+    def test_sensitivity_analysis_stock_options_scenario(self, client):
+        """Test sensitivity analysis with stock options scenario."""
+        base_params = {
+            "exit_year": 5,
+            "current_job_monthly_salary": 25000,
+            "startup_monthly_salary": 18000,
+            "current_job_salary_growth_rate": 0.03,
+            "annual_roi": 0.05,
+            "investment_frequency": "Annually",
+            "startup_params": {
+                "equity_type": EquityType.STOCK_OPTIONS.value,
+                "total_vesting_years": 4,
+                "cliff_years": 1,
+                "rsu_params": {},
+                "options_params": {
+                    "num_options": 50000,
+                    "strike_price": 1.0,
+                    "target_exit_valuation": 100_000_000,
+                    "total_shares_outstanding": 10_000_000,
+                    "exercise_strategy": "At Exit",
+                },
+            },
+            "failure_probability": 0.25,
+        }
+
+        sim_param_configs = {
+            "valuation": {"min_val": 50_000_000, "max_val": 200_000_000, "mode": 100_000_000},
+            "roi": {"mean": 0.06, "std_dev": 0.02},
+        }
+
+        response = client.post(
+            "/api/sensitivity-analysis",
+            json={"base_params": base_params, "sim_param_configs": sim_param_configs},
+        )
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert len(data) >= 1  # At least one variable analyzed
+
+    def test_sensitivity_analysis_multiple_variables(self, client):
+        """Test sensitivity analysis with multiple variables."""
+        base_params = {
+            "exit_year": 5,
+            "current_job_monthly_salary": 30000,
+            "startup_monthly_salary": 20000,
+            "current_job_salary_growth_rate": 0.03,
+            "annual_roi": 0.054,
+            "investment_frequency": "Monthly",
+            "startup_params": {
+                "equity_type": EquityType.RSU.value,
+                "total_vesting_years": 4,
+                "cliff_years": 1,
+                "rsu_params": {
+                    "equity_pct": 0.05,
+                    "target_exit_valuation": 25_000_000,
+                    "simulate_dilution": False,
+                },
+                "options_params": {},
+            },
+            "failure_probability": 0.0,
+        }
+
+        sim_param_configs = {
+            "valuation": {"min_val": 10_000_000, "max_val": 40_000_000, "mode": 25_000_000},
+            "roi": {"mean": 0.054, "std_dev": 0.02},
+            "salary_growth": {"min_val": 0.01, "max_val": 0.05, "mode": 0.03},
+        }
+
+        response = client.post(
+            "/api/sensitivity-analysis",
+            json={"base_params": base_params, "sim_param_configs": sim_param_configs},
+        )
+        assert response.status_code == 200
+        data = response.json()["data"]
+
+        # Should analyze all provided variables
+        assert len(data) >= 2
+        # Each variable should have numeric impact values
+        for row in data:
+            assert isinstance(row["Impact"], (int, float))
+            assert isinstance(row["Low"], (int, float))
+            assert isinstance(row["High"], (int, float))
+
+
+class TestWebSocketMonteCarloIntegration:
+    """Comprehensive integration tests for WebSocket Monte Carlo simulation."""
+
+    def test_websocket_connection_lifecycle(self, client):
+        """Test basic WebSocket connection and message flow."""
+        base_params = {
+            "exit_year": 5,
+            "current_job_monthly_salary": 30000,
+            "startup_monthly_salary": 20000,
+            "current_job_salary_growth_rate": 0.03,
+            "annual_roi": 0.054,
+            "investment_frequency": "Monthly",
+            "startup_params": {
+                "equity_type": EquityType.RSU.value,
+                "total_vesting_years": 4,
+                "cliff_years": 1,
+                "rsu_params": {
+                    "equity_pct": 0.05,
+                    "target_exit_valuation": 25_000_000,
+                    "simulate_dilution": False,
+                },
+                "options_params": {},
+            },
+            "failure_probability": 0.25,
+        }
+
+        request_data = {
+            "num_simulations": 100,
+            "base_params": base_params,
+            "sim_param_configs": {
+                "valuation": {"min_val": 10_000_000, "max_val": 40_000_000, "mode": 25_000_000},
+                "roi": {"mean": 0.054, "std_dev": 0.02},
+            },
+        }
+
+        with client.websocket_connect("/ws/monte-carlo") as websocket:
+            import json
+
+            websocket.send_text(json.dumps(request_data))
+
+            # Collect all messages
+            messages = []
+            while True:
+                msg = websocket.receive_json()
+                messages.append(msg)
+                if msg["type"] == "complete":
+                    break
+
+            # Verify message types
+            progress_msgs = [m for m in messages if m["type"] == "progress"]
+            complete_msgs = [m for m in messages if m["type"] == "complete"]
+
+            assert len(progress_msgs) >= 1, "Should have at least one progress message"
+            assert len(complete_msgs) == 1, "Should have exactly one complete message"
+
+    def test_websocket_progress_events(self, client):
+        """Test that progress events are sent correctly."""
+        base_params = {
+            "exit_year": 3,
+            "current_job_monthly_salary": 20000,
+            "startup_monthly_salary": 15000,
+            "current_job_salary_growth_rate": 0.02,
+            "annual_roi": 0.05,
+            "investment_frequency": "Monthly",
+            "startup_params": {
+                "equity_type": EquityType.RSU.value,
+                "total_vesting_years": 4,
+                "cliff_years": 1,
+                "rsu_params": {
+                    "equity_pct": 0.02,
+                    "target_exit_valuation": 10_000_000,
+                    "simulate_dilution": False,
+                },
+                "options_params": {},
+            },
+            "failure_probability": 0.1,
+        }
+
+        request_data = {
+            "num_simulations": 500,  # Enough to generate multiple progress updates
+            "base_params": base_params,
+            "sim_param_configs": {
+                "valuation": {"min_val": 5_000_000, "max_val": 20_000_000, "mode": 10_000_000},
+            },
+        }
+
+        with client.websocket_connect("/ws/monte-carlo") as websocket:
+            import json
+
+            websocket.send_text(json.dumps(request_data))
+
+            progress_percentages = []
+            while True:
+                msg = websocket.receive_json()
+                if msg["type"] == "progress":
+                    assert "current" in msg
+                    assert "total" in msg
+                    assert "percentage" in msg
+                    assert msg["total"] == 500
+                    progress_percentages.append(msg["percentage"])
+                elif msg["type"] == "complete":
+                    break
+
+            # Progress should increase
+            assert len(progress_percentages) >= 2
+            # Last progress should be 100%
+            assert progress_percentages[-1] == 100.0
+
+    def test_websocket_result_aggregation(self, client):
+        """Test that results are properly aggregated across batches."""
+        base_params = {
+            "exit_year": 5,
+            "current_job_monthly_salary": 30000,
+            "startup_monthly_salary": 20000,
+            "current_job_salary_growth_rate": 0.03,
+            "annual_roi": 0.054,
+            "investment_frequency": "Monthly",
+            "startup_params": {
+                "equity_type": EquityType.RSU.value,
+                "total_vesting_years": 4,
+                "cliff_years": 1,
+                "rsu_params": {
+                    "equity_pct": 0.05,
+                    "target_exit_valuation": 25_000_000,
+                    "simulate_dilution": False,
+                },
+                "options_params": {},
+            },
+            "failure_probability": 0.25,
+        }
+
+        num_sims = 250
+        request_data = {
+            "num_simulations": num_sims,
+            "base_params": base_params,
+            "sim_param_configs": {
+                "valuation": {"min_val": 10_000_000, "max_val": 40_000_000, "mode": 25_000_000},
+                "roi": {"mean": 0.054, "std_dev": 0.02},
+            },
+        }
+
+        with client.websocket_connect("/ws/monte-carlo") as websocket:
+            import json
+
+            websocket.send_text(json.dumps(request_data))
+
+            complete_msg = None
+            while True:
+                msg = websocket.receive_json()
+                if msg["type"] == "complete":
+                    complete_msg = msg
+                    break
+
+            # Verify result counts match requested simulations
+            assert complete_msg is not None
+            assert len(complete_msg["net_outcomes"]) == num_sims
+            assert len(complete_msg["simulated_valuations"]) == num_sims
+
+    def test_websocket_error_handling_invalid_params(self, client):
+        """Test error handling for invalid parameters."""
+        # Missing required fields
+        request_data = {
+            "num_simulations": 100,
+            "base_params": {
+                # Missing exit_year and other required fields
+                "current_job_monthly_salary": 30000,
+            },
+            "sim_param_configs": {},
+        }
+
+        with client.websocket_connect("/ws/monte-carlo") as websocket:
+            import json
+
+            websocket.send_text(json.dumps(request_data))
+
+            # Collect messages until we get error or complete
+            # Note: WebSocket may send initial progress before validation fails
+            messages = []
+            while True:
+                msg = websocket.receive_json()
+                messages.append(msg)
+                if msg["type"] in ("error", "complete"):
+                    break
+
+            # Should end with an error due to missing required fields
+            assert messages[-1]["type"] == "error", f"Expected error, got: {messages[-1]}"
+            assert "message" in messages[-1]
+
+    def test_websocket_stock_options_simulation(self, client):
+        """Test WebSocket Monte Carlo with stock options scenario."""
+        base_params = {
+            "exit_year": 5,
+            "current_job_monthly_salary": 25000,
+            "startup_monthly_salary": 18000,
+            "current_job_salary_growth_rate": 0.03,
+            "annual_roi": 0.06,
+            "investment_frequency": "Monthly",
+            "startup_params": {
+                "equity_type": EquityType.STOCK_OPTIONS.value,
+                "total_vesting_years": 4,
+                "cliff_years": 1,
+                "rsu_params": {},
+                "options_params": {
+                    "num_options": 100000,
+                    "strike_price": 0.50,
+                    "target_exit_valuation": 50_000_000,
+                    "total_shares_outstanding": 10_000_000,
+                    "exercise_strategy": "At Exit",
+                },
+            },
+            "failure_probability": 0.30,
+        }
+
+        request_data = {
+            "num_simulations": 100,
+            "base_params": base_params,
+            "sim_param_configs": {
+                "valuation": {"min_val": 20_000_000, "max_val": 100_000_000, "mode": 50_000_000},
+                "roi": {"mean": 0.06, "std_dev": 0.02},
+            },
+        }
+
+        with client.websocket_connect("/ws/monte-carlo") as websocket:
+            import json
+
+            websocket.send_text(json.dumps(request_data))
+
+            complete_msg = None
+            while True:
+                msg = websocket.receive_json()
+                if msg["type"] == "complete":
+                    complete_msg = msg
+                    break
+
+            assert complete_msg is not None
+            assert len(complete_msg["net_outcomes"]) == 100
 
 
 if __name__ == "__main__":
