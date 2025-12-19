@@ -37,7 +37,7 @@ export function StepComplete({ data, onComplete }: StepCompleteProps) {
         </div>
         <h2 className="text-2xl font-semibold">Your cap table is ready!</h2>
         <p className="text-muted-foreground">
-          Here's a summary of what we've set up
+          Here is a summary of what has been set up
         </p>
       </motion.div>
 
