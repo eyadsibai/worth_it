@@ -132,14 +132,14 @@ export function MonteCarloVisualizations({
   }, [stats]);
 
   return (
-    <Card>
+    <Card data-tour="monte-carlo-chart">
       <CardHeader>
         <CardTitle>Monte Carlo Results</CardTitle>
         <CardDescription>
           Analysis of {netOutcomes.length.toLocaleString()} simulation scenarios
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6" data-tour="monte-carlo-stats">
         {/* Plain-English Summary Headline */}
         <div
           data-testid="monte-carlo-headline"

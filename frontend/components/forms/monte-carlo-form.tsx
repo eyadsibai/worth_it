@@ -169,14 +169,14 @@ export function MonteCarloFormComponent({
   const isComplete = monteCarloMutation.isSuccess;
 
   return (
-    <Card>
+    <Card data-tour="monte-carlo-section">
       <CardHeader>
         <CardTitle>Monte Carlo Simulation</CardTitle>
         <CardDescription>
           Run probabilistic analysis with thousands of scenarios
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent data-tour="monte-carlo-parameters">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <SliderField
@@ -489,7 +489,7 @@ export function MonteCarloFormComponent({
             )}
 
             {/* Action Buttons */}
-            <div className="flex gap-2">
+            <div className="flex gap-2" data-tour="monte-carlo-run">
               <Button
                 type="submit"
                 disabled={isRunning || !form.formState.isValid}
