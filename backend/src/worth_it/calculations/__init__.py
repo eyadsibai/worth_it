@@ -60,6 +60,19 @@ from worth_it.calculations.startup_scenario import (
     calculate_startup_scenario,
 )
 
+# Valuation methods
+from worth_it.calculations.valuation import (
+    DCFParams,
+    RevenueMultipleParams,
+    ValuationComparison,
+    ValuationResult,
+    VCMethodParams,
+    calculate_dcf,
+    calculate_revenue_multiple,
+    calculate_vc_method,
+    compare_valuations,
+)
+
 # Waterfall analysis
 from worth_it.calculations.waterfall import (
     calculate_waterfall,
@@ -115,4 +128,14 @@ __all__ = [
     "run_monte_carlo_simulation_iterative",
     "run_monte_carlo_simulation_vectorized",
     "run_sensitivity_analysis",
+    # Valuation methods
+    "calculate_revenue_multiple",
+    "calculate_dcf",
+    "calculate_vc_method",
+    "compare_valuations",
+    "RevenueMultipleParams",
+    "DCFParams",
+    "VCMethodParams",
+    "ValuationResult",
+    "ValuationComparison",
 ]
