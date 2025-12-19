@@ -23,6 +23,7 @@ import {
   useVersionHistory,
   type CapTableSnapshot,
 } from "./history";
+import { FounderTimeline } from "./timeline";
 import {
   motion,
   MotionFadeInUp,
@@ -548,6 +549,9 @@ export function CapTableManager({
               optionPoolPct={capTable.option_pool_pct}
             />
           </div>
+
+          {/* Equity Timeline */}
+          <FounderTimeline />
 
           {/* Scenario Management */}
           <ScenarioManager

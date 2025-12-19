@@ -41,6 +41,7 @@ import { DecisionWizard, DecisionRecommendationDisplay } from "@/components/deci
 import { Sparkles } from "lucide-react";
 import type { DecisionRecommendation, DecisionInputs, FinancialAnalysis } from "@/lib/decision-framework";
 import { MetricCarousel } from "@/components/ui/metric-carousel";
+import { EmployeeTimeline } from "@/components/cap-table/timeline";
 
 interface ScenarioResultsProps {
   results: StartupScenarioResponse;
@@ -554,6 +555,14 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
           recommendation={decisionRecommendation}
           inputs={decisionInputs}
           onRedo={handleRedoDecision}
+        />
+      )}
+
+      {/* Vesting Timeline */}
+      {equityDetails && globalSettings && (
+        <EmployeeTimeline
+          equityDetails={equityDetails}
+          globalSettings={globalSettings}
         />
       )}
 
