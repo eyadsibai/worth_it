@@ -16,7 +16,7 @@ import {
 import type { CapTableVersion, CapTableSnapshot } from "@/components/cap-table/history/types";
 import type { RSUForm, StockOptionsForm, GlobalSettingsForm, Stakeholder } from "@/lib/schemas";
 import type { TimelineEvent, TimelineFilterState } from "@/components/cap-table/timeline/types";
-import { DEFAULT_FOUNDER_FILTERS } from "@/components/cap-table/timeline/types";
+import { ALL_FILTERS_ENABLED } from "@/components/cap-table/timeline/types";
 
 // ============================================================================
 // Mock Data Factories
@@ -29,6 +29,7 @@ function createMockStakeholder(overrides: Partial<Stakeholder> = {}): Stakeholde
     type: "founder",
     shares: 500000,
     ownership_pct: 50,
+    share_class: "common",
     ...overrides,
   };
 }
@@ -88,11 +89,7 @@ function createMockStockOptionsForm(overrides: Partial<StockOptionsForm> = {}): 
 
 function createMockGlobalSettings(): GlobalSettingsForm {
   return {
-    monthly_salary: 5000,
-    years: 5,
-    annual_raise_pct: 3,
-    discount_rate: 5,
-    tax_rate: 25,
+    exit_year: 5,
   };
 }
 
@@ -286,6 +283,7 @@ describe("filterEvents", () => {
       timestamp: 1700000000000,
       type: "funding_round",
       title: "Seed Round",
+      description: "Seed funding round",
       ownershipSnapshot: [],
     },
     {
@@ -293,6 +291,7 @@ describe("filterEvents", () => {
       timestamp: 1700100000000,
       type: "stakeholder_added",
       title: "Added Employee",
+      description: "New employee added",
       ownershipSnapshot: [],
     },
     {
@@ -300,6 +299,7 @@ describe("filterEvents", () => {
       timestamp: 1700200000000,
       type: "vesting_milestone",
       title: "50% Vested",
+      description: "50% of equity vested",
       ownershipSnapshot: [],
     },
     {
@@ -307,32 +307,19 @@ describe("filterEvents", () => {
       timestamp: 1700300000000,
       type: "option_pool_change",
       title: "Pool Expansion",
+      description: "Option pool expanded",
       ownershipSnapshot: [],
     },
   ];
 
   it("should return all events when all filters are enabled", () => {
-    const filters: TimelineFilterState = {
-      fundingRound: true,
-      stakeholderAdded: true,
-      stakeholderRemoved: true,
-      vestingMilestone: true,
-      optionPoolChange: true,
-      shareTransfer: true,
-      initialCapTable: true,
-      grantDate: true,
-      cliffDate: true,
-      fullVesting: true,
-      exerciseDeadline: true,
-    };
-
-    const filtered = filterEvents(mockEvents, filters);
+    const filtered = filterEvents(mockEvents, ALL_FILTERS_ENABLED);
     expect(filtered).toHaveLength(4);
   });
 
   it("should filter out funding_round events when disabled", () => {
     const filters: TimelineFilterState = {
-      ...DEFAULT_FOUNDER_FILTERS,
+      ...ALL_FILTERS_ENABLED,
       fundingRound: false,
     };
 
@@ -342,7 +329,7 @@ describe("filterEvents", () => {
 
   it("should filter out multiple event types", () => {
     const filters: TimelineFilterState = {
-      ...DEFAULT_FOUNDER_FILTERS,
+      ...ALL_FILTERS_ENABLED,
       fundingRound: false,
       vestingMilestone: false,
     };
@@ -353,21 +340,19 @@ describe("filterEvents", () => {
   });
 
   it("should return empty array when all filters are disabled", () => {
-    const filters: TimelineFilterState = {
+    const allDisabled: TimelineFilterState = {
       fundingRound: false,
       stakeholderAdded: false,
       stakeholderRemoved: false,
-      vestingMilestone: false,
       optionPoolChange: false,
-      shareTransfer: false,
-      initialCapTable: false,
+      instrumentConverted: false,
       grantDate: false,
       cliffDate: false,
-      fullVesting: false,
+      vestingMilestone: false,
       exerciseDeadline: false,
     };
 
-    const filtered = filterEvents(mockEvents, filters);
+    const filtered = filterEvents(mockEvents, allDisabled);
     expect(filtered).toHaveLength(0);
   });
 });
@@ -389,6 +374,7 @@ describe("transformEventsToChartData", () => {
         timestamp: 1700000000000,
         type: "company_founded",
         title: "Initial",
+        description: "Company founded",
         ownershipSnapshot: [
           { stakeholderId: "s1", name: "Founder", percentage: 80, category: "founder" },
           { stakeholderId: "s2", name: "Pool", percentage: 20, category: "option_pool" },
@@ -411,6 +397,7 @@ describe("transformEventsToChartData", () => {
         timestamp: 1700000000000, // Nov 2023
         type: "company_founded",
         title: "Initial",
+        description: "Company founded",
         ownershipSnapshot: [
           { stakeholderId: "s1", name: "Founder", percentage: 100, category: "founder" },
         ],
@@ -441,6 +428,7 @@ describe("getStakeholderNames", () => {
         timestamp: 1700000000000,
         type: "company_founded",
         title: "Initial",
+        description: "Company founded",
         ownershipSnapshot: [
           { stakeholderId: "s1", name: "Alice", percentage: 50, category: "founder" },
           { stakeholderId: "s2", name: "Bob", percentage: 30, category: "founder" },
@@ -452,6 +440,7 @@ describe("getStakeholderNames", () => {
         timestamp: 1700100000000,
         type: "stakeholder_added",
         title: "Added",
+        description: "New stakeholder added",
         ownershipSnapshot: [
           { stakeholderId: "s1", name: "Alice", percentage: 40, category: "founder" },
           { stakeholderId: "s2", name: "Bob", percentage: 30, category: "founder" },

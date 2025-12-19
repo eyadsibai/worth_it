@@ -136,6 +136,23 @@ export const DEFAULT_EMPLOYEE_FILTERS: Partial<TimelineFilterState> = {
   exerciseDeadline: true,
 };
 
+/**
+ * Complete filter state with all filters enabled - useful for testing
+ */
+export const ALL_FILTERS_ENABLED: TimelineFilterState = {
+  // Founder mode
+  fundingRound: true,
+  stakeholderAdded: true,
+  stakeholderRemoved: true,
+  optionPoolChange: true,
+  instrumentConverted: true,
+  // Employee mode
+  grantDate: true,
+  cliffDate: true,
+  vestingMilestone: true,
+  exerciseDeadline: true,
+};
+
 // ============================================================================
 // Component Props
 // ============================================================================
