@@ -51,9 +51,12 @@ import type {
  * - Uses ws:// for HTTP pages (insecure WebSocket)
  * - Falls back to ws://localhost:8000 during SSR or when window is unavailable
  *
+ * Note: Port override only applies to "localhost" hostname, not 127.0.0.1 or IPv6.
+ * For other local addresses, use the NEXT_PUBLIC_WS_URL environment variable.
+ *
  * @param protocol - The page protocol (e.g., "https:", "http:")
  * @param host - The page host (e.g., "localhost:3000", "example.com")
- * @param backendPort - Optional port override for local development (e.g., 8000)
+ * @param backendPort - Optional port override for localhost development (e.g., 8000)
  * @returns The WebSocket URL with appropriate protocol
  */
 export function getWebSocketURL(
@@ -75,9 +78,9 @@ export function getWebSocketURL(
   const wsProtocol = protocol === "https:" ? "wss:" : "ws:";
 
   // For local development, allow overriding the port (frontend on :3000, backend on :8000)
-  if (backendPort && host.includes("localhost")) {
-    const hostname = host.split(":")[0];
-    return `${wsProtocol}//${hostname}:${backendPort}`;
+  // Use precise check to avoid matching hosts like "mylocalhost.com"
+  if (backendPort && (host === "localhost" || host.startsWith("localhost:"))) {
+    return `${wsProtocol}//localhost:${backendPort}`;
   }
 
   return `${wsProtocol}//${host}`;
@@ -105,7 +108,7 @@ class APIClient {
         8000 // Backend port for local development
       );
     } else {
-      this.wsURL = getWebSocketURL("", "", 8000);
+      this.wsURL = getWebSocketURL("", "");
     }
 
     this.client = axios.create({
