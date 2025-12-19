@@ -347,7 +347,13 @@ export function generateRecommendation(inputs: DecisionInputs): DecisionRecommen
     careerScore.score * FACTOR_WEIGHTS.career +
     personalScore.score * FACTOR_WEIGHTS.personal;
 
-  // Determine recommendation
+  // Determine recommendation based on weighted score thresholds
+  // Thresholds are calibrated to provide actionable guidance:
+  // - >= 7.5: Strong alignment across all factors - clear accept
+  // - >= 6.0: Positive indicators outweigh concerns - lean accept
+  // - >= 4.5: Mixed signals, truly depends on personal priorities - neutral
+  // - >= 3.0: Concerns outweigh positives - lean reject
+  // - < 3.0: Significant misalignment - recommend declining
   let recommendation: DecisionRecommendation["recommendation"];
   let recommendationText: string;
 
