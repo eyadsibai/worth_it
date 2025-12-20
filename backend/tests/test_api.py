@@ -1413,6 +1413,61 @@ class TestBaseParamsValidation:
         data = response.json()
         assert "exit_year" in str(data["detail"])
 
+    def test_monte_carlo_boolean_exit_year_rejected(self):
+        """Test Monte Carlo rejects boolean exit_year values.
+
+        Python's bool is a subclass of int, so isinstance(True, int) returns True.
+        We must explicitly reject booleans to avoid confusing True/False as 1/0.
+        """
+        request_data = {
+            "num_simulations": 50,
+            "base_params": {
+                "exit_year": True,  # Boolean, not integer - should be rejected
+                "current_job_monthly_salary": 10000,
+                "startup_monthly_salary": 8000,
+                "current_job_salary_growth_rate": 0.03,
+                "annual_roi": 0.05,
+                "investment_frequency": "Annually",
+                "startup_params": {
+                    "equity_type": "RSU",
+                    "total_vesting_years": 4,
+                    "cliff_years": 1,
+                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                },
+                "failure_probability": 0.25,
+            },
+            "sim_param_configs": {},
+        }
+        response = client.post("/api/monte-carlo", json=request_data)
+        assert response.status_code == 422
+        data = response.json()
+        assert "exit_year" in str(data["detail"])
+
+    def test_sensitivity_boolean_exit_year_rejected(self):
+        """Test Sensitivity Analysis rejects boolean exit_year values."""
+        request_data = {
+            "base_params": {
+                "exit_year": False,  # Boolean, not integer - should be rejected
+                "current_job_monthly_salary": 10000,
+                "startup_monthly_salary": 8000,
+                "current_job_salary_growth_rate": 0.03,
+                "annual_roi": 0.05,
+                "investment_frequency": "Annually",
+                "startup_params": {
+                    "equity_type": "RSU",
+                    "total_vesting_years": 4,
+                    "cliff_years": 1,
+                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                },
+                "failure_probability": 0.25,
+            },
+            "sim_param_configs": {},
+        }
+        response = client.post("/api/sensitivity-analysis", json=request_data)
+        assert response.status_code == 422
+        data = response.json()
+        assert "exit_year" in str(data["detail"])
+
     def test_monte_carlo_missing_multiple_required_fields(self):
         """Test Monte Carlo reports all missing required fields."""
         request_data = {
