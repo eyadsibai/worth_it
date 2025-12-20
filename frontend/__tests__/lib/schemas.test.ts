@@ -361,10 +361,28 @@ describe("WSCompleteMessageSchema", () => {
 });
 
 describe("WSErrorMessageSchema", () => {
-  it("validates correct error message", () => {
+  it("validates correct error message with structured format", () => {
     const validData = {
       type: "error",
-      message: "Simulation failed due to invalid parameters",
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Simulation failed due to invalid parameters",
+      },
+    };
+    expect(() => WSErrorMessageSchema.parse(validData)).not.toThrow();
+  });
+
+  it("validates error message with field details", () => {
+    const validData = {
+      type: "error",
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Invalid input parameters",
+        details: [
+          { field: "exit_year", message: "Must be at least 1" },
+          { field: "monthly_salary", message: "Required" },
+        ],
+      },
     };
     expect(() => WSErrorMessageSchema.parse(validData)).not.toThrow();
   });
@@ -399,11 +417,15 @@ describe("WSMessageSchema (discriminated union)", () => {
   it("correctly discriminates error messages", () => {
     const message = WSMessageSchema.parse({
       type: "error",
-      message: "Test error",
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "Test error",
+      },
     });
     expect(message.type).toBe("error");
     if (message.type === "error") {
-      expect(message.message).toBe("Test error");
+      expect(message.error.message).toBe("Test error");
+      expect(message.error.code).toBe("VALIDATION_ERROR");
     }
   });
 

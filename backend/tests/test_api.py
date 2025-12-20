@@ -359,7 +359,7 @@ def test_invalid_request():
         # Missing other required fields
     }
     response = client.post("/api/monthly-data-grid", json=request_data)
-    assert response.status_code == 422  # Validation error
+    assert response.status_code == 400  # Validation error (structured format)
 
 
 def test_calculation_error_returns_sanitized_message():
@@ -381,12 +381,13 @@ def test_calculation_error_returns_sanitized_message():
         response = client.post("/api/dilution", json=request_data)
         assert response.status_code == 400
         data = response.json()
-        assert data["error"] == "calculation_error"
-        assert data["message"] == "Invalid calculation parameters"
+        # Check new nested error format
+        assert data["error"]["code"] == "CALCULATION_ERROR"
+        assert "Calculation failed" in data["error"]["message"]
         # Verify no Python internals are exposed
-        assert "NoneType" not in data["message"]
-        assert "ValueError" not in data["message"]
-        assert "Internal error" not in data["message"]
+        assert "NoneType" not in data["error"]["message"]
+        assert "ValueError" not in data["error"]["message"]
+        assert "Internal error" not in data["error"]["message"]
 
 
 def test_invalid_parameters_trigger_calculation_error():
@@ -406,13 +407,14 @@ def test_invalid_parameters_trigger_calculation_error():
         response = client.post("/api/irr", json=request_data)
         assert response.status_code == 400
         data = response.json()
-        assert data["error"] == "calculation_error"
+        # Check new nested error format
+        assert data["error"]["code"] == "CALCULATION_ERROR"
         # Verify the message is sanitized
-        assert data["message"] == "Invalid calculation parameters"
+        assert "Calculation failed" in data["error"]["message"]
         # No Python exception details
-        assert "NoneType" not in data["message"]
-        assert "TypeError" not in data["message"]
-        assert "iterable" not in data["message"]
+        assert "NoneType" not in data["error"]["message"]
+        assert "TypeError" not in data["error"]["message"]
+        assert "iterable" not in data["error"]["message"]
 
 
 def test_error_messages_do_not_expose_implementation_details():
@@ -436,14 +438,14 @@ def test_error_messages_do_not_expose_implementation_details():
         assert response.status_code == 400
         data = response.json()
 
-        # Verify sanitized message
-        assert data["error"] == "calculation_error"
-        assert data["message"] == "Invalid calculation parameters"
+        # Verify new nested error format with sanitized message
+        assert data["error"]["code"] == "CALCULATION_ERROR"
+        assert "Calculation failed" in data["error"]["message"]
 
         # Verify no implementation details leaked
-        assert "ValueError" not in data["message"]
-        assert "key" not in data["message"].lower()
-        assert "dict" not in data["message"].lower()
+        assert "ValueError" not in data["error"]["message"]
+        assert "key" not in data["error"]["message"].lower()
+        assert "dict" not in data["error"]["message"].lower()
 
     # Test ZeroDivisionError (caught by dilution endpoint)
     with patch.object(
@@ -459,14 +461,14 @@ def test_error_messages_do_not_expose_implementation_details():
         assert response.status_code == 400
         data = response.json()
 
-        # Verify sanitized message
-        assert data["error"] == "calculation_error"
-        assert data["message"] == "Invalid calculation parameters"
+        # Verify new nested error format with sanitized message
+        assert data["error"]["code"] == "CALCULATION_ERROR"
+        assert "Calculation failed" in data["error"]["message"]
 
         # Verify no implementation details leaked
-        assert "ZeroDivisionError" not in data["message"]
-        assert "division" not in data["message"].lower()
-        assert "zero" not in data["message"].lower()
+        assert "ZeroDivisionError" not in data["error"]["message"]
+        assert "division" not in data["error"]["message"].lower()
+        assert "zero" not in data["error"]["message"].lower()
 
 
 # --- WebSocket Tests ---
@@ -568,7 +570,10 @@ class TestWebSocketMonteCarlo:
             websocket.send_text("invalid json {{{")
             msg = websocket.receive_json()
             assert msg["type"] == "error"
-            assert "message" in msg
+            # Check structured error format
+            assert "error" in msg
+            assert msg["error"]["code"] == "VALIDATION_ERROR"
+            assert "message" in msg["error"]
 
     def test_websocket_validation_error(self):
         """Test that invalid request parameters trigger error response."""
@@ -577,7 +582,10 @@ class TestWebSocketMonteCarlo:
             websocket.send_json(invalid_request)
             msg = websocket.receive_json()
             assert msg["type"] == "error"
-            assert "message" in msg
+            # Check structured error format
+            assert "error" in msg
+            assert msg["error"]["code"] == "VALIDATION_ERROR"
+            assert "message" in msg["error"]
 
     def test_websocket_complete_result_format(self):
         """Test that complete message has correct result format."""
@@ -610,7 +618,13 @@ class TestWebSocketMonteCarlo:
 
             msg = websocket.receive_json()
             assert msg["type"] == "error"
-            assert "maximum" in msg["message"].lower() or "exceed" in msg["message"].lower()
+            # Check structured error format
+            assert "error" in msg
+            assert msg["error"]["code"] == "VALIDATION_ERROR"
+            # The specific error about exceeding maximum is in details
+            details = msg["error"].get("details", [])
+            error_messages = " ".join(d.get("message", "") for d in details).lower()
+            assert "maximum" in error_messages or "exceed" in error_messages
 
 
 class TestWebSocketSecurity:
@@ -962,7 +976,7 @@ class TestCapTableConversion:
 
         response = client.post("/api/cap-table/convert", json=request_data)
         # Should fail validation (Pydantic model validator)
-        assert response.status_code == 422  # Validation error
+        assert response.status_code == 400  # Validation error (structured format)
 
 
 class TestWaterfallAPI:
@@ -1121,7 +1135,7 @@ class TestWaterfallAPI:
         }
 
         response = client.post("/api/waterfall", json=request_data)
-        assert response.status_code == 422  # Validation error
+        assert response.status_code == 400  # Validation error (structured format)
 
 
 class TestRateLimiting:
@@ -1395,7 +1409,7 @@ class TestDilutionPreviewAPI:
         }
 
         response = client.post("/api/dilution/preview", json=request_data)
-        assert response.status_code == 422  # Validation error
+        assert response.status_code == 400  # Validation error (structured format)
 
     def test_dilution_preview_various_stakeholder_types(self):
         """Test dilution with different stakeholder types."""
@@ -1603,7 +1617,7 @@ class TestScenarioComparisonAPI:
         request_data = {"scenarios": []}
 
         response = client.post("/api/scenarios/compare", json=request_data)
-        assert response.status_code == 422  # Validation error
+        assert response.status_code == 400  # Validation error (structured format)
 
 
 class TestBaseParamsValidation:
@@ -1631,9 +1645,12 @@ class TestBaseParamsValidation:
             "sim_param_configs": {},
         }
         response = client.post("/api/monte-carlo", json=request_data)
-        assert response.status_code == 422
+        assert response.status_code == 400
         data = response.json()
-        assert "exit_year" in str(data["detail"])
+        assert data["error"]["code"] == "VALIDATION_ERROR"
+        # For model-level validators, field info is in the error message
+        details = data["error"].get("details", [])
+        assert any("exit_year" in d.get("message", "") for d in details)
 
     def test_monte_carlo_invalid_exit_year_too_low(self):
         """Test Monte Carlo rejects exit_year below 1."""
@@ -1657,9 +1674,12 @@ class TestBaseParamsValidation:
             "sim_param_configs": {},
         }
         response = client.post("/api/monte-carlo", json=request_data)
-        assert response.status_code == 422
+        assert response.status_code == 400
         data = response.json()
-        assert "exit_year" in str(data["detail"])
+        assert data["error"]["code"] == "VALIDATION_ERROR"
+        # For model-level validators, field info is in the error message
+        details = data["error"].get("details", [])
+        assert any("exit_year" in d.get("message", "") for d in details)
 
     def test_monte_carlo_invalid_exit_year_too_high(self):
         """Test Monte Carlo rejects exit_year above 20."""
@@ -1683,9 +1703,12 @@ class TestBaseParamsValidation:
             "sim_param_configs": {},
         }
         response = client.post("/api/monte-carlo", json=request_data)
-        assert response.status_code == 422
+        assert response.status_code == 400
         data = response.json()
-        assert "exit_year" in str(data["detail"])
+        assert data["error"]["code"] == "VALIDATION_ERROR"
+        # For model-level validators, field info is in the error message
+        details = data["error"].get("details", [])
+        assert any("exit_year" in d.get("message", "") for d in details)
 
     def test_sensitivity_missing_exit_year(self):
         """Test Sensitivity Analysis rejects request missing exit_year."""
@@ -1708,9 +1731,12 @@ class TestBaseParamsValidation:
             "sim_param_configs": {},
         }
         response = client.post("/api/sensitivity-analysis", json=request_data)
-        assert response.status_code == 422
+        assert response.status_code == 400
         data = response.json()
-        assert "exit_year" in str(data["detail"])
+        assert data["error"]["code"] == "VALIDATION_ERROR"
+        # For model-level validators, field info is in the error message
+        details = data["error"].get("details", [])
+        assert any("exit_year" in d.get("message", "") for d in details)
 
     def test_sensitivity_invalid_exit_year(self):
         """Test Sensitivity Analysis rejects invalid exit_year."""
@@ -1733,9 +1759,12 @@ class TestBaseParamsValidation:
             "sim_param_configs": {},
         }
         response = client.post("/api/sensitivity-analysis", json=request_data)
-        assert response.status_code == 422
+        assert response.status_code == 400
         data = response.json()
-        assert "exit_year" in str(data["detail"])
+        assert data["error"]["code"] == "VALIDATION_ERROR"
+        # For model-level validators, field info is in the error message
+        details = data["error"].get("details", [])
+        assert any("exit_year" in d.get("message", "") for d in details)
 
     def test_monte_carlo_boolean_exit_year_rejected(self):
         """Test Monte Carlo rejects boolean exit_year values.
@@ -1763,9 +1792,12 @@ class TestBaseParamsValidation:
             "sim_param_configs": {},
         }
         response = client.post("/api/monte-carlo", json=request_data)
-        assert response.status_code == 422
+        assert response.status_code == 400
         data = response.json()
-        assert "exit_year" in str(data["detail"])
+        assert data["error"]["code"] == "VALIDATION_ERROR"
+        # For model-level validators, field info is in the error message
+        details = data["error"].get("details", [])
+        assert any("exit_year" in d.get("message", "") for d in details)
 
     def test_sensitivity_boolean_exit_year_rejected(self):
         """Test Sensitivity Analysis rejects boolean exit_year values."""
@@ -1788,9 +1820,12 @@ class TestBaseParamsValidation:
             "sim_param_configs": {},
         }
         response = client.post("/api/sensitivity-analysis", json=request_data)
-        assert response.status_code == 422
+        assert response.status_code == 400
         data = response.json()
-        assert "exit_year" in str(data["detail"])
+        assert data["error"]["code"] == "VALIDATION_ERROR"
+        # For model-level validators, field info is in the error message
+        details = data["error"].get("details", [])
+        assert any("exit_year" in d.get("message", "") for d in details)
 
     def test_monte_carlo_missing_multiple_required_fields(self):
         """Test Monte Carlo reports all missing required fields."""
@@ -1803,9 +1838,154 @@ class TestBaseParamsValidation:
             "sim_param_configs": {},
         }
         response = client.post("/api/monte-carlo", json=request_data)
-        assert response.status_code == 422
+        assert response.status_code == 400
         data = response.json()
-        detail = str(data["detail"])
-        # Should mention multiple missing fields
-        assert "exit_year" in detail
-        assert "startup_monthly_salary" in detail
+        assert data["error"]["code"] == "VALIDATION_ERROR"
+        # For model-level validators, field info is in the error message
+        details = data["error"].get("details", [])
+        messages = " ".join(d.get("message", "") for d in details)
+        assert "exit_year" in messages
+        assert "startup_monthly_salary" in messages
+
+
+# --- Structured Error Response Tests ---
+
+
+class TestStructuredErrorResponses:
+    """Tests for the standardized error response format.
+
+    All API errors should return the structure:
+    {
+        "error": {
+            "code": "ERROR_CODE",
+            "message": "Human readable message",
+            "details": [{"field": "...", "message": "..."}]  # optional
+        }
+    }
+    """
+
+    def test_validation_error_structure(self):
+        """Test validation errors return structured format with field details."""
+        # Send request with invalid exit_year
+        request_data = {
+            "exit_year": 100,  # Invalid: must be between 1 and 20
+            "current_job_monthly_salary": 10000,
+            "startup_monthly_salary": 8000,
+            "current_job_salary_growth_rate": 0.03,
+        }
+        response = client.post("/api/monthly-data-grid", json=request_data)
+        assert response.status_code == 400
+
+        data = response.json()
+        # Verify nested structure
+        assert "error" in data
+        assert "code" in data["error"]
+        assert "message" in data["error"]
+        assert data["error"]["code"] == "VALIDATION_ERROR"
+        assert isinstance(data["error"]["message"], str)
+
+    def test_validation_error_includes_field_details(self):
+        """Test validation errors include field-level details."""
+        # Send request with multiple invalid fields
+        request_data = {
+            "exit_year": -5,  # Invalid: must be positive
+            "current_job_monthly_salary": -1000,  # Invalid: must be positive
+            "startup_monthly_salary": 8000,
+            "current_job_salary_growth_rate": 0.03,
+        }
+        response = client.post("/api/monthly-data-grid", json=request_data)
+        assert response.status_code == 400
+
+        data = response.json()
+        assert "error" in data
+        assert data["error"]["code"] == "VALIDATION_ERROR"
+        # Should have field details
+        assert "details" in data["error"]
+        assert isinstance(data["error"]["details"], list)
+        # Each detail should have field and message
+        for detail in data["error"]["details"]:
+            assert "field" in detail
+            assert "message" in detail
+
+    def test_calculation_error_structure(self):
+        """Test calculation errors return structured format."""
+        from unittest.mock import patch
+
+        from worth_it.services import cap_table_service
+
+        with patch.object(
+            cap_table_service,
+            "calculate_dilution_from_valuation",
+            side_effect=ValueError("Internal calculation failed"),
+        ):
+            request_data = {
+                "pre_money_valuation": 10000000,
+                "amount_raised": 1000000,
+            }
+            response = client.post("/api/dilution", json=request_data)
+            assert response.status_code == 400
+
+            data = response.json()
+            # Verify nested structure
+            assert "error" in data
+            assert data["error"]["code"] == "CALCULATION_ERROR"
+            assert isinstance(data["error"]["message"], str)
+            # Calculation errors shouldn't expose internal details
+            assert "Internal" not in data["error"]["message"]
+            # No field details for calculation errors
+            assert data["error"].get("details") is None
+
+    def test_internal_error_structure(self):
+        """Test unexpected errors return structured format with INTERNAL_ERROR code."""
+        from unittest.mock import patch
+
+        from fastapi.testclient import TestClient
+
+        from worth_it import api
+        from worth_it.api import app
+
+        # Use a test client that doesn't raise server exceptions
+        # This allows us to test 500 error response format
+        test_client = TestClient(app, raise_server_exceptions=False)
+
+        # Patch the startup_service instance's calculate_irr method
+        with patch.object(
+            api.startup_service,
+            "calculate_irr",
+            side_effect=RuntimeError("Unexpected system failure"),
+        ):
+            request_data = {
+                "monthly_surpluses": [100] * 12,
+                "final_payout_value": 1000,
+            }
+            response = test_client.post("/api/irr", json=request_data)
+            assert response.status_code == 500
+
+            data = response.json()
+            # Verify nested structure
+            assert "error" in data
+            assert data["error"]["code"] == "INTERNAL_ERROR"
+            assert isinstance(data["error"]["message"], str)
+            # Should NOT expose internal error details
+            assert "Unexpected system failure" not in data["error"]["message"]
+            assert "RuntimeError" not in data["error"]["message"]
+
+    def test_error_response_is_json_serializable(self):
+        """Test that error responses are valid JSON."""
+        request_data = {
+            "exit_year": "not_a_number",  # Type error
+            "current_job_monthly_salary": 10000,
+            "startup_monthly_salary": 8000,
+            "current_job_salary_growth_rate": 0.03,
+        }
+        response = client.post("/api/monthly-data-grid", json=request_data)
+
+        # Should be valid JSON
+        data = response.json()
+        assert "error" in data
+
+        # Verify we can re-serialize
+        import json
+
+        json_str = json.dumps(data)
+        assert isinstance(json_str, str)

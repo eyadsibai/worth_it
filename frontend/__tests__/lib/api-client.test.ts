@@ -15,6 +15,7 @@ import {
   useRunMonteCarlo,
   useCalculateDilution,
   useMonteCarloWebSocket,
+  APIError,
   type MonteCarloProgress,
 } from "@/lib/api-client";
 
@@ -326,11 +327,14 @@ describe("useMonteCarloWebSocket", () => {
 
     const ws = MockWebSocket.instances[0];
 
-    // Simulate error message - the hook closes the connection after receiving error
+    // Simulate error message with structured format - the hook closes the connection after receiving error
     act(() => {
       ws.receiveMessage({
         type: "error",
-        message: "Simulation failed due to invalid parameters",
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Simulation failed due to invalid parameters",
+        },
       });
     });
 
@@ -573,5 +577,159 @@ describe("useCalculateDilution", () => {
     expect(result.current).toHaveProperty("mutate");
     expect(result.current).toHaveProperty("mutateAsync");
     expect(typeof result.current.mutate).toBe("function");
+  });
+});
+
+// =============================================================================
+// APIError Class Tests
+// =============================================================================
+
+describe("APIError", () => {
+  describe("constructor and basic properties", () => {
+    it("creates an error with code, message, and details", () => {
+      const details = [
+        { field: "exit_year", message: "Must be at least 1" },
+        { field: "monthly_salary", message: "Required" },
+      ];
+      const error = new APIError("VALIDATION_ERROR", "Invalid input", details);
+
+      expect(error.code).toBe("VALIDATION_ERROR");
+      expect(error.message).toBe("Invalid input");
+      expect(error.details).toEqual(details);
+      expect(error.name).toBe("APIError");
+    });
+
+    it("extends Error correctly", () => {
+      const error = new APIError("INTERNAL_ERROR", "Something went wrong");
+      expect(error instanceof Error).toBe(true);
+      expect(error instanceof APIError).toBe(true);
+    });
+
+    it("handles null details", () => {
+      const error = new APIError("CALCULATION_ERROR", "Division by zero", null);
+      expect(error.details).toBeNull();
+    });
+
+    it("handles undefined details", () => {
+      const error = new APIError("NOT_FOUND_ERROR", "Resource not found");
+      expect(error.details).toBeUndefined();
+    });
+  });
+
+  describe("isValidationError", () => {
+    it("returns true for VALIDATION_ERROR code", () => {
+      const error = new APIError("VALIDATION_ERROR", "Invalid input");
+      expect(error.isValidationError()).toBe(true);
+    });
+
+    it("returns false for other error codes", () => {
+      const calcError = new APIError("CALCULATION_ERROR", "Calc failed");
+      const internalError = new APIError("INTERNAL_ERROR", "Internal error");
+      const rateLimitError = new APIError("RATE_LIMIT_ERROR", "Too many requests");
+
+      expect(calcError.isValidationError()).toBe(false);
+      expect(internalError.isValidationError()).toBe(false);
+      expect(rateLimitError.isValidationError()).toBe(false);
+    });
+  });
+
+  describe("isRateLimitError", () => {
+    it("returns true for RATE_LIMIT_ERROR code", () => {
+      const error = new APIError("RATE_LIMIT_ERROR", "Too many requests");
+      expect(error.isRateLimitError()).toBe(true);
+    });
+
+    it("returns false for other error codes", () => {
+      const validationError = new APIError("VALIDATION_ERROR", "Invalid input");
+      const internalError = new APIError("INTERNAL_ERROR", "Internal error");
+
+      expect(validationError.isRateLimitError()).toBe(false);
+      expect(internalError.isRateLimitError()).toBe(false);
+    });
+  });
+
+  describe("getFieldError", () => {
+    it("returns the message for a matching field", () => {
+      const details = [
+        { field: "exit_year", message: "Must be at least 1" },
+        { field: "monthly_salary", message: "Required" },
+      ];
+      const error = new APIError("VALIDATION_ERROR", "Invalid input", details);
+
+      expect(error.getFieldError("exit_year")).toBe("Must be at least 1");
+      expect(error.getFieldError("monthly_salary")).toBe("Required");
+    });
+
+    it("returns undefined for non-matching field", () => {
+      const details = [{ field: "exit_year", message: "Must be at least 1" }];
+      const error = new APIError("VALIDATION_ERROR", "Invalid input", details);
+
+      expect(error.getFieldError("non_existent")).toBeUndefined();
+    });
+
+    it("returns undefined when details is null", () => {
+      const error = new APIError("VALIDATION_ERROR", "Invalid input", null);
+      expect(error.getFieldError("any_field")).toBeUndefined();
+    });
+
+    it("returns undefined when details is undefined", () => {
+      const error = new APIError("VALIDATION_ERROR", "Invalid input");
+      expect(error.getFieldError("any_field")).toBeUndefined();
+    });
+
+    it("returns undefined when details is empty array", () => {
+      const error = new APIError("VALIDATION_ERROR", "Invalid input", []);
+      expect(error.getFieldError("any_field")).toBeUndefined();
+    });
+  });
+
+  describe("getErrorFields", () => {
+    it("returns array of field names with errors", () => {
+      const details = [
+        { field: "exit_year", message: "Must be at least 1" },
+        { field: "monthly_salary", message: "Required" },
+        { field: "equity_pct", message: "Must be positive" },
+      ];
+      const error = new APIError("VALIDATION_ERROR", "Invalid input", details);
+
+      expect(error.getErrorFields()).toEqual([
+        "exit_year",
+        "monthly_salary",
+        "equity_pct",
+      ]);
+    });
+
+    it("returns empty array when details is null", () => {
+      const error = new APIError("VALIDATION_ERROR", "Invalid input", null);
+      expect(error.getErrorFields()).toEqual([]);
+    });
+
+    it("returns empty array when details is undefined", () => {
+      const error = new APIError("VALIDATION_ERROR", "Invalid input");
+      expect(error.getErrorFields()).toEqual([]);
+    });
+
+    it("returns empty array when details is empty", () => {
+      const error = new APIError("VALIDATION_ERROR", "Invalid input", []);
+      expect(error.getErrorFields()).toEqual([]);
+    });
+  });
+
+  describe("error codes coverage", () => {
+    it("supports all defined error codes", () => {
+      // Verify all error codes can be used
+      const codes = [
+        "VALIDATION_ERROR",
+        "CALCULATION_ERROR",
+        "RATE_LIMIT_ERROR",
+        "NOT_FOUND_ERROR",
+        "INTERNAL_ERROR",
+      ] as const;
+
+      codes.forEach((code) => {
+        const error = new APIError(code, `Error with code ${code}`);
+        expect(error.code).toBe(code);
+      });
+    });
   });
 });
