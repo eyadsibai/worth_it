@@ -11,7 +11,7 @@
  * 3. Automatic cleanup - aborts pending requests on unmount
  */
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   useMutation,
   type UseMutationOptions,
@@ -83,6 +83,15 @@ export function useCancellableMutation<
     }
   }, []);
 
+  // Cleanup on unmount - abort any pending requests
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   // Create the underlying mutation with our wrapper
   const mutation = useMutation<TData, TError, TVariables>({
     ...options,
@@ -109,7 +118,8 @@ export function useCancellableMutation<
 
         return result;
       } catch (error) {
-        // Re-throw abort errors for stale requests silently
+        // Pass abort errors through so TanStack Query can handle them
+        // (mutation enters error state, which the caller can filter using isAbortError)
         if (error instanceof DOMException && error.name === "AbortError") {
           throw error;
         }
@@ -135,6 +145,11 @@ export function useCancellableMutation<
       }
       if (typeof defaultRetry === "number") {
         return failureCount < defaultRetry;
+      }
+      if (typeof defaultRetry === "boolean") {
+        // When true, retry up to 3 times (TanStack Query's default behavior)
+        // When false, never retry
+        return defaultRetry && failureCount < 3;
       }
       // Default: no retries (TanStack Query mutations don't retry by default)
       return false;
