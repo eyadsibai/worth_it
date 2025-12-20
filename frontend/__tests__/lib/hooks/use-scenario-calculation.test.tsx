@@ -9,12 +9,16 @@ import { ReactNode } from "react";
 import { useScenarioCalculation } from "@/lib/hooks/use-scenario-calculation";
 import type { GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm } from "@/lib/schemas";
 
-// Mock the API client hooks
-vi.mock("@/lib/api-client", () => ({
-  useCreateMonthlyDataGrid: vi.fn(),
-  useCalculateOpportunityCost: vi.fn(),
-  useCalculateStartupScenario: vi.fn(),
-}));
+// Mock the API client hooks, preserving the real APIError class
+vi.mock("@/lib/api-client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api-client")>();
+  return {
+    ...actual,
+    useCreateMonthlyDataGrid: vi.fn(),
+    useCalculateOpportunityCost: vi.fn(),
+    useCalculateStartupScenario: vi.fn(),
+  };
+});
 
 // Import the mocked hooks
 import {

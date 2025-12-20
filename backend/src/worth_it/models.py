@@ -6,11 +6,48 @@ the Streamlit frontend and the FastAPI backend.
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any, Literal, Self
 
 from pydantic import BaseModel, Field, model_validator
 
 from worth_it.types import DilutionRound
+
+# --- Error Response Models ---
+
+
+class ErrorCode(str, Enum):
+    """Standardized error codes for API responses."""
+
+    VALIDATION_ERROR = "VALIDATION_ERROR"
+    CALCULATION_ERROR = "CALCULATION_ERROR"
+    RATE_LIMIT_ERROR = "RATE_LIMIT_ERROR"
+    NOT_FOUND_ERROR = "NOT_FOUND_ERROR"
+    INTERNAL_ERROR = "INTERNAL_ERROR"
+
+
+class FieldError(BaseModel):
+    """Individual field validation error."""
+
+    field: str = Field(..., description="The field path that caused the error")
+    message: str = Field(..., description="Human-readable error message for this field")
+
+
+class ErrorDetail(BaseModel):
+    """Structured error information."""
+
+    code: ErrorCode = Field(..., description="Machine-readable error code")
+    message: str = Field(..., description="Human-readable error message")
+    details: list[FieldError] | None = Field(
+        default=None, description="Field-level error details for validation errors"
+    )
+
+
+class ErrorResponse(BaseModel):
+    """Standard API error response wrapper."""
+
+    error: ErrorDetail = Field(..., description="Error details")
+
 
 # --- Shared Validators ---
 
