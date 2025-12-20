@@ -8,6 +8,7 @@ from worth_it.models import (
     SimParamRange,
     RSUParams,
     StockOptionsParams,
+    TypedBaseParams,
 )
 
 
@@ -118,4 +119,86 @@ class TestStockOptionsParams:
                 num_options=10000,
                 strike_price=-1.0,
                 exit_price_per_share=15.0,
+            )
+
+
+class TestTypedBaseParams:
+    """Tests for TypedBaseParams model."""
+
+    def test_valid_base_params_with_rsu(self):
+        """Valid base params with RSU startup_params are accepted."""
+        params = TypedBaseParams(
+            exit_year=5,
+            current_job_monthly_salary=15000.0,
+            startup_monthly_salary=12000.0,
+            current_job_salary_growth_rate=0.05,
+            annual_roi=0.08,
+            investment_frequency="Monthly",
+            failure_probability=0.3,
+            startup_params=RSUParams(
+                equity_type="RSU",
+                monthly_salary=12000.0,
+                total_equity_grant_pct=0.5,
+                exit_valuation=100_000_000.0,
+            ),
+        )
+        assert params.exit_year == 5
+        assert params.startup_params.equity_type == "RSU"
+
+    def test_valid_base_params_with_options(self):
+        """Valid base params with stock options startup_params are accepted."""
+        params = TypedBaseParams(
+            exit_year=5,
+            current_job_monthly_salary=15000.0,
+            startup_monthly_salary=12000.0,
+            current_job_salary_growth_rate=0.05,
+            annual_roi=0.08,
+            investment_frequency="Annually",
+            failure_probability=0.3,
+            startup_params=StockOptionsParams(
+                equity_type="STOCK_OPTIONS",
+                monthly_salary=12000.0,
+                num_options=10000,
+                strike_price=1.50,
+                exit_price_per_share=15.0,
+            ),
+        )
+        assert params.startup_params.equity_type == "STOCK_OPTIONS"
+
+    def test_exit_year_range(self):
+        """exit_year must be 1-20."""
+        with pytest.raises(ValidationError):
+            TypedBaseParams(
+                exit_year=0,
+                current_job_monthly_salary=15000.0,
+                startup_monthly_salary=12000.0,
+                current_job_salary_growth_rate=0.05,
+                annual_roi=0.08,
+                investment_frequency="Monthly",
+                failure_probability=0.3,
+                startup_params=RSUParams(
+                    equity_type="RSU",
+                    monthly_salary=12000.0,
+                    total_equity_grant_pct=0.5,
+                    exit_valuation=100_000_000.0,
+                ),
+            )
+
+    def test_invalid_investment_frequency(self):
+        """investment_frequency must be Monthly or Annually."""
+        with pytest.raises(ValidationError):
+            TypedBaseParams(
+                exit_year=5,
+                current_job_monthly_salary=15000.0,
+                startup_monthly_salary=12000.0,
+                current_job_salary_growth_rate=0.05,
+                annual_roi=0.08,
+                investment_frequency="Weekly",
+                failure_probability=0.3,
+                startup_params=RSUParams(
+                    equity_type="RSU",
+                    monthly_salary=12000.0,
+                    total_equity_grant_pct=0.5,
+                    exit_valuation=100_000_000.0,
+                ),
             )

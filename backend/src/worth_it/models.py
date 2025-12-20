@@ -90,6 +90,23 @@ class StockOptionsParams(BaseModel):
     exercise_year: int | None = None
 
 
+class TypedBaseParams(BaseModel):
+    """Typed base parameters for Monte Carlo and Sensitivity Analysis requests.
+
+    Replaces the old dict[str, Any] base_params with full type safety.
+    Uses discriminated union for startup_params (RSU or Stock Options).
+    """
+
+    exit_year: int = Field(..., ge=1, le=20)
+    current_job_monthly_salary: float = Field(..., ge=0)
+    startup_monthly_salary: float = Field(..., ge=0)
+    current_job_salary_growth_rate: float = Field(..., ge=0, le=1)
+    annual_roi: float = Field(..., ge=0, le=1)
+    investment_frequency: Literal["Monthly", "Annually"]
+    failure_probability: float = Field(..., ge=0, le=1)
+    startup_params: RSUParams | StockOptionsParams
+
+
 # --- Shared Validators ---
 
 # Required fields for base_params in Monte Carlo and Sensitivity Analysis requests
