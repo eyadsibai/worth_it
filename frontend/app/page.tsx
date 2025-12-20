@@ -3,7 +3,12 @@
 import * as React from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
-import { useCalculateStartupScenario, useCreateMonthlyDataGrid, useCalculateOpportunityCost } from "@/lib/api-client";
+import {
+  useCancellableMonthlyDataGrid,
+  useCancellableOpportunityCost,
+  useCancellableStartupScenario,
+  isAbortError,
+} from "@/lib/api-client";
 import { Loader2, AlertCircle } from "lucide-react";
 import { ErrorCard } from "@/components/ui/error-card";
 import type { ErrorType } from "@/components/ui/error-card";
@@ -155,10 +160,11 @@ export default function Home() {
     debouncedEquityDetails &&
     isValidEquityData(debouncedEquityDetails);
 
-  // Initialize mutations
-  const monthlyDataMutation = useCreateMonthlyDataGrid();
-  const opportunityCostMutation = useCalculateOpportunityCost();
-  const startupScenarioMutation = useCalculateStartupScenario();
+  // Initialize cancellable mutations (race condition safe)
+  // These automatically cancel previous in-flight requests when new ones start
+  const monthlyDataMutation = useCancellableMonthlyDataGrid();
+  const opportunityCostMutation = useCancellableOpportunityCost();
+  const startupScenarioMutation = useCancellableStartupScenario();
 
   // Trigger calculations when debounced form data changes
   // Using debounced values prevents waterfall API calls during rapid form input
@@ -293,6 +299,11 @@ export default function Home() {
 
   // Handler for retrying failed calculations
   const handleRetryCalculation = React.useCallback(() => {
+    // Cancel any in-flight requests first
+    monthlyDataMutation.cancel();
+    opportunityCostMutation.cancel();
+    startupScenarioMutation.cancel();
+
     // Reset all mutations
     monthlyDataMutation.reset();
     opportunityCostMutation.reset();
@@ -543,7 +554,8 @@ export default function Home() {
         )}
 
 
-        {startupScenarioMutation.isError && (
+        {/* Only show error card for real errors, not cancelled requests */}
+        {startupScenarioMutation.isError && !isAbortError(startupScenarioMutation.error) && (
           <ErrorCard
             title="Calculation Failed"
             message={startupScenarioMutation.error?.message || "Unable to complete the calculation. Please check your inputs and try again."}
