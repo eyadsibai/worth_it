@@ -12,6 +12,51 @@ from pydantic import BaseModel, Field, model_validator
 
 from worth_it.types import DilutionRound
 
+# --- Shared Validators ---
+
+# Required fields for base_params in Monte Carlo and Sensitivity Analysis requests
+_BASE_PARAMS_REQUIRED_FIELDS = [
+    "exit_year",
+    "current_job_monthly_salary",
+    "startup_monthly_salary",
+    "current_job_salary_growth_rate",
+    "annual_roi",
+    "investment_frequency",
+    "failure_probability",
+    "startup_params",
+]
+
+
+def validate_base_params(base_params: dict[str, Any]) -> None:
+    """Validate that base_params contains all required fields.
+
+    Args:
+        base_params: The base_params dictionary to validate.
+
+    Raises:
+        ValueError: If required fields are missing or exit_year is invalid.
+    """
+    # Check for missing required fields
+    missing = [f for f in _BASE_PARAMS_REQUIRED_FIELDS if f not in base_params]
+    if missing:
+        raise ValueError(
+            f"base_params missing required field(s): {', '.join(missing)}. "
+            f"Ensure all required fields are included in the request payload."
+        )
+
+    # Validate exit_year is a positive integer (not a boolean)
+    # Note: In Python, bool is a subclass of int, so isinstance(True, int) returns True.
+    # We must explicitly check for bool first to reject boolean values.
+    exit_year = base_params.get("exit_year")
+    if isinstance(exit_year, bool) or not isinstance(exit_year, int):
+        raise ValueError(
+            f"exit_year must be an integer between 1 and 20, got: {exit_year}"
+        )
+    if exit_year < 1 or exit_year > 20:
+        raise ValueError(
+            f"exit_year must be an integer between 1 and 20, got: {exit_year}"
+        )
+
 # --- Cap Table Models ---
 
 
@@ -200,18 +245,36 @@ class NPVRequest(BaseModel):
 
 
 class MonteCarloRequest(BaseModel):
-    """Request model for Monte Carlo simulation."""
+    """Request model for Monte Carlo simulation.
+
+    Validates that base_params contains required fields including exit_year.
+    """
 
     num_simulations: int = Field(..., ge=1, le=10000)
     base_params: dict[str, Any]  # BaseParams - kept flexible for dynamic structure
     sim_param_configs: dict[str, Any]  # SimParamConfigs - kept flexible for dynamic structure
 
+    @model_validator(mode="after")
+    def validate_base_params_required_fields(self) -> MonteCarloRequest:
+        """Validate that base_params contains all required fields."""
+        validate_base_params(self.base_params)
+        return self
+
 
 class SensitivityAnalysisRequest(BaseModel):
-    """Request model for sensitivity analysis."""
+    """Request model for sensitivity analysis.
+
+    Validates that base_params contains required fields including exit_year.
+    """
 
     base_params: dict[str, Any]  # BaseParams - kept flexible for dynamic structure
     sim_param_configs: dict[str, Any]  # SimParamConfigs - kept flexible for dynamic structure
+
+    @model_validator(mode="after")
+    def validate_base_params_required_fields(self) -> SensitivityAnalysisRequest:
+        """Validate that base_params contains all required fields."""
+        validate_base_params(self.base_params)
+        return self
 
 
 class DilutionFromValuationRequest(BaseModel):
