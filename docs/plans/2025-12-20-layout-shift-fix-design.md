@@ -55,7 +55,7 @@ html {
 |------|---------|
 | `frontend/app/globals.css` | Add `scrollbar-gutter: stable` (~2 lines) |
 | `frontend/app/page.tsx` | Add AnimatePresence wrappers (~30-40 lines) |
-| `frontend/components/ui/animated-text.tsx` | New reusable text transition component (~25 lines) |
+| `frontend/lib/motion.tsx` | New reusable text transition component (~25 lines) |
 
 **No changes to:**
 - EmployeeDashboard (internal layout unchanged)

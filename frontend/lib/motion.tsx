@@ -526,5 +526,55 @@ export function HighlightOnChange({
   );
 }
 
+// ============================================================================
+// Animated Text - For smooth text transitions
+// ============================================================================
+
+interface AnimatedTextProps {
+  /** The text content to display */
+  text: string;
+  /** Additional CSS classes */
+  className?: string;
+  /** Animation duration in seconds */
+  duration?: number;
+  /** HTML element to render as */
+  as?: "span" | "p" | "h1" | "h2" | "h3";
+}
+
+/**
+ * Animated text component that crossfades when content changes.
+ * Uses AnimatePresence with mode="popLayout" for smooth transitions.
+ * Respects prefers-reduced-motion user preference.
+ */
+export function AnimatedText({
+  text,
+  className,
+  duration = 0.15,
+  as: Component = "span",
+}: AnimatedTextProps) {
+  const prefersReducedMotion = useReducedMotion();
+  const MotionComponent = motion[Component];
+
+  // If user prefers reduced motion, render without animation
+  if (prefersReducedMotion) {
+    return <Component className={className}>{text}</Component>;
+  }
+
+  return (
+    <AnimatePresence mode="popLayout" initial={false}>
+      <MotionComponent
+        key={text}
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -5 }}
+        transition={{ duration, ease: "easeOut" }}
+        className={className}
+      >
+        {text}
+      </MotionComponent>
+    </AnimatePresence>
+  );
+}
+
 // Re-export motion for custom use
-export { motion, type Variants };
+export { motion, AnimatePresence, type Variants };
