@@ -74,6 +74,11 @@
     "zod": "^4.1.12",
     "zustand": "^5.0.9"
   },
+  "overrides": {
+    "@zodios/core": {
+      "zod": "$zod"
+    }
+  },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4",
