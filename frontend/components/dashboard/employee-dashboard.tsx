@@ -167,9 +167,9 @@ export function EmployeeDashboard() {
           <ScenarioResults
             results={startupScenarioResult}
             isLoading={isCalculating}
-            globalSettings={globalSettings}
-            currentJob={currentJob}
-            equityDetails={equityDetails}
+            globalSettings={debouncedGlobalSettings}
+            currentJob={debouncedCurrentJob}
+            equityDetails={debouncedEquityDetails}
             monteCarloContent={hasValidData ? (
               <div className="space-y-6">
                 <MonteCarloFormComponent

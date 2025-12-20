@@ -41,7 +41,9 @@ export interface ScenarioCalculationResult {
  * 2. Opportunity cost
  * 3. Startup scenario
  *
- * Uses debounced input values to prevent waterfall API calls during rapid form changes.
+ * Expects pre-debounced input values from the caller (e.g., EmployeeDashboard);
+ * this hook itself does not perform debouncing, which helps avoid waterfall API
+ * calls during rapid form changes.
  */
 export function useScenarioCalculation(
   input: ScenarioCalculationInput
@@ -60,11 +62,11 @@ export function useScenarioCalculation(
   const opportunityCostMutation = useCalculateOpportunityCost();
   const startupScenarioMutation = useCalculateStartupScenario();
 
-  // Step 1: Calculate monthly data grid when form data changes
-  React.useEffect(() => {
-    if (!hasValidData || !globalSettings || !currentJob || !equityDetails) return;
+  // Helper to build monthly data request (avoids duplication)
+  const buildMonthlyDataRequest = React.useCallback(() => {
+    if (!globalSettings || !currentJob || !equityDetails) return null;
 
-    const monthlyDataRequest = {
+    return {
       exit_year: globalSettings.exit_year,
       current_job_monthly_salary: currentJob.monthly_salary,
       startup_monthly_salary: equityDetails.monthly_salary,
@@ -84,10 +86,18 @@ export function useScenarioCalculation(
               }))
           : null,
     };
+  }, [globalSettings, currentJob, equityDetails]);
 
-    monthlyDataMutation.mutate(monthlyDataRequest);
+  // Step 1: Calculate monthly data grid when form data changes
+  React.useEffect(() => {
+    if (!hasValidData) return;
+
+    const request = buildMonthlyDataRequest();
+    if (request) {
+      monthlyDataMutation.mutate(request);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [globalSettings, currentJob, equityDetails, hasValidData]);
+  }, [hasValidData, buildMonthlyDataRequest]);
 
   // Step 2: Calculate opportunity cost when monthly data is ready
   React.useEffect(() => {
@@ -193,44 +203,24 @@ export function useScenarioCalculation(
   }, []);
 
   // Retry handler - reset all mutations and re-trigger the chain
+  // Note: Mutation objects from useCreateMonthlyDataGrid etc. are stable (same reference)
+  // so we access them from the closure rather than including them in the dependency array
   const retry = React.useCallback(() => {
     monthlyDataMutation.reset();
     opportunityCostMutation.reset();
     startupScenarioMutation.reset();
 
-    // Re-trigger the initial calculation
-    if (hasValidData && globalSettings && currentJob && equityDetails) {
-      const monthlyDataRequest = {
-        exit_year: globalSettings.exit_year,
-        current_job_monthly_salary: currentJob.monthly_salary,
-        startup_monthly_salary: equityDetails.monthly_salary,
-        current_job_salary_growth_rate: currentJob.annual_salary_growth_rate / 100,
-        dilution_rounds:
-          equityDetails.equity_type === "RSU" && equityDetails.simulate_dilution
-            ? equityDetails.dilution_rounds
-                .filter((r) => r.enabled)
-                .map((r) => ({
-                  round_name: r.round_name,
-                  round_type: r.round_type,
-                  year: r.year,
-                  dilution_pct: r.dilution_pct ? r.dilution_pct / 100 : undefined,
-                  pre_money_valuation: r.pre_money_valuation,
-                  amount_raised: r.amount_raised,
-                  salary_change: r.salary_change,
-                }))
-            : null,
-      };
-      monthlyDataMutation.mutate(monthlyDataRequest);
+    // Re-trigger the initial calculation using the shared helper
+    if (hasValidData) {
+      const request = buildMonthlyDataRequest();
+      if (request) {
+        monthlyDataMutation.mutate(request);
+      }
     }
-  }, [
-    monthlyDataMutation,
-    opportunityCostMutation,
-    startupScenarioMutation,
-    hasValidData,
-    globalSettings,
-    currentJob,
-    equityDetails,
-  ]);
+    // Only include values that affect the request construction
+    // Mutation objects are stable and accessed from closure
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasValidData, buildMonthlyDataRequest]);
 
   return {
     hasValidData,
