@@ -18,3 +18,8 @@ export { useDashboardStats } from "./use-dashboard-stats";
 export { useHistoryStore, createHistoryStore, type HistoryEntry } from "./use-history";
 export { useUndoShortcuts } from "./use-undo-shortcuts";
 export { useCapTableHistory, type CapTableState } from "./use-cap-table-history";
+export {
+  useScenarioCalculation,
+  type ScenarioCalculationInput,
+  type ScenarioCalculationResult,
+} from "./use-scenario-calculation";
