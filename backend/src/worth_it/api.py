@@ -10,16 +10,16 @@ import logging
 from collections import defaultdict
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from functools import partial
 
 import pandas as pd
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError as PydanticValidationError
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
-
-from pydantic import ValidationError as PydanticValidationError
 
 from worth_it import calculations
 from worth_it.config import settings
@@ -131,8 +131,7 @@ class WebSocketConnectionTracker:
     async def unregister_connection(self, client_ip: str) -> None:
         """Unregister a WebSocket connection when it closes."""
         async with self._lock:
-            if self._connections[client_ip] > 0:
-                self._connections[client_ip] -= 1
+            self._connections[client_ip] = max(0, self._connections[client_ip] - 1)
             if self._connections[client_ip] == 0:
                 del self._connections[client_ip]
 
@@ -388,6 +387,12 @@ def _get_client_ip(websocket: WebSocket) -> str:
 
     Checks X-Forwarded-For header for reverse proxy scenarios,
     falls back to direct client host if not present.
+
+    SECURITY NOTE: The X-Forwarded-For header can be spoofed by clients.
+    When deploying behind a reverse proxy (nginx, AWS ALB, etc.), ensure
+    the proxy is configured to overwrite (not append to) this header.
+    Without proper proxy configuration, malicious clients could set arbitrary
+    X-Forwarded-For values to evade per-IP rate limiting.
     """
     # Check for forwarded IP (reverse proxy)
     forwarded = websocket.headers.get("x-forwarded-for")
@@ -428,12 +433,12 @@ async def _run_simulation_with_progress(
         current_batch_size = min(batch_size, request.num_simulations - i)
 
         # Run batch simulation (CPU-bound, run in thread pool)
-        # Use default argument to properly capture loop variable
         loop = asyncio.get_event_loop()
         results = await loop.run_in_executor(
             None,
-            lambda batch=current_batch_size: mc_run_simulation(
-                num_simulations=batch,
+            partial(
+                mc_run_simulation,
+                num_simulations=current_batch_size,
                 base_params=base_params,
                 sim_param_configs=request.sim_param_configs,
             ),
@@ -551,7 +556,7 @@ async def websocket_monte_carlo(websocket: WebSocket):
                     _run_simulation_with_progress(websocket, request, base_params),
                     timeout=settings.WS_SIMULATION_TIMEOUT_SECONDS,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.warning(
                     f"Simulation timeout for IP {client_ip} after "
                     f"{settings.WS_SIMULATION_TIMEOUT_SECONDS}s "

@@ -575,7 +575,7 @@ class DCFRequest(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_growth_vs_discount(self) -> DCFRequest:
+    def validate_growth_vs_discount(self) -> Self:
         """Terminal growth must be less than discount rate."""
         if (
             self.terminal_growth_rate is not None
@@ -612,7 +612,7 @@ class VCMethodRequest(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_multiple_or_irr(self) -> VCMethodRequest:
+    def validate_multiple_or_irr(self) -> Self:
         """Must provide either target multiple or IRR."""
         if self.target_return_multiple is None and self.target_irr is None:
             raise ValueError("Must provide either target_return_multiple or target_irr")
@@ -637,7 +637,7 @@ class ValuationCompareRequest(BaseModel):
     vc_method: VCMethodRequest | None = None
 
     @model_validator(mode="after")
-    def validate_at_least_one_method(self) -> ValuationCompareRequest:
+    def validate_at_least_one_method(self) -> Self:
         """At least one valuation method must be provided."""
         if all(
             m is None
