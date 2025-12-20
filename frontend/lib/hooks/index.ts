@@ -19,6 +19,12 @@ export { useHistoryStore, createHistoryStore, type HistoryEntry } from "./use-hi
 export { useUndoShortcuts } from "./use-undo-shortcuts";
 export { useCapTableHistory, type CapTableState } from "./use-cap-table-history";
 export {
+  useCancellableMutation,
+  isAbortError,
+  type CancellableMutationOptions,
+  type CancellableMutationResult,
+} from "./use-cancellable-mutation";
+export {
   useScenarioCalculation,
   type ScenarioCalculationInput,
   type ScenarioCalculationResult,

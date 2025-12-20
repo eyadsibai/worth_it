@@ -4,13 +4,19 @@ This module provides REST API endpoints for all financial calculation functions,
 enabling the frontend to communicate with the backend via HTTP and WebSocket.
 """
 
+import asyncio
 import json
 import logging
+from collections import defaultdict
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+from functools import partial
 
 import pandas as pd
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError as PydanticValidationError
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -79,6 +85,88 @@ limiter = Limiter(
     enabled=settings.RATE_LIMIT_ENABLED,
     default_limits=[],  # No default limits, we'll set per-endpoint
 )
+
+
+# =============================================================================
+# WebSocket Connection Tracker for Rate Limiting
+# =============================================================================
+
+
+class WebSocketConnectionTracker:
+    """Tracks active WebSocket connections per IP address.
+
+    This is used to enforce rate limits on WebSocket connections since the
+    standard slowapi rate limiter doesn't work with WebSocket handlers.
+
+    Async-safety: Uses asyncio locks for concurrent task protection within a
+    single event loop. This class is not thread-safe and should not be used
+    from multiple threads concurrently.
+    """
+
+    def __init__(self) -> None:
+        self._connections: dict[str, int] = defaultdict(int)
+        self._lock = asyncio.Lock()
+
+    async def can_connect(self, client_ip: str) -> bool:
+        """Check if a client IP can establish a new WebSocket connection.
+
+        Returns True if the client has not exceeded the maximum concurrent
+        connections limit, False otherwise.
+        """
+        async with self._lock:
+            return self._connections[client_ip] < settings.WS_MAX_CONCURRENT_PER_IP
+
+    async def register_connection(self, client_ip: str) -> bool:
+        """Register a new WebSocket connection for the given IP.
+
+        Returns True if the connection was registered successfully,
+        False if the client has exceeded the limit.
+        """
+        async with self._lock:
+            if self._connections[client_ip] >= settings.WS_MAX_CONCURRENT_PER_IP:
+                return False
+            self._connections[client_ip] += 1
+            return True
+
+    async def unregister_connection(self, client_ip: str) -> None:
+        """Unregister a WebSocket connection when it closes."""
+        async with self._lock:
+            self._connections[client_ip] = max(0, self._connections[client_ip] - 1)
+            if self._connections[client_ip] == 0:
+                del self._connections[client_ip]
+
+    def get_active_connections(self, client_ip: str) -> int:
+        """Get the number of active connections for an IP (for monitoring).
+
+        This helper is intentionally lock-free and may return slightly stale
+        data if connections are being modified concurrently. It should only
+        be used for approximate monitoring/telemetry, not for enforcing
+        correctness or rate-limiting decisions.
+        """
+        return self._connections.get(client_ip, 0)
+
+
+@asynccontextmanager
+async def track_websocket_connection(
+    tracker: WebSocketConnectionTracker, client_ip: str
+) -> AsyncGenerator[bool]:
+    """Context manager for tracking WebSocket connections.
+
+    Automatically unregisters the connection when the context exits.
+
+    Yields:
+        bool: True if connection was registered, False if rate limited.
+    """
+    registered = await tracker.register_connection(client_ip)
+    try:
+        yield registered
+    finally:
+        if registered:
+            await tracker.unregister_connection(client_ip)
+
+
+# Global WebSocket connection tracker instance
+ws_connection_tracker = WebSocketConnectionTracker()
 
 
 # Service instances for dependency injection
@@ -294,12 +382,104 @@ async def run_monte_carlo(request: Request, body: MonteCarloRequest):
         raise CalculationError("Invalid parameters for Monte Carlo simulation") from e
 
 
+def _get_client_ip(websocket: WebSocket) -> str:
+    """Extract client IP from WebSocket connection.
+
+    Checks X-Forwarded-For header for reverse proxy scenarios,
+    falls back to direct client host if not present.
+
+    SECURITY NOTE: The X-Forwarded-For header can be spoofed by clients.
+    When deploying behind a reverse proxy (nginx, AWS ALB, etc.), ensure
+    the proxy is configured to overwrite (not append to) this header.
+    Without proper proxy configuration, malicious clients could set arbitrary
+    X-Forwarded-For values to evade per-IP rate limiting.
+    """
+    # Check for forwarded IP (reverse proxy)
+    forwarded = websocket.headers.get("x-forwarded-for")
+    if forwarded:
+        # X-Forwarded-For can contain multiple IPs; first is the original client
+        return forwarded.split(",")[0].strip()
+
+    # Fall back to direct client host
+    client = websocket.client
+    return client.host if client else "unknown"
+
+
+async def _run_simulation_with_progress(
+    websocket: WebSocket,
+    request: MonteCarloRequest,
+    base_params: dict,
+) -> None:
+    """Run Monte Carlo simulation with progress updates.
+
+    This is the core simulation logic, separated out to enable timeout wrapping.
+    """
+    # Send initial progress
+    await websocket.send_json(
+        {
+            "type": "progress",
+            "current": 0,
+            "total": request.num_simulations,
+            "percentage": 0,
+        }
+    )
+
+    # Run simulation in batches to send progress updates
+    batch_size = max(100, request.num_simulations // 20)  # Send ~20 updates
+    all_net_outcomes: list[float] = []
+    all_simulated_valuations: list[float] = []
+
+    for i in range(0, request.num_simulations, batch_size):
+        current_batch_size = min(batch_size, request.num_simulations - i)
+
+        # Run batch simulation (CPU-bound, run in thread pool)
+        loop = asyncio.get_event_loop()
+        results = await loop.run_in_executor(
+            None,
+            partial(
+                mc_run_simulation,
+                num_simulations=current_batch_size,
+                base_params=base_params,
+                sim_param_configs=request.sim_param_configs,
+            ),
+        )
+
+        all_net_outcomes.extend(results["net_outcomes"].tolist())
+        all_simulated_valuations.extend(results["simulated_valuations"].tolist())
+
+        # Send progress update
+        completed = i + current_batch_size
+        percentage = (completed / request.num_simulations) * 100
+        await websocket.send_json(
+            {
+                "type": "progress",
+                "current": completed,
+                "total": request.num_simulations,
+                "percentage": round(percentage, 2),
+            }
+        )
+
+    # Send final results
+    await websocket.send_json(
+        {
+            "type": "complete",
+            "net_outcomes": all_net_outcomes,
+            "simulated_valuations": all_simulated_valuations,
+        }
+    )
+
+
 @app.websocket("/ws/monte-carlo")
 async def websocket_monte_carlo(websocket: WebSocket):
     """WebSocket endpoint for Monte Carlo simulation with progress updates.
 
     Receives simulation parameters and sends progress updates as the simulation runs.
     This provides real-time feedback for long-running simulations.
+
+    Security features:
+    - Rate limiting: Max concurrent connections per IP (WS_MAX_CONCURRENT_PER_IP)
+    - Timeout: Simulation timeout (WS_SIMULATION_TIMEOUT_SECONDS)
+    - Validation: num_simulations validated against MAX_SIMULATIONS config
 
     Message format:
     - Input (JSON): Same as MonteCarloRequest
@@ -308,99 +488,132 @@ async def websocket_monte_carlo(websocket: WebSocket):
         - {"type": "complete", "net_outcomes": [...], "simulated_valuations": [...]}
         - {"type": "error", "message": "..."}
     """
-    await websocket.accept()
+    client_ip = _get_client_ip(websocket)
 
-    try:
-        # Receive simulation parameters
-        data = await websocket.receive_text()
-        request_data = json.loads(data)
-
-        # Validate request using Pydantic model
-        request = MonteCarloRequest(**request_data)
-
-        # Convert equity_type string to EquityType enum if needed
-        base_params = convert_equity_type_in_params(request.base_params.copy())
-
-        # Send initial progress
-        await websocket.send_json(
-            {
-                "type": "progress",
-                "current": 0,
-                "total": request.num_simulations,
-                "percentage": 0,
-            }
-        )
-
-        # Run simulation in batches to send progress updates
-        batch_size = max(100, request.num_simulations // 20)  # Send ~20 updates
-        all_net_outcomes = []
-        all_simulated_valuations = []
-
-        for i in range(0, request.num_simulations, batch_size):
-            current_batch_size = min(batch_size, request.num_simulations - i)
-
-            # Run batch simulation
-            results = mc_run_simulation(
-                num_simulations=current_batch_size,
-                base_params=base_params,
-                sim_param_configs=request.sim_param_configs,
+    # Check rate limit before accepting connection
+    async with track_websocket_connection(ws_connection_tracker, client_ip) as registered:
+        if not registered:
+            # Rate limited - accept, send error, then close connection
+            # This ensures clients receive a proper error message rather than just a rejection
+            logger.warning(
+                f"WebSocket rate limit exceeded for IP {client_ip}. "
+                f"Max concurrent connections: {settings.WS_MAX_CONCURRENT_PER_IP}"
             )
-
-            all_net_outcomes.extend(results["net_outcomes"].tolist())
-            all_simulated_valuations.extend(results["simulated_valuations"].tolist())
-
-            # Send progress update
-            completed = i + current_batch_size
-            percentage = (completed / request.num_simulations) * 100
-            await websocket.send_json(
-                {
-                    "type": "progress",
-                    "current": completed,
-                    "total": request.num_simulations,
-                    "percentage": round(percentage, 2),
-                }
-            )
-
-        # Send final results
-        await websocket.send_json(
-            {
-                "type": "complete",
-                "net_outcomes": all_net_outcomes,
-                "simulated_valuations": all_simulated_valuations,
-            }
-        )
-
-    except WebSocketDisconnect:
-        logger.info("WebSocket client disconnected during Monte Carlo simulation")
-    except (ValueError, TypeError, KeyError) as e:
-        # Known calculation errors - log and send sanitized message
-        logger.error(f"Calculation error in WebSocket Monte Carlo: {e}", exc_info=True)
-        try:
+            await websocket.accept()
             await websocket.send_json(
                 {
                     "type": "error",
-                    "message": "Invalid parameters for simulation",
+                    "message": (
+                        "Rate limit exceeded. Please close other Monte Carlo "
+                        "connections or try again later."
+                    ),
+                    "max_concurrent_connections": settings.WS_MAX_CONCURRENT_PER_IP,
                 }
             )
-        except Exception:
-            logger.error("Failed to send error message to WebSocket client")
-    except Exception as e:
-        # Unexpected errors - log full details but send generic message
-        logger.exception(f"Unexpected error in WebSocket Monte Carlo: {e}")
+            await websocket.close(code=1008, reason="Rate limit exceeded")
+            return
+
+        await websocket.accept()
+        logger.debug(f"WebSocket connection accepted for IP {client_ip}")
+
         try:
-            await websocket.send_json(
-                {
-                    "type": "error",
-                    "message": "An unexpected error occurred during simulation",
-                }
-            )
-        except Exception:
-            logger.error("Failed to send error message to WebSocket client")
-    finally:
-        try:
-            await websocket.close()
-        except Exception:
-            logger.error("Failed to close WebSocket connection")
+            # Receive simulation parameters
+            data = await websocket.receive_text()
+            request_data = json.loads(data)
+
+            # Validate request using Pydantic model (includes MAX_SIMULATIONS check)
+            try:
+                request = MonteCarloRequest(**request_data)
+            except PydanticValidationError as e:
+                # Pydantic validation error - send user-friendly message
+                error_msg = str(e)
+                if "num_simulations" in error_msg and "exceeds" in error_msg:
+                    # This is our custom MAX_SIMULATIONS validation error
+                    await websocket.send_json(
+                        {
+                            "type": "error",
+                            "message": f"Requested simulations exceed the maximum allowed ({settings.MAX_SIMULATIONS})",
+                        }
+                    )
+                else:
+                    await websocket.send_json(
+                        {
+                            "type": "error",
+                            "message": "Invalid simulation parameters",
+                        }
+                    )
+                logger.warning(
+                    f"Invalid Monte Carlo request from {client_ip}: {e}"
+                )
+                return
+
+            # Convert equity_type string to EquityType enum if needed
+            base_params = convert_equity_type_in_params(request.base_params.copy())
+
+            # Run simulation with timeout
+            try:
+                await asyncio.wait_for(
+                    _run_simulation_with_progress(websocket, request, base_params),
+                    timeout=settings.WS_SIMULATION_TIMEOUT_SECONDS,
+                )
+            except TimeoutError:
+                logger.warning(
+                    f"Simulation timeout for IP {client_ip} after "
+                    f"{settings.WS_SIMULATION_TIMEOUT_SECONDS}s "
+                    f"({request.num_simulations} simulations requested)"
+                )
+                try:
+                    await websocket.send_json(
+                        {
+                            "type": "error",
+                            "message": f"Simulation timed out after {settings.WS_SIMULATION_TIMEOUT_SECONDS} seconds",
+                        }
+                    )
+                except Exception as send_err:
+                    logger.debug(f"Failed to send timeout error to client: {send_err}")
+
+        except WebSocketDisconnect:
+            logger.info(f"WebSocket client {client_ip} disconnected during Monte Carlo simulation")
+        except json.JSONDecodeError:
+            logger.warning(f"Invalid JSON from WebSocket client {client_ip}")
+            try:
+                await websocket.send_json(
+                    {
+                        "type": "error",
+                        "message": "Invalid JSON in request",
+                    }
+                )
+            except Exception:
+                logger.error("Failed to send error message to WebSocket client")
+        except (ValueError, TypeError, KeyError) as e:
+            # Known calculation errors - log and send sanitized message
+            logger.error(f"Calculation error in WebSocket Monte Carlo from {client_ip}: {e}", exc_info=True)
+            try:
+                await websocket.send_json(
+                    {
+                        "type": "error",
+                        "message": "Invalid parameters for simulation",
+                    }
+                )
+            except Exception:
+                logger.error("Failed to send error message to WebSocket client")
+        except Exception as e:
+            # Unexpected errors - log full details but send generic message
+            logger.exception(f"Unexpected error in WebSocket Monte Carlo from {client_ip}: {e}")
+            try:
+                await websocket.send_json(
+                    {
+                        "type": "error",
+                        "message": "An unexpected error occurred during simulation",
+                    }
+                )
+            except Exception:
+                logger.error("Failed to send error message to WebSocket client")
+        finally:
+            try:
+                await websocket.close()
+            except Exception:
+                logger.debug("WebSocket already closed")
 
 
 @app.post("/api/sensitivity-analysis", response_model=SensitivityAnalysisResponse)

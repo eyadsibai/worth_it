@@ -450,3 +450,208 @@ test.describe('Simulation Parameter Validation', () => {
     }
   });
 });
+
+test.describe('WebSocket Security Controls', () => {
+  // Direct WebSocket tests for security validation
+  // Note: MAX_SIMULATIONS defaults to 10000 but can be configured
+
+  test('should reject requests exceeding MAX_SIMULATIONS limit', async ({ page }) => {
+    // Use WebSocket API directly to test security controls
+    const wsUrl = `${API_BASE_URL.replace('http', 'ws')}/ws/monte-carlo`;
+
+    // Create a valid request but with excessive simulations
+    const validRequest = {
+      num_simulations: 100001, // Exceeds the hard upper limit of 100000
+      base_params: {
+        exit_year: 5,
+        current_job_monthly_salary: 15000,
+        startup_monthly_salary: 12500,
+        current_job_salary_growth_rate: 0.03,
+        annual_roi: 0.07,
+        investment_frequency: 'Monthly',
+        startup_params: {
+          equity_type: 'Equity (RSUs)',
+          total_vesting_years: 4,
+          cliff_years: 1,
+          rsu_params: {
+            equity_pct: 0.5,
+            target_exit_valuation: 100000000,
+            simulate_dilution: false,
+          },
+          options_params: {},
+        },
+        failure_probability: 0.25,
+      },
+      sim_param_configs: {
+        valuation: { min_val: 50000000, max_val: 200000000, mode: 100000000 },
+        roi: { mean: 0.07, std_dev: 0.02 },
+      },
+    };
+
+    // Use evaluate to create WebSocket in browser context
+    const result = await page.evaluate(async ({ url, request }) => {
+      return new Promise<{ type: string; message?: string }>((resolve, reject) => {
+        const ws = new WebSocket(url);
+        const timeout = setTimeout(() => {
+          ws.close();
+          reject(new Error('WebSocket connection timeout'));
+        }, 10000);
+
+        ws.onopen = () => {
+          ws.send(JSON.stringify(request));
+        };
+
+        ws.onmessage = (event) => {
+          clearTimeout(timeout);
+          const data = JSON.parse(event.data);
+          ws.close();
+          resolve(data);
+        };
+
+        ws.onerror = (error) => {
+          clearTimeout(timeout);
+          reject(error);
+        };
+      });
+    }, { url: wsUrl, request: validRequest });
+
+    // Should get an error response about exceeding maximum simulations
+    expect(result.type).toBe('error');
+    expect(result.message?.toLowerCase()).toMatch(/exceed|maximum|limit/);
+  });
+
+  test('should return proper error format for validation failures', async ({ page }) => {
+    const wsUrl = `${API_BASE_URL.replace('http', 'ws')}/ws/monte-carlo`;
+
+    // Request with invalid num_simulations (zero)
+    const invalidRequest = {
+      num_simulations: 0, // Must be >= 1
+      base_params: {
+        exit_year: 5,
+        current_job_monthly_salary: 15000,
+        startup_monthly_salary: 12500,
+        current_job_salary_growth_rate: 0.03,
+        annual_roi: 0.07,
+        investment_frequency: 'Monthly',
+        startup_params: {
+          equity_type: 'Equity (RSUs)',
+          total_vesting_years: 4,
+          cliff_years: 1,
+          rsu_params: {
+            equity_pct: 0.5,
+            target_exit_valuation: 100000000,
+            simulate_dilution: false,
+          },
+          options_params: {},
+        },
+        failure_probability: 0.25,
+      },
+      sim_param_configs: {
+        valuation: { min_val: 50000000, max_val: 200000000, mode: 100000000 },
+        roi: { mean: 0.07, std_dev: 0.02 },
+      },
+    };
+
+    const result = await page.evaluate(async ({ url, request }) => {
+      return new Promise<{ type: string; message?: string }>((resolve, reject) => {
+        const ws = new WebSocket(url);
+        const timeout = setTimeout(() => {
+          ws.close();
+          reject(new Error('WebSocket connection timeout'));
+        }, 10000);
+
+        ws.onopen = () => {
+          ws.send(JSON.stringify(request));
+        };
+
+        ws.onmessage = (event) => {
+          clearTimeout(timeout);
+          const data = JSON.parse(event.data);
+          ws.close();
+          resolve(data);
+        };
+
+        ws.onerror = (error) => {
+          clearTimeout(timeout);
+          reject(error);
+        };
+      });
+    }, { url: wsUrl, request: invalidRequest });
+
+    // Should get a validation error
+    expect(result.type).toBe('error');
+    expect(result.message).toBeDefined();
+  });
+
+  test('should accept valid simulation request within limits', async ({ page }) => {
+    const wsUrl = `${API_BASE_URL.replace('http', 'ws')}/ws/monte-carlo`;
+
+    // Valid request with reasonable simulations
+    const validRequest = {
+      num_simulations: 50, // Small number for quick test
+      base_params: {
+        exit_year: 5,
+        current_job_monthly_salary: 15000,
+        startup_monthly_salary: 12500,
+        current_job_salary_growth_rate: 0.03,
+        annual_roi: 0.07,
+        investment_frequency: 'Monthly',
+        startup_params: {
+          equity_type: 'Equity (RSUs)',
+          total_vesting_years: 4,
+          cliff_years: 1,
+          rsu_params: {
+            equity_pct: 0.5,
+            target_exit_valuation: 100000000,
+            simulate_dilution: false,
+          },
+          options_params: {},
+        },
+        failure_probability: 0.25,
+      },
+      sim_param_configs: {
+        valuation: { min_val: 50000000, max_val: 200000000, mode: 100000000 },
+        roi: { mean: 0.07, std_dev: 0.02 },
+      },
+    };
+
+    const result = await page.evaluate(async ({ url, request }) => {
+      return new Promise<{ type: string; message?: string; net_outcomes?: number[] }>((resolve, reject) => {
+        const ws = new WebSocket(url);
+        const timeout = setTimeout(() => {
+          ws.close();
+          reject(new Error('WebSocket connection timeout'));
+        }, 30000); // Longer timeout for simulation
+
+        ws.onopen = () => {
+          ws.send(JSON.stringify(request));
+        };
+
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data);
+          // Wait for complete message
+          if (data.type === 'complete') {
+            clearTimeout(timeout);
+            ws.close();
+            resolve(data);
+          } else if (data.type === 'error') {
+            clearTimeout(timeout);
+            ws.close();
+            resolve(data);
+          }
+          // Ignore progress messages
+        };
+
+        ws.onerror = (error) => {
+          clearTimeout(timeout);
+          reject(error);
+        };
+      });
+    }, { url: wsUrl, request: validRequest });
+
+    // Should complete successfully
+    expect(result.type).toBe('complete');
+    expect(result.net_outcomes).toBeDefined();
+    expect(result.net_outcomes?.length).toBe(50);
+  });
+});

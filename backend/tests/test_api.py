@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from worth_it.api import app
+from worth_it.config import settings
 
 client = TestClient(app)
 
@@ -599,6 +600,178 @@ class TestWebSocketMonteCarlo:
             assert len(complete_msg["net_outcomes"]) == 20  # num_simulations
             assert len(complete_msg["simulated_valuations"]) == 20
 
+    def test_websocket_exceeds_max_simulations(self):
+        """Test that requesting more than MAX_SIMULATIONS is rejected."""
+        with client.websocket_connect("/ws/monte-carlo") as websocket:
+            # Request more simulations than the configured limit
+            request = self._get_valid_request()
+            request["num_simulations"] = settings.MAX_SIMULATIONS + 1  # Exceeds configured MAX_SIMULATIONS
+            websocket.send_json(request)
+
+            msg = websocket.receive_json()
+            assert msg["type"] == "error"
+            assert "maximum" in msg["message"].lower() or "exceed" in msg["message"].lower()
+
+
+class TestWebSocketSecurity:
+    """Tests for WebSocket security features (Issue #245)."""
+
+    def test_config_has_websocket_security_settings(self):
+        """Test that WebSocket security settings are configurable."""
+        from worth_it.config import settings
+
+        # Verify security settings exist
+        assert hasattr(settings, "WS_MAX_CONCURRENT_PER_IP")
+        assert hasattr(settings, "WS_SIMULATION_TIMEOUT_SECONDS")
+
+        # Verify default values
+        assert settings.WS_MAX_CONCURRENT_PER_IP == 5
+        assert settings.WS_SIMULATION_TIMEOUT_SECONDS == 60
+
+    def test_config_validation_catches_invalid_ws_concurrent(self):
+        """Test that invalid WS_MAX_CONCURRENT_PER_IP values are caught by validation."""
+        from worth_it.config import Settings
+
+        # Test validation logic directly with invalid values
+        # The Settings class validates ranges in its validate() method
+
+        # Create a Settings subclass to test with invalid values
+        class InvalidConcurrentSettings(Settings):
+            WS_MAX_CONCURRENT_PER_IP = 0  # Invalid: must be >= 1
+
+        test_settings = InvalidConcurrentSettings()
+        try:
+            test_settings.validate()
+            raise AssertionError("Should have raised validation error for WS_MAX_CONCURRENT_PER_IP=0")
+        except ValueError as e:
+            assert "WS_MAX_CONCURRENT_PER_IP" in str(e)
+
+    def test_config_validation_catches_invalid_ws_timeout(self):
+        """Test that invalid WS_SIMULATION_TIMEOUT_SECONDS values are caught by validation."""
+        from worth_it.config import Settings
+
+        # Create a Settings subclass to test with invalid timeout
+        class InvalidTimeoutSettings(Settings):
+            WS_SIMULATION_TIMEOUT_SECONDS = 3  # Invalid: must be >= 5
+
+        test_settings = InvalidTimeoutSettings()
+        try:
+            test_settings.validate()
+            raise AssertionError("Should have raised validation error for WS_SIMULATION_TIMEOUT_SECONDS=3")
+        except ValueError as e:
+            assert "WS_SIMULATION_TIMEOUT_SECONDS" in str(e)
+
+    def test_monte_carlo_request_validates_against_config(self):
+        """Test that MonteCarloRequest validates num_simulations against config."""
+        from pydantic import ValidationError as PydanticValidationError
+
+        from worth_it.config import settings
+        from worth_it.models import MonteCarloRequest
+
+        # Valid base_params with all required fields
+        valid_base_params = {
+            "exit_year": 5,
+            "current_job_monthly_salary": 10000,
+            "startup_monthly_salary": 8000,
+            "current_job_salary_growth_rate": 0.03,
+            "annual_roi": 0.05,
+            "investment_frequency": "Monthly",
+            "startup_params": {
+                "equity_type": "RSU",
+                "total_vesting_years": 4,
+                "cliff_years": 1,
+                "rsu_params": {
+                    "equity_pct": 0.05,
+                    "target_exit_valuation": 20_000_000,
+                    "simulate_dilution": False,
+                },
+                "options_params": {},
+            },
+            "failure_probability": 0.25,
+        }
+
+        # Valid request
+        valid_request = MonteCarloRequest(
+            num_simulations=100,
+            base_params=valid_base_params,
+            sim_param_configs={},
+        )
+        assert valid_request.num_simulations == 100
+
+        # Request exceeding MAX_SIMULATIONS should fail
+        try:
+            MonteCarloRequest(
+                num_simulations=settings.MAX_SIMULATIONS + 1,
+                base_params=valid_base_params,
+                sim_param_configs={},
+            )
+            raise AssertionError("Should have raised validation error")
+        except (ValueError, PydanticValidationError) as e:
+            error_msg = str(e)
+            assert "exceeds" in error_msg.lower() or "maximum" in error_msg.lower()
+
+
+class TestWebSocketConnectionTracker:
+    """Unit tests for the WebSocket connection tracker."""
+
+    @pytest.mark.asyncio
+    async def test_connection_tracker_allows_within_limit(self):
+        """Test that connections within the limit are allowed."""
+        from worth_it.api import WebSocketConnectionTracker
+
+        tracker = WebSocketConnectionTracker()
+        client_ip = "192.168.1.100"
+
+        # First connection should succeed
+        assert await tracker.register_connection(client_ip) is True
+        assert tracker.get_active_connections(client_ip) == 1
+
+        # Unregister
+        await tracker.unregister_connection(client_ip)
+        assert tracker.get_active_connections(client_ip) == 0
+
+    @pytest.mark.asyncio
+    async def test_connection_tracker_blocks_over_limit(self):
+        """Test that connections over the limit are blocked."""
+        from worth_it.api import WebSocketConnectionTracker
+        from worth_it.config import settings
+
+        tracker = WebSocketConnectionTracker()
+        client_ip = "192.168.1.101"
+
+        # Register max connections
+        for _ in range(settings.WS_MAX_CONCURRENT_PER_IP):
+            assert await tracker.register_connection(client_ip) is True
+
+        # Next should fail
+        assert await tracker.register_connection(client_ip) is False
+
+        # Clean up
+        for _ in range(settings.WS_MAX_CONCURRENT_PER_IP):
+            await tracker.unregister_connection(client_ip)
+
+    @pytest.mark.asyncio
+    async def test_connection_tracker_independent_per_ip(self):
+        """Test that different IPs have independent connection limits."""
+        from worth_it.api import WebSocketConnectionTracker
+        from worth_it.config import settings
+
+        tracker = WebSocketConnectionTracker()
+        ip1 = "192.168.1.1"
+        ip2 = "192.168.1.2"
+
+        # Fill ip1's limit
+        for _ in range(settings.WS_MAX_CONCURRENT_PER_IP):
+            await tracker.register_connection(ip1)
+
+        # ip2 should still be able to connect
+        assert await tracker.register_connection(ip2) is True
+
+        # Clean up
+        for _ in range(settings.WS_MAX_CONCURRENT_PER_IP):
+            await tracker.unregister_connection(ip1)
+        await tracker.unregister_connection(ip2)
+
 
 class TestCapTableConversion:
     """Tests for the cap table conversion endpoint."""
@@ -990,6 +1163,157 @@ class TestRateLimiting:
         )
 
 
+class TestSecurityConfiguration:
+    """Tests for security-related configuration settings."""
+
+    def test_api_host_defaults_to_localhost(self):
+        """Test that API_HOST defaults to 127.0.0.1 for security."""
+        import os
+
+        # Save and clear any existing env var
+        original = os.environ.pop("API_HOST", None)
+        try:
+            # Import Settings after clearing the env var so defaults are applied
+            from worth_it.config import Settings
+
+            assert Settings.API_HOST == "127.0.0.1", (
+                "API_HOST should default to 127.0.0.1 for security"
+            )
+        finally:
+            # Restore original if it existed
+            if original is not None:
+                os.environ["API_HOST"] = original
+
+    def test_cors_origin_validation_rejects_invalid_format(self):
+        """Test that invalid CORS origin format is rejected."""
+        from worth_it.config import Settings
+
+        # Create a test settings class that we can manipulate
+        class TestSettings(Settings):
+            ENVIRONMENT = "development"
+
+            @staticmethod
+            def get_cors_origins() -> list[str]:
+                return ["invalid-origin-without-protocol"]
+
+        with pytest.raises(ValueError) as exc_info:
+            TestSettings.validate()
+        assert "Invalid CORS origin" in str(exc_info.value)
+
+    def test_cors_empty_strings_filtered_from_malformed_input(self):
+        """Test that empty strings from malformed CORS input are filtered out."""
+        import os
+
+        # Simulate malformed input with extra commas
+        original = os.environ.get("CORS_ORIGINS")
+        try:
+            os.environ["CORS_ORIGINS"] = "https://app.com,,https://api.com,,"
+            from worth_it.config import Settings
+
+            origins = Settings.get_cors_origins()
+            # Empty strings should be filtered out
+            assert "" not in origins
+            assert origins == ["https://app.com", "https://api.com"]
+        finally:
+            if original is not None:
+                os.environ["CORS_ORIGINS"] = original
+            else:
+                os.environ.pop("CORS_ORIGINS", None)
+
+    def test_cors_wildcard_rejected_in_production(self):
+        """Test that wildcard CORS is rejected in production."""
+        from worth_it.config import Settings
+
+        class TestSettings(Settings):
+            ENVIRONMENT = "production"
+            API_PORT = 8000
+            STREAMLIT_PORT = 8501
+            MAX_SIMULATIONS = 10000
+            LOG_LEVEL = "INFO"
+
+            @staticmethod
+            def get_cors_origins() -> list[str]:
+                return ["*"]
+
+            @classmethod
+            def is_production(cls) -> bool:
+                return True
+
+        with pytest.raises(ValueError) as exc_info:
+            TestSettings.validate()
+        assert "Wildcard '*' CORS origin is not allowed in production" in str(exc_info.value)
+
+    def test_cors_wildcard_allowed_in_development(self):
+        """Test that wildcard CORS is allowed in development."""
+        from worth_it.config import Settings
+
+        class TestSettings(Settings):
+            ENVIRONMENT = "development"
+            API_PORT = 8000
+            STREAMLIT_PORT = 8501
+            MAX_SIMULATIONS = 10000
+            LOG_LEVEL = "INFO"
+
+            @staticmethod
+            def get_cors_origins() -> list[str]:
+                return ["*"]
+
+            @classmethod
+            def is_production(cls) -> bool:
+                return False
+
+        # Should not raise
+        TestSettings.validate()
+
+    def test_valid_cors_origins_accepted(self):
+        """Test that valid CORS origins are accepted."""
+        from worth_it.config import Settings
+
+        class TestSettings(Settings):
+            ENVIRONMENT = "production"
+            API_PORT = 8000
+            STREAMLIT_PORT = 8501
+            MAX_SIMULATIONS = 10000
+            LOG_LEVEL = "INFO"
+
+            @staticmethod
+            def get_cors_origins() -> list[str]:
+                return ["https://app.example.com", "https://preview.vercel.app"]
+
+            @classmethod
+            def is_production(cls) -> bool:
+                return True
+
+        # Should not raise
+        TestSettings.validate()
+
+    def test_validate_security_logs_warnings_in_production(self, caplog):
+        """Test that security warnings are logged in production."""
+        import logging
+
+        from worth_it.config import Settings
+
+        class TestSettings(Settings):
+            ENVIRONMENT = "production"
+            API_HOST = "0.0.0.0"  # nosec B104 - test value
+
+            @staticmethod
+            def get_cors_origins() -> list[str]:
+                return ["http://insecure.example.com"]
+
+            @classmethod
+            def is_production(cls) -> bool:
+                return True
+
+        with caplog.at_level(logging.WARNING):
+            TestSettings.validate_security()
+
+        # Should warn about 0.0.0.0 binding
+        assert any("0.0.0.0" in record.message for record in caplog.records)
+        # Should warn about non-HTTPS origin
+        assert any("Non-HTTPS origin" in record.message for record in caplog.records)
+
+
 class TestDilutionPreviewAPI:
     """Tests for the dilution preview endpoint."""
 
@@ -1280,3 +1604,208 @@ class TestScenarioComparisonAPI:
 
         response = client.post("/api/scenarios/compare", json=request_data)
         assert response.status_code == 422  # Validation error
+
+
+class TestBaseParamsValidation:
+    """Tests for base_params validation in Monte Carlo and Sensitivity Analysis."""
+
+    def test_monte_carlo_missing_exit_year(self):
+        """Test Monte Carlo rejects request missing exit_year."""
+        request_data = {
+            "num_simulations": 50,
+            "base_params": {
+                # exit_year is missing
+                "current_job_monthly_salary": 10000,
+                "startup_monthly_salary": 8000,
+                "current_job_salary_growth_rate": 0.03,
+                "annual_roi": 0.05,
+                "investment_frequency": "Annually",
+                "startup_params": {
+                    "equity_type": "RSU",
+                    "total_vesting_years": 4,
+                    "cliff_years": 1,
+                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                },
+                "failure_probability": 0.25,
+            },
+            "sim_param_configs": {},
+        }
+        response = client.post("/api/monte-carlo", json=request_data)
+        assert response.status_code == 422
+        data = response.json()
+        assert "exit_year" in str(data["detail"])
+
+    def test_monte_carlo_invalid_exit_year_too_low(self):
+        """Test Monte Carlo rejects exit_year below 1."""
+        request_data = {
+            "num_simulations": 50,
+            "base_params": {
+                "exit_year": 0,  # Invalid - too low
+                "current_job_monthly_salary": 10000,
+                "startup_monthly_salary": 8000,
+                "current_job_salary_growth_rate": 0.03,
+                "annual_roi": 0.05,
+                "investment_frequency": "Annually",
+                "startup_params": {
+                    "equity_type": "RSU",
+                    "total_vesting_years": 4,
+                    "cliff_years": 1,
+                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                },
+                "failure_probability": 0.25,
+            },
+            "sim_param_configs": {},
+        }
+        response = client.post("/api/monte-carlo", json=request_data)
+        assert response.status_code == 422
+        data = response.json()
+        assert "exit_year" in str(data["detail"])
+
+    def test_monte_carlo_invalid_exit_year_too_high(self):
+        """Test Monte Carlo rejects exit_year above 20."""
+        request_data = {
+            "num_simulations": 50,
+            "base_params": {
+                "exit_year": 25,  # Invalid - too high
+                "current_job_monthly_salary": 10000,
+                "startup_monthly_salary": 8000,
+                "current_job_salary_growth_rate": 0.03,
+                "annual_roi": 0.05,
+                "investment_frequency": "Annually",
+                "startup_params": {
+                    "equity_type": "RSU",
+                    "total_vesting_years": 4,
+                    "cliff_years": 1,
+                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                },
+                "failure_probability": 0.25,
+            },
+            "sim_param_configs": {},
+        }
+        response = client.post("/api/monte-carlo", json=request_data)
+        assert response.status_code == 422
+        data = response.json()
+        assert "exit_year" in str(data["detail"])
+
+    def test_sensitivity_missing_exit_year(self):
+        """Test Sensitivity Analysis rejects request missing exit_year."""
+        request_data = {
+            "base_params": {
+                # exit_year is missing
+                "current_job_monthly_salary": 10000,
+                "startup_monthly_salary": 8000,
+                "current_job_salary_growth_rate": 0.03,
+                "annual_roi": 0.05,
+                "investment_frequency": "Annually",
+                "startup_params": {
+                    "equity_type": "RSU",
+                    "total_vesting_years": 4,
+                    "cliff_years": 1,
+                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                },
+                "failure_probability": 0.25,
+            },
+            "sim_param_configs": {},
+        }
+        response = client.post("/api/sensitivity-analysis", json=request_data)
+        assert response.status_code == 422
+        data = response.json()
+        assert "exit_year" in str(data["detail"])
+
+    def test_sensitivity_invalid_exit_year(self):
+        """Test Sensitivity Analysis rejects invalid exit_year."""
+        request_data = {
+            "base_params": {
+                "exit_year": -1,  # Invalid
+                "current_job_monthly_salary": 10000,
+                "startup_monthly_salary": 8000,
+                "current_job_salary_growth_rate": 0.03,
+                "annual_roi": 0.05,
+                "investment_frequency": "Annually",
+                "startup_params": {
+                    "equity_type": "RSU",
+                    "total_vesting_years": 4,
+                    "cliff_years": 1,
+                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                },
+                "failure_probability": 0.25,
+            },
+            "sim_param_configs": {},
+        }
+        response = client.post("/api/sensitivity-analysis", json=request_data)
+        assert response.status_code == 422
+        data = response.json()
+        assert "exit_year" in str(data["detail"])
+
+    def test_monte_carlo_boolean_exit_year_rejected(self):
+        """Test Monte Carlo rejects boolean exit_year values.
+
+        Python's bool is a subclass of int, so isinstance(True, int) returns True.
+        We must explicitly reject booleans to avoid confusing True/False as 1/0.
+        """
+        request_data = {
+            "num_simulations": 50,
+            "base_params": {
+                "exit_year": True,  # Boolean, not integer - should be rejected
+                "current_job_monthly_salary": 10000,
+                "startup_monthly_salary": 8000,
+                "current_job_salary_growth_rate": 0.03,
+                "annual_roi": 0.05,
+                "investment_frequency": "Annually",
+                "startup_params": {
+                    "equity_type": "RSU",
+                    "total_vesting_years": 4,
+                    "cliff_years": 1,
+                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                },
+                "failure_probability": 0.25,
+            },
+            "sim_param_configs": {},
+        }
+        response = client.post("/api/monte-carlo", json=request_data)
+        assert response.status_code == 422
+        data = response.json()
+        assert "exit_year" in str(data["detail"])
+
+    def test_sensitivity_boolean_exit_year_rejected(self):
+        """Test Sensitivity Analysis rejects boolean exit_year values."""
+        request_data = {
+            "base_params": {
+                "exit_year": False,  # Boolean, not integer - should be rejected
+                "current_job_monthly_salary": 10000,
+                "startup_monthly_salary": 8000,
+                "current_job_salary_growth_rate": 0.03,
+                "annual_roi": 0.05,
+                "investment_frequency": "Annually",
+                "startup_params": {
+                    "equity_type": "RSU",
+                    "total_vesting_years": 4,
+                    "cliff_years": 1,
+                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                },
+                "failure_probability": 0.25,
+            },
+            "sim_param_configs": {},
+        }
+        response = client.post("/api/sensitivity-analysis", json=request_data)
+        assert response.status_code == 422
+        data = response.json()
+        assert "exit_year" in str(data["detail"])
+
+    def test_monte_carlo_missing_multiple_required_fields(self):
+        """Test Monte Carlo reports all missing required fields."""
+        request_data = {
+            "num_simulations": 50,
+            "base_params": {
+                "current_job_monthly_salary": 10000,
+                # Missing: exit_year, startup_monthly_salary, annual_roi, etc.
+            },
+            "sim_param_configs": {},
+        }
+        response = client.post("/api/monte-carlo", json=request_data)
+        assert response.status_code == 422
+        data = response.json()
+        detail = str(data["detail"])
+        # Should mention multiple missing fields
+        assert "exit_year" in detail
+        assert "startup_monthly_salary" in detail

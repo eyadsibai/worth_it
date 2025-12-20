@@ -145,33 +145,39 @@ class APIClient {
 
   // Monthly Data Grid
   async createMonthlyDataGrid(
-    request: MonthlyDataGridRequest
+    request: MonthlyDataGridRequest,
+    signal?: AbortSignal
   ): Promise<MonthlyDataGridResponse> {
     const { data } = await this.client.post<MonthlyDataGridResponse>(
       "/api/monthly-data-grid",
-      request
+      request,
+      { signal }
     );
     return data;
   }
 
   // Opportunity Cost
   async calculateOpportunityCost(
-    request: OpportunityCostRequest
+    request: OpportunityCostRequest,
+    signal?: AbortSignal
   ): Promise<OpportunityCostResponse> {
     const { data } = await this.client.post<OpportunityCostResponse>(
       "/api/opportunity-cost",
-      request
+      request,
+      { signal }
     );
     return data;
   }
 
   // Startup Scenario
   async calculateStartupScenario(
-    request: StartupScenarioRequest
+    request: StartupScenarioRequest,
+    signal?: AbortSignal
   ): Promise<StartupScenarioResponse> {
     const { data } = await this.client.post<StartupScenarioResponse>(
       "/api/startup-scenario",
-      request
+      request,
+      { signal }
     );
     return data;
   }
@@ -199,11 +205,13 @@ class APIClient {
 
   // Sensitivity Analysis
   async runSensitivityAnalysis(
-    request: SensitivityAnalysisRequest
+    request: SensitivityAnalysisRequest,
+    signal?: AbortSignal
   ): Promise<SensitivityAnalysisResponse> {
     const { data } = await this.client.post<SensitivityAnalysisResponse>(
       "/api/sensitivity-analysis",
-      request
+      request,
+      { signal }
     );
     return data;
   }
@@ -254,11 +262,13 @@ class APIClient {
 
   // Scenario Comparison
   async compareScenarios(
-    request: ScenarioComparisonRequest
+    request: ScenarioComparisonRequest,
+    signal?: AbortSignal
   ): Promise<ScenarioComparisonResponse> {
     const { data } = await this.client.post<ScenarioComparisonResponse>(
       "/api/scenarios/compare",
-      request
+      request,
+      { signal }
     );
     return data;
   }
@@ -612,4 +622,68 @@ export function useMonteCarloWebSocket(): MonteCarloWSResult {
     runSimulation,
     cancel,
   };
+}
+
+// ============================================================================
+// Cancellable Mutation Hooks (Race Condition Safe)
+// ============================================================================
+// These hooks automatically cancel previous in-flight requests when a new
+// mutation is triggered, preventing stale responses from overwriting newer ones.
+
+import { useCancellableMutation, isAbortError } from "./hooks/use-cancellable-mutation";
+export { isAbortError };
+
+/**
+ * Cancellable version of useCreateMonthlyDataGrid
+ * Automatically cancels previous requests when form inputs change rapidly
+ */
+export function useCancellableMonthlyDataGrid() {
+  return useCancellableMutation({
+    mutationFn: (request: MonthlyDataGridRequest, signal: AbortSignal) =>
+      apiClient.createMonthlyDataGrid(request, signal),
+  });
+}
+
+/**
+ * Cancellable version of useCalculateOpportunityCost
+ * Automatically cancels previous requests when form inputs change rapidly
+ */
+export function useCancellableOpportunityCost() {
+  return useCancellableMutation({
+    mutationFn: (request: OpportunityCostRequest, signal: AbortSignal) =>
+      apiClient.calculateOpportunityCost(request, signal),
+  });
+}
+
+/**
+ * Cancellable version of useCalculateStartupScenario
+ * Automatically cancels previous requests when form inputs change rapidly
+ */
+export function useCancellableStartupScenario() {
+  return useCancellableMutation({
+    mutationFn: (request: StartupScenarioRequest, signal: AbortSignal) =>
+      apiClient.calculateStartupScenario(request, signal),
+  });
+}
+
+/**
+ * Cancellable version of useRunSensitivityAnalysis
+ * Automatically cancels previous requests when parameters change rapidly
+ */
+export function useCancellableSensitivityAnalysis() {
+  return useCancellableMutation({
+    mutationFn: (request: SensitivityAnalysisRequest, signal: AbortSignal) =>
+      apiClient.runSensitivityAnalysis(request, signal),
+  });
+}
+
+/**
+ * Cancellable version of useCompareScenarios
+ * Automatically cancels previous requests when comparison parameters change
+ */
+export function useCancellableCompareScenarios() {
+  return useCancellableMutation({
+    mutationFn: (request: ScenarioComparisonRequest, signal: AbortSignal) =>
+      apiClient.compareScenarios(request, signal),
+  });
 }

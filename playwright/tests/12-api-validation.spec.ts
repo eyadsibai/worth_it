@@ -363,6 +363,80 @@ test.describe('API Error Response Handling', () => {
 
     expect(response.status()).toBe(422);
   });
+
+  test('should return 422 for boolean exit_year in monte-carlo request', async ({ page }) => {
+    // This tests the Python bool-is-subclass-of-int edge case
+    // booleans should be rejected even though isinstance(True, int) is True in Python
+    const response = await page.request.post(`${API_BASE_URL}/api/monte-carlo`, {
+      data: {
+        num_simulations: 100,
+        base_params: {
+          exit_year: true, // Boolean instead of integer - should be rejected
+          current_job_monthly_salary: 15000,
+          startup_monthly_salary: 12500,
+          current_job_salary_growth_rate: 0.03,
+          annual_roi: 0.07,
+          investment_frequency: 'Monthly',
+          startup_params: {
+            equity_type: 'Equity (RSUs)',
+            total_vesting_years: 4,
+            cliff_years: 1,
+            rsu_params: {
+              equity_pct: 0.5,
+              target_exit_valuation: 100000000,
+              simulate_dilution: false,
+            },
+            options_params: {},
+          },
+          failure_probability: 0.25,
+        },
+        sim_param_configs: {
+          valuation: { min_val: 50000000, max_val: 200000000, mode: 100000000 },
+          roi: { mean: 0.07, std_dev: 0.02 },
+        },
+      },
+    });
+
+    expect(response.status()).toBe(422);
+    const data = await response.json();
+    expect(data.detail).toContain('exit_year');
+    expect(data.detail).toContain('boolean');
+  });
+
+  test('should return 422 for boolean exit_year in sensitivity-analysis request', async ({ page }) => {
+    const response = await page.request.post(`${API_BASE_URL}/api/sensitivity-analysis`, {
+      data: {
+        base_params: {
+          exit_year: false, // Boolean instead of integer
+          current_job_monthly_salary: 15000,
+          startup_monthly_salary: 12500,
+          current_job_salary_growth_rate: 0.03,
+          annual_roi: 0.07,
+          investment_frequency: 'Monthly',
+          startup_params: {
+            equity_type: 'Equity (RSUs)',
+            total_vesting_years: 4,
+            cliff_years: 1,
+            rsu_params: {
+              equity_pct: 0.5,
+              target_exit_valuation: 100000000,
+              simulate_dilution: false,
+            },
+            options_params: {},
+          },
+          failure_probability: 0.0,
+        },
+        sim_param_configs: {
+          valuation: { min_val: 50000000, max_val: 200000000, mode: 100000000 },
+          roi: { mean: 0.07, std_dev: 0.02 },
+        },
+      },
+    });
+
+    expect(response.status()).toBe(422);
+    const data = await response.json();
+    expect(data.detail).toContain('exit_year');
+  });
 });
 
 test.describe('Loading States During API Calls', () => {
