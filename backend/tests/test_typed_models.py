@@ -11,6 +11,7 @@ from worth_it.models import (
     TypedBaseParams,
     MonteCarloRequest,
     SensitivityAnalysisRequest,
+    StartupScenarioRequest,
 )
 
 
@@ -287,3 +288,34 @@ class TestSensitivityAnalysisRequestTyped:
             },
         )
         assert VariableParam.FAILURE_PROBABILITY in request.sim_param_configs
+
+
+class TestStartupScenarioRequestTyped:
+    """Tests for typed StartupScenarioRequest."""
+
+    def test_valid_startup_scenario_with_rsu(self):
+        """Valid request with RSU params is accepted."""
+        request = StartupScenarioRequest(
+            opportunity_cost_data=[{"Year": 1, "MonthlySurplus": 1000}],
+            startup_params=RSUParams(
+                equity_type="RSU",
+                monthly_salary=12000.0,
+                total_equity_grant_pct=0.5,
+                exit_valuation=100_000_000.0,
+            ),
+        )
+        assert request.startup_params.equity_type == "RSU"
+
+    def test_valid_startup_scenario_with_options(self):
+        """Valid request with stock options params is accepted."""
+        request = StartupScenarioRequest(
+            opportunity_cost_data=[{"Year": 1, "MonthlySurplus": 1000}],
+            startup_params=StockOptionsParams(
+                equity_type="STOCK_OPTIONS",
+                monthly_salary=12000.0,
+                num_options=10000,
+                strike_price=1.50,
+                exit_price_per_share=15.0,
+            ),
+        )
+        assert request.startup_params.equity_type == "STOCK_OPTIONS"

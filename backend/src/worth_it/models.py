@@ -316,12 +316,14 @@ class OpportunityCostRequest(BaseModel):
 
 
 class StartupScenarioRequest(BaseModel):
-    """Request model for calculating startup scenario."""
+    """Request model for calculating startup scenario - typed startup_params.
 
-    opportunity_cost_data: list[
-        dict[str, Any]
-    ]  # OpportunityCostRow - kept flexible for dynamic columns
-    startup_params: dict[str, Any]  # StartupParams - kept flexible for API
+    Uses RSUParams | StockOptionsParams discriminated union for startup_params.
+    opportunity_cost_data remains flexible (tabular row data with dynamic columns).
+    """
+
+    opportunity_cost_data: list[dict[str, Any]]  # Flexible for dynamic columns
+    startup_params: RSUParams | StockOptionsParams
 
 
 class IRRRequest(BaseModel):
