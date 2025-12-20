@@ -24,3 +24,8 @@ export {
   type CancellableMutationOptions,
   type CancellableMutationResult,
 } from "./use-cancellable-mutation";
+export {
+  useScenarioCalculation,
+  type ScenarioCalculationInput,
+  type ScenarioCalculationResult,
+} from "./use-scenario-calculation";
