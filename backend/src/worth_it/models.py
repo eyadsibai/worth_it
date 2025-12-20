@@ -6,11 +6,53 @@ the Streamlit frontend and the FastAPI backend.
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any, Literal, Self
 
 from pydantic import BaseModel, Field, model_validator
 
 from worth_it.types import DilutionRound
+
+
+# --- Typed Request Payload Models (Issue #248) ---
+
+
+class VariableParam(str, Enum):
+    """Parameters that can be varied in Monte Carlo/Sensitivity analysis.
+
+    These are the allowed keys for sim_param_configs dictionary,
+    providing type safety and IDE autocomplete.
+    """
+
+    EXIT_VALUATION = "exit_valuation"
+    EXIT_YEAR = "exit_year"
+    FAILURE_PROBABILITY = "failure_probability"
+    CURRENT_JOB_MONTHLY_SALARY = "current_job_monthly_salary"
+    STARTUP_MONTHLY_SALARY = "startup_monthly_salary"
+    CURRENT_JOB_SALARY_GROWTH_RATE = "current_job_salary_growth_rate"
+    ANNUAL_ROI = "annual_roi"
+    TOTAL_EQUITY_GRANT_PCT = "total_equity_grant_pct"
+    NUM_OPTIONS = "num_options"
+    STRIKE_PRICE = "strike_price"
+    EXIT_PRICE_PER_SHARE = "exit_price_per_share"
+
+
+class SimParamRange(BaseModel):
+    """Range for a simulation parameter with validation.
+
+    Used in sim_param_configs to specify the min/max range for
+    Monte Carlo and Sensitivity Analysis simulations.
+    """
+
+    min: float
+    max: float
+
+    @model_validator(mode="after")
+    def validate_min_less_than_max(self) -> Self:
+        """Ensure min <= max."""
+        if self.min > self.max:
+            raise ValueError(f"min ({self.min}) must be <= max ({self.max})")
+        return self
 
 # --- Shared Validators ---
 
