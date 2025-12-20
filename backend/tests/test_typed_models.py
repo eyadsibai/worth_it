@@ -9,6 +9,8 @@ from worth_it.models import (
     RSUParams,
     StockOptionsParams,
     TypedBaseParams,
+    MonteCarloRequest,
+    SensitivityAnalysisRequest,
 )
 
 
@@ -202,3 +204,86 @@ class TestTypedBaseParams:
                     exit_valuation=100_000_000.0,
                 ),
             )
+
+
+class TestMonteCarloRequestTyped:
+    """Tests for typed MonteCarloRequest."""
+
+    def test_valid_monte_carlo_request(self):
+        """Valid typed Monte Carlo request is accepted."""
+        request = MonteCarloRequest(
+            num_simulations=1000,
+            base_params=TypedBaseParams(
+                exit_year=5,
+                current_job_monthly_salary=15000.0,
+                startup_monthly_salary=12000.0,
+                current_job_salary_growth_rate=0.05,
+                annual_roi=0.08,
+                investment_frequency="Monthly",
+                failure_probability=0.3,
+                startup_params=RSUParams(
+                    equity_type="RSU",
+                    monthly_salary=12000.0,
+                    total_equity_grant_pct=0.5,
+                    exit_valuation=100_000_000.0,
+                ),
+            ),
+            sim_param_configs={
+                VariableParam.EXIT_VALUATION: SimParamRange(min=50_000_000, max=200_000_000),
+            },
+        )
+        assert request.num_simulations == 1000
+        assert VariableParam.EXIT_VALUATION in request.sim_param_configs
+
+    def test_rejects_invalid_param_key(self):
+        """sim_param_configs rejects non-VariableParam keys."""
+        with pytest.raises(ValidationError):
+            MonteCarloRequest(
+                num_simulations=1000,
+                base_params=TypedBaseParams(
+                    exit_year=5,
+                    current_job_monthly_salary=15000.0,
+                    startup_monthly_salary=12000.0,
+                    current_job_salary_growth_rate=0.05,
+                    annual_roi=0.08,
+                    investment_frequency="Monthly",
+                    failure_probability=0.3,
+                    startup_params=RSUParams(
+                        equity_type="RSU",
+                        monthly_salary=12000.0,
+                        total_equity_grant_pct=0.5,
+                        exit_valuation=100_000_000.0,
+                    ),
+                ),
+                sim_param_configs={
+                    "invalid_param": SimParamRange(min=1, max=10),  # type: ignore
+                },
+            )
+
+
+class TestSensitivityAnalysisRequestTyped:
+    """Tests for typed SensitivityAnalysisRequest."""
+
+    def test_valid_sensitivity_request(self):
+        """Valid typed Sensitivity request is accepted."""
+        request = SensitivityAnalysisRequest(
+            base_params=TypedBaseParams(
+                exit_year=5,
+                current_job_monthly_salary=15000.0,
+                startup_monthly_salary=12000.0,
+                current_job_salary_growth_rate=0.05,
+                annual_roi=0.08,
+                investment_frequency="Monthly",
+                failure_probability=0.3,
+                startup_params=RSUParams(
+                    equity_type="RSU",
+                    monthly_salary=12000.0,
+                    total_equity_grant_pct=0.5,
+                    exit_valuation=100_000_000.0,
+                ),
+            ),
+            sim_param_configs={
+                VariableParam.FAILURE_PROBABILITY: SimParamRange(min=0.1, max=0.5),
+            },
+        )
+        assert VariableParam.FAILURE_PROBABILITY in request.sim_param_configs

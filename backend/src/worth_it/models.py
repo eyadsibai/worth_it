@@ -340,23 +340,16 @@ class NPVRequest(BaseModel):
 
 
 class MonteCarloRequest(BaseModel):
-    """Request model for Monte Carlo simulation.
+    """Request model for Monte Carlo simulation - fully typed.
 
-    Validates that base_params contains required fields including exit_year.
+    Uses TypedBaseParams for type-safe base parameters and
+    dict[VariableParam, SimParamRange] for typed simulation configs.
     num_simulations is validated against the configurable MAX_SIMULATIONS setting.
-    The default upper bound is 10,000, but can be configured up to 100,000 via
-    the MAX_SIMULATIONS environment variable.
     """
 
-    num_simulations: int = Field(..., ge=1, le=100000)  # Hard upper bound; config provides tighter limit
-    base_params: dict[str, Any]  # BaseParams - kept flexible for dynamic structure
-    sim_param_configs: dict[str, Any]  # SimParamConfigs - kept flexible for dynamic structure
-
-    @model_validator(mode="after")
-    def validate_base_params_required_fields(self) -> Self:
-        """Validate that base_params contains all required fields."""
-        validate_base_params(self.base_params)
-        return self
+    num_simulations: int = Field(..., ge=1, le=100000)
+    base_params: TypedBaseParams
+    sim_param_configs: dict[VariableParam, SimParamRange]
 
     @model_validator(mode="after")
     def validate_num_simulations_against_config(self) -> Self:
@@ -366,26 +359,20 @@ class MonteCarloRequest(BaseModel):
         if self.num_simulations > settings.MAX_SIMULATIONS:
             raise ValueError(
                 f"num_simulations ({self.num_simulations}) exceeds the maximum allowed "
-                f"({settings.MAX_SIMULATIONS}). Reduce the number of simulations or "
-                f"contact the administrator to increase the limit."
+                f"({settings.MAX_SIMULATIONS})."
             )
         return self
 
 
 class SensitivityAnalysisRequest(BaseModel):
-    """Request model for sensitivity analysis.
+    """Request model for sensitivity analysis - fully typed.
 
-    Validates that base_params contains required fields including exit_year.
+    Uses TypedBaseParams for type-safe base parameters and
+    dict[VariableParam, SimParamRange] for typed simulation configs.
     """
 
-    base_params: dict[str, Any]  # BaseParams - kept flexible for dynamic structure
-    sim_param_configs: dict[str, Any]  # SimParamConfigs - kept flexible for dynamic structure
-
-    @model_validator(mode="after")
-    def validate_base_params_required_fields(self) -> SensitivityAnalysisRequest:
-        """Validate that base_params contains all required fields."""
-        validate_base_params(self.base_params)
-        return self
+    base_params: TypedBaseParams
+    sim_param_configs: dict[VariableParam, SimParamRange]
 
 
 class DilutionFromValuationRequest(BaseModel):
