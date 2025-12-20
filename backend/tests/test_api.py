@@ -1000,11 +1000,10 @@ class TestSecurityConfiguration:
         # Save and clear any existing env var
         original = os.environ.pop("API_HOST", None)
         try:
-            # Create a fresh settings class to check the default
-            class TestSettings:
-                API_HOST: str = os.getenv("API_HOST", "127.0.0.1")
+            # Import Settings after clearing the env var so defaults are applied
+            from worth_it.config import Settings
 
-            assert TestSettings.API_HOST == "127.0.0.1", (
+            assert Settings.API_HOST == "127.0.0.1", (
                 "API_HOST should default to 127.0.0.1 for security"
             )
         finally:
@@ -1027,6 +1026,26 @@ class TestSecurityConfiguration:
         with pytest.raises(ValueError) as exc_info:
             TestSettings.validate()
         assert "Invalid CORS origin" in str(exc_info.value)
+
+    def test_cors_empty_strings_filtered_from_malformed_input(self):
+        """Test that empty strings from malformed CORS input are filtered out."""
+        import os
+
+        # Simulate malformed input with extra commas
+        original = os.environ.get("CORS_ORIGINS")
+        try:
+            os.environ["CORS_ORIGINS"] = "https://app.com,,https://api.com,,"
+            from worth_it.config import Settings
+
+            origins = Settings.get_cors_origins()
+            # Empty strings should be filtered out
+            assert "" not in origins
+            assert origins == ["https://app.com", "https://api.com"]
+        finally:
+            if original is not None:
+                os.environ["CORS_ORIGINS"] = original
+            else:
+                os.environ.pop("CORS_ORIGINS", None)
 
     def test_cors_wildcard_rejected_in_production(self):
         """Test that wildcard CORS is rejected in production."""

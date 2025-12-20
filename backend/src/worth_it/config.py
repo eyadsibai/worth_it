@@ -46,7 +46,8 @@ class Settings:
         env_origins = os.getenv("CORS_ORIGINS", "")
         if env_origins:
             # In production, use environment-specified origins
-            origins = [origin.strip() for origin in env_origins.split(",")]
+            # Filter out empty strings from malformed input (e.g., "https://a.com,,https://b.com")
+            origins = [origin.strip() for origin in env_origins.split(",") if origin.strip()]
             return origins
 
         # In development, add potential Vercel preview URLs
@@ -134,18 +135,13 @@ class Settings:
         that are acceptable in development but risky in production.
         """
         if cls.is_production():
-            # Check for wildcard CORS in production
             cors_origins = cls.get_cors_origins()
-            if "*" in cors_origins:
-                logger.warning(
-                    "SECURITY WARNING: Wildcard '*' CORS origin detected in production. "
-                    "This allows any origin to make requests to your API. "
-                    "Set CORS_ORIGINS to specific allowed origins."
-                )
+            # Note: Wildcard CORS check is handled by validate() which raises an error
+            # before this method is called, so no need to check for "*" here
 
-            # Check for overly permissive CORS patterns
+            # Check for overly permissive CORS patterns (warn for ALL HTTP origins)
             for origin in cors_origins:
-                if origin.startswith("http://") and "localhost" not in origin:
+                if origin.startswith("http://"):
                     logger.warning(
                         f"SECURITY WARNING: Non-HTTPS origin '{origin}' in production CORS. "
                         "Consider using HTTPS origins only."
