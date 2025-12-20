@@ -9,9 +9,13 @@
 # Requirements:
 #   - Python with uv (for backend)
 #   - Node.js with npm (for frontend, openapi-zod-client)
+#   - Perl (for regex replacement in generated files)
 #
 
 set -e
+
+# Check for required tools
+command -v perl >/dev/null 2>&1 || { echo "Error: perl is required but not installed"; exit 1; }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -20,6 +24,14 @@ FRONTEND_DIR="$ROOT_DIR/frontend"
 OPENAPI_FILE="$ROOT_DIR/openapi.json"
 GENERATED_FILE="$FRONTEND_DIR/lib/generated/api-schemas.ts"
 
+# Cleanup handler for errors - ensure temp files are removed
+TEMP_FILE=""
+cleanup() {
+    rm -f "$OPENAPI_FILE" 2>/dev/null || true
+    [ -n "$TEMP_FILE" ] && rm -f "$TEMP_FILE" 2>/dev/null || true
+}
+trap cleanup EXIT ERR
+
 echo "🔍 Generating TypeScript schemas from OpenAPI spec..."
 echo ""
 
@@ -27,15 +39,17 @@ echo ""
 echo "📦 Step 1: Extracting OpenAPI spec from FastAPI..."
 cd "$BACKEND_DIR"
 
-uv run python -c "
-from worth_it.api import app
+OPENAPI_OUTPUT="$OPENAPI_FILE" uv run python -c '
+import os
 import json
+from worth_it.api import app
 
+output_path = os.environ["OPENAPI_OUTPUT"]
 openapi_spec = app.openapi()
-with open('$OPENAPI_FILE', 'w') as f:
+with open(output_path, "w") as f:
     json.dump(openapi_spec, f, indent=2)
-print('   OpenAPI spec written to $OPENAPI_FILE')
-"
+print(f"   OpenAPI spec written to {output_path}")
+'
 
 # Step 2: Create the generated directory if it doesn't exist
 echo "📁 Step 2: Setting up output directory..."
@@ -61,7 +75,7 @@ perl -i -pe 's/z\.record\((z\.[^)]+\))\)/z.record(z.string(), $1)/g' "$GENERATED
 
 # Step 5: Add header comment to generated file
 echo "📝 Step 5: Adding header comment..."
-TEMP_FILE=$(mktemp)
+TEMP_FILE="$(mktemp "${TMPDIR:-/tmp}/generate-types.XXXXXX")"
 cat > "$TEMP_FILE" << 'HEADER'
 /**
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
