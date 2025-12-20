@@ -73,15 +73,6 @@ export const APIErrorResponseSchema = z.object({
 });
 export type APIErrorResponse = z.infer<typeof APIErrorResponseSchema>;
 
-/**
- * WebSocket error message format.
- */
-export const WebSocketErrorMessageSchema = z.object({
-  type: z.literal("error"),
-  error: ErrorDetailSchema,
-});
-export type WebSocketErrorMessage = z.infer<typeof WebSocketErrorMessageSchema>;
-
 // ============================================================================
 // Request Schemas
 // ============================================================================

@@ -199,15 +199,19 @@ export function useScenarioCalculation(
         case "CALCULATION_ERROR":
           return "calculation";
         case "RATE_LIMIT_ERROR":
+          return "generic"; // Rate limit errors treated as generic for retry logic
         case "NOT_FOUND_ERROR":
+          return "generic"; // Not found errors treated as generic
         case "INTERNAL_ERROR":
-        default:
-          // Fall back to message parsing for network errors
+          return "generic"; // Internal server errors treated as generic
+        default: {
+          // Fall back to message parsing for network errors (e.g., no response from server)
           const message = err.message.toLowerCase();
           if (message.includes("network") || message.includes("connection") || message.includes("no response")) {
             return "network";
           }
           return "generic";
+        }
       }
     }
 

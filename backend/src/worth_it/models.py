@@ -13,7 +13,6 @@ from pydantic import BaseModel, Field, model_validator
 
 from worth_it.types import DilutionRound
 
-
 # --- Error Response Models ---
 
 
