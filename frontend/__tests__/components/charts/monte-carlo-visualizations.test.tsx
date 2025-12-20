@@ -306,3 +306,161 @@ describe("MonteCarloVisualizations - Core Functionality", () => {
     expect(screen.getByText(/100/)).toBeInTheDocument();
   });
 });
+
+describe("MonteCarloVisualizations - Edge Cases (Issue #254)", () => {
+  beforeEach(() => {
+    localStorageMock.clear();
+    vi.clearAllMocks();
+    // Reset getItem mock to return null (default collapsed state)
+    localStorageMock.getItem.mockReturnValue(null);
+  });
+
+  describe("Empty Data Handling", () => {
+    it("shows empty state when netOutcomes is empty", () => {
+      render(
+        <MonteCarloVisualizations
+          netOutcomes={[]}
+          simulatedValuations={mockSimulatedValuations}
+        />
+      );
+
+      expect(screen.getByText(/no simulation results/i)).toBeInTheDocument();
+      expect(screen.getByText(/run a monte carlo simulation/i)).toBeInTheDocument();
+    });
+
+    it("shows empty state when simulatedValuations is empty", () => {
+      render(
+        <MonteCarloVisualizations
+          netOutcomes={mockNetOutcomes}
+          simulatedValuations={[]}
+        />
+      );
+
+      expect(screen.getByText(/no simulation results/i)).toBeInTheDocument();
+    });
+
+    it("shows empty state when both arrays are empty", () => {
+      render(
+        <MonteCarloVisualizations
+          netOutcomes={[]}
+          simulatedValuations={[]}
+        />
+      );
+
+      expect(screen.getByText(/no simulation results/i)).toBeInTheDocument();
+      expect(screen.getByText(/no simulation data available/i)).toBeInTheDocument();
+    });
+
+    it("does not show expand button in empty state", () => {
+      render(
+        <MonteCarloVisualizations
+          netOutcomes={[]}
+          simulatedValuations={[]}
+        />
+      );
+
+      expect(screen.queryByRole("button", { name: /see detailed analysis/i })).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Single Value Handling", () => {
+    it("handles single-value dataset without crashing", () => {
+      const singleValue = [50000];
+      const singleValuation = [100000000];
+
+      render(
+        <MonteCarloVisualizations
+          netOutcomes={singleValue}
+          simulatedValuations={singleValuation}
+        />
+      );
+
+      // Should render without NaN or Infinity errors
+      expect(screen.getByText(/monte carlo results/i)).toBeInTheDocument();
+      expect(screen.getByText(/1 simulation/i)).toBeInTheDocument();
+    });
+
+    it("displays correct statistics for single value", () => {
+      const singleValue = [50000];
+      const singleValuation = [100000000];
+
+      render(
+        <MonteCarloVisualizations
+          netOutcomes={singleValue}
+          simulatedValuations={singleValuation}
+        />
+      );
+
+      // Should show 100% success rate for positive value
+      expect(screen.getByText(/100\.0%/)).toBeInTheDocument();
+    });
+
+    it("handles all-identical values without division by zero", () => {
+      // 100 identical values - this would cause binWidth = 0 in histogram
+      const identicalValues = Array.from({ length: 100 }, () => 25000);
+      const mockValuations = Array.from({ length: 100 }, () => 50000000);
+
+      render(
+        <MonteCarloVisualizations
+          netOutcomes={identicalValues}
+          simulatedValuations={mockValuations}
+        />
+      );
+
+      // Should render histogram without NaN errors
+      expect(screen.getByText(/distribution of outcomes/i)).toBeInTheDocument();
+      expect(screen.getByText(/100 simulation/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("Boundary Cases", () => {
+    it("handles two values correctly", () => {
+      const twoValues = [-10000, 50000];
+      const twoValuations = [50000000, 100000000];
+
+      render(
+        <MonteCarloVisualizations
+          netOutcomes={twoValues}
+          simulatedValuations={twoValuations}
+        />
+      );
+
+      expect(screen.getByText(/monte carlo results/i)).toBeInTheDocument();
+      expect(screen.getByText(/50\.0%/)).toBeInTheDocument(); // 1 positive out of 2
+    });
+
+    it("handles all-negative outcomes", () => {
+      const allNegative = Array.from({ length: 50 }, (_, i) => -1000 - i * 100);
+      const mockValuations = Array.from({ length: 50 }, () => 50000000);
+
+      render(
+        <MonteCarloVisualizations
+          netOutcomes={allNegative}
+          simulatedValuations={mockValuations}
+        />
+      );
+
+      // Should show 0% success rate
+      expect(screen.getByText(/0\.0%/)).toBeInTheDocument();
+      // Should show caution message
+      expect(screen.getByTestId("monte-carlo-headline")).toHaveTextContent(/caution/i);
+    });
+
+    it("handles all-positive outcomes", () => {
+      const allPositive = Array.from({ length: 50 }, (_, i) => 1000 + i * 100);
+      const mockValuations = Array.from({ length: 50 }, () => 50000000);
+
+      render(
+        <MonteCarloVisualizations
+          netOutcomes={allPositive}
+          simulatedValuations={mockValuations}
+        />
+      );
+
+      // Should show 100% success rate
+      expect(screen.getByText(/100\.0%/)).toBeInTheDocument();
+      // Should show strong outlook message
+      expect(screen.getByTestId("monte-carlo-headline")).toHaveTextContent(/strong outlook/i);
+    });
+  });
+});
