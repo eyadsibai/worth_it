@@ -4,7 +4,7 @@ import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Target, ArrowLeftRight } from "lucide-react";
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Target, ArrowLeftRight, AlertCircle } from "lucide-react";
 import {
   MonteCarloHistogram,
   MonteCarloEcdf,
@@ -47,8 +47,20 @@ export function MonteCarloVisualizations({
     localStorage.setItem(STORAGE_KEY, String(newValue));
   }, [isExpanded]);
 
-  // Calculate statistics
+  // Guard: Check for empty or invalid data
+  const hasValidData = netOutcomes.length > 0 && simulatedValuations.length > 0;
+
+  // Calculate statistics (with guards for empty data)
+  // All hooks MUST be called unconditionally to satisfy Rules of Hooks
   const stats: MonteCarloStats = React.useMemo(() => {
+    // Guard: Return safe defaults for empty arrays
+    if (netOutcomes.length === 0) {
+      return {
+        mean: 0, median: 0, std: 0, min: 0, max: 0,
+        p10: 0, p25: 0, p75: 0, p90: 0, positiveRate: 0
+      };
+    }
+
     const sorted = [...netOutcomes].sort((a, b) => a - b);
     const mean = netOutcomes.reduce((a, b) => a + b, 0) / netOutcomes.length;
     const median = sorted[Math.floor(sorted.length / 2)];
@@ -79,11 +91,27 @@ export function MonteCarloVisualizations({
     }
   }, [stats.positiveRate]);
 
-  // Prepare histogram data
+  // Prepare histogram data (with guards for empty/single-value data)
   const histogramData: HistogramBin[] = React.useMemo(() => {
+    // Guard: Return empty array for empty data
+    if (netOutcomes.length === 0) {
+      return [];
+    }
+
     const bins = 30;
     const min = Math.min(...netOutcomes);
     const max = Math.max(...netOutcomes);
+
+    // Handle single-value edge case: when all values are identical, min === max
+    // This would cause binWidth = 0, leading to NaN in bin calculations
+    if (min === max) {
+      return [{
+        bin: min,
+        count: netOutcomes.length,
+        label: formatCurrency(min),
+      }];
+    }
+
     const binWidth = (max - min) / bins;
 
     const histogram = Array.from({ length: bins }, (_, i) => ({
@@ -102,6 +130,11 @@ export function MonteCarloVisualizations({
 
   // Prepare ECDF data
   const ecdfData: EcdfDataPoint[] = React.useMemo(() => {
+    // Guard: Return empty array for empty data
+    if (netOutcomes.length === 0) {
+      return [];
+    }
+
     const sorted = [...netOutcomes].sort((a, b) => a - b);
     return sorted.map((value, index) => ({
       value,
@@ -112,6 +145,11 @@ export function MonteCarloVisualizations({
 
   // Prepare scatter data
   const scatterData: ScatterDataPoint[] = React.useMemo(() => {
+    // Guard: Return empty array for empty data
+    if (netOutcomes.length === 0) {
+      return [];
+    }
+
     return netOutcomes.map((outcome, i) => ({
       valuation: simulatedValuations[i],
       outcome,
@@ -120,6 +158,11 @@ export function MonteCarloVisualizations({
 
   // Box plot data
   const boxPlotData: BoxPlotDataPoint[] = React.useMemo(() => {
+    // Guard: Return empty array for empty data
+    if (netOutcomes.length === 0) {
+      return [];
+    }
+
     return [
       { name: "Min", value: stats.min },
       { name: "P10", value: stats.p10 },
@@ -129,7 +172,32 @@ export function MonteCarloVisualizations({
       { name: "P90", value: stats.p90 },
       { name: "Max", value: stats.max },
     ];
-  }, [stats]);
+  }, [stats, netOutcomes.length]);
+
+  // Early return for empty data - show helpful empty state
+  // This MUST come AFTER all hooks to satisfy Rules of Hooks
+  if (!hasValidData) {
+    return (
+      <Card data-tour="monte-carlo-chart">
+        <CardHeader>
+          <CardTitle>Monte Carlo Results</CardTitle>
+          <CardDescription>
+            No simulation data available
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No Simulation Results</h3>
+            <p className="text-muted-foreground max-w-md">
+              Run a Monte Carlo simulation to see the distribution of possible outcomes.
+              This helps you understand the range of potential returns based on different scenarios.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card data-tour="monte-carlo-chart">
