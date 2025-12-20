@@ -8,7 +8,7 @@ import { DraftRecoveryDialog } from "@/components/draft-recovery-dialog";
 import { WelcomeModal } from "@/components/onboarding/welcome-modal";
 import { AnimatedText, AnimatePresence, motion } from "@/lib/motion";
 import { useAppStore } from "@/lib/store";
-import { useDraftAutoSave, getDraft, clearDraft, useBeforeUnload, type DraftData } from "@/lib/hooks";
+import { useDraftAutoSave, getDraft, clearDraft, useBeforeUnload, useReducedMotion, type DraftData } from "@/lib/hooks";
 import { useFirstVisit } from "@/lib/hooks/use-first-visit";
 import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
 
@@ -32,6 +32,9 @@ export default function Home() {
   // First-time user onboarding
   const { isFirstVisit, isLoaded: isOnboardingLoaded, markAsOnboarded } = useFirstVisit();
   const [showOnboarding, setShowOnboarding] = React.useState(false);
+
+  // Reduced motion accessibility support
+  const prefersReducedMotion = useReducedMotion();
 
   // Show onboarding modal for first-time visitors
   React.useEffect(() => {
@@ -140,20 +143,20 @@ export default function Home() {
           {appMode === "founder" ? (
             <motion.div
               key="founder-dashboard"
-              initial={{ opacity: 0, scale: 0.98 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.98 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
             >
               <FounderDashboard />
             </motion.div>
           ) : (
             <motion.div
               key="employee-dashboard"
-              initial={{ opacity: 0, scale: 0.98 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+              exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.98 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
             >
               <EmployeeDashboard />
             </motion.div>
