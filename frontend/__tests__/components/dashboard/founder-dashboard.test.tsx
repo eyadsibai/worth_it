@@ -23,7 +23,7 @@ vi.mock("@/components/templates/template-picker", () => ({
 
 // Import the mocked hook
 import { useAppStore } from "@/lib/store";
-const mockUseAppStore = useAppStore as ReturnType<typeof vi.fn>;
+const mockUseAppStore = useAppStore as unknown as ReturnType<typeof vi.fn>;
 
 // Create wrapper with QueryClient
 function createWrapper() {

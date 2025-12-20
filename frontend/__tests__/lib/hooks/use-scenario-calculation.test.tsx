@@ -56,7 +56,7 @@ const validCurrentJob: CurrentJobForm = {
   monthly_salary: 10000,
   annual_salary_growth_rate: 3,
   assumed_annual_roi: 7,
-  investment_frequency: "monthly",
+  investment_frequency: "Monthly",
 };
 
 const validRSUEquity: RSUForm = {
@@ -78,7 +78,7 @@ const validStockOptionsEquity: StockOptionsForm = {
   num_options: 10000,
   strike_price: 1,
   exit_price_per_share: 10,
-  exercise_strategy: "at_exit",
+  exercise_strategy: "AT_EXIT",
   exercise_year: 5,
 };
 

@@ -92,8 +92,8 @@ vi.mock("@/components/templates/template-picker", () => ({
 import { useAppStore } from "@/lib/store";
 import { useScenarioCalculation } from "@/lib/hooks";
 
-const mockUseAppStore = useAppStore as ReturnType<typeof vi.fn>;
-const mockUseScenarioCalculation = useScenarioCalculation as ReturnType<typeof vi.fn>;
+const mockUseAppStore = useAppStore as unknown as ReturnType<typeof vi.fn>;
+const mockUseScenarioCalculation = useScenarioCalculation as unknown as ReturnType<typeof vi.fn>;
 
 // Create wrapper with QueryClient
 function createWrapper() {
