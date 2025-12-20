@@ -54,6 +54,42 @@ class SimParamRange(BaseModel):
             raise ValueError(f"min ({self.min}) must be <= max ({self.max})")
         return self
 
+
+class RSUParams(BaseModel):
+    """RSU equity parameters for API requests.
+
+    Used as part of the discriminated union for startup_params,
+    identified by equity_type="RSU".
+    """
+
+    equity_type: Literal["RSU"]
+    monthly_salary: float = Field(..., ge=0)
+    total_equity_grant_pct: float = Field(..., ge=0, le=100)
+    vesting_period: int = Field(default=4, ge=1, le=10)
+    cliff_period: int = Field(default=1, ge=0, le=5)
+    exit_valuation: float = Field(..., ge=0)
+    simulate_dilution: bool = False
+    dilution_rounds: list[DilutionRound] | None = None
+
+
+class StockOptionsParams(BaseModel):
+    """Stock options equity parameters for API requests.
+
+    Used as part of the discriminated union for startup_params,
+    identified by equity_type="STOCK_OPTIONS".
+    """
+
+    equity_type: Literal["STOCK_OPTIONS"]
+    monthly_salary: float = Field(..., ge=0)
+    num_options: int = Field(..., ge=0)
+    strike_price: float = Field(..., ge=0)
+    vesting_period: int = Field(default=4, ge=1, le=10)
+    cliff_period: int = Field(default=1, ge=0, le=5)
+    exit_price_per_share: float = Field(..., ge=0)
+    exercise_strategy: Literal["AT_EXIT", "AFTER_VESTING"] = "AT_EXIT"
+    exercise_year: int | None = None
+
+
 # --- Shared Validators ---
 
 # Required fields for base_params in Monte Carlo and Sensitivity Analysis requests
