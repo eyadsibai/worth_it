@@ -6,6 +6,7 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { FounderDashboard, EmployeeDashboard } from "@/components/dashboard";
 import { DraftRecoveryDialog } from "@/components/draft-recovery-dialog";
 import { WelcomeModal } from "@/components/onboarding/welcome-modal";
+import { AnimatedText, AnimatePresence, motion } from "@/lib/motion";
 import { useAppStore } from "@/lib/store";
 import { useDraftAutoSave, getDraft, clearDraft, useBeforeUnload, type DraftData } from "@/lib/hooks";
 import { useFirstVisit } from "@/lib/hooks/use-first-visit";
@@ -106,31 +107,58 @@ export default function Home() {
   return (
     <AppShell>
       <div className="container py-8 space-y-8">
-        {/* Hero Section */}
+        {/* Hero Section - Stable container, only text animates */}
         <div className="space-y-4">
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground animate-fade-in">
-            {appMode === "employee" ? (
-              <>Offer <span className="gradient-text">Analysis</span></>
-            ) : (
-              <>Cap Table <span className="gradient-text">Modeling</span></>
-            )}
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
+            <AnimatedText
+              text={appMode === "employee" ? "Offer" : "Cap Table"}
+              as="span"
+              className="mr-2"
+            />
+            <AnimatedText
+              text={appMode === "employee" ? "Analysis" : "Modeling"}
+              as="span"
+              className="gradient-text"
+            />
           </h1>
-          <p className="text-base text-muted-foreground max-w-2xl leading-relaxed animate-fade-in delay-75">
-            {appMode === "employee" ? (
-              "Compare startup offers to your current job with equity modeling, dilution scenarios, and Monte Carlo simulations"
-            ) : (
-              "Simulate funding rounds, model ownership dilution, and understand your exit scenarios"
-            )}
-          </p>
-          <div className="animate-fade-in delay-100">
+          <AnimatedText
+            text={appMode === "employee"
+              ? "Compare startup offers to your current job with equity modeling, dilution scenarios, and Monte Carlo simulations"
+              : "Simulate funding rounds, model ownership dilution, and understand your exit scenarios"
+            }
+            as="p"
+            className="text-base text-muted-foreground max-w-2xl leading-relaxed"
+          />
+          <div>
             <ModeToggle mode={appMode} onModeChange={setAppMode} />
           </div>
-          <div className="section-divider animate-fade-in delay-150" />
+          <div className="section-divider" />
         </div>
 
-        {/* Mode-specific Dashboard */}
-        {appMode === "founder" && <FounderDashboard />}
-        {appMode === "employee" && <EmployeeDashboard />}
+        {/* Mode-specific Dashboard with crossfade transition */}
+        <AnimatePresence mode="wait" initial={false}>
+          {appMode === "founder" ? (
+            <motion.div
+              key="founder-dashboard"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <FounderDashboard />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="employee-dashboard"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <EmployeeDashboard />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Draft Recovery Dialog */}

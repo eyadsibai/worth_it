@@ -154,9 +154,10 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Smooth scrolling */
+  /* Smooth scrolling and stable layout */
   html {
     scroll-behavior: smooth;
+    scrollbar-gutter: stable;
   }
 
   /* Terminal-style scrollbar */
