@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from worth_it.api import app
+from worth_it.config import settings
 
 client = TestClient(app)
 
@@ -602,9 +603,9 @@ class TestWebSocketMonteCarlo:
     def test_websocket_exceeds_max_simulations(self):
         """Test that requesting more than MAX_SIMULATIONS is rejected."""
         with client.websocket_connect("/ws/monte-carlo") as websocket:
-            # Request more simulations than the default limit (10000)
+            # Request more simulations than the configured limit
             request = self._get_valid_request()
-            request["num_simulations"] = 50001  # Exceeds default MAX_SIMULATIONS
+            request["num_simulations"] = settings.MAX_SIMULATIONS + 1  # Exceeds configured MAX_SIMULATIONS
             websocket.send_json(request)
 
             msg = websocket.receive_json()
@@ -713,75 +714,63 @@ class TestWebSocketSecurity:
 class TestWebSocketConnectionTracker:
     """Unit tests for the WebSocket connection tracker."""
 
-    def test_connection_tracker_allows_within_limit(self):
+    @pytest.mark.asyncio
+    async def test_connection_tracker_allows_within_limit(self):
         """Test that connections within the limit are allowed."""
-        import asyncio
-
         from worth_it.api import WebSocketConnectionTracker
 
-        async def run_test():
-            tracker = WebSocketConnectionTracker()
-            client_ip = "192.168.1.100"
+        tracker = WebSocketConnectionTracker()
+        client_ip = "192.168.1.100"
 
-            # First connection should succeed
-            assert await tracker.register_connection(client_ip) is True
-            assert tracker.get_active_connections(client_ip) == 1
+        # First connection should succeed
+        assert await tracker.register_connection(client_ip) is True
+        assert tracker.get_active_connections(client_ip) == 1
 
-            # Unregister
-            await tracker.unregister_connection(client_ip)
-            assert tracker.get_active_connections(client_ip) == 0
+        # Unregister
+        await tracker.unregister_connection(client_ip)
+        assert tracker.get_active_connections(client_ip) == 0
 
-        asyncio.run(run_test())
-
-    def test_connection_tracker_blocks_over_limit(self):
+    @pytest.mark.asyncio
+    async def test_connection_tracker_blocks_over_limit(self):
         """Test that connections over the limit are blocked."""
-        import asyncio
-
         from worth_it.api import WebSocketConnectionTracker
         from worth_it.config import settings
 
-        async def run_test():
-            tracker = WebSocketConnectionTracker()
-            client_ip = "192.168.1.101"
+        tracker = WebSocketConnectionTracker()
+        client_ip = "192.168.1.101"
 
-            # Register max connections
-            for _ in range(settings.WS_MAX_CONCURRENT_PER_IP):
-                assert await tracker.register_connection(client_ip) is True
+        # Register max connections
+        for _ in range(settings.WS_MAX_CONCURRENT_PER_IP):
+            assert await tracker.register_connection(client_ip) is True
 
-            # Next should fail
-            assert await tracker.register_connection(client_ip) is False
+        # Next should fail
+        assert await tracker.register_connection(client_ip) is False
 
-            # Clean up
-            for _ in range(settings.WS_MAX_CONCURRENT_PER_IP):
-                await tracker.unregister_connection(client_ip)
+        # Clean up
+        for _ in range(settings.WS_MAX_CONCURRENT_PER_IP):
+            await tracker.unregister_connection(client_ip)
 
-        asyncio.run(run_test())
-
-    def test_connection_tracker_independent_per_ip(self):
+    @pytest.mark.asyncio
+    async def test_connection_tracker_independent_per_ip(self):
         """Test that different IPs have independent connection limits."""
-        import asyncio
-
         from worth_it.api import WebSocketConnectionTracker
         from worth_it.config import settings
 
-        async def run_test():
-            tracker = WebSocketConnectionTracker()
-            ip1 = "192.168.1.1"
-            ip2 = "192.168.1.2"
+        tracker = WebSocketConnectionTracker()
+        ip1 = "192.168.1.1"
+        ip2 = "192.168.1.2"
 
-            # Fill ip1's limit
-            for _ in range(settings.WS_MAX_CONCURRENT_PER_IP):
-                await tracker.register_connection(ip1)
+        # Fill ip1's limit
+        for _ in range(settings.WS_MAX_CONCURRENT_PER_IP):
+            await tracker.register_connection(ip1)
 
-            # ip2 should still be able to connect
-            assert await tracker.register_connection(ip2) is True
+        # ip2 should still be able to connect
+        assert await tracker.register_connection(ip2) is True
 
-            # Clean up
-            for _ in range(settings.WS_MAX_CONCURRENT_PER_IP):
-                await tracker.unregister_connection(ip1)
-            await tracker.unregister_connection(ip2)
-
-        asyncio.run(run_test())
+        # Clean up
+        for _ in range(settings.WS_MAX_CONCURRENT_PER_IP):
+            await tracker.unregister_connection(ip1)
+        await tracker.unregister_connection(ip2)
 
 
 class TestCapTableConversion:

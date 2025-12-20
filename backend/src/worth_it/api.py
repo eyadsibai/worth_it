@@ -19,6 +19,8 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
+from pydantic import ValidationError as PydanticValidationError
+
 from worth_it import calculations
 from worth_it.config import settings
 from worth_it.exceptions import CalculationError, ValidationError, WorthItError
@@ -96,7 +98,9 @@ class WebSocketConnectionTracker:
     This is used to enforce rate limits on WebSocket connections since the
     standard slowapi rate limiter doesn't work with WebSocket handlers.
 
-    Thread-safety: Uses asyncio locks for concurrent access protection.
+    Async-safety: Uses asyncio locks for concurrent task protection within a
+    single event loop. This class is not thread-safe and should not be used
+    from multiple threads concurrently.
     """
 
     def __init__(self) -> None:
@@ -133,7 +137,13 @@ class WebSocketConnectionTracker:
                 del self._connections[client_ip]
 
     def get_active_connections(self, client_ip: str) -> int:
-        """Get the number of active connections for an IP (for monitoring)."""
+        """Get the number of active connections for an IP (for monitoring).
+
+        This helper is intentionally lock-free and may return slightly stale
+        data if connections are being modified concurrently. It should only
+        be used for approximate monitoring/telemetry, not for enforcing
+        correctness or rate-limiting decisions.
+        """
         return self._connections.get(client_ip, 0)
 
 
@@ -478,10 +488,22 @@ async def websocket_monte_carlo(websocket: WebSocket):
     # Check rate limit before accepting connection
     async with track_websocket_connection(ws_connection_tracker, client_ip) as registered:
         if not registered:
-            # Rate limited - reject connection
+            # Rate limited - accept, send error, then close connection
+            # This ensures clients receive a proper error message rather than just a rejection
             logger.warning(
                 f"WebSocket rate limit exceeded for IP {client_ip}. "
                 f"Max concurrent connections: {settings.WS_MAX_CONCURRENT_PER_IP}"
+            )
+            await websocket.accept()
+            await websocket.send_json(
+                {
+                    "type": "error",
+                    "message": (
+                        "Rate limit exceeded. Please close other Monte Carlo "
+                        "connections or try again later."
+                    ),
+                    "max_concurrent_connections": settings.WS_MAX_CONCURRENT_PER_IP,
+                }
             )
             await websocket.close(code=1008, reason="Rate limit exceeded")
             return
@@ -497,7 +519,7 @@ async def websocket_monte_carlo(websocket: WebSocket):
             # Validate request using Pydantic model (includes MAX_SIMULATIONS check)
             try:
                 request = MonteCarloRequest(**request_data)
-            except ValueError as e:
+            except PydanticValidationError as e:
                 # Pydantic validation error - send user-friendly message
                 error_msg = str(e)
                 if "num_simulations" in error_msg and "exceeds" in error_msg:
@@ -529,7 +551,7 @@ async def websocket_monte_carlo(websocket: WebSocket):
                     _run_simulation_with_progress(websocket, request, base_params),
                     timeout=settings.WS_SIMULATION_TIMEOUT_SECONDS,
                 )
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 logger.warning(
                     f"Simulation timeout for IP {client_ip} after "
                     f"{settings.WS_SIMULATION_TIMEOUT_SECONDS}s "
@@ -542,8 +564,8 @@ async def websocket_monte_carlo(websocket: WebSocket):
                             "message": f"Simulation timed out after {settings.WS_SIMULATION_TIMEOUT_SECONDS} seconds",
                         }
                     )
-                except Exception:
-                    pass
+                except Exception as send_err:
+                    logger.debug(f"Failed to send timeout error to client: {send_err}")
 
         except WebSocketDisconnect:
             logger.info(f"WebSocket client {client_ip} disconnected during Monte Carlo simulation")
