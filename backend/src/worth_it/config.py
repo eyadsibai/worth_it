@@ -74,6 +74,12 @@ class Settings:
         os.getenv("RATE_LIMIT_MONTE_CARLO_PER_MINUTE", "10")
     )
 
+    # WebSocket Security Settings
+    WS_MAX_CONCURRENT_PER_IP: int = int(os.getenv("WS_MAX_CONCURRENT_PER_IP", "5"))
+    WS_SIMULATION_TIMEOUT_SECONDS: int = int(
+        os.getenv("WS_SIMULATION_TIMEOUT_SECONDS", "60")
+    )
+
     @classmethod
     def is_production(cls) -> bool:
         """Check if running in production environment."""
@@ -100,6 +106,16 @@ class Settings:
         if cls.MAX_SIMULATIONS < 1 or cls.MAX_SIMULATIONS > 100000:
             errors.append(
                 f"Invalid MAX_SIMULATIONS: {cls.MAX_SIMULATIONS}. Must be between 1 and 100000."
+            )
+
+        if cls.WS_MAX_CONCURRENT_PER_IP < 1 or cls.WS_MAX_CONCURRENT_PER_IP > 20:
+            errors.append(
+                f"Invalid WS_MAX_CONCURRENT_PER_IP: {cls.WS_MAX_CONCURRENT_PER_IP}. Must be between 1 and 20."
+            )
+
+        if cls.WS_SIMULATION_TIMEOUT_SECONDS < 5 or cls.WS_SIMULATION_TIMEOUT_SECONDS > 300:
+            errors.append(
+                f"Invalid WS_SIMULATION_TIMEOUT_SECONDS: {cls.WS_SIMULATION_TIMEOUT_SECONDS}. Must be between 5 and 300."
             )
 
         if cls.LOG_LEVEL not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:

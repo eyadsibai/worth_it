@@ -6,7 +6,7 @@ the Streamlit frontend and the FastAPI backend.
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -248,16 +248,32 @@ class MonteCarloRequest(BaseModel):
     """Request model for Monte Carlo simulation.
 
     Validates that base_params contains required fields including exit_year.
+    num_simulations is validated against the configurable MAX_SIMULATIONS setting.
+    The default upper bound is 10,000, but can be configured up to 100,000 via
+    the MAX_SIMULATIONS environment variable.
     """
 
-    num_simulations: int = Field(..., ge=1, le=10000)
+    num_simulations: int = Field(..., ge=1, le=100000)  # Hard upper bound; config provides tighter limit
     base_params: dict[str, Any]  # BaseParams - kept flexible for dynamic structure
     sim_param_configs: dict[str, Any]  # SimParamConfigs - kept flexible for dynamic structure
 
     @model_validator(mode="after")
-    def validate_base_params_required_fields(self) -> MonteCarloRequest:
+    def validate_base_params_required_fields(self) -> Self:
         """Validate that base_params contains all required fields."""
         validate_base_params(self.base_params)
+        return self
+
+    @model_validator(mode="after")
+    def validate_num_simulations_against_config(self) -> Self:
+        """Validate num_simulations against the configured MAX_SIMULATIONS limit."""
+        from worth_it.config import settings
+
+        if self.num_simulations > settings.MAX_SIMULATIONS:
+            raise ValueError(
+                f"num_simulations ({self.num_simulations}) exceeds the maximum allowed "
+                f"({settings.MAX_SIMULATIONS}). Reduce the number of simulations or "
+                f"contact the administrator to increase the limit."
+            )
         return self
 
 
@@ -559,7 +575,7 @@ class DCFRequest(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_growth_vs_discount(self) -> DCFRequest:
+    def validate_growth_vs_discount(self) -> Self:
         """Terminal growth must be less than discount rate."""
         if (
             self.terminal_growth_rate is not None
@@ -596,7 +612,7 @@ class VCMethodRequest(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_multiple_or_irr(self) -> VCMethodRequest:
+    def validate_multiple_or_irr(self) -> Self:
         """Must provide either target multiple or IRR."""
         if self.target_return_multiple is None and self.target_irr is None:
             raise ValueError("Must provide either target_return_multiple or target_irr")
@@ -621,7 +637,7 @@ class ValuationCompareRequest(BaseModel):
     vc_method: VCMethodRequest | None = None
 
     @model_validator(mode="after")
-    def validate_at_least_one_method(self) -> ValuationCompareRequest:
+    def validate_at_least_one_method(self) -> Self:
         """At least one valuation method must be provided."""
         if all(
             m is None
