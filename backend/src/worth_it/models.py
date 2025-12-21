@@ -9,7 +9,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, Literal, Self
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from worth_it.types import DilutionRound
 
@@ -105,6 +105,18 @@ class TypedBaseParams(BaseModel):
     investment_frequency: Literal["Monthly", "Annually"]
     failure_probability: float = Field(..., ge=0, le=1)
     startup_params: RSUParams | StockOptionsParams
+
+    @field_validator("exit_year", mode="before")
+    @classmethod
+    def reject_boolean_exit_year(cls, v: Any) -> int:
+        """Reject boolean values for exit_year.
+
+        In Python, bool is a subclass of int, so isinstance(True, int) returns True.
+        We must explicitly check for bool first to reject boolean values.
+        """
+        if isinstance(v, bool):
+            raise ValueError("exit_year must be an integer, not a boolean")
+        return v
 
 
 # --- Shared Validators ---
