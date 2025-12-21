@@ -13,7 +13,8 @@ import { MonteCarloVisualizations } from "@/components/charts/monte-carlo-visual
 import { SensitivityAnalysisPanel } from "@/components/results/sensitivity-analysis-panel";
 import { ScenarioManager } from "@/components/scenarios/scenario-manager";
 import { ScenarioComparison } from "@/components/scenarios/scenario-comparison";
-import { useDebounce, useSidebarFormStatus, useScenarioCalculation } from "@/lib/hooks";
+import { useDebounce, useSidebarFormStatus, useScenarioCalculation, useMobileViewSafe, useIsTablet } from "@/lib/hooks";
+import { cn } from "@/lib/utils";
 import { FormCompletionSummary } from "@/components/forms/form-completion-summary";
 import { ExampleLoader } from "@/components/forms/example-loader";
 import { TemplatePicker } from "@/components/templates/template-picker";
@@ -72,10 +73,44 @@ export function EmployeeDashboard() {
     equityDetails: debouncedEquityDetails,
   });
 
+  // Mobile view context for tabbed navigation
+  const mobileView = useMobileViewSafe();
+  const isTablet = useIsTablet();
+
+  // Sync calculation state to mobile view context for badge display
+  React.useEffect(() => {
+    if (mobileView) {
+      mobileView.setIsCalculating(isCalculating);
+    }
+  }, [isCalculating, mobileView]);
+
+  // Mark results as outdated when form changes (debounced values change)
+  React.useEffect(() => {
+    if (mobileView && hasValidData && startupScenarioResult) {
+      // Results exist but form values have changed - mark as outdated briefly
+      mobileView.setHasOutdatedResults(true);
+      const timer = setTimeout(() => {
+        mobileView.setHasOutdatedResults(false);
+      }, 500); // Clear after calculation completes
+      return () => clearTimeout(timer);
+    }
+  }, [debouncedGlobalSettings, debouncedCurrentJob, debouncedEquityDetails, mobileView, hasValidData, startupScenarioResult]);
+
+  // Determine column visibility based on mobile view state
+  const activeView = mobileView?.activeView ?? "inputs";
+  const showInputs = !isTablet || activeView === "inputs";
+  const showResults = !isTablet || activeView === "results";
+
   return (
     <div className="grid lg:grid-cols-[380px_1fr] gap-8">
       {/* Left Column - Configuration Forms */}
-      <div className="space-y-6 lg:sticky lg:top-20 lg:self-start">
+      <div
+        className={cn(
+          "space-y-6 lg:sticky lg:top-20 lg:self-start",
+          // Hide on mobile/tablet when results view is active
+          !showInputs && "hidden"
+        )}
+      >
         <ExampleLoader />
         <FormCompletionSummary status={formStatus} />
         <GlobalSettingsFormComponent value={globalSettings} onChange={setGlobalSettings} />
@@ -88,7 +123,13 @@ export function EmployeeDashboard() {
       </div>
 
       {/* Right Column - Results */}
-      <div className="space-y-6">
+      <div
+        className={cn(
+          "space-y-6",
+          // Hide on mobile/tablet when inputs view is active
+          !showResults && "hidden"
+        )}
+      >
         {/* Empty state - waiting for data */}
         {!hasValidData && (
           <Card className="terminal-card animate-scale-in delay-300">

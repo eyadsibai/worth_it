@@ -21,6 +21,8 @@ vi.mock("@/lib/hooks", () => ({
     equityDetails: { complete: true, total: 8 },
   }),
   useScenarioCalculation: vi.fn(),
+  useMobileViewSafe: () => null, // No mobile view context in tests
+  useIsTablet: () => false, // Not on tablet in tests (show both columns)
 }));
 
 // Mock validation module
