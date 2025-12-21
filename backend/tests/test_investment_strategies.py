@@ -4,9 +4,7 @@ These tests verify the Strategy Pattern implementation for calculating
 future values with different investment frequencies.
 """
 
-from typing import Any
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -17,7 +15,6 @@ from worth_it.calculations import (
     MonthlyInvestmentStrategy,
     get_investment_strategy,
 )
-
 
 # --- Test Fixtures ---
 

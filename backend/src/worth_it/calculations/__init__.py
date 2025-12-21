@@ -71,6 +71,15 @@ from worth_it.calculations.investment_strategies import (
     get_investment_strategy,
 )
 
+# Monte Carlo simulation classes (Template Method Pattern)
+from worth_it.calculations.monte_carlo_simulation import (
+    IterativeMonteCarlo,
+    MonteCarloResult,
+    MonteCarloSimulation,
+    VectorizedMonteCarlo,
+    get_monte_carlo_simulation,
+)
+
 # Opportunity cost calculations
 from worth_it.calculations.opportunity_cost import (
     calculate_annual_opportunity_cost,
@@ -177,4 +186,10 @@ __all__ = [
     "AnnualInvestmentStrategy",
     "FutureValueResult",
     "get_investment_strategy",
+    # Monte Carlo simulation classes (Template Method Pattern)
+    "MonteCarloSimulation",
+    "VectorizedMonteCarlo",
+    "IterativeMonteCarlo",
+    "MonteCarloResult",
+    "get_monte_carlo_simulation",
 ]
