@@ -12,7 +12,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from worth_it.calculations.base import EquityType, annual_to_monthly_roi
+from worth_it.calculations.base import EquityType
+from worth_it.calculations.investment_strategies import get_investment_strategy
 
 
 def create_monthly_data_grid(
@@ -183,57 +184,26 @@ def calculate_annual_opportunity_cost(
 
     opportunity_costs = []
     cash_from_sale_future_values = []
-    monthly_roi = annual_to_monthly_roi(annual_roi)
     annual_investable_surplus = monthly_df_copy.groupby("Year")["InvestableSurplus"].sum()
     annual_exercise_cost = monthly_df_copy.groupby("Year")["ExerciseCost"].sum()
     annual_cash_from_sale = monthly_df_copy.groupby("Year")["CashFromSale"].sum()
 
+    # Use Strategy Pattern for investment frequency-specific calculations
+    strategy = get_investment_strategy(investment_frequency)
+
     for year_end in results_df.index:
-        current_df = monthly_df_copy[monthly_df_copy["Year"] <= year_end]
+        # Delegate FV calculation to the appropriate strategy
+        fv_result = strategy.calculate_future_value(
+            monthly_df=monthly_df_copy,
+            year_end=year_end,
+            annual_roi=annual_roi,
+            annual_investable_surplus=annual_investable_surplus,
+            annual_exercise_cost=annual_exercise_cost,
+            annual_cash_from_sale=annual_cash_from_sale,
+        )
 
-        # Calculate opportunity cost from foregone salary (without exercise costs)
-        # Exercise costs are treated as additional outflow and added separately
-        if investment_frequency == "Monthly":
-            months_to_grow = (year_end * 12) - current_df.index - 1
-
-            # Future value of foregone salary that could be invested
-            fv_investable_surplus = (
-                current_df["InvestableSurplus"] * (1 + monthly_roi) ** months_to_grow
-            ).sum()
-
-            # Future value of exercise costs (additional cash outflow)
-            fv_exercise_cost = (
-                current_df["ExerciseCost"] * (1 + monthly_roi) ** months_to_grow
-            ).sum()
-
-            # Total opportunity cost includes both foregone salary and exercise costs
-            fv_opportunity = fv_investable_surplus + fv_exercise_cost
-
-            # Calculate future value of cash from sale separately
-            cash_flow = current_df["CashFromSale"]
-            fv_cash_from_sale = (cash_flow * (1 + monthly_roi) ** months_to_grow).sum()
-        else:  # Annually
-            annual_investable = annual_investable_surplus.reindex(
-                range(1, year_end + 1), fill_value=0
-            )
-            annual_exercise = annual_exercise_cost.reindex(range(1, year_end + 1), fill_value=0)
-            years_to_grow = year_end - annual_investable.index
-
-            # Future value of foregone salary that could be invested
-            fv_investable_surplus = (annual_investable * (1 + annual_roi) ** years_to_grow).sum()
-
-            # Future value of exercise costs (additional cash outflow)
-            fv_exercise_cost = (annual_exercise * (1 + annual_roi) ** years_to_grow).sum()
-
-            # Total opportunity cost includes both foregone salary and exercise costs
-            fv_opportunity = fv_investable_surplus + fv_exercise_cost
-
-            # Calculate future value of cash from sale separately
-            annual_cash = annual_cash_from_sale.reindex(range(1, year_end + 1), fill_value=0)
-            fv_cash_from_sale = (annual_cash * (1 + annual_roi) ** years_to_grow).sum()
-
-        opportunity_costs.append(fv_opportunity)
-        cash_from_sale_future_values.append(fv_cash_from_sale)
+        opportunity_costs.append(fv_result.fv_opportunity)
+        cash_from_sale_future_values.append(fv_result.fv_cash_from_sale)
 
     results_df["Opportunity Cost (Invested Surplus)"] = opportunity_costs
     results_df["Cash From Sale (FV)"] = cash_from_sale_future_values

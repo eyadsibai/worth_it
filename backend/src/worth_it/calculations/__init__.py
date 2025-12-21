@@ -62,6 +62,15 @@ from worth_it.calculations.financial_metrics import (
     calculate_npv,
 )
 
+# Investment frequency strategies (Strategy Pattern)
+from worth_it.calculations.investment_strategies import (
+    AnnualInvestmentStrategy,
+    FutureValueResult,
+    InvestmentFrequencyStrategy,
+    MonthlyInvestmentStrategy,
+    get_investment_strategy,
+)
+
 # Opportunity cost calculations
 from worth_it.calculations.opportunity_cost import (
     calculate_annual_opportunity_cost,
@@ -162,4 +171,10 @@ __all__ = [
     "VCMethodParams",
     "ValuationResult",
     "ValuationComparison",
+    # Investment frequency strategies (Strategy Pattern)
+    "InvestmentFrequencyStrategy",
+    "MonthlyInvestmentStrategy",
+    "AnnualInvestmentStrategy",
+    "FutureValueResult",
+    "get_investment_strategy",
 ]
