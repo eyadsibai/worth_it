@@ -76,8 +76,6 @@ def calculate_startup_scenario(
     if equity_type == EquityType.RSU:
         rsu_params = startup_params["rsu_params"]
         initial_equity_pct = rsu_params.get("equity_pct", 0.0)
-        diluted_equity_pct = initial_equity_pct
-        total_dilution = 0.0
 
         # Calculate dilution using the dilution engine
         dilution_rounds = rsu_params.get("dilution_rounds") if rsu_params.get("simulate_dilution") else None
@@ -86,9 +84,11 @@ def calculate_startup_scenario(
             rounds=dilution_rounds,
             simulated_dilution=startup_params.get("simulated_dilution"),
         )
-        results_df["CumulativeDilution"] = dilution_result.yearly_factors
+        yearly_factors = dilution_result.yearly_factors
+        results_df["CumulativeDilution"] = yearly_factors
         total_dilution = dilution_result.total_dilution
-        diluted_equity_pct = initial_equity_pct * dilution_result.yearly_factors[-1]
+        last_factor = yearly_factors[-1] if len(yearly_factors) > 0 else 1.0
+        diluted_equity_pct = initial_equity_pct * last_factor
 
         # Build sorted_rounds for equity sale calculations
         if dilution_rounds:
