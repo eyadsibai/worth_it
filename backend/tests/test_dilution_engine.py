@@ -151,3 +151,60 @@ class TestClassify:
         pipeline1 = DilutionPipeline(years=range(5)).with_rounds([{"year": 1, "dilution": 0.1}])
         pipeline2 = pipeline1.classify()
         assert pipeline1 is not pipeline2
+
+
+class TestApplyHistorical:
+    """Tests for apply_historical() method."""
+
+    def test_apply_historical_single_round(self):
+        """Single completed round applies its dilution."""
+        rounds = [{"year": -1, "dilution": 0.2}]
+        pipeline = (
+            DilutionPipeline(years=range(5))
+            .with_rounds(rounds)
+            .classify()
+            .apply_historical()
+        )
+        assert pipeline._historical_factor == 0.8
+
+    def test_apply_historical_multiple_rounds(self):
+        """Multiple completed rounds multiply dilution factors."""
+        rounds = [
+            {"year": -2, "dilution": 0.1},  # 0.9
+            {"year": -1, "dilution": 0.2},  # 0.9 * 0.8 = 0.72
+        ]
+        pipeline = (
+            DilutionPipeline(years=range(5))
+            .with_rounds(rounds)
+            .classify()
+            .apply_historical()
+        )
+        assert np.isclose(pipeline._historical_factor, 0.72)
+
+    def test_apply_historical_no_completed_rounds(self):
+        """No completed rounds keeps factor at 1.0."""
+        rounds = [{"year": 1, "dilution": 0.2}]
+        pipeline = (
+            DilutionPipeline(years=range(5))
+            .with_rounds(rounds)
+            .classify()
+            .apply_historical()
+        )
+        assert pipeline._historical_factor == 1.0
+
+    def test_apply_historical_missing_dilution_defaults_zero(self):
+        """Rounds without dilution key default to 0 dilution."""
+        rounds = [{"year": -1}]  # No dilution key
+        pipeline = (
+            DilutionPipeline(years=range(5))
+            .with_rounds(rounds)
+            .classify()
+            .apply_historical()
+        )
+        assert pipeline._historical_factor == 1.0
+
+    def test_apply_historical_returns_new_instance(self):
+        """apply_historical() returns a new pipeline instance."""
+        pipeline1 = DilutionPipeline(years=range(5)).with_rounds([]).classify()
+        pipeline2 = pipeline1.apply_historical()
+        assert pipeline1 is not pipeline2

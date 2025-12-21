@@ -89,3 +89,15 @@ class DilutionPipeline:
             or (r.get("status") is None and r.get("year", 0) >= 0)
         ]
         return dataclasses.replace(self, _completed=completed, _upcoming=upcoming)
+
+    def apply_historical(self) -> DilutionPipeline:
+        """Calculate and store historical dilution factor.
+
+        Multiplies together (1 - dilution) for each completed round.
+        This factor represents the cumulative dilution from all
+        historical rounds, applied from day 0.
+        """
+        factor = 1.0
+        for r in self._completed:
+            factor *= 1 - r.get("dilution", 0)
+        return dataclasses.replace(self, _historical_factor=factor)
