@@ -46,7 +46,10 @@ import { EmployeeTimeline } from "@/components/cap-table/timeline";
 
 interface ScenarioResultsProps {
   results: StartupScenarioResponse;
+  /** First load - show skeleton (no data yet) */
   isLoading?: boolean;
+  /** Refetching - show overlay on existing results (stale-while-revalidate) */
+  isFetching?: boolean;
   monteCarloContent?: React.ReactNode;
   sensitivityContent?: React.ReactNode;
   globalSettings?: GlobalSettingsForm | null;
@@ -55,7 +58,7 @@ interface ScenarioResultsProps {
   monteCarloStats?: MonteCarloExportStats;
 }
 
-export function ScenarioResults({ results, isLoading, monteCarloContent, sensitivityContent, globalSettings, currentJob, equityDetails, monteCarloStats }: ScenarioResultsProps) {
+export function ScenarioResults({ results, isLoading, isFetching, monteCarloContent, sensitivityContent, globalSettings, currentJob, equityDetails, monteCarloStats }: ScenarioResultsProps) {
   const [showSaveDialog, setShowSaveDialog] = React.useState(false);
   const [scenarioName, setScenarioName] = React.useState("");
   const [scenarioNotes, setScenarioNotes] = React.useState("");
@@ -313,7 +316,20 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
       {/* Screen reader announcement for calculation results */}
       <LiveRegion>{announcement}</LiveRegion>
 
-      <div className="space-y-6 animate-fade-in" data-tour="results-section">
+      <div className="space-y-6 animate-fade-in relative" data-tour="results-section">
+        {/* Fetching overlay - shows during refetch while keeping stale data visible */}
+        {isFetching && (
+          <div
+            className="absolute inset-0 bg-background/60 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-lg"
+            role="status"
+            aria-label="Updating calculations..."
+          >
+            <div className="flex flex-col items-center gap-3 bg-card/80 backdrop-blur-sm px-6 py-4 rounded-lg border border-border shadow-lg">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <span className="text-sm font-medium text-muted-foreground">Updating...</span>
+            </div>
+          </div>
+        )}
         {/* Save and Export Buttons */}
         <div className="flex justify-end gap-2">
           {/* Export Menu */}

@@ -2,14 +2,23 @@
 
 import * as React from "react";
 import {
-  useCalculateStartupScenario,
-  useCreateMonthlyDataGrid,
-  useCalculateOpportunityCost,
+  useMonthlyDataGridQuery,
+  useOpportunityCostQuery,
+  useStartupScenarioQuery,
   APIError,
 } from "@/lib/api-client";
+import { useQueryClient } from "@tanstack/react-query";
 import { isValidEquityData } from "@/lib/validation";
 import type { ErrorType } from "@/components/ui/error-card";
-import type { RSUForm, StockOptionsForm, GlobalSettingsForm, CurrentJobForm } from "@/lib/schemas";
+import type {
+  RSUForm,
+  StockOptionsForm,
+  GlobalSettingsForm,
+  CurrentJobForm,
+  MonthlyDataGridRequest,
+  OpportunityCostRequest,
+  StartupScenarioRequest,
+} from "@/lib/schemas";
 
 export interface ScenarioCalculationInput {
   globalSettings: GlobalSettingsForm | null;
@@ -20,10 +29,14 @@ export interface ScenarioCalculationInput {
 export interface ScenarioCalculationResult {
   /** Whether all required data is present and valid */
   hasValidData: boolean;
-  /** Whether any calculation is in progress */
+  /** Whether this is the first load (no data yet) - show skeleton */
+  isPending: boolean;
+  /** Whether we're refetching (have stale data) - show overlay */
+  isFetching: boolean;
+  /** Legacy: combined loading state (isPending || isFetching) */
   isCalculating: boolean;
   /** The final startup scenario result */
-  result: ReturnType<typeof useCalculateStartupScenario>["data"] | undefined;
+  result: ReturnType<typeof useStartupScenarioQuery>["data"] | undefined;
   /** Error from any step of the calculation */
   error: Error | null;
   /** Categorized error type for display */
@@ -31,25 +44,32 @@ export interface ScenarioCalculationResult {
   /** Retry the calculation from the beginning */
   retry: () => void;
   /** Monthly data grid result (intermediate) */
-  monthlyData: ReturnType<typeof useCreateMonthlyDataGrid>["data"] | undefined;
+  monthlyData: ReturnType<typeof useMonthlyDataGridQuery>["data"] | undefined;
   /** Opportunity cost result (intermediate) */
-  opportunityCost: ReturnType<typeof useCalculateOpportunityCost>["data"] | undefined;
+  opportunityCost: ReturnType<typeof useOpportunityCostQuery>["data"] | undefined;
 }
 
 /**
- * Custom hook that encapsulates the 3-step chained calculation:
- * 1. Monthly data grid
- * 2. Opportunity cost
- * 3. Startup scenario
+ * Custom hook that encapsulates the 3-step chained calculation using TanStack Query.
+ * Uses the stale-while-revalidate pattern to keep previous results visible during updates.
  *
- * Expects pre-debounced input values from the caller (e.g., EmployeeDashboard);
- * this hook itself does not perform debouncing, which helps avoid waterfall API
- * calls during rapid form changes.
+ * Key states:
+ * - isPending: First load, no data yet (show skeleton)
+ * - isFetching: Refetching with stale data visible (show overlay)
+ * - isCalculating: Either isPending or isFetching (legacy compatibility)
+ *
+ * Flow:
+ * 1. Monthly data grid query
+ * 2. Opportunity cost query (enabled when step 1 completes)
+ * 3. Startup scenario query (enabled when step 2 completes)
+ *
+ * Each query uses `keepPreviousData` to maintain stale results during refetch.
  */
 export function useScenarioCalculation(
   input: ScenarioCalculationInput
 ): ScenarioCalculationResult {
   const { globalSettings, currentJob, equityDetails } = input;
+  const queryClient = useQueryClient();
 
   // Check if we have all required data with valid values
   const hasValidData =
@@ -58,13 +78,8 @@ export function useScenarioCalculation(
     equityDetails !== null &&
     isValidEquityData(equityDetails);
 
-  // Initialize mutations
-  const monthlyDataMutation = useCreateMonthlyDataGrid();
-  const opportunityCostMutation = useCalculateOpportunityCost();
-  const startupScenarioMutation = useCalculateStartupScenario();
-
-  // Helper to build monthly data request (avoids duplication)
-  const buildMonthlyDataRequest = React.useCallback(() => {
+  // Build Step 1 request: Monthly data grid
+  const monthlyDataRequest = React.useMemo<MonthlyDataGridRequest | null>(() => {
     if (!globalSettings || !currentJob || !equityDetails) return null;
 
     return {
@@ -89,23 +104,18 @@ export function useScenarioCalculation(
     };
   }, [globalSettings, currentJob, equityDetails]);
 
-  // Step 1: Calculate monthly data grid when form data changes
-  React.useEffect(() => {
-    if (!hasValidData) return;
+  // Step 1: Query monthly data grid
+  const monthlyDataQuery = useMonthlyDataGridQuery(
+    monthlyDataRequest,
+    hasValidData
+  );
 
-    const request = buildMonthlyDataRequest();
-    if (request) {
-      monthlyDataMutation.mutate(request);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasValidData, buildMonthlyDataRequest]);
+  // Build Step 2 request: Opportunity cost (depends on Step 1 data)
+  const opportunityCostRequest = React.useMemo<OpportunityCostRequest | null>(() => {
+    if (!monthlyDataQuery.data || !currentJob || !equityDetails) return null;
 
-  // Step 2: Calculate opportunity cost when monthly data is ready
-  React.useEffect(() => {
-    if (!monthlyDataMutation.data || !hasValidData || !currentJob || !equityDetails) return;
-
-    const opportunityCostRequest = {
-      monthly_data: monthlyDataMutation.data.data,
+    return {
+      monthly_data: monthlyDataQuery.data.data,
       annual_roi: currentJob.assumed_annual_roi / 100,
       investment_frequency: currentJob.investment_frequency,
       options_params:
@@ -122,18 +132,21 @@ export function useScenarioCalculation(
           : null,
       startup_params: null,
     };
+  }, [monthlyDataQuery.data, currentJob, equityDetails]);
 
-    opportunityCostMutation.mutate(opportunityCostRequest);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monthlyDataMutation.data, hasValidData, currentJob, equityDetails]);
+  // Step 2: Query opportunity cost (enabled when step 1 completes)
+  const opportunityCostQuery = useOpportunityCostQuery(
+    opportunityCostRequest,
+    hasValidData && !!monthlyDataQuery.data
+  );
 
-  // Step 3: Calculate startup scenario when opportunity cost is ready
-  React.useEffect(() => {
-    if (!opportunityCostMutation.data || !hasValidData || !equityDetails) return;
+  // Build Step 3 request: Startup scenario (depends on Step 2 data)
+  const startupScenarioRequest = React.useMemo<StartupScenarioRequest | null>(() => {
+    if (!opportunityCostQuery.data || !equityDetails) return null;
 
     // Issue #248: Use flat typed format for startup_params
-    const startupScenarioRequest = {
-      opportunity_cost_data: opportunityCostMutation.data.data,
+    return {
+      opportunity_cost_data: opportunityCostQuery.data.data,
       startup_params:
         equityDetails.equity_type === "RSU"
           ? {
@@ -170,22 +183,35 @@ export function useScenarioCalculation(
               exercise_year: equityDetails.exercise_year ?? null,
             },
     };
+  }, [opportunityCostQuery.data, equityDetails]);
 
-    startupScenarioMutation.mutate(startupScenarioRequest);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opportunityCostMutation.data, hasValidData, equityDetails]);
+  // Step 3: Query startup scenario (enabled when step 2 completes)
+  const startupScenarioQuery = useStartupScenarioQuery(
+    startupScenarioRequest,
+    hasValidData && !!opportunityCostQuery.data
+  );
 
-  // Determine loading state
-  const isCalculating =
-    monthlyDataMutation.isPending ||
-    opportunityCostMutation.isPending ||
-    startupScenarioMutation.isPending;
+  // Determine loading states
+  // isPending: First load, no data yet (any query in chain is pending without data)
+  const isPending =
+    (monthlyDataQuery.isPending && !monthlyDataQuery.data) ||
+    (opportunityCostQuery.isPending && !opportunityCostQuery.data) ||
+    (startupScenarioQuery.isPending && !startupScenarioQuery.data);
+
+  // isFetching: Refetching with stale data visible (any query is fetching but has data)
+  const isFetching =
+    (monthlyDataQuery.isFetching && !!monthlyDataQuery.data) ||
+    (opportunityCostQuery.isFetching && !!opportunityCostQuery.data) ||
+    (startupScenarioQuery.isFetching && !!startupScenarioQuery.data);
+
+  // Legacy compatibility: combined loading state
+  const isCalculating = isPending || isFetching;
 
   // Get the first error from the chain
   const error =
-    monthlyDataMutation.error ||
-    opportunityCostMutation.error ||
-    startupScenarioMutation.error ||
+    monthlyDataQuery.error ||
+    opportunityCostQuery.error ||
+    startupScenarioQuery.error ||
     null;
 
   // Determine error type from error code (using APIError) or fallback to message parsing
@@ -200,13 +226,12 @@ export function useScenarioCalculation(
         case "CALCULATION_ERROR":
           return "calculation";
         case "RATE_LIMIT_ERROR":
-          return "generic"; // Rate limit errors treated as generic for retry logic
+          return "generic";
         case "NOT_FOUND_ERROR":
-          return "generic"; // Not found errors treated as generic
+          return "generic";
         case "INTERNAL_ERROR":
-          return "generic"; // Internal server errors treated as generic
+          return "generic";
         default: {
-          // Fall back to message parsing for network errors (e.g., no response from server)
           const message = err.message.toLowerCase();
           if (message.includes("network") || message.includes("connection") || message.includes("no response")) {
             return "network";
@@ -216,7 +241,7 @@ export function useScenarioCalculation(
       }
     }
 
-    // Legacy fallback for non-APIError errors (e.g., network errors before interceptor)
+    // Legacy fallback for non-APIError errors
     const message = err.message.toLowerCase();
     if (message.includes("network") || message.includes("fetch") || message.includes("connection")) {
       return "network";
@@ -230,34 +255,23 @@ export function useScenarioCalculation(
     return "generic";
   }, []);
 
-  // Retry handler - reset all mutations and re-trigger the chain
-  // Note: Mutation objects from useCreateMonthlyDataGrid etc. are stable (same reference)
-  // so we access them from the closure rather than including them in the dependency array
+  // Retry handler - invalidate all queries to force refetch
   const retry = React.useCallback(() => {
-    monthlyDataMutation.reset();
-    opportunityCostMutation.reset();
-    startupScenarioMutation.reset();
-
-    // Re-trigger the initial calculation using the shared helper
-    if (hasValidData) {
-      const request = buildMonthlyDataRequest();
-      if (request) {
-        monthlyDataMutation.mutate(request);
-      }
-    }
-    // Only include values that affect the request construction
-    // Mutation objects are stable and accessed from closure
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasValidData, buildMonthlyDataRequest]);
+    queryClient.invalidateQueries({ queryKey: ["monthlyDataGrid"] });
+    queryClient.invalidateQueries({ queryKey: ["opportunityCost"] });
+    queryClient.invalidateQueries({ queryKey: ["startupScenario"] });
+  }, [queryClient]);
 
   return {
     hasValidData,
+    isPending,
+    isFetching,
     isCalculating,
-    result: startupScenarioMutation.data,
+    result: startupScenarioQuery.data,
     error,
     errorType: getErrorType(error),
     retry,
-    monthlyData: monthlyDataMutation.data,
-    opportunityCost: opportunityCostMutation.data,
+    monthlyData: monthlyDataQuery.data,
+    opportunityCost: opportunityCostQuery.data,
   };
 }

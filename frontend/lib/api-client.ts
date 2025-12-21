@@ -4,7 +4,7 @@
  */
 
 import axios, { AxiosInstance } from "axios";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   MonthlyDataGridRequest,
@@ -755,5 +755,84 @@ export function useCancellableCompareScenarios() {
   return useCancellableMutation({
     mutationFn: (request: ScenarioComparisonRequest, signal: AbortSignal) =>
       apiClient.compareScenarios(request, signal),
+  });
+}
+
+// ============================================================================
+// Query Hooks with Stale-While-Revalidate (SWR) Pattern
+// ============================================================================
+// These hooks use useQuery with keepPreviousData to maintain existing results
+// while refetching, providing a smoother UI experience without layout shifts.
+// Use these for chained calculations where you want to show stale data during updates.
+
+/**
+ * Query hook for monthly data grid with stale-while-revalidate pattern.
+ * Keeps previous data visible while fetching new results.
+ *
+ * @param request - The monthly data grid request (used as query key)
+ * @param enabled - Whether to enable the query (default: true)
+ * @returns Query result with isPending (first load) and isFetching (refetch) states
+ */
+export function useMonthlyDataGridQuery(
+  request: MonthlyDataGridRequest | null,
+  enabled: boolean = true
+) {
+  return useQuery({
+    queryKey: ["monthlyDataGrid", request],
+    queryFn: () => {
+      if (!request) throw new Error("Request is required");
+      return apiClient.createMonthlyDataGrid(request);
+    },
+    enabled: enabled && request !== null,
+    placeholderData: keepPreviousData,
+    staleTime: 0, // Always refetch when request changes
+  });
+}
+
+/**
+ * Query hook for opportunity cost with stale-while-revalidate pattern.
+ * Keeps previous data visible while fetching new results.
+ *
+ * @param request - The opportunity cost request (used as query key)
+ * @param enabled - Whether to enable the query (default: true)
+ * @returns Query result with isPending (first load) and isFetching (refetch) states
+ */
+export function useOpportunityCostQuery(
+  request: OpportunityCostRequest | null,
+  enabled: boolean = true
+) {
+  return useQuery({
+    queryKey: ["opportunityCost", request],
+    queryFn: () => {
+      if (!request) throw new Error("Request is required");
+      return apiClient.calculateOpportunityCost(request);
+    },
+    enabled: enabled && request !== null,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
+  });
+}
+
+/**
+ * Query hook for startup scenario with stale-while-revalidate pattern.
+ * Keeps previous data visible while fetching new results.
+ *
+ * @param request - The startup scenario request (used as query key)
+ * @param enabled - Whether to enable the query (default: true)
+ * @returns Query result with isPending (first load) and isFetching (refetch) states
+ */
+export function useStartupScenarioQuery(
+  request: StartupScenarioRequest | null,
+  enabled: boolean = true
+) {
+  return useQuery({
+    queryKey: ["startupScenario", request],
+    queryFn: () => {
+      if (!request) throw new Error("Request is required");
+      return apiClient.calculateStartupScenario(request);
+    },
+    enabled: enabled && request !== null,
+    placeholderData: keepPreviousData,
+    staleTime: 0,
   });
 }
