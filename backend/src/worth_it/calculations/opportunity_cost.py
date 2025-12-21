@@ -74,11 +74,13 @@ def calculate_annual_opportunity_cost(
     investment_frequency: str,
     options_params: dict[str, Any] | None = None,
     startup_params: dict[str, Any] | None = None,
+    discount_rate: float | None = None,
 ) -> pd.DataFrame:
     """
     Calculates the future value (opportunity cost) of the forgone surplus for each year.
 
     Handles stock option exercise costs and tracks cash from secondary sales separately.
+    Also calculates NPV (Net Present Value) of opportunity cost for comparison in today's dollars.
 
     Cash from equity sales is NOT included in the opportunity cost calculation because
     it represents startup-side wealth, not foregone BigCorp earnings. Instead, it's
@@ -91,9 +93,10 @@ def calculate_annual_opportunity_cost(
         investment_frequency: "Monthly" or "Annually"
         options_params: Optional stock options parameters
         startup_params: Optional startup parameters including equity type and RSU details
+        discount_rate: Rate for discounting FV to NPV (defaults to annual_roi if not provided)
 
     Returns:
-        DataFrame with annual opportunity cost calculations
+        DataFrame with annual opportunity cost calculations including NPV column
     """
     if monthly_df.empty:
         return pd.DataFrame()
@@ -237,6 +240,15 @@ def calculate_annual_opportunity_cost(
     results_df["Investment Returns"] = results_df["Opportunity Cost (Invested Surplus)"] - (
         results_df[principal_col_label].clip(lower=0)
         - annual_exercise_cost.reindex(results_df.index, fill_value=0).cumsum()
+    )
+
+    # Calculate NPV: discount FV back to present value
+    # Default discount rate to annual_roi if not provided
+    effective_discount_rate = discount_rate if discount_rate is not None else annual_roi
+    years = results_df.index.to_numpy()
+    discount_factors = (1 + effective_discount_rate) ** years
+    results_df["Opportunity Cost (NPV)"] = (
+        results_df["Opportunity Cost (Invested Surplus)"] / discount_factors
     )
 
     results_df["Year"] = results_df.index

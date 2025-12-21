@@ -171,11 +171,31 @@ def calculate_startup_scenario(
                 "breakeven_label": "Breakeven Price/Share (SAR)",
             }
         )
+    # Calculate NPV values for final comparison
+    # discount_rate defaults to None, using annual_roi in opportunity_cost calculation
+    discount_rate = startup_params.get("discount_rate")
+
+    # Get final opportunity cost NPV from the results_df (already calculated in opportunity_cost.py)
+    final_opportunity_cost_npv = (
+        results_df["Opportunity Cost (NPV)"].iloc[-1]
+        if "Opportunity Cost (NPV)" in results_df.columns
+        else results_df["Opportunity Cost (Invested Surplus)"].iloc[-1]
+    )
+
+    # Calculate final payout NPV: discount future payout to present value
+    # If discount_rate not provided, we can't calculate NPV (return 0 or FV)
+    if discount_rate is not None and exit_year > 0:
+        final_payout_value_npv = final_payout_value / ((1 + discount_rate) ** exit_year)
+    else:
+        final_payout_value_npv = final_payout_value
+
     output.update(
         {
             "results_df": results_df,
             "final_payout_value": final_payout_value,
+            "final_payout_value_npv": final_payout_value_npv,
             "final_opportunity_cost": results_df["Opportunity Cost (Invested Surplus)"].iloc[-1],
+            "final_opportunity_cost_npv": final_opportunity_cost_npv,
         }
     )
 

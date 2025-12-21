@@ -31,7 +31,9 @@ class StartupScenarioResult:
 
     results_df: list[dict[str, Any]]
     final_payout_value: float
+    final_payout_value_npv: float | None
     final_opportunity_cost: float
+    final_opportunity_cost_npv: float | None
     payout_label: str
     breakeven_label: str
     total_dilution: float | None = None
@@ -158,7 +160,9 @@ class StartupService:
         return StartupScenarioResult(
             results_df=results_df_mapped,
             final_payout_value=results["final_payout_value"],
+            final_payout_value_npv=results.get("final_payout_value_npv"),
             final_opportunity_cost=results["final_opportunity_cost"],
+            final_opportunity_cost_npv=results.get("final_opportunity_cost_npv"),
             payout_label=results["payout_label"],
             breakeven_label=results["breakeven_label"],
             total_dilution=results.get("total_dilution"),

@@ -267,6 +267,7 @@ def convert_typed_startup_params_to_internal(
         "equity_type": EquityType(startup.equity_type),
         "total_vesting_years": startup.vesting_period,
         "cliff_years": startup.cliff_period,
+        "discount_rate": startup.discount_rate,  # For NPV calculation
     }
 
     if startup.equity_type == "RSU":

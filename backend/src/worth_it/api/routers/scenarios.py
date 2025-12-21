@@ -112,7 +112,9 @@ async def calculate_startup_scenario(request: Request, body: StartupScenarioRequ
         return StartupScenarioResponse(
             results_df=result.results_df,
             final_payout_value=result.final_payout_value,
+            final_payout_value_npv=result.final_payout_value_npv,
             final_opportunity_cost=result.final_opportunity_cost,
+            final_opportunity_cost_npv=result.final_opportunity_cost_npv,
             payout_label=result.payout_label,
             breakeven_label=result.breakeven_label,
             total_dilution=result.total_dilution,
