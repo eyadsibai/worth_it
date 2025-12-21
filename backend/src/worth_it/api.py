@@ -14,6 +14,7 @@ from functools import partial
 
 import pandas as pd
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError as PydanticValidationError
@@ -37,6 +38,10 @@ from worth_it.models import (
     DilutionPreviewRequest,
     DilutionPreviewResponse,
     DilutionResultItem,
+    ErrorCode,
+    ErrorDetail,
+    ErrorResponse,
+    FieldError,
     HealthCheckResponse,
     IRRRequest,
     IRRResponse,
@@ -202,16 +207,86 @@ app.add_middleware(
 
 
 # Global exception handlers - provide sanitized error messages to clients
+
+
+def create_error_response(
+    code: ErrorCode,
+    message: str,
+    status_code: int,
+    details: list[FieldError] | None = None,
+) -> JSONResponse:
+    """Create a standardized error response.
+
+    Args:
+        code: Machine-readable error code
+        message: Human-readable error message
+        status_code: HTTP status code
+        details: Optional field-level error details
+
+    Returns:
+        JSONResponse with structured error format
+    """
+    return JSONResponse(
+        status_code=status_code,
+        content=ErrorResponse(
+            error=ErrorDetail(code=code, message=message, details=details)
+        ).model_dump(),
+    )
+
+
+def create_ws_error_message(
+    code: ErrorCode,
+    message: str,
+    details: list[FieldError] | None = None,
+) -> dict:
+    """Create a standardized WebSocket error message.
+
+    Args:
+        code: Machine-readable error code
+        message: Human-readable error message
+        details: Optional field-level error details
+
+    Returns:
+        Dict with structured WebSocket error format
+    """
+    return {
+        "type": "error",
+        "error": ErrorDetail(code=code, message=message, details=details).model_dump(),
+    }
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_error_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    """Handle FastAPI request validation errors with field details."""
+    logger.warning(f"Request validation error on {request.url.path}: {exc}")
+
+    # Extract field-level errors from Pydantic validation
+    field_errors = [
+        FieldError(
+            field=".".join(str(loc) for loc in err["loc"] if loc != "body"),
+            message=err["msg"],
+        )
+        for err in exc.errors()
+    ]
+
+    return create_error_response(
+        code=ErrorCode.VALIDATION_ERROR,
+        message="Invalid input parameters",
+        status_code=400,
+        details=field_errors if field_errors else None,
+    )
+
+
 @app.exception_handler(ValidationError)
 async def validation_error_handler(request: Request, exc: ValidationError) -> JSONResponse:
-    """Handle validation errors with 400 status code."""
+    """Handle application validation errors with 400 status code."""
     logger.warning(f"Validation error on {request.url.path}: {exc}")
-    return JSONResponse(
+    return create_error_response(
+        code=ErrorCode.VALIDATION_ERROR,
+        message="Invalid input. Please check your request and try again.",
         status_code=400,
-        content={
-            "error": "validation_error",
-            "message": "Invalid input. Please check your request and try again.",
-        },
     )
 
 
@@ -219,9 +294,10 @@ async def validation_error_handler(request: Request, exc: ValidationError) -> JS
 async def calculation_error_handler(request: Request, exc: CalculationError) -> JSONResponse:
     """Handle calculation errors with 400 status code."""
     logger.error(f"Calculation error on {request.url.path}: {exc}", exc_info=True)
-    return JSONResponse(
+    return create_error_response(
+        code=ErrorCode.CALCULATION_ERROR,
+        message="Calculation failed with provided parameters",
         status_code=400,
-        content={"error": "calculation_error", "message": "Invalid calculation parameters"},
     )
 
 
@@ -229,9 +305,10 @@ async def calculation_error_handler(request: Request, exc: CalculationError) -> 
 async def worthit_error_handler(request: Request, exc: WorthItError) -> JSONResponse:
     """Handle any other WorthIt errors with 500 status code."""
     logger.error(f"Application error on {request.url.path}: {exc}", exc_info=True)
-    return JSONResponse(
+    return create_error_response(
+        code=ErrorCode.INTERNAL_ERROR,
+        message="An application error occurred",
         status_code=500,
-        content={"error": "application_error", "message": "An application error occurred"},
     )
 
 
@@ -239,9 +316,10 @@ async def worthit_error_handler(request: Request, exc: WorthItError) -> JSONResp
 async def generic_error_handler(request: Request, exc: Exception) -> JSONResponse:
     """Handle unexpected errors - log full details but return sanitized message."""
     logger.exception(f"Unexpected error on {request.url.path}: {exc}")
-    return JSONResponse(
+    return create_error_response(
+        code=ErrorCode.INTERNAL_ERROR,
+        message="An unexpected error occurred",
         status_code=500,
-        content={"error": "internal_error", "message": "An unexpected error occurred"},
     )
 
 
@@ -503,7 +581,7 @@ async def websocket_monte_carlo(websocket: WebSocket):
     - Output (JSON):
         - {"type": "progress", "current": N, "total": TOTAL, "percentage": PCT}
         - {"type": "complete", "net_outcomes": [...], "simulated_valuations": [...]}
-        - {"type": "error", "message": "..."}
+        - {"type": "error", "error": {"code": "...", "message": "...", "details": [...]}}
     """
     client_ip = _get_client_ip(websocket)
 
@@ -518,14 +596,13 @@ async def websocket_monte_carlo(websocket: WebSocket):
             )
             await websocket.accept()
             await websocket.send_json(
-                {
-                    "type": "error",
-                    "message": (
+                create_ws_error_message(
+                    code=ErrorCode.RATE_LIMIT_ERROR,
+                    message=(
                         "Rate limit exceeded. Please close other Monte Carlo "
                         "connections or try again later."
                     ),
-                    "max_concurrent_connections": settings.WS_MAX_CONCURRENT_PER_IP,
-                }
+                )
             )
             await websocket.close(code=1008, reason="Rate limit exceeded")
             return
@@ -542,23 +619,21 @@ async def websocket_monte_carlo(websocket: WebSocket):
             try:
                 request = MonteCarloRequest(**request_data)
             except PydanticValidationError as e:
-                # Pydantic validation error - send user-friendly message
-                error_msg = str(e)
-                if "num_simulations" in error_msg and "exceeds" in error_msg:
-                    # This is our custom MAX_SIMULATIONS validation error
-                    await websocket.send_json(
-                        {
-                            "type": "error",
-                            "message": f"Requested simulations exceed the maximum allowed ({settings.MAX_SIMULATIONS})",
-                        }
+                # Extract field-level errors from Pydantic validation
+                field_errors = [
+                    FieldError(
+                        field=".".join(str(loc) for loc in err["loc"]),
+                        message=err["msg"],
                     )
-                else:
-                    await websocket.send_json(
-                        {
-                            "type": "error",
-                            "message": "Invalid simulation parameters",
-                        }
+                    for err in e.errors()
+                ]
+                await websocket.send_json(
+                    create_ws_error_message(
+                        code=ErrorCode.VALIDATION_ERROR,
+                        message="Invalid simulation parameters",
+                        details=field_errors if field_errors else None,
                     )
+                )
                 logger.warning(
                     f"Invalid Monte Carlo request from {client_ip}: {e}"
                 )
@@ -582,10 +657,10 @@ async def websocket_monte_carlo(websocket: WebSocket):
                 )
                 try:
                     await websocket.send_json(
-                        {
-                            "type": "error",
-                            "message": f"Simulation timed out after {settings.WS_SIMULATION_TIMEOUT_SECONDS} seconds",
-                        }
+                        create_ws_error_message(
+                            code=ErrorCode.CALCULATION_ERROR,
+                            message=f"Simulation timed out after {settings.WS_SIMULATION_TIMEOUT_SECONDS} seconds",
+                        )
                     )
                 except Exception as send_err:
                     logger.debug(f"Failed to send timeout error to client: {send_err}")
@@ -596,10 +671,10 @@ async def websocket_monte_carlo(websocket: WebSocket):
             logger.warning(f"Invalid JSON from WebSocket client {client_ip}")
             try:
                 await websocket.send_json(
-                    {
-                        "type": "error",
-                        "message": "Invalid JSON in request",
-                    }
+                    create_ws_error_message(
+                        code=ErrorCode.VALIDATION_ERROR,
+                        message="Invalid JSON in request",
+                    )
                 )
             except Exception:
                 logger.error("Failed to send error message to WebSocket client")
@@ -608,10 +683,10 @@ async def websocket_monte_carlo(websocket: WebSocket):
             logger.error(f"Calculation error in WebSocket Monte Carlo from {client_ip}: {e}", exc_info=True)
             try:
                 await websocket.send_json(
-                    {
-                        "type": "error",
-                        "message": "Invalid parameters for simulation",
-                    }
+                    create_ws_error_message(
+                        code=ErrorCode.CALCULATION_ERROR,
+                        message="Invalid parameters for simulation",
+                    )
                 )
             except Exception:
                 logger.error("Failed to send error message to WebSocket client")
@@ -620,10 +695,10 @@ async def websocket_monte_carlo(websocket: WebSocket):
             logger.exception(f"Unexpected error in WebSocket Monte Carlo from {client_ip}: {e}")
             try:
                 await websocket.send_json(
-                    {
-                        "type": "error",
-                        "message": "An unexpected error occurred during simulation",
-                    }
+                    create_ws_error_message(
+                        code=ErrorCode.INTERNAL_ERROR,
+                        message="An unexpected error occurred during simulation",
+                    )
                 )
             except Exception:
                 logger.error("Failed to send error message to WebSocket client")

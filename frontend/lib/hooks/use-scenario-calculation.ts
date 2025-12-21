@@ -5,6 +5,7 @@ import {
   useCalculateStartupScenario,
   useCreateMonthlyDataGrid,
   useCalculateOpportunityCost,
+  APIError,
 } from "@/lib/api-client";
 import { isValidEquityData } from "@/lib/validation";
 import type { ErrorType } from "@/components/ui/error-card";
@@ -187,9 +188,35 @@ export function useScenarioCalculation(
     startupScenarioMutation.error ||
     null;
 
-  // Determine error type from error message
+  // Determine error type from error code (using APIError) or fallback to message parsing
   const getErrorType = React.useCallback((err: Error | null): ErrorType => {
     if (!err) return "generic";
+
+    // Use code-based detection for APIError instances
+    if (err instanceof APIError) {
+      switch (err.code) {
+        case "VALIDATION_ERROR":
+          return "validation";
+        case "CALCULATION_ERROR":
+          return "calculation";
+        case "RATE_LIMIT_ERROR":
+          return "generic"; // Rate limit errors treated as generic for retry logic
+        case "NOT_FOUND_ERROR":
+          return "generic"; // Not found errors treated as generic
+        case "INTERNAL_ERROR":
+          return "generic"; // Internal server errors treated as generic
+        default: {
+          // Fall back to message parsing for network errors (e.g., no response from server)
+          const message = err.message.toLowerCase();
+          if (message.includes("network") || message.includes("connection") || message.includes("no response")) {
+            return "network";
+          }
+          return "generic";
+        }
+      }
+    }
+
+    // Legacy fallback for non-APIError errors (e.g., network errors before interceptor)
     const message = err.message.toLowerCase();
     if (message.includes("network") || message.includes("fetch") || message.includes("connection")) {
       return "network";

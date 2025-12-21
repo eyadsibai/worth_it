@@ -14,6 +14,42 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from worth_it.types import DilutionRound
 
 
+# --- Error Response Models (Issue #244) ---
+
+
+class ErrorCode(str, Enum):
+    """Standardized error codes for API responses."""
+
+    VALIDATION_ERROR = "VALIDATION_ERROR"
+    CALCULATION_ERROR = "CALCULATION_ERROR"
+    RATE_LIMIT_ERROR = "RATE_LIMIT_ERROR"
+    NOT_FOUND_ERROR = "NOT_FOUND_ERROR"
+    INTERNAL_ERROR = "INTERNAL_ERROR"
+
+
+class FieldError(BaseModel):
+    """Individual field validation error."""
+
+    field: str = Field(..., description="The field path that caused the error")
+    message: str = Field(..., description="Human-readable error message for this field")
+
+
+class ErrorDetail(BaseModel):
+    """Structured error information."""
+
+    code: ErrorCode = Field(..., description="Machine-readable error code")
+    message: str = Field(..., description="Human-readable error message")
+    details: list[FieldError] | None = Field(
+        default=None, description="Field-level error details for validation errors"
+    )
+
+
+class ErrorResponse(BaseModel):
+    """Standard API error response wrapper."""
+
+    error: ErrorDetail = Field(..., description="Error details")
+
+
 # --- Typed Request Payload Models (Issue #248) ---
 
 
@@ -60,6 +96,9 @@ class RSUParams(BaseModel):
 
     Used as part of the discriminated union for startup_params,
     identified by equity_type="RSU".
+
+    Note: total_equity_grant_pct is in percentage form (0-100) for user convenience.
+    The conversion layer (serializers.py) converts to decimal (0-1) for internal use.
     """
 
     equity_type: Literal["RSU"]

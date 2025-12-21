@@ -505,7 +505,10 @@ class TestWebSocketMonteCarloIntegration:
 
             # Should end with an error due to missing required fields
             assert messages[-1]["type"] == "error", f"Expected error, got: {messages[-1]}"
-            assert "message" in messages[-1]
+            # Check new structured error format
+            assert "error" in messages[-1]
+            assert messages[-1]["error"]["code"] == "VALIDATION_ERROR"
+            assert "message" in messages[-1]["error"]
 
     def test_websocket_stock_options_simulation(self, client):
         """Test WebSocket Monte Carlo with stock options scenario."""

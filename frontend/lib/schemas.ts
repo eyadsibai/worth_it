@@ -52,6 +52,47 @@ export const CompanyStageEnum = z.enum([
 ]);
 export type CompanyStage = z.infer<typeof CompanyStageEnum>;
 
+// Error codes matching backend ErrorCode enum
+export const ErrorCodeEnum = z.enum([
+  "VALIDATION_ERROR",
+  "CALCULATION_ERROR",
+  "RATE_LIMIT_ERROR",
+  "NOT_FOUND_ERROR",
+  "INTERNAL_ERROR",
+]);
+export type ErrorCode = z.infer<typeof ErrorCodeEnum>;
+
+// ============================================================================
+// Error Response Schemas
+// ============================================================================
+
+/**
+ * Field-level validation error detail.
+ */
+export const FieldErrorSchema = z.object({
+  field: z.string(),
+  message: z.string(),
+});
+export type FieldError = z.infer<typeof FieldErrorSchema>;
+
+/**
+ * Structured error information.
+ */
+export const ErrorDetailSchema = z.object({
+  code: ErrorCodeEnum,
+  message: z.string(),
+  details: z.array(FieldErrorSchema).optional().nullable(),
+});
+export type ErrorDetail = z.infer<typeof ErrorDetailSchema>;
+
+/**
+ * Standard API error response wrapper.
+ */
+export const APIErrorResponseSchema = z.object({
+  error: ErrorDetailSchema,
+});
+export type APIErrorResponse = z.infer<typeof APIErrorResponseSchema>;
+
 // ============================================================================
 // Typed API Payload Schemas (Issue #248)
 // These match the Pydantic models in backend/src/worth_it/models.py
@@ -131,7 +172,7 @@ export type TypedBaseParams = z.infer<typeof TypedBaseParamsSchema>;
 /**
  * Type-safe simulation parameter configs.
  * Maps variable parameter names to their min/max ranges.
- * Uses partial to allow any subset of the available parameters.
+ * All fields are optional, allowing any subset of the available parameters.
  */
 export const SimParamConfigsSchema = z.object({
   exit_valuation: SimParamRangeSchema.optional(),
@@ -298,7 +339,7 @@ export type WSCompleteMessage = z.infer<typeof WSCompleteMessageSchema>;
 
 export const WSErrorMessageSchema = z.object({
   type: z.literal("error"),
-  message: z.string(),
+  error: ErrorDetailSchema,
 });
 export type WSErrorMessage = z.infer<typeof WSErrorMessageSchema>;
 

@@ -39,7 +39,59 @@ import type {
   ValuationResult,
   ValuationCompareRequest,
   ValuationCompareResponse,
+  ErrorCode,
+  FieldError,
 } from "./schemas";
+import { APIErrorResponseSchema } from "./schemas";
+
+// ============================================================================
+// API Error Class
+// ============================================================================
+
+/**
+ * Custom error class for structured API errors.
+ * Provides machine-readable error codes and optional field-level details.
+ */
+export class APIError extends Error {
+  constructor(
+    public code: ErrorCode,
+    message: string,
+    public details?: FieldError[] | null
+  ) {
+    super(message);
+    this.name = "APIError";
+    // Ensure instanceof works correctly in TypeScript
+    Object.setPrototypeOf(this, APIError.prototype);
+  }
+
+  /**
+   * Check if this is a validation error.
+   */
+  isValidationError(): boolean {
+    return this.code === "VALIDATION_ERROR";
+  }
+
+  /**
+   * Check if this is a rate limit error.
+   */
+  isRateLimitError(): boolean {
+    return this.code === "RATE_LIMIT_ERROR";
+  }
+
+  /**
+   * Get field-specific error message if available.
+   */
+  getFieldError(fieldName: string): string | undefined {
+    return this.details?.find((d) => d.field === fieldName)?.message;
+  }
+
+  /**
+   * Get all field names that have errors.
+   */
+  getErrorFields(): string[] {
+    return this.details?.map((d) => d.field) ?? [];
+  }
+}
 
 // ============================================================================
 // WebSocket URL Helper
@@ -123,16 +175,33 @@ class APIClient {
     this.client.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response) {
-          // Server responded with error status
-          throw new Error(error.response.data?.detail || error.message);
-        } else if (error.request) {
-          // Request made but no response
-          throw new Error("No response from server. Please check your connection.");
-        } else {
-          // Error in request setup
-          throw new Error(error.message);
+        if (error.response?.data) {
+          // Try to parse structured error format
+          const parsed = APIErrorResponseSchema.safeParse(error.response.data);
+          if (parsed.success) {
+            throw new APIError(
+              parsed.data.error.code,
+              parsed.data.error.message,
+              parsed.data.error.details
+            );
+          }
+          // Fall back to legacy format or raw message
+          const legacyMessage = error.response.data?.detail || error.response.data?.message;
+          if (legacyMessage) {
+            throw new APIError("INTERNAL_ERROR", legacyMessage);
+          }
         }
+
+        if (error.request) {
+          // Request made but no response
+          throw new APIError(
+            "INTERNAL_ERROR",
+            "No response from server. Please check your connection."
+          );
+        }
+
+        // Error in request setup
+        throw new APIError("INTERNAL_ERROR", error.message || "Request failed");
       }
     );
   }
@@ -567,7 +636,8 @@ export function useMonteCarloWebSocket(): MonteCarloWSResult {
             break;
 
           case "error":
-            setError(message.message);
+            // New structured error format: message.error.message
+            setError(message.error.message);
             setIsRunning(false);
             setIsConnected(false);
             ws.close();
