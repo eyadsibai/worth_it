@@ -154,7 +154,8 @@ class TypedBaseParams(BaseModel):
         """
         if isinstance(v, bool):
             raise ValueError("exit_year must be an integer, not a boolean")
-        return v
+        # v is validated as int by Pydantic, cast for type checker
+        return int(v) if isinstance(v, (int, float)) else v  # type: ignore[return-value]
 
 
 # --- Shared Validators ---
