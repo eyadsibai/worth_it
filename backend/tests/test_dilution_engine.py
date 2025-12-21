@@ -289,3 +289,103 @@ class TestApplySafeConversions:
         )
         years = [r["year"] for r in pipeline._upcoming]
         assert years == [1, 2, 3]
+
+
+class TestApplyFutureRounds:
+    """Tests for apply_future_rounds() method."""
+
+    def test_priced_round_dilutes_at_year(self):
+        """Priced round applies dilution starting at its year."""
+        rounds = [{"year": 2, "dilution": 0.2, "is_safe_note": False}]
+        pipeline = (
+            DilutionPipeline(years=range(5))
+            .with_rounds(rounds)
+            .classify()
+            .apply_historical()
+            .apply_safe_conversions()
+            .apply_future_rounds()
+        )
+        factors = pipeline._yearly_factors
+        assert factors[0] == 1.0  # Year 0
+        assert factors[1] == 1.0  # Year 1
+        assert factors[2] == 0.8  # Year 2 (dilution applied)
+        assert factors[3] == 0.8  # Year 3
+        assert factors[4] == 0.8  # Year 4
+
+    def test_safe_dilutes_at_conversion_year(self):
+        """SAFE dilution applies at conversion year, not SAFE year."""
+        rounds = [
+            {"year": 1, "dilution": 0.1, "is_safe_note": True},
+            {"year": 3, "dilution": 0.2, "is_safe_note": False},  # Priced
+        ]
+        pipeline = (
+            DilutionPipeline(years=range(5))
+            .with_rounds(rounds)
+            .classify()
+            .apply_historical()
+            .apply_safe_conversions()
+            .apply_future_rounds()
+        )
+        factors = pipeline._yearly_factors
+        assert factors[0] == 1.0  # Year 0
+        assert factors[1] == 1.0  # Year 1 (SAFE not converted yet)
+        assert factors[2] == 1.0  # Year 2 (SAFE not converted yet)
+        # Year 3: both SAFE (0.9) and priced (0.8) apply = 0.72
+        assert np.isclose(factors[3], 0.72)
+        assert np.isclose(factors[4], 0.72)
+
+    def test_historical_factor_applied(self):
+        """Historical factor is included in yearly factors."""
+        rounds = [
+            {"year": -1, "dilution": 0.1},  # Historical
+            {"year": 2, "dilution": 0.2},   # Future
+        ]
+        pipeline = (
+            DilutionPipeline(years=range(4))
+            .with_rounds(rounds)
+            .classify()
+            .apply_historical()
+            .apply_safe_conversions()
+            .apply_future_rounds()
+        )
+        factors = pipeline._yearly_factors
+        assert np.isclose(factors[0], 0.9)  # Historical only
+        assert np.isclose(factors[1], 0.9)  # Historical only
+        assert np.isclose(factors[2], 0.72)  # 0.9 * 0.8
+        assert np.isclose(factors[3], 0.72)
+
+    def test_safe_without_conversion_never_dilutes(self):
+        """SAFE with no priced round after it never applies dilution."""
+        rounds = [{"year": 1, "dilution": 0.5, "is_safe_note": True}]
+        pipeline = (
+            DilutionPipeline(years=range(5))
+            .with_rounds(rounds)
+            .classify()
+            .apply_historical()
+            .apply_safe_conversions()
+            .apply_future_rounds()
+        )
+        # No priced round, so SAFE never converts
+        assert all(f == 1.0 for f in pipeline._yearly_factors)
+
+    def test_multiple_rounds_compound(self):
+        """Multiple rounds compound their dilution."""
+        rounds = [
+            {"year": 1, "dilution": 0.1},  # 0.9
+            {"year": 2, "dilution": 0.2},  # 0.9 * 0.8 = 0.72
+            {"year": 3, "dilution": 0.1},  # 0.72 * 0.9 = 0.648
+        ]
+        pipeline = (
+            DilutionPipeline(years=range(5))
+            .with_rounds(rounds)
+            .classify()
+            .apply_historical()
+            .apply_safe_conversions()
+            .apply_future_rounds()
+        )
+        factors = pipeline._yearly_factors
+        assert factors[0] == 1.0
+        assert np.isclose(factors[1], 0.9)
+        assert np.isclose(factors[2], 0.72)
+        assert np.isclose(factors[3], 0.648)
+        assert np.isclose(factors[4], 0.648)

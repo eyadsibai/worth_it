@@ -132,3 +132,30 @@ class DilutionPipeline:
             _upcoming=sorted_upcoming,
             _safe_conversions=safe_map,
         )
+
+    def apply_future_rounds(self) -> DilutionPipeline:
+        """Calculate yearly factors applying future dilution at correct years.
+
+        For each year in the timeline:
+        - Start with the historical factor (from completed rounds)
+        - Apply priced rounds that occur at or before the year
+        - Apply SAFEs at their conversion year (next priced round)
+
+        Returns new pipeline instance with _yearly_factors populated.
+        """
+        factors = []
+        for year in self.years:
+            cumulative = self._historical_factor
+            for r in self._upcoming:
+                dilution = r.get("dilution", 0)
+                if r.get("is_safe_note", False):
+                    # SAFE: only dilutes at conversion year
+                    conv_year = self._safe_conversions.get(id(r))
+                    if conv_year is not None and year >= conv_year:
+                        cumulative *= 1 - dilution
+                elif r["year"] <= year:
+                    # Priced round: dilutes at its own year
+                    cumulative *= 1 - dilution
+            factors.append(cumulative)
+
+        return dataclasses.replace(self, _yearly_factors=np.array(factors))
