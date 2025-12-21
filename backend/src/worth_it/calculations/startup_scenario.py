@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 
 from worth_it.calculations.base import EquityType
+from worth_it.calculations.dilution_engine import calculate_dilution_schedule
 
 
 def calculate_startup_scenario(
@@ -75,88 +76,24 @@ def calculate_startup_scenario(
     if equity_type == EquityType.RSU:
         rsu_params = startup_params["rsu_params"]
         initial_equity_pct = rsu_params.get("equity_pct", 0.0)
-        diluted_equity_pct = initial_equity_pct
-        total_dilution = 0.0
 
-        if startup_params.get("simulated_dilution") is not None:
-            total_dilution = startup_params["simulated_dilution"]
-            diluted_equity_pct = initial_equity_pct * (1 - total_dilution)
-            results_df["CumulativeDilution"] = 1 - total_dilution
-            sorted_rounds = []
-        elif rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
-            all_rounds = rsu_params["dilution_rounds"]
+        # Calculate dilution using the dilution engine
+        dilution_rounds = rsu_params.get("dilution_rounds") if rsu_params.get("simulate_dilution") else None
+        dilution_result = calculate_dilution_schedule(
+            years=results_df.index,
+            rounds=dilution_rounds,
+            simulated_dilution=startup_params.get("simulated_dilution"),
+        )
+        yearly_factors = dilution_result.yearly_factors
+        results_df["CumulativeDilution"] = yearly_factors
+        total_dilution = dilution_result.total_dilution
+        last_factor = yearly_factors[-1] if len(yearly_factors) > 0 else 1.0
+        diluted_equity_pct = initial_equity_pct * last_factor
 
-            # Separate completed (historical) and upcoming (future) rounds
-            # Completed rounds: status == "completed" OR year < 0 (negative years = past)
-            # Upcoming rounds: status == "upcoming" OR (no status AND year >= 0)
-            completed_rounds = [
-                r for r in all_rounds
-                if r.get("status") == "completed" or (r.get("status") is None and r.get("year", 0) < 0)
-            ]
-            upcoming_rounds = [
-                r for r in all_rounds
-                if r.get("status") == "upcoming" or (r.get("status") is None and r.get("year", 0) >= 0)
-            ]
-
-            # Calculate historical dilution factor (applied from day 0)
-            # This represents dilution that happened before the user joined
-            historical_dilution_factor = 1.0
-            for r in completed_rounds:
-                dilution = r.get("dilution", 0)
-                historical_dilution_factor *= 1 - dilution
-
-            # Sort upcoming rounds by year for time-based application
-            sorted_rounds = sorted(upcoming_rounds, key=lambda r: r["year"])
-
-            # Handle SAFE note conversion timing for upcoming rounds
-            # SAFE notes don't dilute immediately - they convert at the next priced round
-            safe_conversion_year = {}  # Map SAFE rounds to their conversion year
-            for r in sorted_rounds:
-                if r.get("is_safe_note", False):
-                    # Find the next priced round after this SAFE
-                    conversion_year = None
-                    for future_round in sorted_rounds:
-                        if (
-                            not future_round.get("is_safe_note", False)
-                            and future_round["year"] >= r["year"]
-                        ):
-                            conversion_year = future_round["year"]
-                            break
-                    safe_conversion_year[id(r)] = conversion_year
-
-            # Now calculate yearly dilution factors
-            yearly_dilution_factors = []
-            for year in results_df.index:
-                # Start with historical dilution (always applied)
-                cumulative_dilution_factor = historical_dilution_factor
-
-                # Apply dilution from upcoming rounds that should affect this year
-                for r in sorted_rounds:
-                    is_safe = r.get("is_safe_note", False)
-                    dilution = r.get("dilution", 0)
-
-                    if is_safe:
-                        # SAFE: only dilutes at conversion year
-                        conversion_year = safe_conversion_year.get(id(r))
-                        if conversion_year is not None and year >= conversion_year:
-                            cumulative_dilution_factor *= 1 - dilution
-                    else:
-                        # Priced round: dilutes at its own year
-                        if r["year"] <= year:
-                            cumulative_dilution_factor *= 1 - dilution
-
-                yearly_dilution_factors.append(cumulative_dilution_factor)
-
-            results_df["CumulativeDilution"] = yearly_dilution_factors
-            total_dilution = 1 - results_df["CumulativeDilution"].iloc[-1]
-            diluted_equity_pct = initial_equity_pct * results_df["CumulativeDilution"].iloc[-1]
-
-            # Update sorted_rounds to include all rounds for equity sale calculations
-            sorted_rounds = sorted(all_rounds, key=lambda r: r["year"])
+        # Build sorted_rounds for equity sale calculations
+        if dilution_rounds:
+            sorted_rounds = sorted(dilution_rounds, key=lambda r: r["year"])
         else:
-            results_df["CumulativeDilution"] = 1.0
-            total_dilution = 0.0
-            diluted_equity_pct = initial_equity_pct
             sorted_rounds = []
 
         # --- Account for Sold Equity ---
@@ -234,11 +171,31 @@ def calculate_startup_scenario(
                 "breakeven_label": "Breakeven Price/Share (SAR)",
             }
         )
+    # Calculate NPV values for final comparison
+    # discount_rate defaults to None, using annual_roi in opportunity_cost calculation
+    discount_rate = startup_params.get("discount_rate")
+
+    # Get final opportunity cost NPV from the results_df (already calculated in opportunity_cost.py)
+    final_opportunity_cost_npv = (
+        results_df["Opportunity Cost (NPV)"].iloc[-1]
+        if "Opportunity Cost (NPV)" in results_df.columns
+        else results_df["Opportunity Cost (Invested Surplus)"].iloc[-1]
+    )
+
+    # Calculate final payout NPV: discount future payout to present value
+    # If discount_rate not provided, we can't calculate NPV (return 0 or FV)
+    if discount_rate is not None and exit_year > 0:
+        final_payout_value_npv = final_payout_value / ((1 + discount_rate) ** exit_year)
+    else:
+        final_payout_value_npv = final_payout_value
+
     output.update(
         {
             "results_df": results_df,
             "final_payout_value": final_payout_value,
+            "final_payout_value_npv": final_payout_value_npv,
             "final_opportunity_cost": results_df["Opportunity Cost (Invested Surplus)"].iloc[-1],
+            "final_opportunity_cost_npv": final_opportunity_cost_npv,
         }
     )
 

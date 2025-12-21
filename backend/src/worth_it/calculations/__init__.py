@@ -24,7 +24,6 @@ from worth_it.calculations.cap_table import (
     calculate_conversion_price,
     calculate_interest,
     calculate_months_between_dates,
-    convert_instruments,
 )
 
 # Scenario comparison calculations
@@ -35,6 +34,13 @@ from worth_it.calculations.comparison import (
     identify_winner,
 )
 
+# Conversion engine (fluent pipeline)
+from worth_it.calculations.conversion_engine import (
+    ConversionPipeline,
+    ConversionResult,
+    convert_instruments,
+)
+
 # Dilution preview calculations
 from worth_it.calculations.dilution import (
     DilutionParty,
@@ -42,11 +48,36 @@ from worth_it.calculations.dilution import (
     calculate_dilution_preview,
 )
 
+# Dilution engine (fluent pipeline)
+from worth_it.calculations.dilution_engine import (
+    DilutionPipeline,
+    DilutionResult,
+    calculate_dilution_schedule,
+)
+
 # Financial metrics (IRR, NPV, dilution)
 from worth_it.calculations.financial_metrics import (
     calculate_dilution_from_valuation,
     calculate_irr,
     calculate_npv,
+)
+
+# Investment frequency strategies (Strategy Pattern)
+from worth_it.calculations.investment_strategies import (
+    AnnualInvestmentStrategy,
+    FutureValueResult,
+    InvestmentFrequencyStrategy,
+    MonthlyInvestmentStrategy,
+    get_investment_strategy,
+)
+
+# Monte Carlo simulation classes (Template Method Pattern)
+from worth_it.calculations.monte_carlo_simulation import (
+    IterativeMonteCarlo,
+    MonteCarloResult,
+    MonteCarloSimulation,
+    VectorizedMonteCarlo,
+    get_monte_carlo_simulation,
 )
 
 # Opportunity cost calculations
@@ -73,8 +104,10 @@ from worth_it.calculations.valuation import (
     compare_valuations,
 )
 
-# Waterfall analysis
-from worth_it.calculations.waterfall import (
+# Waterfall analysis (fluent pipeline)
+from worth_it.calculations.waterfall_engine import (
+    WaterfallPipeline,
+    WaterfallResult,
     calculate_waterfall,
 )
 
@@ -110,9 +143,18 @@ __all__ = [
     "calculate_interest",
     "calculate_conversion_price",
     "calculate_months_between_dates",
+    # Conversion engine (fluent pipeline)
+    "ConversionPipeline",
+    "ConversionResult",
     "convert_instruments",
-    # Waterfall
+    # Waterfall (fluent pipeline)
+    "WaterfallPipeline",
+    "WaterfallResult",
     "calculate_waterfall",
+    # Dilution engine (fluent pipeline)
+    "DilutionPipeline",
+    "DilutionResult",
+    "calculate_dilution_schedule",
     # Dilution preview
     "calculate_dilution_preview",
     "DilutionParty",
@@ -138,4 +180,16 @@ __all__ = [
     "VCMethodParams",
     "ValuationResult",
     "ValuationComparison",
+    # Investment frequency strategies (Strategy Pattern)
+    "InvestmentFrequencyStrategy",
+    "MonthlyInvestmentStrategy",
+    "AnnualInvestmentStrategy",
+    "FutureValueResult",
+    "get_investment_strategy",
+    # Monte Carlo simulation classes (Template Method Pattern)
+    "MonteCarloSimulation",
+    "VectorizedMonteCarlo",
+    "IterativeMonteCarlo",
+    "MonteCarloResult",
+    "get_monte_carlo_simulation",
 ]

@@ -75,6 +75,7 @@ backend/
 │   │   ├── base.py            # EquityType enum, annual_to_monthly_roi
 │   │   ├── opportunity_cost.py # create_monthly_data_grid, calculate_annual_opportunity_cost
 │   │   ├── startup_scenario.py # calculate_startup_scenario
+│   │   ├── dilution_engine.py  # DilutionPipeline, calculate_dilution_schedule (fluent pattern)
 │   │   ├── financial_metrics.py # calculate_irr, calculate_npv, calculate_dilution_from_valuation
 │   │   ├── cap_table.py       # calculate_interest, calculate_conversion_price, convert_instruments
 │   │   └── waterfall.py       # calculate_waterfall
@@ -159,6 +160,7 @@ LOG_LEVEL=INFO
 - `src/worth_it/calculations/` - Core calculation logic (modular package)
   - `opportunity_cost.py` - Monthly data grids, opportunity cost calculations
   - `startup_scenario.py` - RSU and Stock Option scenario analysis
+  - `dilution_engine.py` - Fluent pipeline for dilution calculations (see pattern below)
   - `financial_metrics.py` - IRR, NPV, dilution calculations
   - `cap_table.py` - SAFE and Convertible Note conversions
   - `waterfall.py` - Exit proceeds distribution analysis
@@ -170,6 +172,52 @@ LOG_LEVEL=INFO
 - **Unit tests** for calculations - test pure functions in isolation
 - **API tests** for endpoints - test request/response contracts
 - **Integration tests** for full workflows - test end-to-end scenarios
+
+## Fluent Pipeline Pattern
+
+The backend uses an **immutable fluent pipeline pattern** for complex calculations. This pattern:
+- **Readable**: Each step is explicit and self-documenting
+- **Testable**: Intermediate states can be inspected
+- **Composable**: Steps can be reordered or extended
+- **Immutable**: No side effects, thread-safe
+
+### Example: Dilution Engine
+
+```python
+from worth_it.calculations.dilution_engine import (
+    DilutionPipeline,
+    calculate_dilution_schedule,
+)
+
+# Full pipeline (explicit control)
+result = (
+    DilutionPipeline(years)
+    .with_rounds(rounds)
+    .classify()
+    .apply_historical()
+    .apply_safe_conversions()
+    .apply_future_rounds()
+    .build()
+)
+
+# Convenience function (simple API)
+result = calculate_dilution_schedule(
+    years=results_df.index,
+    rounds=dilution_rounds,
+    simulated_dilution=startup_params.get("simulated_dilution"),
+)
+```
+
+### Pattern Guidelines
+
+1. Use `@dataclass(frozen=True)` for immutable state
+2. Each method returns a new instance via `dataclasses.replace()`
+3. Provide both pipeline and convenience function APIs
+4. Terminal method (e.g., `build()`) returns the final result type
+
+### Modules Using This Pattern
+
+- `dilution_engine.py` - Dilution schedule calculation
 
 ## Resources
 

@@ -123,6 +123,7 @@ export const RSUParamsSchema = z.object({
   exit_valuation: z.number().min(0),
   simulate_dilution: z.boolean().default(false),
   dilution_rounds: z.array(z.any()).nullable().optional(),
+  discount_rate: z.number().min(0).max(1).nullable().optional(), // For NPV calculation
 });
 export type RSUParams = z.infer<typeof RSUParamsSchema>;
 
@@ -140,6 +141,7 @@ export const StockOptionsParamsSchema = z.object({
   exit_price_per_share: z.number().min(0),
   exercise_strategy: ExerciseStrategyEnum.default("AT_EXIT"),
   exercise_year: z.number().int().min(1).max(20).nullable().optional(),
+  discount_rate: z.number().min(0).max(1).nullable().optional(), // For NPV calculation
 });
 export type StockOptionsParams = z.infer<typeof StockOptionsParamsSchema>;
 
@@ -278,7 +280,9 @@ export type OpportunityCostResponse = z.infer<typeof OpportunityCostResponseSche
 export const StartupScenarioResponseSchema = z.object({
   results_df: z.array(z.record(z.string(), z.any())),
   final_payout_value: z.number(),
+  final_payout_value_npv: z.number().optional().nullable(),
   final_opportunity_cost: z.number(),
+  final_opportunity_cost_npv: z.number().optional().nullable(),
   payout_label: z.string(),
   breakeven_label: z.string(),
   total_dilution: z.number().optional().nullable(),

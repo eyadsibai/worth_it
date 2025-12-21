@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, Save, Copy, ChevronDown, Info } from "lucide-react";
+import { TrendingUp, TrendingDown, Save, Copy, ChevronDown, Info, Calculator } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import type { StartupScenarioResponse, GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm } from "@/lib/schemas";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
@@ -65,11 +66,25 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
   const [decisionRecommendation, setDecisionRecommendation] = React.useState<DecisionRecommendation | null>(null);
   const [decisionInputs, setDecisionInputs] = React.useState<DecisionInputs | null>(null);
 
+  // NPV toggle state - shows values in today's dollars vs future value
+  const [showNPV, setShowNPV] = React.useState(false);
+
   // Use adjusted results when available, otherwise use original results
   const displayResults = adjustedResults || results;
 
+  // Check if NPV values are available
+  const hasNPVValues = displayResults.final_payout_value_npv != null && displayResults.final_opportunity_cost_npv != null;
+
+  // Get the values to display based on toggle state
+  const displayPayoutValue = showNPV && hasNPVValues
+    ? displayResults.final_payout_value_npv!
+    : displayResults.final_payout_value;
+  const displayOpportunityCost = showNPV && hasNPVValues
+    ? displayResults.final_opportunity_cost_npv!
+    : displayResults.final_opportunity_cost;
+
   // Calculate net benefit (must be before any early returns to satisfy hooks rules)
-  const netBenefit = displayResults.final_payout_value - displayResults.final_opportunity_cost;
+  const netBenefit = displayPayoutValue - displayOpportunityCost;
   const isPositive = netBenefit >= 0;
 
   // Generate announcement text for screen readers (must be called unconditionally)
@@ -382,6 +397,27 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
           />
         )}
 
+        {/* Value Mode Toggle */}
+        {hasNPVValues && (
+          <div className="flex items-center justify-end gap-2 mb-2">
+            <Label htmlFor="npv-toggle" className="text-xs text-muted-foreground flex items-center gap-1">
+              <Calculator className="h-3 w-3" />
+              <span className="hidden sm:inline">View in today&apos;s dollars (NPV)</span>
+              <span className="sm:hidden">NPV View</span>
+              <InfoTooltip
+                content="Toggle between Future Value (what you'll have at exit) and Net Present Value (what those future dollars are worth today, accounting for the time value of money)."
+                iconSize={12}
+              />
+            </Label>
+            <Switch
+              id="npv-toggle"
+              checked={showNPV}
+              onCheckedChange={setShowNPV}
+              aria-label="Toggle NPV view"
+            />
+          </div>
+        )}
+
         {/* Key Metrics Cards */}
         {/* Carousel on mobile, 5-col grid on desktop */}
         <MetricCarousel>
@@ -389,14 +425,14 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
         <Card className="terminal-card overflow-hidden h-full">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardDescription className="data-label text-xs flex items-center gap-1">
-              <span className="hidden sm:inline">Final Payout</span>
-              <span className="sm:hidden">Payout</span>
+              <span className="hidden sm:inline">Final Payout {showNPV && "(NPV)"}</span>
+              <span className="sm:hidden">Payout {showNPV && "(NPV)"}</span>
               <InfoTooltip content={RESULT_EXPLANATIONS.finalPayout} iconSize={12} />
             </CardDescription>
           </CardHeader>
           <CardContent className="pb-4 px-4">
             <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight text-foreground">
-              <AnimatedCurrencyDisplay value={displayResults.final_payout_value} responsive />
+              <AnimatedCurrencyDisplay value={displayPayoutValue} responsive />
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{results.payout_label}</p>
           </CardContent>
@@ -406,14 +442,14 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
         <Card className="terminal-card overflow-hidden h-full">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardDescription className="data-label text-xs flex items-center gap-1">
-              <span className="hidden sm:inline">Opportunity Cost</span>
-              <span className="sm:hidden">Opp. Cost</span>
+              <span className="hidden sm:inline">Opportunity Cost {showNPV && "(NPV)"}</span>
+              <span className="sm:hidden">Opp. Cost {showNPV && "(NPV)"}</span>
               <InfoTooltip content={RESULT_EXPLANATIONS.opportunityCost} iconSize={12} />
             </CardDescription>
           </CardHeader>
           <CardContent className="pb-4 px-4">
             <CardTitle className="text-lg lg:text-xl font-semibold tracking-tight text-foreground">
-              <AnimatedCurrencyDisplay value={displayResults.final_opportunity_cost} responsive />
+              <AnimatedCurrencyDisplay value={displayOpportunityCost} responsive />
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
               <span className="hidden sm:inline">Current job alternative</span>
@@ -426,7 +462,7 @@ export function ScenarioResults({ results, isLoading, monteCarloContent, sensiti
         <Card className="terminal-card overflow-hidden h-full">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardDescription className="data-label text-xs flex items-center gap-1">
-              Net Benefit
+              Net Benefit {showNPV && "(NPV)"}
               <InfoTooltip content={RESULT_EXPLANATIONS.netBenefit} iconSize={12} />
             </CardDescription>
           </CardHeader>

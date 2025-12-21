@@ -108,6 +108,12 @@ class RSUParams(BaseModel):
     exit_valuation: float = Field(..., ge=0)
     simulate_dilution: bool = False
     dilution_rounds: list[DilutionRound] | None = None
+    discount_rate: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+        description="Discount rate for NPV calculation. Defaults to annual_roi if not provided.",
+    )
 
 
 class StockOptionsParams(BaseModel):
@@ -126,6 +132,12 @@ class StockOptionsParams(BaseModel):
     exit_price_per_share: float = Field(..., ge=0)
     exercise_strategy: Literal["AT_EXIT", "AFTER_VESTING"] = "AT_EXIT"
     exercise_year: int | None = None
+    discount_rate: float | None = Field(
+        default=None,
+        ge=0,
+        le=1,
+        description="Discount rate for NPV calculation. Defaults to annual_roi if not provided.",
+    )
 
 
 class TypedBaseParams(BaseModel):
@@ -455,7 +467,9 @@ class StartupScenarioResponse(BaseModel):
 
     results_df: list[dict[str, Any]]  # StartupScenarioResultRow - kept flexible for dynamic columns
     final_payout_value: float
+    final_payout_value_npv: float | None = None  # Payout discounted to present value
     final_opportunity_cost: float
+    final_opportunity_cost_npv: float | None = None  # Opportunity cost discounted to present value
     payout_label: str
     breakeven_label: str
     total_dilution: float | None = None

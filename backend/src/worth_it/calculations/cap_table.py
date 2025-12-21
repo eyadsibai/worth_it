@@ -8,9 +8,7 @@ and stakeholder share allocation.
 
 from __future__ import annotations
 
-import uuid
 from datetime import datetime
-from typing import Any
 
 
 def calculate_interest(
@@ -136,145 +134,13 @@ def calculate_months_between_dates(start_date: str, end_date: str) -> float:
     return months
 
 
-def convert_instruments(
-    cap_table: dict[str, Any],
-    instruments: list[dict[str, Any]],
-    priced_round: dict[str, Any],
-) -> dict[str, Any]:
-    """
-    Convert all outstanding SAFEs and Convertible Notes to equity.
+# Re-export convert_instruments from the fluent pipeline implementation
+# for backward compatibility
+from worth_it.calculations.conversion_engine import convert_instruments  # noqa: E402
 
-    This is the main conversion function that:
-    1. Filters to only outstanding instruments
-    2. Calculates conversion price for each (using "best of both" rule)
-    3. For notes, includes accrued interest in conversion amount
-    4. Creates new stakeholder entries for converted investors
-    5. Updates total shares and recalculates ownership percentages
-
-    Args:
-        cap_table: Current cap table with stakeholders and total_shares
-        instruments: List of SAFE and ConvertibleNote dictionaries
-        priced_round: The priced round triggering conversion with:
-            - price_per_share: Round price per share
-            - date: Optional round date for interest calculation
-
-    Returns:
-        Dictionary with:
-        - updated_cap_table: Cap table with new stakeholders
-        - converted_instruments: Details of each conversion
-        - summary: Aggregate conversion stats
-    """
-    # Extract data from inputs
-    stakeholders = list(cap_table.get("stakeholders", []))
-    total_shares = cap_table.get("total_shares", 10_000_000)
-    option_pool_pct = cap_table.get("option_pool_pct", 10)
-
-    round_price = priced_round["price_per_share"]
-    round_date = priced_round.get("date")
-
-    # Track conversion results
-    converted_details = []
-    total_new_shares = 0
-
-    # Process each instrument
-    for instrument in instruments:
-        # Only convert outstanding instruments
-        if instrument.get("status") != "outstanding":
-            continue
-
-        instrument_type = instrument.get("type")
-        investor_name = instrument["investor_name"]
-        instrument_id = instrument["id"]
-
-        # Determine conversion amount (principal for SAFE, principal + interest for Note)
-        if instrument_type == "CONVERTIBLE_NOTE":
-            principal = instrument["principal_amount"]
-            interest_rate = instrument.get("interest_rate", 0)
-            interest_type = instrument.get("interest_type", "simple")
-            note_date = instrument.get("date")
-
-            # Calculate accrued interest
-            if note_date and round_date:
-                months_elapsed = calculate_months_between_dates(note_date, round_date)
-            else:
-                # Default to maturity_months if dates not provided
-                months_elapsed = instrument.get("maturity_months", 12)
-
-            accrued_interest = calculate_interest(
-                principal, interest_rate, months_elapsed, interest_type
-            )
-            conversion_amount = principal + accrued_interest
-        else:
-            # SAFE - no interest
-            conversion_amount = instrument["investment_amount"]
-            accrued_interest = None
-
-        # Calculate conversion price
-        valuation_cap = instrument.get("valuation_cap")
-        discount_pct = instrument.get("discount_pct")
-
-        conversion_price, price_source = calculate_conversion_price(
-            valuation_cap=valuation_cap,
-            discount_pct=discount_pct,
-            round_price_per_share=round_price,
-            pre_conversion_shares=total_shares,
-        )
-
-        # Calculate shares issued
-        shares_issued = int(conversion_amount / conversion_price)
-        total_new_shares += shares_issued
-
-        # Create new stakeholder for converted investor
-        new_stakeholder = {
-            "id": str(uuid.uuid4()),
-            "name": investor_name,
-            "type": "investor",
-            "shares": shares_issued,
-            "ownership_pct": 0,  # Will be recalculated after all conversions
-            "share_class": "preferred",
-            "vesting": None,
-        }
-        stakeholders.append(new_stakeholder)
-
-        # Record conversion details
-        converted_details.append(
-            {
-                "instrument_id": instrument_id,
-                "instrument_type": instrument_type,
-                "investor_name": investor_name,
-                "investment_amount": conversion_amount,
-                "conversion_price": conversion_price,
-                "price_source": price_source,
-                "shares_issued": shares_issued,
-                "ownership_pct": 0,  # Will be recalculated
-                "accrued_interest": accrued_interest,
-            }
-        )
-
-    # Update total shares
-    new_total_shares = total_shares + total_new_shares
-
-    # Recalculate ownership percentages for all stakeholders
-    for stakeholder in stakeholders:
-        stakeholder["ownership_pct"] = (stakeholder["shares"] / new_total_shares) * 100
-
-    # Update ownership_pct in converted_details
-    for detail in converted_details:
-        detail["ownership_pct"] = (detail["shares_issued"] / new_total_shares) * 100
-
-    # Calculate dilution
-    total_dilution_pct = (total_new_shares / new_total_shares) * 100
-
-    return {
-        "updated_cap_table": {
-            "stakeholders": stakeholders,
-            "total_shares": new_total_shares,
-            "option_pool_pct": option_pool_pct,
-        },
-        "converted_instruments": converted_details,
-        "summary": {
-            "instruments_converted": len(converted_details),
-            "total_shares_issued": total_new_shares,
-            "total_dilution_pct": total_dilution_pct,
-        },
-    }
+__all__ = [
+    "calculate_interest",
+    "calculate_conversion_price",
+    "calculate_months_between_dates",
+    "convert_instruments",
+]
