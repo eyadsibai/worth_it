@@ -208,3 +208,84 @@ class TestApplyHistorical:
         pipeline1 = DilutionPipeline(years=range(5)).with_rounds([]).classify()
         pipeline2 = pipeline1.apply_historical()
         assert pipeline1 is not pipeline2
+
+
+class TestApplySafeConversions:
+    """Tests for apply_safe_conversions() method."""
+
+    def test_safe_converts_at_next_priced_round(self):
+        """SAFE note maps to the next priced round's year."""
+        rounds = [
+            {"year": 1, "dilution": 0.1, "is_safe_note": True},
+            {"year": 3, "dilution": 0.2, "is_safe_note": False},  # Priced
+        ]
+        pipeline = (
+            DilutionPipeline(years=range(5))
+            .with_rounds(rounds)
+            .classify()
+            .apply_safe_conversions()
+        )
+        # SAFE at year 1 should convert at year 3
+        safe_round = pipeline._upcoming[0]
+        assert pipeline._safe_conversions[id(safe_round)] == 3
+
+    def test_safe_with_no_following_priced_round(self):
+        """SAFE with no following priced round gets None."""
+        rounds = [
+            {"year": 1, "dilution": 0.1, "is_safe_note": True},
+            {"year": 2, "dilution": 0.2, "is_safe_note": True},  # Also SAFE
+        ]
+        pipeline = (
+            DilutionPipeline(years=range(5))
+            .with_rounds(rounds)
+            .classify()
+            .apply_safe_conversions()
+        )
+        # Both SAFEs have no priced round to convert at
+        for r in pipeline._upcoming:
+            assert pipeline._safe_conversions[id(r)] is None
+
+    def test_priced_rounds_not_in_safe_map(self):
+        """Priced rounds are not added to SAFE conversion map."""
+        rounds = [
+            {"year": 1, "dilution": 0.1, "is_safe_note": False},  # Priced
+            {"year": 2, "dilution": 0.2, "is_safe_note": False},  # Priced
+        ]
+        pipeline = (
+            DilutionPipeline(years=range(5))
+            .with_rounds(rounds)
+            .classify()
+            .apply_safe_conversions()
+        )
+        assert len(pipeline._safe_conversions) == 0
+
+    def test_safe_converts_at_same_year_priced_round(self):
+        """SAFE can convert at priced round in same year."""
+        rounds = [
+            {"year": 2, "dilution": 0.1, "is_safe_note": True},
+            {"year": 2, "dilution": 0.2, "is_safe_note": False},  # Same year, priced
+        ]
+        pipeline = (
+            DilutionPipeline(years=range(5))
+            .with_rounds(rounds)
+            .classify()
+            .apply_safe_conversions()
+        )
+        safe_round = [r for r in pipeline._upcoming if r.get("is_safe_note")][0]
+        assert pipeline._safe_conversions[id(safe_round)] == 2
+
+    def test_upcoming_rounds_sorted_by_year(self):
+        """apply_safe_conversions sorts upcoming rounds by year."""
+        rounds = [
+            {"year": 3, "dilution": 0.2},
+            {"year": 1, "dilution": 0.1},
+            {"year": 2, "dilution": 0.15},
+        ]
+        pipeline = (
+            DilutionPipeline(years=range(5))
+            .with_rounds(rounds)
+            .classify()
+            .apply_safe_conversions()
+        )
+        years = [r["year"] for r in pipeline._upcoming]
+        assert years == [1, 2, 3]

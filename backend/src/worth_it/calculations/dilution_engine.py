@@ -101,3 +101,34 @@ class DilutionPipeline:
         for r in self._completed:
             factor *= 1 - r.get("dilution", 0)
         return dataclasses.replace(self, _historical_factor=factor)
+
+    def apply_safe_conversions(self) -> DilutionPipeline:
+        """Map SAFE notes to their conversion year (next priced round).
+
+        SAFE notes don't dilute immediately - they convert when a priced
+        round occurs at or after their year. This method:
+        1. Sorts upcoming rounds by year
+        2. For each SAFE, finds the next priced round at or after its year
+        3. Maps SAFE round id -> conversion year (or None if no priced round)
+        """
+        sorted_upcoming = sorted(self._upcoming, key=lambda r: r["year"])
+        safe_map: dict[int, int | None] = {}
+
+        for r in sorted_upcoming:
+            if r.get("is_safe_note", False):
+                # Find next priced round at or after this SAFE
+                conversion_year = None
+                for future in sorted_upcoming:
+                    if (
+                        not future.get("is_safe_note", False)
+                        and future["year"] >= r["year"]
+                    ):
+                        conversion_year = future["year"]
+                        break
+                safe_map[id(r)] = conversion_year
+
+        return dataclasses.replace(
+            self,
+            _upcoming=sorted_upcoming,
+            _safe_conversions=safe_map,
+        )
