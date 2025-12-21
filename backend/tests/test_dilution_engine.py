@@ -72,3 +72,31 @@ class TestDilutionPipelineBase:
         """with_rounds handles None input gracefully."""
         pipeline = DilutionPipeline(years=range(5)).with_rounds(None)
         assert pipeline.rounds == []
+
+
+class TestWithSimulatedDilution:
+    """Tests for with_simulated_dilution shortcut."""
+
+    def test_simulated_dilution_returns_result(self):
+        """with_simulated_dilution returns DilutionResult directly."""
+        pipeline = DilutionPipeline(years=range(5))
+        result = pipeline.with_simulated_dilution(0.3)
+        assert isinstance(result, DilutionResult)
+        assert result.total_dilution == 0.3
+
+    def test_simulated_dilution_fills_factors(self):
+        """All yearly factors are set to (1 - dilution)."""
+        result = DilutionPipeline(years=range(5)).with_simulated_dilution(0.2)
+        expected = np.full(5, 0.8)
+        assert np.allclose(result.yearly_factors, expected)
+
+    def test_simulated_dilution_sets_historical_factor(self):
+        """Historical factor equals (1 - dilution)."""
+        result = DilutionPipeline(years=range(5)).with_simulated_dilution(0.25)
+        assert result.historical_factor == 0.75
+
+    def test_simulated_dilution_zero(self):
+        """Zero dilution returns all ones."""
+        result = DilutionPipeline(years=range(3)).with_simulated_dilution(0.0)
+        assert np.allclose(result.yearly_factors, [1.0, 1.0, 1.0])
+        assert result.total_dilution == 0.0

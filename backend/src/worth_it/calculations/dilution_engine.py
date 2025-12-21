@@ -57,3 +57,13 @@ class DilutionPipeline:
     def with_rounds(self, rounds: list[dict[str, Any]] | None) -> DilutionPipeline:
         """Add funding rounds to the pipeline."""
         return dataclasses.replace(self, rounds=rounds or [])
+
+    def with_simulated_dilution(self, dilution: float) -> DilutionResult:
+        """Shortcut: apply pre-computed dilution and return result immediately."""
+        factor = 1 - dilution
+        factors = np.full(len(self.years), factor)
+        return DilutionResult(
+            yearly_factors=factors,
+            total_dilution=dilution,
+            historical_factor=factor,
+        )
