@@ -1,9 +1,10 @@
 """Tests for the dilution engine fluent pipeline."""
 
 import numpy as np
+import pandas as pd
 import pytest
 
-from worth_it.calculations.dilution_engine import DilutionResult
+from worth_it.calculations.dilution_engine import DilutionPipeline, DilutionResult
 
 
 class TestDilutionResult:
@@ -37,3 +38,37 @@ class TestDilutionResult:
         )
         with pytest.raises(AttributeError):
             result.total_dilution = 0.5
+
+
+class TestDilutionPipelineBase:
+    """Tests for DilutionPipeline base structure."""
+
+    def test_pipeline_creation_with_range(self):
+        """Pipeline can be created with a range of years."""
+        pipeline = DilutionPipeline(years=range(5))
+        assert len(list(pipeline.years)) == 5
+
+    def test_pipeline_creation_with_pandas_index(self):
+        """Pipeline can be created with a pandas Index."""
+        years = pd.RangeIndex(start=0, stop=5)
+        pipeline = DilutionPipeline(years=years)
+        assert len(pipeline.years) == 5
+
+    def test_pipeline_is_immutable(self):
+        """Pipeline cannot be modified after creation."""
+        pipeline = DilutionPipeline(years=range(5))
+        with pytest.raises(AttributeError):
+            pipeline.rounds = [{"year": 1}]
+
+    def test_with_rounds_returns_new_instance(self):
+        """with_rounds returns a new pipeline instance."""
+        pipeline1 = DilutionPipeline(years=range(5))
+        pipeline2 = pipeline1.with_rounds([{"year": 1, "dilution": 0.1}])
+        assert pipeline1 is not pipeline2
+        assert len(pipeline1.rounds) == 0
+        assert len(pipeline2.rounds) == 1
+
+    def test_with_rounds_handles_none(self):
+        """with_rounds handles None input gracefully."""
+        pipeline = DilutionPipeline(years=range(5)).with_rounds(None)
+        assert pipeline.rounds == []
