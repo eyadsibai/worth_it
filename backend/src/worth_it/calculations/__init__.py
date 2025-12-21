@@ -80,8 +80,10 @@ from worth_it.calculations.valuation import (
     compare_valuations,
 )
 
-# Waterfall analysis
-from worth_it.calculations.waterfall import (
+# Waterfall analysis (fluent pipeline)
+from worth_it.calculations.waterfall_engine import (
+    WaterfallPipeline,
+    WaterfallResult,
     calculate_waterfall,
 )
 
@@ -118,7 +120,9 @@ __all__ = [
     "calculate_conversion_price",
     "calculate_months_between_dates",
     "convert_instruments",
-    # Waterfall
+    # Waterfall (fluent pipeline)
+    "WaterfallPipeline",
+    "WaterfallResult",
     "calculate_waterfall",
     # Dilution engine (fluent pipeline)
     "DilutionPipeline",
