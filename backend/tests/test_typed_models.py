@@ -4,14 +4,14 @@ import pytest
 from pydantic import ValidationError
 
 from worth_it.models import (
-    VariableParam,
-    SimParamRange,
+    MonteCarloRequest,
     RSUParams,
+    SensitivityAnalysisRequest,
+    SimParamRange,
+    StartupScenarioRequest,
     StockOptionsParams,
     TypedBaseParams,
-    MonteCarloRequest,
-    SensitivityAnalysisRequest,
-    StartupScenarioRequest,
+    VariableParam,
 )
 
 

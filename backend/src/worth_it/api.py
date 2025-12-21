@@ -83,7 +83,6 @@ from worth_it.services import (
     convert_typed_startup_params_to_internal,
 )
 from worth_it.services.serializers import (
-    convert_equity_type_in_params,
     convert_equity_type_in_startup_params,
 )
 

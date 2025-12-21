@@ -1700,9 +1700,9 @@ class TestBaseParamsValidation:
         assert response.status_code == 400
         data = response.json()
         assert data["error"]["code"] == "VALIDATION_ERROR"
-        # For model-level validators, field info is in the error message
+        # Field names are in the 'field' attribute of each detail
         details = data["error"].get("details", [])
-        assert any("exit_year" in d.get("message", "") for d in details)
+        assert any("exit_year" in d.get("field", "") for d in details)
 
     def test_monte_carlo_invalid_exit_year_too_low(self):
         """Test Monte Carlo rejects exit_year below 1."""
@@ -1733,9 +1733,9 @@ class TestBaseParamsValidation:
         assert response.status_code == 400
         data = response.json()
         assert data["error"]["code"] == "VALIDATION_ERROR"
-        # For model-level validators, field info is in the error message
+        # Field names are in the 'field' attribute of each detail
         details = data["error"].get("details", [])
-        assert any("exit_year" in d.get("message", "") for d in details)
+        assert any("exit_year" in d.get("field", "") for d in details)
 
     def test_monte_carlo_invalid_exit_year_too_high(self):
         """Test Monte Carlo rejects exit_year above 20."""
@@ -1766,9 +1766,9 @@ class TestBaseParamsValidation:
         assert response.status_code == 400
         data = response.json()
         assert data["error"]["code"] == "VALIDATION_ERROR"
-        # For model-level validators, field info is in the error message
+        # Field names are in the 'field' attribute of each detail
         details = data["error"].get("details", [])
-        assert any("exit_year" in d.get("message", "") for d in details)
+        assert any("exit_year" in d.get("field", "") for d in details)
 
     def test_sensitivity_missing_exit_year(self):
         """Test Sensitivity Analysis rejects request missing exit_year."""
@@ -1798,9 +1798,9 @@ class TestBaseParamsValidation:
         assert response.status_code == 400
         data = response.json()
         assert data["error"]["code"] == "VALIDATION_ERROR"
-        # For model-level validators, field info is in the error message
+        # Field names are in the 'field' attribute of each detail
         details = data["error"].get("details", [])
-        assert any("exit_year" in d.get("message", "") for d in details)
+        assert any("exit_year" in d.get("field", "") for d in details)
 
     def test_sensitivity_invalid_exit_year(self):
         """Test Sensitivity Analysis rejects invalid exit_year."""
@@ -1830,9 +1830,9 @@ class TestBaseParamsValidation:
         assert response.status_code == 400
         data = response.json()
         assert data["error"]["code"] == "VALIDATION_ERROR"
-        # For model-level validators, field info is in the error message
+        # Field names are in the 'field' attribute of each detail
         details = data["error"].get("details", [])
-        assert any("exit_year" in d.get("message", "") for d in details)
+        assert any("exit_year" in d.get("field", "") for d in details)
 
     def test_monte_carlo_boolean_exit_year_rejected(self):
         """Test Monte Carlo rejects boolean exit_year values.
@@ -1917,11 +1917,11 @@ class TestBaseParamsValidation:
         assert response.status_code == 400
         data = response.json()
         assert data["error"]["code"] == "VALIDATION_ERROR"
-        # For model-level validators, field info is in the error message
+        # Field names are in the 'field' attribute of each detail
         details = data["error"].get("details", [])
-        messages = " ".join(d.get("message", "") for d in details)
-        assert "exit_year" in messages
-        assert "startup_monthly_salary" in messages
+        fields = " ".join(d.get("field", "") for d in details)
+        assert "exit_year" in fields
+        assert "startup_monthly_salary" in fields
 
 
 # --- Structured Error Response Tests ---
