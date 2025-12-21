@@ -75,9 +75,14 @@ from worth_it.monte_carlo import (
 from worth_it.monte_carlo import (
     run_sensitivity_analysis as mc_sensitivity_analysis,
 )
-from worth_it.services import CapTableService, StartupService
+from worth_it.services import (
+    CapTableService,
+    StartupService,
+    convert_sim_param_configs_to_internal,
+    convert_typed_base_params_to_internal,
+    convert_typed_startup_params_to_internal,
+)
 from worth_it.services.serializers import (
-    convert_equity_type_in_params,
     convert_equity_type_in_startup_params,
 )
 
@@ -382,10 +387,13 @@ async def calculate_startup_scenario(request: Request, body: StartupScenarioRequ
     including dilution effects and breakeven analysis.
     """
     try:
+        # Convert typed startup_params to internal format for calculations
+        internal_startup_params = convert_typed_startup_params_to_internal(body.startup_params)
+
         # Use service layer for business logic and column mapping
         result = startup_service.calculate_scenario(
             opportunity_cost_data=body.opportunity_cost_data,
-            startup_params=body.startup_params.copy(),
+            startup_params=internal_startup_params,
         )
 
         return StartupScenarioResponse(
@@ -444,13 +452,14 @@ async def run_monte_carlo(request: Request, body: MonteCarloRequest):
     to understand the range of potential outcomes.
     """
     try:
-        # Convert equity_type string to EquityType enum if needed
-        base_params = convert_equity_type_in_params(body.base_params.copy())
+        # Convert typed models to internal format for calculations
+        base_params = convert_typed_base_params_to_internal(body.base_params)
+        sim_param_configs = convert_sim_param_configs_to_internal(body.sim_param_configs)
 
         results = mc_run_simulation(
             num_simulations=body.num_simulations,
             base_params=base_params,
-            sim_param_configs=body.sim_param_configs,
+            sim_param_configs=sim_param_configs,
         )
         return MonteCarloResponse(
             net_outcomes=results["net_outcomes"].tolist(),
@@ -487,10 +496,17 @@ async def _run_simulation_with_progress(
     websocket: WebSocket,
     request: MonteCarloRequest,
     base_params: dict,
+    sim_param_configs: dict,
 ) -> None:
     """Run Monte Carlo simulation with progress updates.
 
     This is the core simulation logic, separated out to enable timeout wrapping.
+
+    Args:
+        websocket: WebSocket connection to send progress updates
+        request: Original request (used for num_simulations)
+        base_params: Converted base parameters in internal format
+        sim_param_configs: Converted sim param configs in internal format
     """
     # Send initial progress
     await websocket.send_json(
@@ -518,7 +534,7 @@ async def _run_simulation_with_progress(
                 mc_run_simulation,
                 num_simulations=current_batch_size,
                 base_params=base_params,
-                sim_param_configs=request.sim_param_configs,
+                sim_param_configs=sim_param_configs,
             ),
         )
 
@@ -622,13 +638,14 @@ async def websocket_monte_carlo(websocket: WebSocket):
                 )
                 return
 
-            # Convert equity_type string to EquityType enum if needed
-            base_params = convert_equity_type_in_params(request.base_params.copy())
+            # Convert typed models to internal format for calculations
+            base_params = convert_typed_base_params_to_internal(request.base_params)
+            sim_param_configs = convert_sim_param_configs_to_internal(request.sim_param_configs)
 
             # Run simulation with timeout
             try:
                 await asyncio.wait_for(
-                    _run_simulation_with_progress(websocket, request, base_params),
+                    _run_simulation_with_progress(websocket, request, base_params, sim_param_configs),
                     timeout=settings.WS_SIMULATION_TIMEOUT_SECONDS,
                 )
             except TimeoutError:
@@ -700,12 +717,13 @@ async def run_sensitivity(request: Request, body: SensitivityAnalysisRequest):
     to identify the most influential factors.
     """
     try:
-        # Convert equity_type string to EquityType enum if needed
-        base_params = convert_equity_type_in_params(body.base_params.copy())
+        # Convert typed models to internal format for calculations
+        base_params = convert_typed_base_params_to_internal(body.base_params)
+        sim_param_configs = convert_sim_param_configs_to_internal(body.sim_param_configs)
 
         df = mc_sensitivity_analysis(
             base_params=base_params,
-            sim_param_configs=body.sim_param_configs,
+            sim_param_configs=sim_param_configs,
         )
         return SensitivityAnalysisResponse(data=df.to_dict(orient="records"))  # type: ignore[arg-type]
     except (ValueError, TypeError, KeyError) as e:

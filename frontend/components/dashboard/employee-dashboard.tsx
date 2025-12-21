@@ -181,37 +181,36 @@ export function EmployeeDashboard() {
                     annual_roi: debouncedCurrentJob.assumed_annual_roi / 100,
                     investment_frequency: debouncedCurrentJob.investment_frequency,
                     failure_probability: 0.6,
+                    // Issue #248: Use flat typed format for startup_params
                     startup_params: debouncedEquityDetails.equity_type === "RSU" ? {
-                      equity_type: "RSU",
-                      total_vesting_years: debouncedEquityDetails.vesting_period,
-                      cliff_years: debouncedEquityDetails.cliff_period,
-                      rsu_params: {
-                        equity_pct: debouncedEquityDetails.total_equity_grant_pct / 100,
-                        target_exit_valuation: debouncedEquityDetails.exit_valuation,
-                        simulate_dilution: debouncedEquityDetails.simulate_dilution,
-                        dilution_rounds: debouncedEquityDetails.simulate_dilution
-                          ? debouncedEquityDetails.dilution_rounds.filter((r) => r.enabled).map((r) => ({
-                              round_name: r.round_name,
-                              round_type: r.round_type,
-                              year: r.year,
-                              dilution: r.dilution_pct ? r.dilution_pct / 100 : undefined,
-                              pre_money_valuation: r.pre_money_valuation,
-                              amount_raised: r.amount_raised,
-                              salary_change: r.salary_change,
-                            }))
-                          : [],
-                      },
+                      equity_type: "RSU" as const,
+                      monthly_salary: debouncedEquityDetails.monthly_salary,
+                      total_equity_grant_pct: debouncedEquityDetails.total_equity_grant_pct,
+                      vesting_period: debouncedEquityDetails.vesting_period,
+                      cliff_period: debouncedEquityDetails.cliff_period,
+                      exit_valuation: debouncedEquityDetails.exit_valuation,
+                      simulate_dilution: debouncedEquityDetails.simulate_dilution,
+                      dilution_rounds: debouncedEquityDetails.simulate_dilution
+                        ? debouncedEquityDetails.dilution_rounds.filter((r) => r.enabled).map((r) => ({
+                            round_name: r.round_name,
+                            round_type: r.round_type,
+                            year: r.year,
+                            dilution_pct: r.dilution_pct ? r.dilution_pct / 100 : undefined,
+                            pre_money_valuation: r.pre_money_valuation,
+                            amount_raised: r.amount_raised,
+                            salary_change: r.salary_change,
+                          }))
+                        : null,
                     } : {
-                      equity_type: "STOCK_OPTIONS",
-                      total_vesting_years: debouncedEquityDetails.vesting_period,
-                      cliff_years: debouncedEquityDetails.cliff_period,
-                      options_params: {
-                        num_options: debouncedEquityDetails.num_options,
-                        strike_price: debouncedEquityDetails.strike_price,
-                        target_exit_price_per_share: debouncedEquityDetails.exit_price_per_share,
-                        exercise_strategy: debouncedEquityDetails.exercise_strategy,
-                        exercise_year: debouncedEquityDetails.exercise_year,
-                      },
+                      equity_type: "STOCK_OPTIONS" as const,
+                      monthly_salary: debouncedEquityDetails.monthly_salary,
+                      num_options: debouncedEquityDetails.num_options,
+                      strike_price: debouncedEquityDetails.strike_price,
+                      vesting_period: debouncedEquityDetails.vesting_period,
+                      cliff_period: debouncedEquityDetails.cliff_period,
+                      exit_price_per_share: debouncedEquityDetails.exit_price_per_share,
+                      exercise_strategy: debouncedEquityDetails.exercise_strategy ?? "AT_EXIT",
+                      exercise_year: debouncedEquityDetails.exercise_year ?? null,
                     },
                   }}
                   onComplete={setMonteCarloResults}

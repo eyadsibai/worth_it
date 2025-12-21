@@ -39,10 +39,8 @@ export interface BreakevenThreshold {
 /**
  * Build a sensitivity analysis request from form data.
  *
- * The base_params structure must match what run_monte_carlo_simulation_vectorized
- * expects in the backend (monte_carlo.py). Key requirements:
- * - current_job_monthly_salary (not monthly_salary)
- * - nested startup_params object containing equity_type, vesting info, and rsu_params/options_params
+ * Uses the Issue #248 typed payload format with flat startup_params structure
+ * and typed sim_param_configs keys.
  */
 export function buildSensitivityRequest(
   globalSettings: GlobalSettingsForm,
@@ -58,33 +56,31 @@ export function buildSensitivityRequest(
     ? (equity as RSUForm).exit_valuation
     : (equity as StockOptionsForm).exit_price_per_share * 1000000;
 
-  // Build nested startup_params to match backend Monte Carlo structure
+  // Build flat startup_params using Issue #248 typed format
   const startup_params = isRSU
     ? {
         equity_type: "RSU" as const,
-        total_vesting_years: equity.vesting_period,
-        cliff_years: equity.cliff_period,
-        rsu_params: {
-          equity_pct: (equity as RSUForm).total_equity_grant_pct / 100,
-          target_exit_valuation: (equity as RSUForm).exit_valuation,
-          simulate_dilution: false,
-          dilution_rounds: [],
-        },
+        monthly_salary: equity.monthly_salary,
+        total_equity_grant_pct: (equity as RSUForm).total_equity_grant_pct,
+        vesting_period: equity.vesting_period,
+        cliff_period: equity.cliff_period,
+        exit_valuation: (equity as RSUForm).exit_valuation,
+        simulate_dilution: false,
+        dilution_rounds: null,
       }
     : {
         equity_type: "STOCK_OPTIONS" as const,
-        total_vesting_years: equity.vesting_period,
-        cliff_years: equity.cliff_period,
-        options_params: {
-          num_options: (equity as StockOptionsForm).num_options,
-          strike_price: (equity as StockOptionsForm).strike_price,
-          target_exit_price_per_share: (equity as StockOptionsForm).exit_price_per_share,
-          exercise_strategy: (equity as StockOptionsForm).exercise_strategy || "Exercise at Exit",
-          exercise_year: (equity as StockOptionsForm).exercise_year || globalSettings.exit_year,
-        },
+        monthly_salary: equity.monthly_salary,
+        num_options: (equity as StockOptionsForm).num_options,
+        strike_price: (equity as StockOptionsForm).strike_price,
+        vesting_period: equity.vesting_period,
+        cliff_period: equity.cliff_period,
+        exit_price_per_share: (equity as StockOptionsForm).exit_price_per_share,
+        exercise_strategy: (equity as StockOptionsForm).exercise_strategy || "AT_EXIT",
+        exercise_year: (equity as StockOptionsForm).exercise_year || null,
       };
 
-  // Base parameters for calculation - matches run_monte_carlo_simulation_vectorized expectations
+  // Base parameters for calculation - uses Issue #248 TypedBaseParams format
   const base_params = {
     exit_year: globalSettings.exit_year,
     current_job_monthly_salary: currentJob.monthly_salary,
@@ -96,29 +92,37 @@ export function buildSensitivityRequest(
     startup_params,
   };
 
-  // Simulation parameter configurations
-  // Use PERT distribution for valuation (bounded), normal for ROI
-  const sim_param_configs = {
-    valuation: {
-      min_val: exitValuation * 0.2, // 20% of expected
-      max_val: exitValuation * 2.0, // 200% of expected
-      mode: exitValuation,
-    },
-    roi: {
-      mean: currentJob.assumed_annual_roi / 100,
-      std_dev: 0.02, // 2% standard deviation
-    },
-    salary_growth: {
-      min_val: 0.0,
-      max_val: 0.1, // 0-10% growth
-      mode: currentJob.annual_salary_growth_rate / 100,
-    },
-    dilution: {
-      min_val: 0.0,
-      max_val: 0.5, // 0-50% dilution
-      mode: 0.2, // Default 20% expected dilution
-    },
-  };
+  // Simulation parameter configurations using Issue #248 typed keys
+  // Uses simple min/max ranges (conversion layer handles PERT/Normal distribution)
+  const sim_param_configs = isRSU
+    ? {
+        exit_valuation: {
+          min: exitValuation * 0.2, // 20% of expected
+          max: exitValuation * 2.0, // 200% of expected
+        },
+        annual_roi: {
+          min: Math.max(0, currentJob.assumed_annual_roi / 100 - 0.04),
+          max: currentJob.assumed_annual_roi / 100 + 0.04,
+        },
+        current_job_salary_growth_rate: {
+          min: 0.0,
+          max: 0.1, // 0-10% growth
+        },
+      }
+    : {
+        exit_price_per_share: {
+          min: (equity as StockOptionsForm).exit_price_per_share * 0.2,
+          max: (equity as StockOptionsForm).exit_price_per_share * 2.0,
+        },
+        annual_roi: {
+          min: Math.max(0, currentJob.assumed_annual_roi / 100 - 0.04),
+          max: currentJob.assumed_annual_roi / 100 + 0.04,
+        },
+        current_job_salary_growth_rate: {
+          min: 0.0,
+          max: 0.1, // 0-10% growth
+        },
+      };
 
   return {
     base_params,

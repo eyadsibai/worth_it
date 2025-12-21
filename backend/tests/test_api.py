@@ -80,7 +80,8 @@ def test_startup_scenario_rsu():
     monthly_response = client.post("/api/monthly-data-grid", json=monthly_request)
     monthly_data = monthly_response.json()["data"]
 
-    startup_params = {
+    # Old nested format for opportunity cost endpoint (unchanged)
+    old_startup_params = {
         "equity_type": "RSU",
         "total_vesting_years": 4,
         "cliff_years": 1,
@@ -98,15 +99,27 @@ def test_startup_scenario_rsu():
         "annual_roi": 0.05,
         "investment_frequency": "Annually",
         "options_params": None,
-        "startup_params": startup_params,
+        "startup_params": old_startup_params,
     }
     opp_response = client.post("/api/opportunity-cost", json=opp_request)
     opp_data = opp_response.json()["data"]
 
+    # New typed format for startup scenario endpoint (Issue #248)
+    typed_startup_params = {
+        "equity_type": "RSU",
+        "monthly_salary": 8000.0,
+        "total_equity_grant_pct": 5.0,  # 5% as percentage
+        "vesting_period": 4,
+        "cliff_period": 1,
+        "exit_valuation": 10_000_000.0,
+        "simulate_dilution": False,
+        "dilution_rounds": None,
+    }
+
     # Calculate scenario
     scenario_request = {
         "opportunity_cost_data": opp_data,
-        "startup_params": startup_params,
+        "startup_params": typed_startup_params,
     }
     response = client.post("/api/startup-scenario", json=scenario_request)
     assert response.status_code == 200
@@ -130,7 +143,8 @@ def test_startup_scenario_results_df_column_names():
     monthly_response = client.post("/api/monthly-data-grid", json=monthly_request)
     monthly_data = monthly_response.json()["data"]
 
-    startup_params = {
+    # Old nested format for opportunity cost endpoint (unchanged)
+    old_startup_params = {
         "equity_type": "RSU",
         "total_vesting_years": 4,
         "cliff_years": 1,
@@ -148,15 +162,27 @@ def test_startup_scenario_results_df_column_names():
         "annual_roi": 0.05,
         "investment_frequency": "Annually",
         "options_params": None,
-        "startup_params": startup_params,
+        "startup_params": old_startup_params,
     }
     opp_response = client.post("/api/opportunity-cost", json=opp_request)
     opp_data = opp_response.json()["data"]
 
+    # New typed format for startup scenario endpoint (Issue #248)
+    typed_startup_params = {
+        "equity_type": "RSU",
+        "monthly_salary": 10000.0,
+        "total_equity_grant_pct": 5.0,  # 5% as percentage
+        "vesting_period": 4,
+        "cliff_period": 1,
+        "exit_valuation": 10_000_000.0,
+        "simulate_dilution": False,
+        "dilution_rounds": None,
+    }
+
     # Calculate scenario
     scenario_request = {
         "opportunity_cost_data": opp_data,
-        "startup_params": startup_params,
+        "startup_params": typed_startup_params,
     }
     response = client.post("/api/startup-scenario", json=scenario_request)
     assert response.status_code == 200
@@ -200,7 +226,8 @@ def test_startup_scenario_options():
     monthly_response = client.post("/api/monthly-data-grid", json=monthly_request)
     monthly_data = monthly_response.json()["data"]
 
-    startup_params = {
+    # Old nested format for opportunity cost endpoint (unchanged)
+    old_startup_params = {
         "equity_type": "STOCK_OPTIONS",
         "total_vesting_years": 4,
         "cliff_years": 1,
@@ -217,16 +244,29 @@ def test_startup_scenario_options():
         "monthly_data": monthly_data,
         "annual_roi": 0.05,
         "investment_frequency": "Annually",
-        "options_params": startup_params["options_params"],
-        "startup_params": startup_params,
+        "options_params": old_startup_params["options_params"],
+        "startup_params": old_startup_params,
     }
     opp_response = client.post("/api/opportunity-cost", json=opp_request)
     opp_data = opp_response.json()["data"]
 
+    # New typed format for startup scenario endpoint (Issue #248)
+    typed_startup_params = {
+        "equity_type": "STOCK_OPTIONS",
+        "monthly_salary": 8000.0,
+        "num_options": 10000,
+        "strike_price": 1.0,
+        "vesting_period": 4,
+        "cliff_period": 1,
+        "exit_price_per_share": 10.0,
+        "exercise_strategy": "AT_EXIT",
+        "exercise_year": None,
+    }
+
     # Calculate scenario
     scenario_request = {
         "opportunity_cost_data": opp_data,
-        "startup_params": startup_params,
+        "startup_params": typed_startup_params,
     }
     response = client.post("/api/startup-scenario", json=scenario_request)
     assert response.status_code == 200
@@ -266,31 +306,33 @@ def test_calculate_npv():
 
 def test_monte_carlo_simulation():
     """Test Monte Carlo simulation."""
+    # New typed format for Monte Carlo (Issue #248)
     request_data = {
         "num_simulations": 50,
         "base_params": {
             "exit_year": 5,
-            "current_job_monthly_salary": 10000,
-            "startup_monthly_salary": 8000,
+            "current_job_monthly_salary": 10000.0,
+            "startup_monthly_salary": 8000.0,
             "current_job_salary_growth_rate": 0.03,
             "annual_roi": 0.05,
             "investment_frequency": "Annually",
+            "failure_probability": 0.25,
+            # Flat typed RSUParams
             "startup_params": {
                 "equity_type": "RSU",
-                "total_vesting_years": 4,
-                "cliff_years": 1,
-                "rsu_params": {
-                    "equity_pct": 0.05,
-                    "target_exit_valuation": 20_000_000,
-                    "simulate_dilution": False,
-                },
-                "options_params": {},
+                "monthly_salary": 8000.0,
+                "total_equity_grant_pct": 5.0,  # 5% as percentage
+                "vesting_period": 4,
+                "cliff_period": 1,
+                "exit_valuation": 20_000_000.0,
+                "simulate_dilution": False,
+                "dilution_rounds": None,
             },
-            "failure_probability": 0.25,
         },
+        # New sim_param_configs format: enum keys + min/max ranges
         "sim_param_configs": {
-            "valuation": {"min_val": 10_000_000, "max_val": 30_000_000, "mode": 20_000_000},
-            "roi": {"mean": 0.05, "std_dev": 0.02},
+            "exit_valuation": {"min": 10_000_000.0, "max": 30_000_000.0},
+            "annual_roi": {"min": 0.03, "max": 0.07},
         },
     }
     response = client.post("/api/monte-carlo", json=request_data)
@@ -304,30 +346,32 @@ def test_monte_carlo_simulation():
 
 def test_sensitivity_analysis():
     """Test sensitivity analysis."""
+    # New typed format for sensitivity analysis (Issue #248)
     request_data = {
         "base_params": {
             "exit_year": 5,
-            "current_job_monthly_salary": 10000,
-            "startup_monthly_salary": 8000,
+            "current_job_monthly_salary": 10000.0,
+            "startup_monthly_salary": 8000.0,
             "current_job_salary_growth_rate": 0.03,
             "annual_roi": 0.05,
             "investment_frequency": "Annually",
+            "failure_probability": 0.0,
+            # Flat typed RSUParams
             "startup_params": {
                 "equity_type": "RSU",
-                "total_vesting_years": 4,
-                "cliff_years": 1,
-                "rsu_params": {
-                    "equity_pct": 0.05,
-                    "target_exit_valuation": 20_000_000,
-                    "simulate_dilution": False,
-                },
-                "options_params": {},
+                "monthly_salary": 8000.0,
+                "total_equity_grant_pct": 5.0,  # 5% as percentage
+                "vesting_period": 4,
+                "cliff_period": 1,
+                "exit_valuation": 20_000_000.0,
+                "simulate_dilution": False,
+                "dilution_rounds": None,
             },
-            "failure_probability": 0.0,
         },
+        # New sim_param_configs format: enum keys + min/max ranges
         "sim_param_configs": {
-            "valuation": {"min_val": 10_000_000, "max_val": 30_000_000, "mode": 20_000_000},
-            "roi": {"mean": 0.05, "std_dev": 0.02},
+            "exit_valuation": {"min": 10_000_000.0, "max": 30_000_000.0},
+            "annual_roi": {"min": 0.03, "max": 0.07},
         },
     }
     response = client.post("/api/sensitivity-analysis", json=request_data)
@@ -477,32 +521,33 @@ class TestWebSocketMonteCarlo:
 
     @staticmethod
     def _get_valid_request():
-        """Get a valid Monte Carlo request payload."""
+        """Get a valid Monte Carlo request payload (Issue #248 typed format)."""
         return {
             "num_simulations": 20,
             "base_params": {
                 "exit_year": 3,
-                "current_job_monthly_salary": 10000,
-                "startup_monthly_salary": 8000,
+                "current_job_monthly_salary": 10000.0,
+                "startup_monthly_salary": 8000.0,
                 "current_job_salary_growth_rate": 0.03,
                 "annual_roi": 0.05,
                 "investment_frequency": "Annually",
+                "failure_probability": 0.0,
+                # Flat typed RSUParams
                 "startup_params": {
                     "equity_type": "RSU",
-                    "total_vesting_years": 4,
-                    "cliff_years": 1,
-                    "rsu_params": {
-                        "equity_pct": 0.05,
-                        "target_exit_valuation": 20_000_000,
-                        "simulate_dilution": False,
-                    },
-                    "options_params": {},
+                    "monthly_salary": 8000.0,
+                    "total_equity_grant_pct": 5.0,  # 5% as percentage
+                    "vesting_period": 4,
+                    "cliff_period": 1,
+                    "exit_valuation": 20_000_000.0,
+                    "simulate_dilution": False,
+                    "dilution_rounds": None,
                 },
-                "failure_probability": 0.0,
             },
+            # New sim_param_configs format: enum keys + min/max ranges
             "sim_param_configs": {
-                "valuation": {"min_val": 10_000_000, "max_val": 30_000_000, "mode": 20_000_000},
-                "roi": {"mean": 0.05, "std_dev": 0.02},
+                "exit_valuation": {"min": 10_000_000.0, "max": 30_000_000.0},
+                "annual_roi": {"min": 0.03, "max": 0.07},
             },
         }
 
@@ -682,26 +727,26 @@ class TestWebSocketSecurity:
         from worth_it.config import settings
         from worth_it.models import MonteCarloRequest
 
-        # Valid base_params with all required fields
+        # Valid base_params with all required fields (Issue #248 typed format)
         valid_base_params = {
             "exit_year": 5,
-            "current_job_monthly_salary": 10000,
-            "startup_monthly_salary": 8000,
+            "current_job_monthly_salary": 10000.0,
+            "startup_monthly_salary": 8000.0,
             "current_job_salary_growth_rate": 0.03,
             "annual_roi": 0.05,
             "investment_frequency": "Monthly",
+            "failure_probability": 0.25,
+            # Flat typed RSUParams
             "startup_params": {
                 "equity_type": "RSU",
-                "total_vesting_years": 4,
-                "cliff_years": 1,
-                "rsu_params": {
-                    "equity_pct": 0.05,
-                    "target_exit_valuation": 20_000_000,
-                    "simulate_dilution": False,
-                },
-                "options_params": {},
+                "monthly_salary": 8000.0,
+                "total_equity_grant_pct": 5.0,
+                "vesting_period": 4,
+                "cliff_period": 1,
+                "exit_valuation": 20_000_000.0,
+                "simulate_dilution": False,
+                "dilution_rounds": None,
             },
-            "failure_probability": 0.25,
         }
 
         # Valid request
@@ -1621,7 +1666,10 @@ class TestScenarioComparisonAPI:
 
 
 class TestBaseParamsValidation:
-    """Tests for base_params validation in Monte Carlo and Sensitivity Analysis."""
+    """Tests for base_params validation in Monte Carlo and Sensitivity Analysis.
+
+    Updated for Issue #248 typed format.
+    """
 
     def test_monte_carlo_missing_exit_year(self):
         """Test Monte Carlo rejects request missing exit_year."""
@@ -1629,18 +1677,22 @@ class TestBaseParamsValidation:
             "num_simulations": 50,
             "base_params": {
                 # exit_year is missing
-                "current_job_monthly_salary": 10000,
-                "startup_monthly_salary": 8000,
+                "current_job_monthly_salary": 10000.0,
+                "startup_monthly_salary": 8000.0,
                 "current_job_salary_growth_rate": 0.03,
                 "annual_roi": 0.05,
                 "investment_frequency": "Annually",
+                "failure_probability": 0.25,
                 "startup_params": {
                     "equity_type": "RSU",
-                    "total_vesting_years": 4,
-                    "cliff_years": 1,
-                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                    "monthly_salary": 8000.0,
+                    "total_equity_grant_pct": 5.0,
+                    "vesting_period": 4,
+                    "cliff_period": 1,
+                    "exit_valuation": 20_000_000.0,
+                    "simulate_dilution": False,
+                    "dilution_rounds": None,
                 },
-                "failure_probability": 0.25,
             },
             "sim_param_configs": {},
         }
@@ -1648,9 +1700,9 @@ class TestBaseParamsValidation:
         assert response.status_code == 400
         data = response.json()
         assert data["error"]["code"] == "VALIDATION_ERROR"
-        # For model-level validators, field info is in the error message
+        # Field names are in the 'field' attribute of each detail
         details = data["error"].get("details", [])
-        assert any("exit_year" in d.get("message", "") for d in details)
+        assert any("exit_year" in d.get("field", "") for d in details)
 
     def test_monte_carlo_invalid_exit_year_too_low(self):
         """Test Monte Carlo rejects exit_year below 1."""
@@ -1658,18 +1710,22 @@ class TestBaseParamsValidation:
             "num_simulations": 50,
             "base_params": {
                 "exit_year": 0,  # Invalid - too low
-                "current_job_monthly_salary": 10000,
-                "startup_monthly_salary": 8000,
+                "current_job_monthly_salary": 10000.0,
+                "startup_monthly_salary": 8000.0,
                 "current_job_salary_growth_rate": 0.03,
                 "annual_roi": 0.05,
                 "investment_frequency": "Annually",
+                "failure_probability": 0.25,
                 "startup_params": {
                     "equity_type": "RSU",
-                    "total_vesting_years": 4,
-                    "cliff_years": 1,
-                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                    "monthly_salary": 8000.0,
+                    "total_equity_grant_pct": 5.0,
+                    "vesting_period": 4,
+                    "cliff_period": 1,
+                    "exit_valuation": 20_000_000.0,
+                    "simulate_dilution": False,
+                    "dilution_rounds": None,
                 },
-                "failure_probability": 0.25,
             },
             "sim_param_configs": {},
         }
@@ -1677,9 +1733,9 @@ class TestBaseParamsValidation:
         assert response.status_code == 400
         data = response.json()
         assert data["error"]["code"] == "VALIDATION_ERROR"
-        # For model-level validators, field info is in the error message
+        # Field names are in the 'field' attribute of each detail
         details = data["error"].get("details", [])
-        assert any("exit_year" in d.get("message", "") for d in details)
+        assert any("exit_year" in d.get("field", "") for d in details)
 
     def test_monte_carlo_invalid_exit_year_too_high(self):
         """Test Monte Carlo rejects exit_year above 20."""
@@ -1687,18 +1743,22 @@ class TestBaseParamsValidation:
             "num_simulations": 50,
             "base_params": {
                 "exit_year": 25,  # Invalid - too high
-                "current_job_monthly_salary": 10000,
-                "startup_monthly_salary": 8000,
+                "current_job_monthly_salary": 10000.0,
+                "startup_monthly_salary": 8000.0,
                 "current_job_salary_growth_rate": 0.03,
                 "annual_roi": 0.05,
                 "investment_frequency": "Annually",
+                "failure_probability": 0.25,
                 "startup_params": {
                     "equity_type": "RSU",
-                    "total_vesting_years": 4,
-                    "cliff_years": 1,
-                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                    "monthly_salary": 8000.0,
+                    "total_equity_grant_pct": 5.0,
+                    "vesting_period": 4,
+                    "cliff_period": 1,
+                    "exit_valuation": 20_000_000.0,
+                    "simulate_dilution": False,
+                    "dilution_rounds": None,
                 },
-                "failure_probability": 0.25,
             },
             "sim_param_configs": {},
         }
@@ -1706,27 +1766,31 @@ class TestBaseParamsValidation:
         assert response.status_code == 400
         data = response.json()
         assert data["error"]["code"] == "VALIDATION_ERROR"
-        # For model-level validators, field info is in the error message
+        # Field names are in the 'field' attribute of each detail
         details = data["error"].get("details", [])
-        assert any("exit_year" in d.get("message", "") for d in details)
+        assert any("exit_year" in d.get("field", "") for d in details)
 
     def test_sensitivity_missing_exit_year(self):
         """Test Sensitivity Analysis rejects request missing exit_year."""
         request_data = {
             "base_params": {
                 # exit_year is missing
-                "current_job_monthly_salary": 10000,
-                "startup_monthly_salary": 8000,
+                "current_job_monthly_salary": 10000.0,
+                "startup_monthly_salary": 8000.0,
                 "current_job_salary_growth_rate": 0.03,
                 "annual_roi": 0.05,
                 "investment_frequency": "Annually",
+                "failure_probability": 0.25,
                 "startup_params": {
                     "equity_type": "RSU",
-                    "total_vesting_years": 4,
-                    "cliff_years": 1,
-                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                    "monthly_salary": 8000.0,
+                    "total_equity_grant_pct": 5.0,
+                    "vesting_period": 4,
+                    "cliff_period": 1,
+                    "exit_valuation": 20_000_000.0,
+                    "simulate_dilution": False,
+                    "dilution_rounds": None,
                 },
-                "failure_probability": 0.25,
             },
             "sim_param_configs": {},
         }
@@ -1734,27 +1798,31 @@ class TestBaseParamsValidation:
         assert response.status_code == 400
         data = response.json()
         assert data["error"]["code"] == "VALIDATION_ERROR"
-        # For model-level validators, field info is in the error message
+        # Field names are in the 'field' attribute of each detail
         details = data["error"].get("details", [])
-        assert any("exit_year" in d.get("message", "") for d in details)
+        assert any("exit_year" in d.get("field", "") for d in details)
 
     def test_sensitivity_invalid_exit_year(self):
         """Test Sensitivity Analysis rejects invalid exit_year."""
         request_data = {
             "base_params": {
                 "exit_year": -1,  # Invalid
-                "current_job_monthly_salary": 10000,
-                "startup_monthly_salary": 8000,
+                "current_job_monthly_salary": 10000.0,
+                "startup_monthly_salary": 8000.0,
                 "current_job_salary_growth_rate": 0.03,
                 "annual_roi": 0.05,
                 "investment_frequency": "Annually",
+                "failure_probability": 0.25,
                 "startup_params": {
                     "equity_type": "RSU",
-                    "total_vesting_years": 4,
-                    "cliff_years": 1,
-                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                    "monthly_salary": 8000.0,
+                    "total_equity_grant_pct": 5.0,
+                    "vesting_period": 4,
+                    "cliff_period": 1,
+                    "exit_valuation": 20_000_000.0,
+                    "simulate_dilution": False,
+                    "dilution_rounds": None,
                 },
-                "failure_probability": 0.25,
             },
             "sim_param_configs": {},
         }
@@ -1762,9 +1830,9 @@ class TestBaseParamsValidation:
         assert response.status_code == 400
         data = response.json()
         assert data["error"]["code"] == "VALIDATION_ERROR"
-        # For model-level validators, field info is in the error message
+        # Field names are in the 'field' attribute of each detail
         details = data["error"].get("details", [])
-        assert any("exit_year" in d.get("message", "") for d in details)
+        assert any("exit_year" in d.get("field", "") for d in details)
 
     def test_monte_carlo_boolean_exit_year_rejected(self):
         """Test Monte Carlo rejects boolean exit_year values.
@@ -1776,18 +1844,22 @@ class TestBaseParamsValidation:
             "num_simulations": 50,
             "base_params": {
                 "exit_year": True,  # Boolean, not integer - should be rejected
-                "current_job_monthly_salary": 10000,
-                "startup_monthly_salary": 8000,
+                "current_job_monthly_salary": 10000.0,
+                "startup_monthly_salary": 8000.0,
                 "current_job_salary_growth_rate": 0.03,
                 "annual_roi": 0.05,
                 "investment_frequency": "Annually",
+                "failure_probability": 0.25,
                 "startup_params": {
                     "equity_type": "RSU",
-                    "total_vesting_years": 4,
-                    "cliff_years": 1,
-                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                    "monthly_salary": 8000.0,
+                    "total_equity_grant_pct": 5.0,
+                    "vesting_period": 4,
+                    "cliff_period": 1,
+                    "exit_valuation": 20_000_000.0,
+                    "simulate_dilution": False,
+                    "dilution_rounds": None,
                 },
-                "failure_probability": 0.25,
             },
             "sim_param_configs": {},
         }
@@ -1804,18 +1876,22 @@ class TestBaseParamsValidation:
         request_data = {
             "base_params": {
                 "exit_year": False,  # Boolean, not integer - should be rejected
-                "current_job_monthly_salary": 10000,
-                "startup_monthly_salary": 8000,
+                "current_job_monthly_salary": 10000.0,
+                "startup_monthly_salary": 8000.0,
                 "current_job_salary_growth_rate": 0.03,
                 "annual_roi": 0.05,
                 "investment_frequency": "Annually",
+                "failure_probability": 0.25,
                 "startup_params": {
                     "equity_type": "RSU",
-                    "total_vesting_years": 4,
-                    "cliff_years": 1,
-                    "rsu_params": {"equity_pct": 0.05, "target_exit_valuation": 20_000_000},
+                    "monthly_salary": 8000.0,
+                    "total_equity_grant_pct": 5.0,
+                    "vesting_period": 4,
+                    "cliff_period": 1,
+                    "exit_valuation": 20_000_000.0,
+                    "simulate_dilution": False,
+                    "dilution_rounds": None,
                 },
-                "failure_probability": 0.25,
             },
             "sim_param_configs": {},
         }
@@ -1832,7 +1908,7 @@ class TestBaseParamsValidation:
         request_data = {
             "num_simulations": 50,
             "base_params": {
-                "current_job_monthly_salary": 10000,
+                "current_job_monthly_salary": 10000.0,
                 # Missing: exit_year, startup_monthly_salary, annual_roi, etc.
             },
             "sim_param_configs": {},
@@ -1841,11 +1917,11 @@ class TestBaseParamsValidation:
         assert response.status_code == 400
         data = response.json()
         assert data["error"]["code"] == "VALIDATION_ERROR"
-        # For model-level validators, field info is in the error message
+        # Field names are in the 'field' attribute of each detail
         details = data["error"].get("details", [])
-        messages = " ".join(d.get("message", "") for d in details)
-        assert "exit_year" in messages
-        assert "startup_monthly_salary" in messages
+        fields = " ".join(d.get("field", "") for d in details)
+        assert "exit_year" in fields
+        assert "startup_monthly_salary" in fields
 
 
 # --- Structured Error Response Tests ---

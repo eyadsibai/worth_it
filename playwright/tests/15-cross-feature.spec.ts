@@ -1,5 +1,8 @@
 import { test, expect } from '../fixtures/base';
-import { TEST_DATA } from '../utils/test-data';
+import { TEST_DATA, TIMEOUTS } from '../utils/test-data';
+
+// Set reasonable test-level timeout for cross-feature tests
+test.setTimeout(30000);
 
 /**
  * Test Suite: Cross-Feature Integration Tests
@@ -83,20 +86,26 @@ test.describe('Mode Switching (Employee vs Founder)', () => {
   test('should switch from Employee mode to Founder mode', async ({ page }) => {
     await page.goto('/');
 
-    // Wait for page to load
-    await page.waitForSelector('text=/Job Offer Financial Analyzer/i');
+    // Wait for page to load with explicit timeout
+    await page.waitForSelector('text=/Offer Analysis|Worth It/i', {
+      timeout: TIMEOUTS.pageLoad,
+    });
 
     // Default is Employee mode - verify by checking for Configuration section
-    await expect(page.getByText(/Configuration/i).first()).toBeVisible();
+    await expect(page.getByText(/Configuration/i).first()).toBeVisible({
+      timeout: TIMEOUTS.elementVisible,
+    });
 
     // Switch to Founder mode
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
 
     // Wait for mode switch
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(TIMEOUTS.animation);
 
     // Verify Founder mode UI is visible - use button role for specificity
-    await expect(page.getByRole('button', { name: /Add Stakeholder/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Add Stakeholder/i })).toBeVisible({
+      timeout: TIMEOUTS.elementVisible,
+    });
   });
 
   test('should switch back from Founder mode to Employee mode', async ({ page, helpers }) => {

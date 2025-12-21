@@ -131,42 +131,43 @@ export function useScenarioCalculation(
   React.useEffect(() => {
     if (!opportunityCostMutation.data || !hasValidData || !equityDetails) return;
 
+    // Issue #248: Use flat typed format for startup_params
     const startupScenarioRequest = {
       opportunity_cost_data: opportunityCostMutation.data.data,
       startup_params:
         equityDetails.equity_type === "RSU"
           ? {
               equity_type: "RSU" as const,
-              total_vesting_years: equityDetails.vesting_period,
-              cliff_years: equityDetails.cliff_period,
-              rsu_params: {
-                equity_pct: equityDetails.total_equity_grant_pct / 100,
-                target_exit_valuation: equityDetails.exit_valuation,
-                simulate_dilution: equityDetails.simulate_dilution,
-                dilution_rounds: equityDetails.simulate_dilution
-                  ? equityDetails.dilution_rounds
-                      .filter((r) => r.enabled)
-                      .map((r) => ({
-                        round_name: r.round_name,
-                        round_type: r.round_type,
-                        year: r.year,
-                        dilution_pct: r.dilution_pct ? r.dilution_pct / 100 : undefined,
-                        pre_money_valuation: r.pre_money_valuation,
-                        amount_raised: r.amount_raised,
-                        salary_change: r.salary_change,
-                      }))
-                  : [],
-              },
+              monthly_salary: equityDetails.monthly_salary,
+              total_equity_grant_pct: equityDetails.total_equity_grant_pct,
+              vesting_period: equityDetails.vesting_period,
+              cliff_period: equityDetails.cliff_period,
+              exit_valuation: equityDetails.exit_valuation,
+              simulate_dilution: equityDetails.simulate_dilution,
+              dilution_rounds: equityDetails.simulate_dilution
+                ? equityDetails.dilution_rounds
+                    .filter((r) => r.enabled)
+                    .map((r) => ({
+                      round_name: r.round_name,
+                      round_type: r.round_type,
+                      year: r.year,
+                      dilution_pct: r.dilution_pct ? r.dilution_pct / 100 : undefined,
+                      pre_money_valuation: r.pre_money_valuation,
+                      amount_raised: r.amount_raised,
+                      salary_change: r.salary_change,
+                    }))
+                : null,
             }
           : {
               equity_type: "STOCK_OPTIONS" as const,
+              monthly_salary: equityDetails.monthly_salary,
               num_options: equityDetails.num_options,
               strike_price: equityDetails.strike_price,
-              total_vesting_years: equityDetails.vesting_period,
-              cliff_years: equityDetails.cliff_period,
-              exercise_strategy: equityDetails.exercise_strategy,
-              exercise_year: equityDetails.exercise_year,
+              vesting_period: equityDetails.vesting_period,
+              cliff_period: equityDetails.cliff_period,
               exit_price_per_share: equityDetails.exit_price_per_share,
+              exercise_strategy: equityDetails.exercise_strategy ?? "AT_EXIT",
+              exercise_year: equityDetails.exercise_year ?? null,
             },
     };
 

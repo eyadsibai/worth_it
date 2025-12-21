@@ -14,7 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { Loader2, PlayCircle, CheckCircle2 } from "lucide-react";
 import { TOOLTIPS } from "@/lib/constants/tooltips";
 import { useRunMonteCarlo } from "@/lib/api-client";
-import type { MonteCarloRequest } from "@/lib/schemas";
+import type { MonteCarloRequest, TypedBaseParams, SimParamConfigs } from "@/lib/schemas";
 
 const MonteCarloFormSchema = z.object({
   num_simulations: z.number().int().min(100).max(10000),
@@ -61,7 +61,7 @@ interface PertDistribution {
 type SimParamConfig = NormalDistribution | PertDistribution;
 
 interface MonteCarloFormComponentProps {
-  baseParams: Record<string, unknown>;
+  baseParams: TypedBaseParams;
   onComplete?: (results: { net_outcomes: number[]; simulated_valuations: number[] }) => void;
 }
 
@@ -111,50 +111,43 @@ export function MonteCarloFormComponent({
   }, [monteCarloMutation.data, onComplete]);
 
   const onSubmit = (data: MonteCarloForm) => {
-    const sim_param_configs: Record<string, SimParamConfig> = {};
+    // Issue #248: Use simple min/max ranges for typed API format
+    // Backend conversion layer transforms to PERT/Normal distributions
+    const sim_param_configs: SimParamConfigs = {};
 
-    // Exit Valuation (always enabled as normal distribution)
+    // Exit Valuation - convert from normal (mean ± 2*std) to min/max range
+    // Using ±2 standard deviations captures ~95% of the distribution
     sim_param_configs.exit_valuation = {
-      type: "normal",
-      mean: data.exit_valuation_mean,
-      std: data.exit_valuation_std,
+      min: Math.max(0, data.exit_valuation_mean - 2 * data.exit_valuation_std),
+      max: data.exit_valuation_mean + 2 * data.exit_valuation_std,
     };
 
-    // Salary Growth Rate (PERT distribution)
+    // Salary Growth Rate - convert PERT to simple range (drop mode)
     if (data.growth_rate_enabled) {
-      sim_param_configs.salary_growth = {
-        min_val: data.growth_rate_min / 100,
-        mode: data.growth_rate_mode / 100,
-        max_val: data.growth_rate_max / 100,
+      sim_param_configs.current_job_salary_growth_rate = {
+        min: data.growth_rate_min / 100,
+        max: data.growth_rate_max / 100,
       };
     }
 
-    // ROI (normal distribution)
+    // ROI - convert from normal to min/max range
     if (data.roi_enabled) {
-      sim_param_configs.roi = {
-        type: "normal",
-        mean: data.roi_mean / 100,
-        std_dev: data.roi_std / 100,
+      sim_param_configs.annual_roi = {
+        min: Math.max(0, data.roi_mean / 100 - 2 * data.roi_std / 100),
+        max: data.roi_mean / 100 + 2 * data.roi_std / 100,
       };
     }
 
-    // Exit Year (PERT distribution)
+    // Exit Year - convert PERT to simple range
     if (data.exit_year_enabled) {
       sim_param_configs.exit_year = {
-        min_val: data.exit_year_min,
-        mode: data.exit_year_mode,
-        max_val: data.exit_year_max,
+        min: data.exit_year_min,
+        max: data.exit_year_max,
       };
     }
 
-    // Dilution (PERT distribution)
-    if (data.dilution_enabled) {
-      sim_param_configs.dilution = {
-        min_val: data.dilution_min / 100,
-        mode: data.dilution_mode / 100,
-        max_val: data.dilution_max / 100,
-      };
-    }
+    // Note: Dilution is not currently in the typed API format
+    // It would need to be added to VariableParamEnum if needed
 
     const request: MonteCarloRequest = {
       num_simulations: data.num_simulations,

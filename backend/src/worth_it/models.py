@@ -9,11 +9,11 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, Literal, Self
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from worth_it.types import DilutionRound
 
-# --- Error Response Models ---
+# --- Error Response Models (Issue #244) ---
 
 
 class ErrorCode(str, Enum):
@@ -47,6 +47,115 @@ class ErrorResponse(BaseModel):
     """Standard API error response wrapper."""
 
     error: ErrorDetail = Field(..., description="Error details")
+
+
+# --- Typed Request Payload Models (Issue #248) ---
+
+
+class VariableParam(str, Enum):
+    """Parameters that can be varied in Monte Carlo/Sensitivity analysis.
+
+    These are the allowed keys for sim_param_configs dictionary,
+    providing type safety and IDE autocomplete.
+    """
+
+    EXIT_VALUATION = "exit_valuation"
+    EXIT_YEAR = "exit_year"
+    FAILURE_PROBABILITY = "failure_probability"
+    CURRENT_JOB_MONTHLY_SALARY = "current_job_monthly_salary"
+    STARTUP_MONTHLY_SALARY = "startup_monthly_salary"
+    CURRENT_JOB_SALARY_GROWTH_RATE = "current_job_salary_growth_rate"
+    ANNUAL_ROI = "annual_roi"
+    TOTAL_EQUITY_GRANT_PCT = "total_equity_grant_pct"
+    NUM_OPTIONS = "num_options"
+    STRIKE_PRICE = "strike_price"
+    EXIT_PRICE_PER_SHARE = "exit_price_per_share"
+
+
+class SimParamRange(BaseModel):
+    """Range for a simulation parameter with validation.
+
+    Used in sim_param_configs to specify the min/max range for
+    Monte Carlo and Sensitivity Analysis simulations.
+    """
+
+    min: float
+    max: float
+
+    @model_validator(mode="after")
+    def validate_min_less_than_max(self) -> Self:
+        """Ensure min <= max."""
+        if self.min > self.max:
+            raise ValueError(f"min ({self.min}) must be <= max ({self.max})")
+        return self
+
+
+class RSUParams(BaseModel):
+    """RSU equity parameters for API requests.
+
+    Used as part of the discriminated union for startup_params,
+    identified by equity_type="RSU".
+
+    Note: total_equity_grant_pct is in percentage form (0-100) for user convenience.
+    The conversion layer (serializers.py) converts to decimal (0-1) for internal use.
+    """
+
+    equity_type: Literal["RSU"]
+    monthly_salary: float = Field(..., ge=0)
+    total_equity_grant_pct: float = Field(..., ge=0, le=100)
+    vesting_period: int = Field(default=4, ge=1, le=10)
+    cliff_period: int = Field(default=1, ge=0, le=5)
+    exit_valuation: float = Field(..., ge=0)
+    simulate_dilution: bool = False
+    dilution_rounds: list[DilutionRound] | None = None
+
+
+class StockOptionsParams(BaseModel):
+    """Stock options equity parameters for API requests.
+
+    Used as part of the discriminated union for startup_params,
+    identified by equity_type="STOCK_OPTIONS".
+    """
+
+    equity_type: Literal["STOCK_OPTIONS"]
+    monthly_salary: float = Field(..., ge=0)
+    num_options: int = Field(..., ge=0)
+    strike_price: float = Field(..., ge=0)
+    vesting_period: int = Field(default=4, ge=1, le=10)
+    cliff_period: int = Field(default=1, ge=0, le=5)
+    exit_price_per_share: float = Field(..., ge=0)
+    exercise_strategy: Literal["AT_EXIT", "AFTER_VESTING"] = "AT_EXIT"
+    exercise_year: int | None = None
+
+
+class TypedBaseParams(BaseModel):
+    """Typed base parameters for Monte Carlo and Sensitivity Analysis requests.
+
+    Replaces the old dict[str, Any] base_params with full type safety.
+    Uses discriminated union for startup_params (RSU or Stock Options).
+    """
+
+    exit_year: int = Field(..., ge=1, le=20)
+    current_job_monthly_salary: float = Field(..., ge=0)
+    startup_monthly_salary: float = Field(..., ge=0)
+    current_job_salary_growth_rate: float = Field(..., ge=0, le=1)
+    annual_roi: float = Field(..., ge=0, le=1)
+    investment_frequency: Literal["Monthly", "Annually"]
+    failure_probability: float = Field(..., ge=0, le=1)
+    startup_params: RSUParams | StockOptionsParams
+
+    @field_validator("exit_year", mode="before")
+    @classmethod
+    def reject_boolean_exit_year(cls, v: Any) -> int:
+        """Reject boolean values for exit_year.
+
+        In Python, bool is a subclass of int, so isinstance(True, int) returns True.
+        We must explicitly check for bool first to reject boolean values.
+        """
+        if isinstance(v, bool):
+            raise ValueError("exit_year must be an integer, not a boolean")
+        # v is validated as int by Pydantic, cast for type checker
+        return int(v) if isinstance(v, (int, float)) else v  # type: ignore[return-value]
 
 
 # --- Shared Validators ---
@@ -258,12 +367,14 @@ class OpportunityCostRequest(BaseModel):
 
 
 class StartupScenarioRequest(BaseModel):
-    """Request model for calculating startup scenario."""
+    """Request model for calculating startup scenario - typed startup_params.
 
-    opportunity_cost_data: list[
-        dict[str, Any]
-    ]  # OpportunityCostRow - kept flexible for dynamic columns
-    startup_params: dict[str, Any]  # StartupParams - kept flexible for API
+    Uses RSUParams | StockOptionsParams discriminated union for startup_params.
+    opportunity_cost_data remains flexible (tabular row data with dynamic columns).
+    """
+
+    opportunity_cost_data: list[dict[str, Any]]  # Flexible for dynamic columns
+    startup_params: RSUParams | StockOptionsParams
 
 
 class IRRRequest(BaseModel):
@@ -282,23 +393,16 @@ class NPVRequest(BaseModel):
 
 
 class MonteCarloRequest(BaseModel):
-    """Request model for Monte Carlo simulation.
+    """Request model for Monte Carlo simulation - fully typed.
 
-    Validates that base_params contains required fields including exit_year.
+    Uses TypedBaseParams for type-safe base parameters and
+    dict[VariableParam, SimParamRange] for typed simulation configs.
     num_simulations is validated against the configurable MAX_SIMULATIONS setting.
-    The default upper bound is 10,000, but can be configured up to 100,000 via
-    the MAX_SIMULATIONS environment variable.
     """
 
-    num_simulations: int = Field(..., ge=1, le=100000)  # Hard upper bound; config provides tighter limit
-    base_params: dict[str, Any]  # BaseParams - kept flexible for dynamic structure
-    sim_param_configs: dict[str, Any]  # SimParamConfigs - kept flexible for dynamic structure
-
-    @model_validator(mode="after")
-    def validate_base_params_required_fields(self) -> Self:
-        """Validate that base_params contains all required fields."""
-        validate_base_params(self.base_params)
-        return self
+    num_simulations: int = Field(..., ge=1, le=100000)
+    base_params: TypedBaseParams
+    sim_param_configs: dict[VariableParam, SimParamRange]
 
     @model_validator(mode="after")
     def validate_num_simulations_against_config(self) -> Self:
@@ -308,26 +412,20 @@ class MonteCarloRequest(BaseModel):
         if self.num_simulations > settings.MAX_SIMULATIONS:
             raise ValueError(
                 f"num_simulations ({self.num_simulations}) exceeds the maximum allowed "
-                f"({settings.MAX_SIMULATIONS}). Reduce the number of simulations or "
-                f"contact the administrator to increase the limit."
+                f"({settings.MAX_SIMULATIONS})."
             )
         return self
 
 
 class SensitivityAnalysisRequest(BaseModel):
-    """Request model for sensitivity analysis.
+    """Request model for sensitivity analysis - fully typed.
 
-    Validates that base_params contains required fields including exit_year.
+    Uses TypedBaseParams for type-safe base parameters and
+    dict[VariableParam, SimParamRange] for typed simulation configs.
     """
 
-    base_params: dict[str, Any]  # BaseParams - kept flexible for dynamic structure
-    sim_param_configs: dict[str, Any]  # SimParamConfigs - kept flexible for dynamic structure
-
-    @model_validator(mode="after")
-    def validate_base_params_required_fields(self) -> SensitivityAnalysisRequest:
-        """Validate that base_params contains all required fields."""
-        validate_base_params(self.base_params)
-        return self
+    base_params: TypedBaseParams
+    sim_param_configs: dict[VariableParam, SimParamRange]
 
 
 class DilutionFromValuationRequest(BaseModel):

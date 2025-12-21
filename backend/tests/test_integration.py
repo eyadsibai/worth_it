@@ -46,8 +46,8 @@ def test_full_integration_workflow(client):
     monthly_data = response.json()["data"]
     assert len(monthly_data) == 60  # 5 years * 12 months
 
-    # Test 2: Opportunity Cost
-    startup_params = {
+    # Test 2: Opportunity Cost (uses old nested format, unchanged)
+    old_startup_params = {
         "equity_type": EquityType.RSU.value,
         "total_vesting_years": 4,
         "cliff_years": 1,
@@ -65,17 +65,27 @@ def test_full_integration_workflow(client):
         "annual_roi": 0.054,
         "investment_frequency": "Monthly",
         "options_params": None,
-        "startup_params": startup_params,
+        "startup_params": old_startup_params,
     }
     response = client.post("/api/opportunity-cost", json=opp_request)
     assert response.status_code == 200
     opp_data = response.json()["data"]
     assert len(opp_data) == 5  # 5 years
 
-    # Test 3: Startup Scenario
+    # Test 3: Startup Scenario (Issue #248 typed format)
+    typed_startup_params = {
+        "equity_type": "RSU",
+        "monthly_salary": 20000.0,
+        "total_equity_grant_pct": 5.0,  # 5% as percentage
+        "vesting_period": 4,
+        "cliff_period": 1,
+        "exit_valuation": 25_000_000.0,
+        "simulate_dilution": False,
+        "dilution_rounds": None,
+    }
     scenario_request = {
         "opportunity_cost_data": opp_data,
-        "startup_params": startup_params,
+        "startup_params": typed_startup_params,
     }
     response = client.post("/api/startup-scenario", json=scenario_request)
     assert response.status_code == 200
@@ -119,31 +129,32 @@ def test_full_integration_workflow(client):
 
 
 def test_monte_carlo_simulation(client):
-    """Test Monte Carlo simulation endpoint."""
+    """Test Monte Carlo simulation endpoint (Issue #248 typed format)."""
     base_params = {
         "exit_year": 5,
-        "current_job_monthly_salary": 30000,
-        "startup_monthly_salary": 20000,
+        "current_job_monthly_salary": 30000.0,
+        "startup_monthly_salary": 20000.0,
         "current_job_salary_growth_rate": 0.03,
         "annual_roi": 0.054,
         "investment_frequency": "Monthly",
-        "startup_params": {
-            "equity_type": EquityType.RSU.value,
-            "total_vesting_years": 4,
-            "cliff_years": 1,
-            "rsu_params": {
-                "equity_pct": 0.05,
-                "target_exit_valuation": 25_000_000,
-                "simulate_dilution": False,
-            },
-            "options_params": {},
-        },
         "failure_probability": 0.25,
+        # Flat typed RSUParams
+        "startup_params": {
+            "equity_type": "RSU",
+            "monthly_salary": 20000.0,
+            "total_equity_grant_pct": 5.0,
+            "vesting_period": 4,
+            "cliff_period": 1,
+            "exit_valuation": 25_000_000.0,
+            "simulate_dilution": False,
+            "dilution_rounds": None,
+        },
     }
 
+    # New sim_param_configs format: enum keys + min/max ranges
     sim_param_configs = {
-        "valuation": {"min_val": 10_000_000, "max_val": 40_000_000, "mode": 25_000_000},
-        "roi": {"mean": 0.054, "std_dev": 0.02},
+        "exit_valuation": {"min": 10_000_000.0, "max": 40_000_000.0},
+        "annual_roi": {"min": 0.03, "max": 0.07},
     }
 
     mc_request = {
@@ -159,34 +170,33 @@ def test_monte_carlo_simulation(client):
 
 
 class TestSensitivityAnalysisIntegration:
-    """Comprehensive integration tests for sensitivity analysis."""
+    """Comprehensive integration tests for sensitivity analysis (Issue #248 typed format)."""
 
     def test_sensitivity_analysis_basic(self, client):
         """Test basic sensitivity analysis with RSU scenario."""
         base_params = {
             "exit_year": 5,
-            "current_job_monthly_salary": 30000,
-            "startup_monthly_salary": 20000,
+            "current_job_monthly_salary": 30000.0,
+            "startup_monthly_salary": 20000.0,
             "current_job_salary_growth_rate": 0.03,
             "annual_roi": 0.054,
             "investment_frequency": "Monthly",
-            "startup_params": {
-                "equity_type": EquityType.RSU.value,
-                "total_vesting_years": 4,
-                "cliff_years": 1,
-                "rsu_params": {
-                    "equity_pct": 0.05,
-                    "target_exit_valuation": 25_000_000,
-                    "simulate_dilution": False,
-                },
-                "options_params": {},
-            },
             "failure_probability": 0.0,
+            "startup_params": {
+                "equity_type": "RSU",
+                "monthly_salary": 20000.0,
+                "total_equity_grant_pct": 5.0,
+                "vesting_period": 4,
+                "cliff_period": 1,
+                "exit_valuation": 25_000_000.0,
+                "simulate_dilution": False,
+                "dilution_rounds": None,
+            },
         }
 
         sim_param_configs = {
-            "valuation": {"min_val": 10_000_000, "max_val": 40_000_000, "mode": 25_000_000},
-            "roi": {"mean": 0.054, "std_dev": 0.02},
+            "exit_valuation": {"min": 10_000_000.0, "max": 40_000_000.0},
+            "annual_roi": {"min": 0.03, "max": 0.07},
         }
 
         sa_request = {
@@ -202,29 +212,28 @@ class TestSensitivityAnalysisIntegration:
         """Test that sensitivity analysis returns properly structured data."""
         base_params = {
             "exit_year": 5,
-            "current_job_monthly_salary": 25000,
-            "startup_monthly_salary": 18000,
+            "current_job_monthly_salary": 25000.0,
+            "startup_monthly_salary": 18000.0,
             "current_job_salary_growth_rate": 0.03,
             "annual_roi": 0.05,
             "investment_frequency": "Monthly",
-            "startup_params": {
-                "equity_type": EquityType.RSU.value,
-                "total_vesting_years": 4,
-                "cliff_years": 1,
-                "rsu_params": {
-                    "equity_pct": 0.03,
-                    "target_exit_valuation": 50_000_000,
-                    "simulate_dilution": False,
-                },
-                "options_params": {},
-            },
             "failure_probability": 0.0,
+            "startup_params": {
+                "equity_type": "RSU",
+                "monthly_salary": 18000.0,
+                "total_equity_grant_pct": 3.0,
+                "vesting_period": 4,
+                "cliff_period": 1,
+                "exit_valuation": 50_000_000.0,
+                "simulate_dilution": False,
+                "dilution_rounds": None,
+            },
         }
 
         sim_param_configs = {
-            "valuation": {"min_val": 20_000_000, "max_val": 80_000_000, "mode": 50_000_000},
-            "roi": {"mean": 0.05, "std_dev": 0.01},
-            "salary_growth": {"min_val": 0.01, "max_val": 0.05, "mode": 0.03},
+            "exit_valuation": {"min": 20_000_000.0, "max": 80_000_000.0},
+            "annual_roi": {"min": 0.03, "max": 0.07},
+            "current_job_salary_growth_rate": {"min": 0.01, "max": 0.05},
         }
 
         response = client.post(
@@ -245,30 +254,28 @@ class TestSensitivityAnalysisIntegration:
         """Test sensitivity analysis with stock options scenario."""
         base_params = {
             "exit_year": 5,
-            "current_job_monthly_salary": 25000,
-            "startup_monthly_salary": 18000,
+            "current_job_monthly_salary": 25000.0,
+            "startup_monthly_salary": 18000.0,
             "current_job_salary_growth_rate": 0.03,
             "annual_roi": 0.05,
             "investment_frequency": "Annually",
-            "startup_params": {
-                "equity_type": EquityType.STOCK_OPTIONS.value,
-                "total_vesting_years": 4,
-                "cliff_years": 1,
-                "rsu_params": {},
-                "options_params": {
-                    "num_options": 50000,
-                    "strike_price": 1.0,
-                    "target_exit_valuation": 100_000_000,
-                    "total_shares_outstanding": 10_000_000,
-                    "exercise_strategy": "At Exit",
-                },
-            },
             "failure_probability": 0.25,
+            "startup_params": {
+                "equity_type": "STOCK_OPTIONS",
+                "monthly_salary": 18000.0,
+                "num_options": 50000,
+                "strike_price": 1.0,
+                "vesting_period": 4,
+                "cliff_period": 1,
+                "exit_price_per_share": 10.0,  # $100M / 10M shares
+                "exercise_strategy": "AT_EXIT",
+                "exercise_year": None,
+            },
         }
 
         sim_param_configs = {
-            "valuation": {"min_val": 50_000_000, "max_val": 200_000_000, "mode": 100_000_000},
-            "roi": {"mean": 0.06, "std_dev": 0.02},
+            "exit_price_per_share": {"min": 5.0, "max": 20.0},
+            "annual_roi": {"min": 0.04, "max": 0.08},
         }
 
         response = client.post(
@@ -283,29 +290,28 @@ class TestSensitivityAnalysisIntegration:
         """Test sensitivity analysis with multiple variables."""
         base_params = {
             "exit_year": 5,
-            "current_job_monthly_salary": 30000,
-            "startup_monthly_salary": 20000,
+            "current_job_monthly_salary": 30000.0,
+            "startup_monthly_salary": 20000.0,
             "current_job_salary_growth_rate": 0.03,
             "annual_roi": 0.054,
             "investment_frequency": "Monthly",
-            "startup_params": {
-                "equity_type": EquityType.RSU.value,
-                "total_vesting_years": 4,
-                "cliff_years": 1,
-                "rsu_params": {
-                    "equity_pct": 0.05,
-                    "target_exit_valuation": 25_000_000,
-                    "simulate_dilution": False,
-                },
-                "options_params": {},
-            },
             "failure_probability": 0.0,
+            "startup_params": {
+                "equity_type": "RSU",
+                "monthly_salary": 20000.0,
+                "total_equity_grant_pct": 5.0,
+                "vesting_period": 4,
+                "cliff_period": 1,
+                "exit_valuation": 25_000_000.0,
+                "simulate_dilution": False,
+                "dilution_rounds": None,
+            },
         }
 
         sim_param_configs = {
-            "valuation": {"min_val": 10_000_000, "max_val": 40_000_000, "mode": 25_000_000},
-            "roi": {"mean": 0.054, "std_dev": 0.02},
-            "salary_growth": {"min_val": 0.01, "max_val": 0.05, "mode": 0.03},
+            "exit_valuation": {"min": 10_000_000.0, "max": 40_000_000.0},
+            "annual_roi": {"min": 0.03, "max": 0.07},
+            "current_job_salary_growth_rate": {"min": 0.01, "max": 0.05},
         }
 
         response = client.post(
@@ -325,37 +331,36 @@ class TestSensitivityAnalysisIntegration:
 
 
 class TestWebSocketMonteCarloIntegration:
-    """Comprehensive integration tests for WebSocket Monte Carlo simulation."""
+    """Comprehensive integration tests for WebSocket Monte Carlo simulation (Issue #248 typed format)."""
 
     def test_websocket_connection_lifecycle(self, client):
         """Test basic WebSocket connection and message flow."""
         base_params = {
             "exit_year": 5,
-            "current_job_monthly_salary": 30000,
-            "startup_monthly_salary": 20000,
+            "current_job_monthly_salary": 30000.0,
+            "startup_monthly_salary": 20000.0,
             "current_job_salary_growth_rate": 0.03,
             "annual_roi": 0.054,
             "investment_frequency": "Monthly",
-            "startup_params": {
-                "equity_type": EquityType.RSU.value,
-                "total_vesting_years": 4,
-                "cliff_years": 1,
-                "rsu_params": {
-                    "equity_pct": 0.05,
-                    "target_exit_valuation": 25_000_000,
-                    "simulate_dilution": False,
-                },
-                "options_params": {},
-            },
             "failure_probability": 0.25,
+            "startup_params": {
+                "equity_type": "RSU",
+                "monthly_salary": 20000.0,
+                "total_equity_grant_pct": 5.0,
+                "vesting_period": 4,
+                "cliff_period": 1,
+                "exit_valuation": 25_000_000.0,
+                "simulate_dilution": False,
+                "dilution_rounds": None,
+            },
         }
 
         request_data = {
             "num_simulations": 100,
             "base_params": base_params,
             "sim_param_configs": {
-                "valuation": {"min_val": 10_000_000, "max_val": 40_000_000, "mode": 25_000_000},
-                "roi": {"mean": 0.054, "std_dev": 0.02},
+                "exit_valuation": {"min": 10_000_000.0, "max": 40_000_000.0},
+                "annual_roi": {"min": 0.03, "max": 0.07},
             },
         }
 
@@ -381,30 +386,29 @@ class TestWebSocketMonteCarloIntegration:
         """Test that progress events are sent correctly."""
         base_params = {
             "exit_year": 3,
-            "current_job_monthly_salary": 20000,
-            "startup_monthly_salary": 15000,
+            "current_job_monthly_salary": 20000.0,
+            "startup_monthly_salary": 15000.0,
             "current_job_salary_growth_rate": 0.02,
             "annual_roi": 0.05,
             "investment_frequency": "Monthly",
-            "startup_params": {
-                "equity_type": EquityType.RSU.value,
-                "total_vesting_years": 4,
-                "cliff_years": 1,
-                "rsu_params": {
-                    "equity_pct": 0.02,
-                    "target_exit_valuation": 10_000_000,
-                    "simulate_dilution": False,
-                },
-                "options_params": {},
-            },
             "failure_probability": 0.1,
+            "startup_params": {
+                "equity_type": "RSU",
+                "monthly_salary": 15000.0,
+                "total_equity_grant_pct": 2.0,
+                "vesting_period": 4,
+                "cliff_period": 1,
+                "exit_valuation": 10_000_000.0,
+                "simulate_dilution": False,
+                "dilution_rounds": None,
+            },
         }
 
         request_data = {
             "num_simulations": 500,  # Enough to generate multiple progress updates
             "base_params": base_params,
             "sim_param_configs": {
-                "valuation": {"min_val": 5_000_000, "max_val": 20_000_000, "mode": 10_000_000},
+                "exit_valuation": {"min": 5_000_000.0, "max": 20_000_000.0},
             },
         }
 
@@ -432,23 +436,22 @@ class TestWebSocketMonteCarloIntegration:
         """Test that results are properly aggregated across batches."""
         base_params = {
             "exit_year": 5,
-            "current_job_monthly_salary": 30000,
-            "startup_monthly_salary": 20000,
+            "current_job_monthly_salary": 30000.0,
+            "startup_monthly_salary": 20000.0,
             "current_job_salary_growth_rate": 0.03,
             "annual_roi": 0.054,
             "investment_frequency": "Monthly",
-            "startup_params": {
-                "equity_type": EquityType.RSU.value,
-                "total_vesting_years": 4,
-                "cliff_years": 1,
-                "rsu_params": {
-                    "equity_pct": 0.05,
-                    "target_exit_valuation": 25_000_000,
-                    "simulate_dilution": False,
-                },
-                "options_params": {},
-            },
             "failure_probability": 0.25,
+            "startup_params": {
+                "equity_type": "RSU",
+                "monthly_salary": 20000.0,
+                "total_equity_grant_pct": 5.0,
+                "vesting_period": 4,
+                "cliff_period": 1,
+                "exit_valuation": 25_000_000.0,
+                "simulate_dilution": False,
+                "dilution_rounds": None,
+            },
         }
 
         num_sims = 250
@@ -456,8 +459,8 @@ class TestWebSocketMonteCarloIntegration:
             "num_simulations": num_sims,
             "base_params": base_params,
             "sim_param_configs": {
-                "valuation": {"min_val": 10_000_000, "max_val": 40_000_000, "mode": 25_000_000},
-                "roi": {"mean": 0.054, "std_dev": 0.02},
+                "exit_valuation": {"min": 10_000_000.0, "max": 40_000_000.0},
+                "annual_roi": {"min": 0.03, "max": 0.07},
             },
         }
 
@@ -483,7 +486,7 @@ class TestWebSocketMonteCarloIntegration:
             "num_simulations": 100,
             "base_params": {
                 # Missing exit_year and other required fields
-                "current_job_monthly_salary": 30000,
+                "current_job_monthly_salary": 30000.0,
             },
             "sim_param_configs": {},
         }
@@ -511,33 +514,31 @@ class TestWebSocketMonteCarloIntegration:
         """Test WebSocket Monte Carlo with stock options scenario."""
         base_params = {
             "exit_year": 5,
-            "current_job_monthly_salary": 25000,
-            "startup_monthly_salary": 18000,
+            "current_job_monthly_salary": 25000.0,
+            "startup_monthly_salary": 18000.0,
             "current_job_salary_growth_rate": 0.03,
             "annual_roi": 0.06,
             "investment_frequency": "Monthly",
-            "startup_params": {
-                "equity_type": EquityType.STOCK_OPTIONS.value,
-                "total_vesting_years": 4,
-                "cliff_years": 1,
-                "rsu_params": {},
-                "options_params": {
-                    "num_options": 100000,
-                    "strike_price": 0.50,
-                    "target_exit_valuation": 50_000_000,
-                    "total_shares_outstanding": 10_000_000,
-                    "exercise_strategy": "At Exit",
-                },
-            },
             "failure_probability": 0.30,
+            "startup_params": {
+                "equity_type": "STOCK_OPTIONS",
+                "monthly_salary": 18000.0,
+                "num_options": 100000,
+                "strike_price": 0.50,
+                "vesting_period": 4,
+                "cliff_period": 1,
+                "exit_price_per_share": 5.0,  # $50M / 10M shares
+                "exercise_strategy": "AT_EXIT",
+                "exercise_year": None,
+            },
         }
 
         request_data = {
             "num_simulations": 100,
             "base_params": base_params,
             "sim_param_configs": {
-                "valuation": {"min_val": 20_000_000, "max_val": 100_000_000, "mode": 50_000_000},
-                "roi": {"mean": 0.06, "std_dev": 0.02},
+                "exit_price_per_share": {"min": 2.0, "max": 10.0},
+                "annual_roi": {"min": 0.04, "max": 0.08},
             },
         }
 

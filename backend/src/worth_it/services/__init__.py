@@ -14,11 +14,19 @@ Services import from calculations/ for core logic but add:
 """
 
 from worth_it.services.cap_table_service import CapTableService
-from worth_it.services.serializers import ResponseMapper
+from worth_it.services.serializers import (
+    ResponseMapper,
+    convert_sim_param_configs_to_internal,
+    convert_typed_base_params_to_internal,
+    convert_typed_startup_params_to_internal,
+)
 from worth_it.services.startup_service import StartupService
 
 __all__ = [
     "StartupService",
     "CapTableService",
     "ResponseMapper",
+    "convert_typed_base_params_to_internal",
+    "convert_sim_param_configs_to_internal",
+    "convert_typed_startup_params_to_internal",
 ]

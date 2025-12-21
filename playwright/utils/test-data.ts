@@ -124,7 +124,7 @@ export const SELECTORS = {
 
   // Results
   results: {
-    pageTitle: 'text=/Job Offer Financial Analyzer/i',
+    pageTitle: 'text=/Offer Analysis|Worth It/i',
     scenarioResults: 'text=/Detailed Analysis/i',
     finalPayoutCard: 'text=/Final Payout/i',
     opportunityCostCard: 'text=/Opportunity Cost/i',
@@ -147,9 +147,23 @@ export const SELECTORS = {
 };
 
 export const TIMEOUTS = {
-  // Extended timeout for page/form loading
-  navigation: 30000, // 30s for page navigation
-  calculation: 10000, // 10s for calculations to complete
+  // Navigation and page load
+  navigation: 15000, // 15s for page navigation
+  pageLoad: 10000, // 10s for page to fully load
+
+  // API operations
   apiResponse: 5000, // 5s for API responses
+  apiHealth: 3000, // 3s for health check
+
+  // Calculations
+  calculation: 10000, // 10s for calculations to complete
   monteCarlo: 30000, // 30s for Monte Carlo simulations
+
+  // UI assertions - granular step-level timeouts
+  elementVisible: 5000, // 5s for element to become visible
+  elementPresent: 3000, // 3s for element to exist in DOM
+  textContent: 3000, // 3s for text content to appear
+  formInput: 2000, // 2s for form input interactions
+  animation: 1000, // 1s for animations to complete
+  debounce: 1500, // 1.5s for debounced operations
 };
