@@ -159,3 +159,59 @@ class DilutionPipeline:
             factors.append(cumulative)
 
         return dataclasses.replace(self, _yearly_factors=np.array(factors))
+
+    def build(self) -> DilutionResult:
+        """Finalize pipeline and return DilutionResult.
+
+        Handles the case where apply_future_rounds() wasn't called
+        by returning an array of ones (no dilution).
+
+        Total dilution is calculated as 1 - final yearly factor.
+        """
+        if self._yearly_factors is not None:
+            factors = self._yearly_factors
+        else:
+            factors = np.ones(len(self.years))
+
+        total = 1 - factors[-1] if len(factors) > 0 else 0.0
+
+        return DilutionResult(
+            yearly_factors=factors,
+            total_dilution=total,
+            historical_factor=self._historical_factor,
+        )
+
+
+def calculate_dilution_schedule(
+    years: pd.Index | range,
+    rounds: list[dict[str, Any]] | None = None,
+    simulated_dilution: float | None = None,
+) -> DilutionResult:
+    """Convenience wrapper for common dilution calculations.
+
+    Provides a simple function API for the fluent pipeline. Use this
+    when you don't need to inspect intermediate pipeline states.
+
+    Args:
+        years: Timeline of years (range or pandas Index)
+        rounds: List of funding round dicts with year, dilution, etc.
+        simulated_dilution: If provided, bypasses round calculation
+            and applies uniform dilution across all years.
+
+    Returns:
+        DilutionResult with yearly_factors, total_dilution, historical_factor
+    """
+    pipeline = DilutionPipeline(years)
+
+    if simulated_dilution is not None:
+        return pipeline.with_simulated_dilution(simulated_dilution)
+
+    return (
+        pipeline
+        .with_rounds(rounds)
+        .classify()
+        .apply_historical()
+        .apply_safe_conversions()
+        .apply_future_rounds()
+        .build()
+    )

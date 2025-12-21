@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 
 from worth_it.calculations.base import EquityType
+from worth_it.calculations.dilution_engine import calculate_dilution_schedule
 
 
 def calculate_startup_scenario(
@@ -78,85 +79,21 @@ def calculate_startup_scenario(
         diluted_equity_pct = initial_equity_pct
         total_dilution = 0.0
 
-        if startup_params.get("simulated_dilution") is not None:
-            total_dilution = startup_params["simulated_dilution"]
-            diluted_equity_pct = initial_equity_pct * (1 - total_dilution)
-            results_df["CumulativeDilution"] = 1 - total_dilution
-            sorted_rounds = []
-        elif rsu_params.get("simulate_dilution") and rsu_params.get("dilution_rounds"):
-            all_rounds = rsu_params["dilution_rounds"]
+        # Calculate dilution using the dilution engine
+        dilution_rounds = rsu_params.get("dilution_rounds") if rsu_params.get("simulate_dilution") else None
+        dilution_result = calculate_dilution_schedule(
+            years=results_df.index,
+            rounds=dilution_rounds,
+            simulated_dilution=startup_params.get("simulated_dilution"),
+        )
+        results_df["CumulativeDilution"] = dilution_result.yearly_factors
+        total_dilution = dilution_result.total_dilution
+        diluted_equity_pct = initial_equity_pct * dilution_result.yearly_factors[-1]
 
-            # Separate completed (historical) and upcoming (future) rounds
-            # Completed rounds: status == "completed" OR year < 0 (negative years = past)
-            # Upcoming rounds: status == "upcoming" OR (no status AND year >= 0)
-            completed_rounds = [
-                r for r in all_rounds
-                if r.get("status") == "completed" or (r.get("status") is None and r.get("year", 0) < 0)
-            ]
-            upcoming_rounds = [
-                r for r in all_rounds
-                if r.get("status") == "upcoming" or (r.get("status") is None and r.get("year", 0) >= 0)
-            ]
-
-            # Calculate historical dilution factor (applied from day 0)
-            # This represents dilution that happened before the user joined
-            historical_dilution_factor = 1.0
-            for r in completed_rounds:
-                dilution = r.get("dilution", 0)
-                historical_dilution_factor *= 1 - dilution
-
-            # Sort upcoming rounds by year for time-based application
-            sorted_rounds = sorted(upcoming_rounds, key=lambda r: r["year"])
-
-            # Handle SAFE note conversion timing for upcoming rounds
-            # SAFE notes don't dilute immediately - they convert at the next priced round
-            safe_conversion_year = {}  # Map SAFE rounds to their conversion year
-            for r in sorted_rounds:
-                if r.get("is_safe_note", False):
-                    # Find the next priced round after this SAFE
-                    conversion_year = None
-                    for future_round in sorted_rounds:
-                        if (
-                            not future_round.get("is_safe_note", False)
-                            and future_round["year"] >= r["year"]
-                        ):
-                            conversion_year = future_round["year"]
-                            break
-                    safe_conversion_year[id(r)] = conversion_year
-
-            # Now calculate yearly dilution factors
-            yearly_dilution_factors = []
-            for year in results_df.index:
-                # Start with historical dilution (always applied)
-                cumulative_dilution_factor = historical_dilution_factor
-
-                # Apply dilution from upcoming rounds that should affect this year
-                for r in sorted_rounds:
-                    is_safe = r.get("is_safe_note", False)
-                    dilution = r.get("dilution", 0)
-
-                    if is_safe:
-                        # SAFE: only dilutes at conversion year
-                        conversion_year = safe_conversion_year.get(id(r))
-                        if conversion_year is not None and year >= conversion_year:
-                            cumulative_dilution_factor *= 1 - dilution
-                    else:
-                        # Priced round: dilutes at its own year
-                        if r["year"] <= year:
-                            cumulative_dilution_factor *= 1 - dilution
-
-                yearly_dilution_factors.append(cumulative_dilution_factor)
-
-            results_df["CumulativeDilution"] = yearly_dilution_factors
-            total_dilution = 1 - results_df["CumulativeDilution"].iloc[-1]
-            diluted_equity_pct = initial_equity_pct * results_df["CumulativeDilution"].iloc[-1]
-
-            # Update sorted_rounds to include all rounds for equity sale calculations
-            sorted_rounds = sorted(all_rounds, key=lambda r: r["year"])
+        # Build sorted_rounds for equity sale calculations
+        if dilution_rounds:
+            sorted_rounds = sorted(dilution_rounds, key=lambda r: r["year"])
         else:
-            results_df["CumulativeDilution"] = 1.0
-            total_dilution = 0.0
-            diluted_equity_pct = initial_equity_pct
             sorted_rounds = []
 
         # --- Account for Sold Equity ---

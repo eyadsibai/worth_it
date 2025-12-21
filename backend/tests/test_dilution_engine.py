@@ -4,7 +4,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from worth_it.calculations.dilution_engine import DilutionPipeline, DilutionResult
+from worth_it.calculations.dilution_engine import (
+    DilutionPipeline,
+    DilutionResult,
+    calculate_dilution_schedule,
+)
 
 
 class TestDilutionResult:
@@ -389,3 +393,136 @@ class TestApplyFutureRounds:
         assert np.isclose(factors[2], 0.72)
         assert np.isclose(factors[3], 0.648)
         assert np.isclose(factors[4], 0.648)
+
+
+class TestBuild:
+    """Tests for build() method."""
+
+    def test_build_returns_dilution_result(self):
+        """build() returns a DilutionResult instance."""
+        result = (
+            DilutionPipeline(years=range(5))
+            .with_rounds([{"year": 2, "dilution": 0.2}])
+            .classify()
+            .apply_historical()
+            .apply_safe_conversions()
+            .apply_future_rounds()
+            .build()
+        )
+        assert isinstance(result, DilutionResult)
+
+    def test_build_calculates_total_dilution(self):
+        """Total dilution is 1 - final yearly factor."""
+        result = (
+            DilutionPipeline(years=range(5))
+            .with_rounds([{"year": 2, "dilution": 0.3}])
+            .classify()
+            .apply_historical()
+            .apply_safe_conversions()
+            .apply_future_rounds()
+            .build()
+        )
+        # Final factor = 0.7, total dilution = 0.3
+        assert np.isclose(result.total_dilution, 0.3)
+
+    def test_build_includes_historical_factor(self):
+        """Result includes historical factor from apply_historical."""
+        rounds = [{"year": -1, "dilution": 0.2}]
+        result = (
+            DilutionPipeline(years=range(3))
+            .with_rounds(rounds)
+            .classify()
+            .apply_historical()
+            .apply_safe_conversions()
+            .apply_future_rounds()
+            .build()
+        )
+        assert result.historical_factor == 0.8
+
+    def test_build_without_apply_future_rounds(self):
+        """build() without apply_future_rounds returns ones array."""
+        result = (
+            DilutionPipeline(years=range(3))
+            .with_rounds([])
+            .classify()
+            .build()
+        )
+        assert np.allclose(result.yearly_factors, [1.0, 1.0, 1.0])
+        assert result.total_dilution == 0.0
+
+    def test_build_empty_years(self):
+        """build() with empty years returns zero total dilution."""
+        result = (
+            DilutionPipeline(years=range(0))
+            .with_rounds([])
+            .classify()
+            .build()
+        )
+        assert len(result.yearly_factors) == 0
+        assert result.total_dilution == 0.0
+
+
+class TestCalculateDilutionSchedule:
+    """Tests for calculate_dilution_schedule convenience function."""
+
+    def test_simulated_dilution_shortcut(self):
+        """Simulated dilution bypasses round calculation."""
+        result = calculate_dilution_schedule(
+            years=range(5),
+            simulated_dilution=0.4,
+        )
+        assert result.total_dilution == 0.4
+        assert np.allclose(result.yearly_factors, [0.6] * 5)
+
+    def test_rounds_processed(self):
+        """Rounds are classified and processed correctly."""
+        rounds = [
+            {"year": -1, "dilution": 0.1},  # Historical
+            {"year": 2, "dilution": 0.2},   # Future
+        ]
+        result = calculate_dilution_schedule(
+            years=range(4),
+            rounds=rounds,
+        )
+        # Historical: 0.9, Future at year 2: 0.9 * 0.8 = 0.72
+        assert np.isclose(result.yearly_factors[0], 0.9)
+        assert np.isclose(result.yearly_factors[1], 0.9)
+        assert np.isclose(result.yearly_factors[2], 0.72)
+        assert np.isclose(result.total_dilution, 0.28)
+
+    def test_empty_rounds(self):
+        """Empty rounds list returns no dilution."""
+        result = calculate_dilution_schedule(
+            years=range(3),
+            rounds=[],
+        )
+        assert np.allclose(result.yearly_factors, [1.0, 1.0, 1.0])
+        assert result.total_dilution == 0.0
+
+    def test_none_rounds(self):
+        """None rounds returns no dilution."""
+        result = calculate_dilution_schedule(
+            years=range(3),
+            rounds=None,
+        )
+        assert np.allclose(result.yearly_factors, [1.0, 1.0, 1.0])
+
+    def test_simulated_takes_precedence(self):
+        """Simulated dilution takes precedence over rounds."""
+        rounds = [{"year": 1, "dilution": 0.3}]
+        result = calculate_dilution_schedule(
+            years=range(3),
+            rounds=rounds,
+            simulated_dilution=0.5,
+        )
+        # Simulated wins, so we get 0.5 uniform dilution
+        assert result.total_dilution == 0.5
+        assert np.allclose(result.yearly_factors, [0.5, 0.5, 0.5])
+
+    def test_pandas_index(self):
+        """Works with pandas Index."""
+        result = calculate_dilution_schedule(
+            years=pd.RangeIndex(start=0, stop=3),
+            rounds=[{"year": 1, "dilution": 0.2}],
+        )
+        assert len(result.yearly_factors) == 3

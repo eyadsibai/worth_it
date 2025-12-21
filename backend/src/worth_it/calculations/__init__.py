@@ -42,6 +42,13 @@ from worth_it.calculations.dilution import (
     calculate_dilution_preview,
 )
 
+# Dilution engine (fluent pipeline)
+from worth_it.calculations.dilution_engine import (
+    DilutionPipeline,
+    DilutionResult,
+    calculate_dilution_schedule,
+)
+
 # Financial metrics (IRR, NPV, dilution)
 from worth_it.calculations.financial_metrics import (
     calculate_dilution_from_valuation,
@@ -113,6 +120,10 @@ __all__ = [
     "convert_instruments",
     # Waterfall
     "calculate_waterfall",
+    # Dilution engine (fluent pipeline)
+    "DilutionPipeline",
+    "DilutionResult",
+    "calculate_dilution_schedule",
     # Dilution preview
     "calculate_dilution_preview",
     "DilutionParty",
