@@ -41,14 +41,14 @@ export class WorthItHelpers {
    * Radix UI sliders don't use input elements, so we need keyboard interaction
    */
   async setSliderValue(labelText: string, targetValue: number, min: number = 0, step: number = 1) {
-    // Find the label
+    // Find the label with explicit timeout
     const label = this.page.getByText(labelText, { exact: true });
-    await label.waitFor({ state: 'visible' });
+    await label.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
 
     // Find the slider within the same FormItem
     const formItem = label.locator('..').locator('..');
     const slider = formItem.locator('[role="slider"]');
-    await slider.waitFor({ state: 'visible' });
+    await slider.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
 
     // Focus and set to minimum first
     await slider.focus();

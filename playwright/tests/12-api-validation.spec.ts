@@ -488,7 +488,7 @@ test.describe('Network Failure Handling', () => {
     // The UI should not crash - page should still render
     await expect(page.locator('body')).toBeVisible();
     // Main heading should still be visible
-    await expect(page.getByRole('heading', { name: /Job Offer Financial Analyzer/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Offer Analysis/i })).toBeVisible();
   });
 
   test('should recover when API becomes available again', async ({ page, helpers }) => {
@@ -513,7 +513,7 @@ test.describe('Network Failure Handling', () => {
 
     // Page should load properly now
     await helpers.waitForAPIConnection();
-    await expect(page.getByRole('heading', { name: /Job Offer Financial Analyzer/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Offer Analysis/i })).toBeVisible();
   });
 
   test('should display API error in UI when request fails', async ({ page, helpers }) => {

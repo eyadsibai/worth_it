@@ -1,6 +1,9 @@
 import { test, expect } from '../fixtures/base';
 import { TIMEOUTS } from '../utils/test-data';
 
+// Set reasonable test-level timeout for error handling tests
+test.setTimeout(30000);
+
 /**
  * Test Suite: Error Handling Tests
  *
@@ -32,16 +35,16 @@ test.describe('Backend Error Display', () => {
     // Try to trigger a calculation
     const currentJobCard = page.locator('.glass-card').filter({ hasText: 'Current Job' });
     const salaryInput = currentJobCard.locator('input[type="number"]').first();
-    await salaryInput.fill('15000');
+    await salaryInput.fill('15000', { timeout: TIMEOUTS.formInput });
 
     // Wait a moment for any calculation attempts
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(TIMEOUTS.debounce);
 
     // Page should not crash
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementPresent });
 
     // UI should remain functional
-    await expect(salaryInput).toBeVisible();
+    await expect(salaryInput).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display error indicator when API returns error', async ({ page, helpers }) => {
@@ -177,7 +180,7 @@ test.describe('Timeout Handling', () => {
     await expect(page.locator('body')).toBeVisible();
 
     // Eventually should load main content
-    await expect(page.getByText(/Job Offer Financial Analyzer/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Offer Analysis|Worth It/i)).toBeVisible({ timeout: 10000 });
   });
 
   test('should show appropriate state during slow calculation', async ({ page, helpers }) => {
@@ -372,10 +375,10 @@ test.describe('Network Error Recovery', () => {
     await page.route('**/health', (route) => route.abort());
 
     // Try to trigger a health check (if the app polls)
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(TIMEOUTS.debounce);
 
     // App should still be visible (not crashed)
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementPresent });
   });
 
   test('should recover when API comes back online', async ({ page, helpers }) => {
@@ -392,7 +395,7 @@ test.describe('Network Error Recovery', () => {
     await page.goto('/');
 
     // Wait in blocked state
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(TIMEOUTS.debounce);
 
     // Unblock
     blocked = false;
@@ -401,7 +404,9 @@ test.describe('Network Error Recovery', () => {
     await page.reload();
 
     // Should reconnect - verify main content loads
-    await expect(page.getByText(/Job Offer Financial Analyzer/i)).toBeVisible({ timeout: TIMEOUTS.navigation });
+    await expect(page.getByText(/Offer Analysis|Worth It/i)).toBeVisible({
+      timeout: TIMEOUTS.navigation,
+    });
   });
 });
 
