@@ -80,7 +80,7 @@ backend/src/worth_it/
 
 ## Validation
 
-- **204 backend tests pass** (all existing tests work without modification)
+- **229 backend tests pass** (all existing tests work without modification)
 - **Ruff check passes** (no linting errors)
 - **Pyright passes** (no type errors)
 - **All URLs unchanged** (complete backward compatibility)
