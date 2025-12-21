@@ -100,3 +100,54 @@ class TestWithSimulatedDilution:
         result = DilutionPipeline(years=range(3)).with_simulated_dilution(0.0)
         assert np.allclose(result.yearly_factors, [1.0, 1.0, 1.0])
         assert result.total_dilution == 0.0
+
+
+class TestClassify:
+    """Tests for classify() method."""
+
+    def test_classify_by_status_completed(self):
+        """Rounds with status='completed' go to completed list."""
+        rounds = [
+            {"year": 1, "dilution": 0.1, "status": "completed"},
+            {"year": 2, "dilution": 0.2, "status": "upcoming"},
+        ]
+        pipeline = DilutionPipeline(years=range(5)).with_rounds(rounds).classify()
+        assert len(pipeline._completed) == 1
+        assert len(pipeline._upcoming) == 1
+        assert pipeline._completed[0]["year"] == 1
+
+    def test_classify_by_negative_year(self):
+        """Rounds with negative year (no status) go to completed."""
+        rounds = [
+            {"year": -2, "dilution": 0.1},
+            {"year": -1, "dilution": 0.15},
+            {"year": 1, "dilution": 0.2},
+        ]
+        pipeline = DilutionPipeline(years=range(5)).with_rounds(rounds).classify()
+        assert len(pipeline._completed) == 2
+        assert len(pipeline._upcoming) == 1
+
+    def test_classify_zero_year_is_upcoming(self):
+        """Year 0 with no status is classified as upcoming."""
+        rounds = [{"year": 0, "dilution": 0.1}]
+        pipeline = DilutionPipeline(years=range(5)).with_rounds(rounds).classify()
+        assert len(pipeline._completed) == 0
+        assert len(pipeline._upcoming) == 1
+
+    def test_classify_status_overrides_year(self):
+        """Explicit status overrides year-based classification."""
+        rounds = [
+            {"year": -1, "dilution": 0.1, "status": "upcoming"},
+            {"year": 5, "dilution": 0.2, "status": "completed"},
+        ]
+        pipeline = DilutionPipeline(years=range(5)).with_rounds(rounds).classify()
+        assert len(pipeline._completed) == 1
+        assert pipeline._completed[0]["year"] == 5
+        assert len(pipeline._upcoming) == 1
+        assert pipeline._upcoming[0]["year"] == -1
+
+    def test_classify_returns_new_instance(self):
+        """classify() returns a new pipeline instance."""
+        pipeline1 = DilutionPipeline(years=range(5)).with_rounds([{"year": 1, "dilution": 0.1}])
+        pipeline2 = pipeline1.classify()
+        assert pipeline1 is not pipeline2

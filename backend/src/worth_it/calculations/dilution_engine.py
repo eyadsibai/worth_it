@@ -67,3 +67,25 @@ class DilutionPipeline:
             total_dilution=dilution,
             historical_factor=factor,
         )
+
+    def classify(self) -> DilutionPipeline:
+        """Separate rounds into completed (historical) vs upcoming (future).
+
+        Classification logic:
+        - Rounds with status='completed' go to completed list
+        - Rounds with status='upcoming' go to upcoming list
+        - If no status: negative years are completed, year >= 0 are upcoming
+        """
+        completed = [
+            r
+            for r in self.rounds
+            if r.get("status") == "completed"
+            or (r.get("status") is None and r.get("year", 0) < 0)
+        ]
+        upcoming = [
+            r
+            for r in self.rounds
+            if r.get("status") == "upcoming"
+            or (r.get("status") is None and r.get("year", 0) >= 0)
+        ]
+        return dataclasses.replace(self, _completed=completed, _upcoming=upcoming)
