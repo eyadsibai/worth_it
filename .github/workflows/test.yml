@@ -79,10 +79,10 @@ jobs:
       run: uv run ruff check . --output-format=github
 
     - name: Type check with mypy
-      run: uv run mypy src/worth_it/calculations/ src/worth_it/services/ src/worth_it/api.py src/worth_it/models.py --ignore-missing-imports
+      run: uv run mypy src/worth_it/calculations/ src/worth_it/services/ src/worth_it/api/ src/worth_it/models.py --ignore-missing-imports
 
     - name: Type check with pyright
-      run: uv run pyright src/worth_it/calculations/ src/worth_it/services/ src/worth_it/api.py src/worth_it/models.py
+      run: uv run pyright src/worth_it/calculations/ src/worth_it/services/ src/worth_it/api/ src/worth_it/models.py
 
   frontend-test:
     runs-on: ubuntu-latest
