@@ -24,7 +24,6 @@ from worth_it.calculations.cap_table import (
     calculate_conversion_price,
     calculate_interest,
     calculate_months_between_dates,
-    convert_instruments,
 )
 
 # Scenario comparison calculations
@@ -33,6 +32,13 @@ from worth_it.calculations.comparison import (
     generate_comparison_insights,
     get_comparison_metrics,
     identify_winner,
+)
+
+# Conversion engine (fluent pipeline)
+from worth_it.calculations.conversion_engine import (
+    ConversionPipeline,
+    ConversionResult,
+    convert_instruments,
 )
 
 # Dilution preview calculations
@@ -119,6 +125,9 @@ __all__ = [
     "calculate_interest",
     "calculate_conversion_price",
     "calculate_months_between_dates",
+    # Conversion engine (fluent pipeline)
+    "ConversionPipeline",
+    "ConversionResult",
     "convert_instruments",
     # Waterfall (fluent pipeline)
     "WaterfallPipeline",
