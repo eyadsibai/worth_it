@@ -3,6 +3,7 @@
  * These schemas validate API requests/responses and form data
  */
 import { describe, it, expect } from "vitest";
+import { monteCarloRequestRSU } from "@/__tests__/fixtures/typed-payloads";
 import {
   // Enums
   EquityTypeEnum,
@@ -202,29 +203,23 @@ describe("NPVRequestSchema", () => {
 });
 
 describe("MonteCarloRequestSchema", () => {
-  it("validates correct Monte Carlo request", () => {
-    const validData = {
-      num_simulations: 1000,
-      base_params: { salary: 15000 },
-      sim_param_configs: { exit_valuation: { min: 100000, max: 1000000 } },
-    };
-    expect(() => MonteCarloRequestSchema.parse(validData)).not.toThrow();
+  it("validates correct Monte Carlo request with typed format", () => {
+    // Issue #248: Use typed payload fixture for validation
+    expect(() => MonteCarloRequestSchema.parse(monteCarloRequestRSU)).not.toThrow();
   });
 
   it("rejects num_simulations below 1", () => {
     const invalidData = {
+      ...monteCarloRequestRSU,
       num_simulations: 0,
-      base_params: {},
-      sim_param_configs: {},
     };
     expect(() => MonteCarloRequestSchema.parse(invalidData)).toThrow();
   });
 
-  it("rejects num_simulations above 10000", () => {
+  it("rejects num_simulations above 100000", () => {
     const invalidData = {
-      num_simulations: 10001,
-      base_params: {},
-      sim_param_configs: {},
+      ...monteCarloRequestRSU,
+      num_simulations: 100001,
     };
     expect(() => MonteCarloRequestSchema.parse(invalidData)).toThrow();
   });

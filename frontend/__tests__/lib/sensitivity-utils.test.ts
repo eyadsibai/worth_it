@@ -73,7 +73,7 @@ describe("buildSensitivityRequest", () => {
     expect(request.base_params.startup_params.equity_type).toBe("RSU");
   });
 
-  it("includes sim_param_configs for key variables", () => {
+  it("includes sim_param_configs for key variables (RSU)", () => {
     const globalSettings = createGlobalSettings();
     const currentJob = createCurrentJob();
     const equity = createRSUEquity();
@@ -81,33 +81,41 @@ describe("buildSensitivityRequest", () => {
     const request = buildSensitivityRequest(globalSettings, currentJob, equity);
 
     expect(request.sim_param_configs).toBeDefined();
-    expect(request.sim_param_configs.valuation).toBeDefined();
-    expect(request.sim_param_configs.roi).toBeDefined();
+    // Issue #248: Uses typed keys exit_valuation and annual_roi
+    expect(request.sim_param_configs.exit_valuation).toBeDefined();
+    expect(request.sim_param_configs.annual_roi).toBeDefined();
   });
 
-  it("uses PERT distribution for valuation with reasonable bounds", () => {
+  it("uses simple min/max ranges for valuation with reasonable bounds", () => {
     const globalSettings = createGlobalSettings();
     const currentJob = createCurrentJob();
     const equity = createRSUEquity({ exit_valuation: 500000000 });
 
     const request = buildSensitivityRequest(globalSettings, currentJob, equity);
 
-    const valuationConfig = request.sim_param_configs.valuation;
-    expect(valuationConfig.mode).toBe(500000000);
-    expect(valuationConfig.min_val).toBeLessThan(500000000);
-    expect(valuationConfig.max_val).toBeGreaterThan(500000000);
+    // Issue #248: Uses simple {min, max} format instead of PERT distribution
+    const valuationConfig = request.sim_param_configs.exit_valuation!;
+    expect(valuationConfig.min).toBeLessThan(500000000);
+    expect(valuationConfig.max).toBeGreaterThan(500000000);
+    // 20% to 200% of expected valuation
+    expect(valuationConfig.min).toBe(500000000 * 0.2);
+    expect(valuationConfig.max).toBe(500000000 * 2.0);
   });
 
-  it("uses normal distribution for ROI", () => {
+  it("uses simple min/max ranges for ROI", () => {
     const globalSettings = createGlobalSettings();
     const currentJob = createCurrentJob({ assumed_annual_roi: 7 });
     const equity = createRSUEquity();
 
     const request = buildSensitivityRequest(globalSettings, currentJob, equity);
 
-    const roiConfig = request.sim_param_configs.roi;
-    expect(roiConfig.mean).toBeCloseTo(0.07);
-    expect(roiConfig.std_dev).toBeDefined();
+    // Issue #248: Uses simple {min, max} format instead of Normal distribution
+    const roiConfig = request.sim_param_configs.annual_roi!;
+    expect(roiConfig.min).toBeDefined();
+    expect(roiConfig.max).toBeDefined();
+    // ROI range should center around 7% (0.07)
+    expect(roiConfig.min).toBeCloseTo(0.03); // 0.07 - 0.04
+    expect(roiConfig.max).toBeCloseTo(0.11); // 0.07 + 0.04
   });
 
   it("builds request with Stock Options equity type", () => {
@@ -121,23 +129,29 @@ describe("buildSensitivityRequest", () => {
 
     const request = buildSensitivityRequest(globalSettings, currentJob, equity);
 
-    // Verify nested startup_params structure for Stock Options
-    expect(request.base_params.startup_params.equity_type).toBe("STOCK_OPTIONS");
-    expect(request.base_params.startup_params.options_params.num_options).toBe(50000);
-    expect(request.base_params.startup_params.options_params.strike_price).toBe(1.0);
-    expect(request.base_params.startup_params.options_params.target_exit_price_per_share).toBe(10.0);
+    // Issue #248: Uses flat startup_params structure for Stock Options
+    const startup = request.base_params.startup_params;
+    expect(startup.equity_type).toBe("STOCK_OPTIONS");
+    // Use type narrowing to access Stock Options specific fields
+    if (startup.equity_type === "STOCK_OPTIONS") {
+      expect(startup.num_options).toBe(50000);
+      expect(startup.strike_price).toBe(1.0);
+      expect(startup.exit_price_per_share).toBe(10.0);
+    }
   });
 
-  it("estimates valuation from exit_price_per_share for Stock Options", () => {
+  it("includes sim_param_configs for Stock Options with exit_price_per_share", () => {
     const globalSettings = createGlobalSettings();
     const currentJob = createCurrentJob();
     const equity = createStockOptionsEquity({ exit_price_per_share: 50.0 });
 
     const request = buildSensitivityRequest(globalSettings, currentJob, equity);
 
-    // Valuation is estimated as exit_price_per_share * 1,000,000 (assumed shares)
-    const valuationConfig = request.sim_param_configs.valuation;
-    expect(valuationConfig.mode).toBe(50000000); // 50 * 1,000,000
+    // Issue #248: Stock Options use exit_price_per_share instead of exit_valuation
+    const priceConfig = request.sim_param_configs.exit_price_per_share!;
+    // 20% to 200% of expected price
+    expect(priceConfig.min).toBe(50.0 * 0.2);
+    expect(priceConfig.max).toBe(50.0 * 2.0);
   });
 });
 

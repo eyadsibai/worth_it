@@ -15,6 +15,26 @@ export type EquityType = z.infer<typeof EquityTypeEnum>;
 export const InvestmentFrequencyEnum = z.enum(["Monthly", "Annually"]);
 export type InvestmentFrequency = z.infer<typeof InvestmentFrequencyEnum>;
 
+export const ExerciseStrategyEnum = z.enum(["AT_EXIT", "AFTER_VESTING"]);
+export type ExerciseStrategy = z.infer<typeof ExerciseStrategyEnum>;
+
+// Variable parameters that can be varied in Monte Carlo/Sensitivity analysis
+// These are the allowed keys for sim_param_configs dictionary
+export const VariableParamEnum = z.enum([
+  "exit_valuation",
+  "exit_year",
+  "failure_probability",
+  "current_job_monthly_salary",
+  "startup_monthly_salary",
+  "current_job_salary_growth_rate",
+  "annual_roi",
+  "total_equity_grant_pct",
+  "num_options",
+  "strike_price",
+  "exit_price_per_share",
+]);
+export type VariableParam = z.infer<typeof VariableParamEnum>;
+
 export const RoundTypeEnum = z.enum(["SAFE_NOTE", "PRICED_ROUND"]);
 export type RoundType = z.infer<typeof RoundTypeEnum>;
 
@@ -31,6 +51,102 @@ export const CompanyStageEnum = z.enum([
   "pre-ipo",
 ]);
 export type CompanyStage = z.infer<typeof CompanyStageEnum>;
+
+// ============================================================================
+// Typed API Payload Schemas (Issue #248)
+// These match the Pydantic models in backend/src/worth_it/models.py
+// ============================================================================
+
+/**
+ * Range for a variable parameter in Monte Carlo/Sensitivity simulations.
+ * The simulation will sample values between min and max.
+ */
+export const SimParamRangeSchema = z.object({
+  min: z.number(),
+  max: z.number(),
+}).refine((data) => data.min <= data.max, {
+  message: "min must be less than or equal to max",
+});
+export type SimParamRange = z.infer<typeof SimParamRangeSchema>;
+
+/**
+ * RSU (Restricted Stock Unit) parameters for typed API payloads.
+ * Uses flat structure with all RSU-specific fields at top level.
+ */
+export const RSUParamsSchema = z.object({
+  equity_type: z.literal("RSU"),
+  monthly_salary: z.number().min(0),
+  total_equity_grant_pct: z.number().min(0).max(100), // Percentage (0-100)
+  vesting_period: z.number().int().min(1).max(10),
+  cliff_period: z.number().int().min(0).max(5),
+  exit_valuation: z.number().min(0),
+  simulate_dilution: z.boolean().default(false),
+  dilution_rounds: z.array(z.any()).nullable().optional(),
+});
+export type RSUParams = z.infer<typeof RSUParamsSchema>;
+
+/**
+ * Stock Options parameters for typed API payloads.
+ * Uses flat structure with all options-specific fields at top level.
+ */
+export const StockOptionsParamsSchema = z.object({
+  equity_type: z.literal("STOCK_OPTIONS"),
+  monthly_salary: z.number().min(0),
+  num_options: z.number().int().min(0),
+  strike_price: z.number().min(0),
+  vesting_period: z.number().int().min(1).max(10),
+  cliff_period: z.number().int().min(0).max(5),
+  exit_price_per_share: z.number().min(0),
+  exercise_strategy: ExerciseStrategyEnum.default("AT_EXIT"),
+  exercise_year: z.number().int().min(1).max(20).nullable().optional(),
+});
+export type StockOptionsParams = z.infer<typeof StockOptionsParamsSchema>;
+
+/**
+ * Discriminated union of RSU or Stock Options params.
+ * Uses equity_type as the discriminator field.
+ */
+export const StartupParamsSchema = z.discriminatedUnion("equity_type", [
+  RSUParamsSchema,
+  StockOptionsParamsSchema,
+]);
+export type StartupParams = z.infer<typeof StartupParamsSchema>;
+
+/**
+ * Typed base parameters for Monte Carlo and Sensitivity Analysis.
+ * Contains all the common parameters plus nested startup_params.
+ */
+export const TypedBaseParamsSchema = z.object({
+  exit_year: z.number().int().min(1).max(20),
+  current_job_monthly_salary: z.number().min(0),
+  startup_monthly_salary: z.number().min(0),
+  current_job_salary_growth_rate: z.number().min(0).max(1),
+  annual_roi: z.number().min(0).max(1),
+  investment_frequency: InvestmentFrequencyEnum,
+  failure_probability: z.number().min(0).max(1),
+  startup_params: StartupParamsSchema,
+});
+export type TypedBaseParams = z.infer<typeof TypedBaseParamsSchema>;
+
+/**
+ * Type-safe simulation parameter configs.
+ * Maps variable parameter names to their min/max ranges.
+ * Uses partial to allow any subset of the available parameters.
+ */
+export const SimParamConfigsSchema = z.object({
+  exit_valuation: SimParamRangeSchema.optional(),
+  exit_year: SimParamRangeSchema.optional(),
+  failure_probability: SimParamRangeSchema.optional(),
+  current_job_monthly_salary: SimParamRangeSchema.optional(),
+  startup_monthly_salary: SimParamRangeSchema.optional(),
+  current_job_salary_growth_rate: SimParamRangeSchema.optional(),
+  annual_roi: SimParamRangeSchema.optional(),
+  total_equity_grant_pct: SimParamRangeSchema.optional(),
+  num_options: SimParamRangeSchema.optional(),
+  strike_price: SimParamRangeSchema.optional(),
+  exit_price_per_share: SimParamRangeSchema.optional(),
+});
+export type SimParamConfigs = z.infer<typeof SimParamConfigsSchema>;
 
 // ============================================================================
 // Request Schemas
@@ -54,9 +170,13 @@ export const OpportunityCostRequestSchema = z.object({
 });
 export type OpportunityCostRequest = z.infer<typeof OpportunityCostRequestSchema>;
 
+/**
+ * Typed request for calculating startup scenario.
+ * Uses discriminated union for startup_params (RSU or Stock Options).
+ */
 export const StartupScenarioRequestSchema = z.object({
   opportunity_cost_data: z.array(z.record(z.string(), z.any())),
-  startup_params: z.record(z.string(), z.any()),
+  startup_params: StartupParamsSchema,
 });
 export type StartupScenarioRequest = z.infer<typeof StartupScenarioRequestSchema>;
 
@@ -73,16 +193,24 @@ export const NPVRequestSchema = z.object({
 });
 export type NPVRequest = z.infer<typeof NPVRequestSchema>;
 
+/**
+ * Typed request for Monte Carlo simulation.
+ * Uses TypedBaseParams for base parameters and SimParamConfigs for variable configs.
+ */
 export const MonteCarloRequestSchema = z.object({
-  num_simulations: z.number().int().min(1).max(10000),
-  base_params: z.record(z.string(), z.any()),
-  sim_param_configs: z.record(z.string(), z.any()),
+  num_simulations: z.number().int().min(1).max(100000),
+  base_params: TypedBaseParamsSchema,
+  sim_param_configs: SimParamConfigsSchema,
 });
 export type MonteCarloRequest = z.infer<typeof MonteCarloRequestSchema>;
 
+/**
+ * Typed request for sensitivity analysis.
+ * Uses TypedBaseParams for base parameters and SimParamConfigs for variable configs.
+ */
 export const SensitivityAnalysisRequestSchema = z.object({
-  base_params: z.record(z.string(), z.any()),
-  sim_param_configs: z.record(z.string(), z.any()),
+  base_params: TypedBaseParamsSchema,
+  sim_param_configs: SimParamConfigsSchema,
 });
 export type SensitivityAnalysisRequest = z.infer<typeof SensitivityAnalysisRequestSchema>;
 

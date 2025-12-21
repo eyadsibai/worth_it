@@ -17,6 +17,10 @@ import {
   useMonteCarloWebSocket,
   type MonteCarloProgress,
 } from "@/lib/api-client";
+import {
+  minimalMonteCarloRequest,
+  monteCarloRequestRSU,
+} from "@/__tests__/fixtures/typed-payloads";
 
 // =============================================================================
 // Mock Setup
@@ -213,14 +217,8 @@ describe("useMonteCarloWebSocket", () => {
   it("connects and sends request when runSimulation is called", async () => {
     const { result } = renderHook(() => useMonteCarloWebSocket());
 
-    const request = {
-      num_simulations: 1000,
-      base_params: { salary: 15000 },
-      sim_param_configs: {},
-    };
-
     act(() => {
-      result.current.runSimulation(request);
+      result.current.runSimulation(monteCarloRequestRSU);
     });
 
     // Wait for WebSocket to "connect"
@@ -232,7 +230,7 @@ describe("useMonteCarloWebSocket", () => {
     expect(MockWebSocket.instances.length).toBe(1);
     await waitFor(() => {
       expect(MockWebSocket.instances[0].send).toHaveBeenCalledWith(
-        JSON.stringify(request)
+        JSON.stringify(monteCarloRequestRSU)
       );
     });
   });
@@ -241,11 +239,7 @@ describe("useMonteCarloWebSocket", () => {
     const { result } = renderHook(() => useMonteCarloWebSocket());
 
     act(() => {
-      result.current.runSimulation({
-        num_simulations: 1000,
-        base_params: {},
-        sim_param_configs: {},
-      });
+      result.current.runSimulation(minimalMonteCarloRequest);
     });
 
     await waitFor(() => {
@@ -277,11 +271,7 @@ describe("useMonteCarloWebSocket", () => {
     const { result } = renderHook(() => useMonteCarloWebSocket());
 
     act(() => {
-      result.current.runSimulation({
-        num_simulations: 100,
-        base_params: {},
-        sim_param_configs: {},
-      });
+      result.current.runSimulation(minimalMonteCarloRequest);
     });
 
     await waitFor(() => {
@@ -313,11 +303,7 @@ describe("useMonteCarloWebSocket", () => {
     const { result } = renderHook(() => useMonteCarloWebSocket());
 
     act(() => {
-      result.current.runSimulation({
-        num_simulations: 100,
-        base_params: {},
-        sim_param_configs: {},
-      });
+      result.current.runSimulation(minimalMonteCarloRequest);
     });
 
     await waitFor(() => {
@@ -345,11 +331,7 @@ describe("useMonteCarloWebSocket", () => {
     const { result } = renderHook(() => useMonteCarloWebSocket());
 
     act(() => {
-      result.current.runSimulation({
-        num_simulations: 100,
-        base_params: {},
-        sim_param_configs: {},
-      });
+      result.current.runSimulation(minimalMonteCarloRequest);
     });
 
     await waitFor(() => {
@@ -374,11 +356,7 @@ describe("useMonteCarloWebSocket", () => {
     const { result } = renderHook(() => useMonteCarloWebSocket());
 
     act(() => {
-      result.current.runSimulation({
-        num_simulations: 100,
-        base_params: {},
-        sim_param_configs: {},
-      });
+      result.current.runSimulation(minimalMonteCarloRequest);
     });
 
     await waitFor(() => {
@@ -401,11 +379,7 @@ describe("useMonteCarloWebSocket", () => {
     const { result } = renderHook(() => useMonteCarloWebSocket());
 
     act(() => {
-      result.current.runSimulation({
-        num_simulations: 100,
-        base_params: {},
-        sim_param_configs: {},
-      });
+      result.current.runSimulation(minimalMonteCarloRequest);
     });
 
     await waitFor(() => {
@@ -430,11 +404,7 @@ describe("useMonteCarloWebSocket", () => {
 
     // Start first simulation
     act(() => {
-      result.current.runSimulation({
-        num_simulations: 100,
-        base_params: {},
-        sim_param_configs: {},
-      });
+      result.current.runSimulation(minimalMonteCarloRequest);
     });
 
     await waitFor(() => {
@@ -458,11 +428,7 @@ describe("useMonteCarloWebSocket", () => {
 
     // Start a new simulation - should reset state
     act(() => {
-      result.current.runSimulation({
-        num_simulations: 200,
-        base_params: {},
-        sim_param_configs: {},
-      });
+      result.current.runSimulation(monteCarloRequestRSU);
     });
 
     await waitFor(() => {
@@ -476,11 +442,7 @@ describe("useMonteCarloWebSocket", () => {
     const { result, unmount } = renderHook(() => useMonteCarloWebSocket());
 
     act(() => {
-      result.current.runSimulation({
-        num_simulations: 100,
-        base_params: {},
-        sim_param_configs: {},
-      });
+      result.current.runSimulation(minimalMonteCarloRequest);
     });
 
     await waitFor(() => {
