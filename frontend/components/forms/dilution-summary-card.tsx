@@ -2,12 +2,20 @@
 
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, TrendingDown } from "lucide-react";
+import { PieChart, TrendingDown, Clock, Target } from "lucide-react";
 import type { DilutionRoundForm } from "@/lib/schemas";
 
 interface DilutionSummaryCardProps {
   completedRounds: DilutionRoundForm[];
   upcomingRounds: DilutionRoundForm[];
+}
+
+/**
+ * Format a percentage, removing trailing .0 if present
+ */
+function formatPct(value: number): string {
+  const fixed = value.toFixed(1);
+  return fixed.endsWith(".0") ? Math.round(value).toString() : fixed;
 }
 
 /**
@@ -47,10 +55,10 @@ export function DilutionSummaryCard({
   const projectedFactor = calculateDilutionFactor(upcomingRounds);
   const totalFactor = historicalFactor * projectedFactor;
 
-  // Convert to percentages
-  const historicalDilution = ((1 - historicalFactor) * 100).toFixed(1);
-  const projectedDilution = ((1 - projectedFactor) * 100).toFixed(1);
-  const totalDilution = ((1 - totalFactor) * 100).toFixed(1);
+  // Convert to percentages (formatted without trailing .0)
+  const historicalDilution = formatPct((1 - historicalFactor) * 100);
+  const projectedDilution = formatPct((1 - projectedFactor) * 100);
+  const totalDilution = formatPct((1 - totalFactor) * 100);
   const equityRemaining = Math.round(totalFactor * 100);
 
   // Progress bar segments (as percentages of the bar)
@@ -59,7 +67,7 @@ export function DilutionSummaryCard({
   const remainingBarWidth = totalFactor * 100;
 
   return (
-    <Card className="bg-white border-0 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_2px_8px_rgba(0,0,0,0.04)]">
+    <Card className="terminal-card">
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
           <PieChart className="h-4 w-4 text-muted-foreground" />
@@ -88,25 +96,25 @@ export function DilutionSummaryCard({
             className="h-3 bg-muted rounded-full overflow-hidden flex"
             data-testid="dilution-progress-bar"
           >
-            {/* Historical dilution (dark forest green) */}
+            {/* Historical dilution (chart-1: dark forest green) */}
             {historicalBarWidth > 0 && (
               <div
-                className="h-full bg-[hsl(150,40%,25%)]"
+                className="h-full bg-chart-1"
                 style={{ width: `${historicalBarWidth}%` }}
                 title={`Historical: ${historicalDilution}%`}
               />
             )}
-            {/* Projected dilution (lime green) */}
+            {/* Projected dilution (chart-3: lime green) */}
             {projectedBarWidth > 0 && (
               <div
-                className="h-full bg-[hsl(75,50%,50%)]"
+                className="h-full bg-chart-3"
                 style={{ width: `${projectedBarWidth}%` }}
                 title={`Projected: ${projectedDilution}%`}
               />
             )}
-            {/* Remaining equity (teal/mint) */}
+            {/* Remaining equity (chart-4: teal/mint) */}
             <div
-              className="h-full bg-[hsl(165,50%,50%)]"
+              className="h-full bg-chart-4"
               style={{ width: `${remainingBarWidth}%` }}
               title={`Remaining: ${equityRemaining}%`}
             />
@@ -115,47 +123,55 @@ export function DilutionSummaryCard({
           {/* Legend */}
           <div className="flex flex-wrap justify-center gap-4 text-xs">
             <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-sm bg-[hsl(150,40%,25%)]" />
+              <div className="w-2.5 h-2.5 rounded-sm bg-chart-1" />
               <span className="text-muted-foreground">Historical</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-sm bg-[hsl(75,50%,50%)]" />
+              <div className="w-2.5 h-2.5 rounded-sm bg-chart-3" />
               <span className="text-muted-foreground">Projected</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-sm bg-[hsl(165,50%,50%)]" />
+              <div className="w-2.5 h-2.5 rounded-sm bg-chart-4" />
               <span className="text-muted-foreground">Remaining</span>
             </div>
           </div>
         </div>
 
         {/* Detailed breakdown */}
-        <div className="grid grid-cols-3 gap-2 pt-2 border-t">
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">Historical</p>
+        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-muted-foreground/20">
+          <div className="text-center min-w-0">
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <Clock className="h-3 w-3" />
+              Historical
+            </p>
             <p
-              className="text-sm font-semibold tabular-nums text-[hsl(150,40%,25%)]"
+              className="text-sm font-semibold tabular-nums text-chart-1 truncate"
               data-testid="historical-dilution"
             >
               {historicalDilution}%
             </p>
           </div>
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">Projected</p>
+          <div className="text-center min-w-0">
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <Target className="h-3 w-3" />
+              Projected
+            </p>
             <p
-              className="text-sm font-semibold tabular-nums text-[hsl(75,40%,40%)]"
+              className="text-sm font-semibold tabular-nums text-chart-3 truncate"
               data-testid="projected-dilution"
             >
               {projectedDilution}%
             </p>
           </div>
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">Total</p>
+          <div className="text-center min-w-0">
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <TrendingDown className="h-3 w-3" />
+              Total
+            </p>
             <p
-              className="text-sm font-semibold tabular-nums flex items-center justify-center gap-1"
+              className="text-sm font-semibold tabular-nums text-destructive truncate"
               data-testid="total-dilution"
             >
-              <TrendingDown className="h-3 w-3 text-destructive" />
               {totalDilution}%
             </p>
           </div>
