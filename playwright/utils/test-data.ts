@@ -3,6 +3,107 @@
  * These represent realistic scenarios for testing the Worth It application
  */
 
+/**
+ * API Enum Values - Single source of truth for all enum values
+ * These MUST match the backend EquityType enum in backend/src/worth_it/calculations/base.py
+ */
+export const API_ENUMS = {
+  equityType: {
+    RSU: 'RSU' as const,
+    STOCK_OPTIONS: 'STOCK_OPTIONS' as const,
+  },
+  investmentFrequency: {
+    Monthly: 'Monthly' as const,
+    Quarterly: 'Quarterly' as const,
+    Annually: 'Annually' as const,
+  },
+  exerciseStrategy: {
+    AT_EXIT: 'At Exit' as const,
+    IMMEDIATELY: 'Immediately' as const,
+    AT_YEAR: 'At Year' as const,
+  },
+} as const;
+
+export type EquityType = typeof API_ENUMS.equityType[keyof typeof API_ENUMS.equityType];
+export type InvestmentFrequency = typeof API_ENUMS.investmentFrequency[keyof typeof API_ENUMS.investmentFrequency];
+
+/**
+ * API Request Builders - Create properly typed API payloads
+ * These ensure all tests use the same request structure with correct enum values
+ *
+ * NOTE: The backend has TWO different formats:
+ * - LEGACY format: Used by opportunity-cost endpoint (dict with equity_pct, target_exit_valuation)
+ * - TYPED format: Used by startup-scenario, monte-carlo endpoints (RSUParams/StockOptionsParams)
+ */
+export const API_REQUESTS = {
+  /**
+   * Create RSU startup params in LEGACY format for opportunity-cost endpoint
+   * Uses: equity_pct (decimal), target_exit_valuation, total_vesting_years, cliff_years
+   */
+  createLegacyRSUParams: (overrides?: Partial<{
+    total_vesting_years: number;
+    cliff_years: number;
+    exit_year: number;
+    equity_pct: number;
+    target_exit_valuation: number;
+    simulate_dilution: boolean;
+  }>) => ({
+    equity_type: API_ENUMS.equityType.RSU,
+    total_vesting_years: overrides?.total_vesting_years ?? 4,
+    cliff_years: overrides?.cliff_years ?? 1,
+    exit_year: overrides?.exit_year ?? 4,
+    rsu_params: {
+      equity_pct: overrides?.equity_pct ?? 0.5,
+      target_exit_valuation: overrides?.target_exit_valuation ?? 100000000,
+      simulate_dilution: overrides?.simulate_dilution ?? false,
+    },
+    options_params: {},
+  }),
+
+  /**
+   * Create RSU startup params in TYPED format for startup-scenario, monte-carlo endpoints
+   * Uses: total_equity_grant_pct (0-100), exit_valuation, vesting_period, cliff_period
+   */
+  createTypedRSUParams: (overrides?: Partial<{
+    monthly_salary: number;
+    total_equity_grant_pct: number;
+    vesting_period: number;
+    cliff_period: number;
+    exit_valuation: number;
+    simulate_dilution: boolean;
+  }>) => ({
+    equity_type: API_ENUMS.equityType.RSU,
+    monthly_salary: overrides?.monthly_salary ?? 12500,
+    total_equity_grant_pct: overrides?.total_equity_grant_pct ?? 0.5, // 0.5% in percentage form
+    vesting_period: overrides?.vesting_period ?? 4,
+    cliff_period: overrides?.cliff_period ?? 1,
+    exit_valuation: overrides?.exit_valuation ?? 100000000,
+    simulate_dilution: overrides?.simulate_dilution ?? false,
+  }),
+
+  /**
+   * Create base params for Monte Carlo API requests (TYPED format)
+   */
+  createTypedBaseParams: (overrides?: Partial<{
+    exit_year: number;
+    current_job_monthly_salary: number;
+    startup_monthly_salary: number;
+    current_job_salary_growth_rate: number;
+    annual_roi: number;
+    investment_frequency: InvestmentFrequency;
+    failure_probability: number;
+  }>) => ({
+    exit_year: overrides?.exit_year ?? 5,
+    current_job_monthly_salary: overrides?.current_job_monthly_salary ?? 15000,
+    startup_monthly_salary: overrides?.startup_monthly_salary ?? 12500,
+    current_job_salary_growth_rate: overrides?.current_job_salary_growth_rate ?? 0.03,
+    annual_roi: overrides?.annual_roi ?? 0.07,
+    investment_frequency: overrides?.investment_frequency ?? API_ENUMS.investmentFrequency.Monthly,
+    failure_probability: overrides?.failure_probability ?? 0.25,
+    startup_params: API_REQUESTS.createTypedRSUParams(),
+  }),
+};
+
 export const TEST_DATA = {
   // Global Settings
   globalSettings: {

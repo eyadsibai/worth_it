@@ -64,38 +64,49 @@ test.describe('API Response Schema Validation', () => {
     expect(gridResponse.ok()).toBeTruthy();
     const gridData = await gridResponse.json();
 
-    // Startup params format expected by the backend
-    const startupParams = {
-      equity_type: 'Equity (RSUs)',
+    // OLD format for opportunity-cost endpoint (uses dict with legacy field names)
+    const legacyStartupParams = {
+      equity_type: 'RSU',
       total_vesting_years: 4,
       cliff_years: 1,
       exit_year: 4,
       rsu_params: {
-        equity_pct: 0.5, // 0.5% equity
+        equity_pct: 0.5, // 0.5% equity (decimal form)
         target_exit_valuation: 100000000,
         simulate_dilution: false,
       },
       options_params: {},
     };
 
-    // Then get opportunity cost
+    // NEW format for startup-scenario endpoint (typed RSUParams)
+    const typedStartupParams = {
+      equity_type: 'RSU',
+      monthly_salary: 12500,
+      total_equity_grant_pct: 0.5, // 0.5% equity (0-100 percentage form)
+      vesting_period: 4,
+      cliff_period: 1,
+      exit_valuation: 100000000,
+      simulate_dilution: false,
+    };
+
+    // Then get opportunity cost (uses legacy format)
     const opportunityCostResponse = await page.request.post(`${API_BASE_URL}/api/opportunity-cost`, {
       data: {
         monthly_data: gridData.data,
         annual_roi: 0.07,
         investment_frequency: 'Monthly',
         options_params: null,
-        startup_params: startupParams,
+        startup_params: legacyStartupParams,
       },
     });
     expect(opportunityCostResponse.ok()).toBeTruthy();
     const opportunityCostData = await opportunityCostResponse.json();
 
-    // Finally get startup scenario
+    // Finally get startup scenario (uses typed format)
     const response = await page.request.post(`${API_BASE_URL}/api/startup-scenario`, {
       data: {
         opportunity_cost_data: opportunityCostData.data,
-        startup_params: startupParams,
+        startup_params: typedStartupParams,
       },
     });
 
@@ -313,7 +324,7 @@ test.describe('API Response Schema Validation', () => {
 });
 
 test.describe('API Error Response Handling', () => {
-  test('should return 422 for invalid monthly-data-grid request', async ({ page }) => {
+  test('should return 400 for invalid monthly-data-grid request', async ({ page }) => {
     const response = await page.request.post(`${API_BASE_URL}/api/monthly-data-grid`, {
       data: {
         exit_year: -1, // Invalid: must be positive
@@ -323,12 +334,14 @@ test.describe('API Error Response Handling', () => {
       },
     });
 
-    expect(response.status()).toBe(422);
+    expect(response.status()).toBe(400);
     const data = await response.json();
-    expect(data).toHaveProperty('detail');
+    // Error format: { error: { code, message, details: [...] } }
+    expect(data).toHaveProperty('error');
+    expect(data.error).toHaveProperty('details');
   });
 
-  test('should return 422 for missing required fields', async ({ page }) => {
+  test('should return 400 for missing required fields', async ({ page }) => {
     const response = await page.request.post(`${API_BASE_URL}/api/monthly-data-grid`, {
       data: {
         // Missing required fields
@@ -336,10 +349,10 @@ test.describe('API Error Response Handling', () => {
       },
     });
 
-    expect(response.status()).toBe(422);
+    expect(response.status()).toBe(400);
   });
 
-  test('should return 422 for invalid data types', async ({ page }) => {
+  test('should return 400 for invalid data types', async ({ page }) => {
     const response = await page.request.post(`${API_BASE_URL}/api/monthly-data-grid`, {
       data: {
         exit_year: 'five', // Should be number
@@ -349,10 +362,10 @@ test.describe('API Error Response Handling', () => {
       },
     });
 
-    expect(response.status()).toBe(422);
+    expect(response.status()).toBe(400);
   });
 
-  test('should return 422 for out-of-range values', async ({ page }) => {
+  test('should return 400 for out-of-range values', async ({ page }) => {
     const response = await page.request.post(`${API_BASE_URL}/api/monthly-data-grid`, {
       data: {
         exit_year: 25, // Max is 20
@@ -362,10 +375,10 @@ test.describe('API Error Response Handling', () => {
       },
     });
 
-    expect(response.status()).toBe(422);
+    expect(response.status()).toBe(400);
   });
 
-  test('should return 422 for boolean exit_year in monte-carlo request', async ({ page }) => {
+  test('should return 400 for boolean exit_year in monte-carlo request', async ({ page }) => {
     // This tests the Python bool-is-subclass-of-int edge case
     // booleans should be rejected even though isinstance(True, int) is True in Python
     const response = await page.request.post(`${API_BASE_URL}/api/monte-carlo`, {
@@ -379,32 +392,30 @@ test.describe('API Error Response Handling', () => {
           annual_roi: 0.07,
           investment_frequency: 'Monthly',
           startup_params: {
-            equity_type: 'Equity (RSUs)',
-            total_vesting_years: 4,
-            cliff_years: 1,
-            rsu_params: {
-              equity_pct: 0.5,
-              target_exit_valuation: 100000000,
-              simulate_dilution: false,
-            },
-            options_params: {},
+            equity_type: 'RSU',
+            monthly_salary: 12500,
+            total_equity_grant_pct: 0.5,
+            vesting_period: 4,
+            cliff_period: 1,
+            exit_valuation: 100000000,
+            simulate_dilution: false,
           },
           failure_probability: 0.25,
         },
-        sim_param_configs: {
-          valuation: { min_val: 50000000, max_val: 200000000, mode: 100000000 },
-          roi: { mean: 0.07, std_dev: 0.02 },
-        },
+        sim_param_configs: {},
       },
     });
 
-    expect(response.status()).toBe(422);
+    expect(response.status()).toBe(400);
     const data = await response.json();
-    expect(data.detail).toContain('exit_year');
-    expect(data.detail).toContain('boolean');
+    // Error format: { error: { code, message, details: [{ field, message }] } }
+    expect(data.error).toBeDefined();
+    const errorMessages = data.error.details.map((d: { message: string }) => d.message).join(' ');
+    expect(errorMessages).toContain('exit_year');
+    expect(errorMessages).toContain('boolean');
   });
 
-  test('should return 422 for boolean exit_year in sensitivity-analysis request', async ({ page }) => {
+  test('should return 400 for boolean exit_year in sensitivity-analysis request', async ({ page }) => {
     const response = await page.request.post(`${API_BASE_URL}/api/sensitivity-analysis`, {
       data: {
         base_params: {
@@ -415,28 +426,25 @@ test.describe('API Error Response Handling', () => {
           annual_roi: 0.07,
           investment_frequency: 'Monthly',
           startup_params: {
-            equity_type: 'Equity (RSUs)',
-            total_vesting_years: 4,
-            cliff_years: 1,
-            rsu_params: {
-              equity_pct: 0.5,
-              target_exit_valuation: 100000000,
-              simulate_dilution: false,
-            },
-            options_params: {},
+            equity_type: 'RSU',
+            monthly_salary: 12500,
+            total_equity_grant_pct: 0.5,
+            vesting_period: 4,
+            cliff_period: 1,
+            exit_valuation: 100000000,
+            simulate_dilution: false,
           },
           failure_probability: 0.0,
         },
-        sim_param_configs: {
-          valuation: { min_val: 50000000, max_val: 200000000, mode: 100000000 },
-          roi: { mean: 0.07, std_dev: 0.02 },
-        },
+        sim_param_configs: {},
       },
     });
 
-    expect(response.status()).toBe(422);
+    expect(response.status()).toBe(400);
     const data = await response.json();
-    expect(data.detail).toContain('exit_year');
+    // Error format: { error: { code, message, details: [{ field, message }] } }
+    expect(data.error).toBeDefined();
+    expect(data.error.details.some((d: { message: string }) => d.message.includes('exit_year'))).toBeTruthy();
   });
 });
 
