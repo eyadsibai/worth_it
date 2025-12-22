@@ -151,7 +151,7 @@ export function SensitivityAnalysis({
               </thead>
               <tbody>
                 {data.map((item, idx) => (
-                  <tr key={idx} className="border-t">
+                  <tr key={idx} className="border-t border-border">
                     <td className="p-3">{item.variable}</td>
                     <td className="p-3 text-right tabular-nums text-destructive">
                       {formatCurrencyCompact(item.low)}

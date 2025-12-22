@@ -457,7 +457,7 @@ export function CapTableManager({
                         <AnimatedPercentage value={capTable.option_pool_pct} decimals={0} />
                       </span>
                     </div>
-                    <div className="border-t pt-2 flex justify-between font-medium">
+                    <div className="border-t border-border pt-2 flex justify-between font-medium">
                       <span>Total Allocated</span>
                       <span
                         className={`tabular-nums ${

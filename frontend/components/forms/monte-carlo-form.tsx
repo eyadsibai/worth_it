@@ -185,7 +185,7 @@ export function MonteCarloFormComponent({
             />
 
             {/* Exit Valuation - Always enabled */}
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+            <div className="space-y-4 p-4 border border-border rounded-lg bg-muted/50">
               <h4 className="font-medium text-sm">Exit Valuation Distribution (Normal)</h4>
 
               <NumberInputField
@@ -217,7 +217,7 @@ export function MonteCarloFormComponent({
 
             {/* Salary Growth Rate */}
             <Collapsible open={form.watch("growth_rate_enabled")}>
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+              <div className="space-y-4 p-4 border border-border rounded-lg bg-muted/50">
                 <FormField
                   control={form.control}
                   name="growth_rate_enabled"
@@ -233,7 +233,7 @@ export function MonteCarloFormComponent({
                 />
 
                 <CollapsibleContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <NumberInputField
                       form={form}
                       name="growth_rate_min"
@@ -279,7 +279,7 @@ export function MonteCarloFormComponent({
 
             {/* ROI */}
             <Collapsible open={form.watch("roi_enabled")}>
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+              <div className="space-y-4 p-4 border border-border rounded-lg bg-muted/50">
                 <FormField
                   control={form.control}
                   name="roi_enabled"
@@ -295,7 +295,7 @@ export function MonteCarloFormComponent({
                 />
 
                 <CollapsibleContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <NumberInputField
                       form={form}
                       name="roi_mean"
@@ -328,7 +328,7 @@ export function MonteCarloFormComponent({
 
             {/* Exit Year */}
             <Collapsible open={form.watch("exit_year_enabled")}>
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+              <div className="space-y-4 p-4 border border-border rounded-lg bg-muted/50">
                 <FormField
                   control={form.control}
                   name="exit_year_enabled"
@@ -344,7 +344,7 @@ export function MonteCarloFormComponent({
                 />
 
                 <CollapsibleContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <NumberInputField
                       form={form}
                       name="exit_year_min"
@@ -390,7 +390,7 @@ export function MonteCarloFormComponent({
 
             {/* Dilution */}
             <Collapsible open={form.watch("dilution_enabled")}>
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+              <div className="space-y-4 p-4 border border-border rounded-lg bg-muted/50">
                 <FormField
                   control={form.control}
                   name="dilution_enabled"
@@ -406,7 +406,7 @@ export function MonteCarloFormComponent({
                 />
 
                 <CollapsibleContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <NumberInputField
                       form={form}
                       name="dilution_min"

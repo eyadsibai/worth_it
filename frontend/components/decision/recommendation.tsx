@@ -288,7 +288,7 @@ export function DecisionRecommendationDisplay({
           </div>
 
           {/* Factor Scores */}
-          <div className="space-y-4 pt-4 border-t">
+          <div className="space-y-4 pt-4 border-t border-border">
             <h4 className="text-sm font-medium text-muted-foreground">Factor Breakdown</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <ScoreGauge {...recommendation.factorScores.financial} />

@@ -149,7 +149,7 @@ export function FounderDashboard() {
                   <AnimatedPercentage value={capTable.option_pool_pct} decimals={0} />
                 </span>
               </div>
-              <div className="border-t pt-2 flex justify-between font-medium text-sm">
+              <div className="border-t border-border pt-2 flex justify-between font-medium text-sm">
                 <span>Total Allocated</span>
                 <span
                   className={`tabular-nums ${

@@ -88,7 +88,7 @@ export function ValuationResult({ result }: ValuationResultProps) {
         )}
 
         {Object.keys(result.inputs).length > 0 && (
-          <div className="pt-2 border-t">
+          <div className="pt-2 border-t border-border">
             <div className="flex items-center gap-1 mb-2">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">
                 Calculation Inputs

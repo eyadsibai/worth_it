@@ -58,7 +58,7 @@ export function CompletedRoundsSection({
   }, 0);
 
   return (
-    <Card className="border-muted bg-muted/30">
+    <Card className="border-border bg-muted/30">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -189,7 +189,7 @@ function CompletedRoundItem({
 
   // Editable view
   return (
-    <Card className="border-dashed">
+    <Card className="border-dashed border-border">
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="text-xs">
@@ -200,7 +200,7 @@ function CompletedRoundItem({
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <SelectField
             form={form}
             name={`dilution_rounds.${roundIndex}.round_type`}

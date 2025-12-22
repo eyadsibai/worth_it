@@ -89,7 +89,7 @@ export function CurrentJobFormComponent({
           formatValue={(value) => `${value.toFixed(1)}%`}
         />
 
-        <div className="space-y-4 p-4 border rounded-lg bg-gradient-to-br from-muted/30 to-muted/50">
+        <div className="space-y-4 p-4 border border-border rounded-lg bg-gradient-to-br from-muted/30 to-muted/50">
           <h4 className="font-semibold text-sm flex items-center gap-2">
             <div className="h-1.5 w-1.5 rounded-full bg-chart-3"></div>
             Salary Surplus Investment

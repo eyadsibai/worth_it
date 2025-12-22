@@ -229,7 +229,7 @@ export function ValuationComparison({ comparison }: ValuationComparisonProps) {
         )}
 
         {/* Individual Results Grid */}
-        <div className="pt-4 border-t">
+        <div className="pt-4 border-t border-border">
           <p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
             Method Breakdown
           </p>
