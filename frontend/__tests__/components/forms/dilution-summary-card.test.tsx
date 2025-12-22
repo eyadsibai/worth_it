@@ -50,7 +50,8 @@ describe("DilutionSummaryCard", () => {
       );
 
       // Historical dilution: 1 - (0.85 * 0.80) = 1 - 0.68 = 0.32 = 32%
-      expect(screen.getByTestId("historical-dilution")).toHaveTextContent("32.0%");
+      // Note: formatPct removes trailing .0, so 32.0% becomes 32%
+      expect(screen.getByTestId("historical-dilution")).toHaveTextContent("32%");
     });
 
     it("only includes enabled completed rounds in calculation", () => {
@@ -64,7 +65,7 @@ describe("DilutionSummaryCard", () => {
       );
 
       // Only 15% dilution counts (enabled round)
-      expect(screen.getByTestId("historical-dilution")).toHaveTextContent("15.0%");
+      expect(screen.getByTestId("historical-dilution")).toHaveTextContent("15%");
     });
   });
 
@@ -94,7 +95,7 @@ describe("DilutionSummaryCard", () => {
       );
 
       // Only 18% dilution counts (enabled round)
-      expect(screen.getByTestId("projected-dilution")).toHaveTextContent("18.0%");
+      expect(screen.getByTestId("projected-dilution")).toHaveTextContent("18%");
     });
 
     it("shows 0% when no upcoming rounds are enabled", () => {
@@ -109,7 +110,7 @@ describe("DilutionSummaryCard", () => {
         />
       );
 
-      expect(screen.getByTestId("projected-dilution")).toHaveTextContent("0.0%");
+      expect(screen.getByTestId("projected-dilution")).toHaveTextContent("0%");
     });
   });
 
@@ -130,7 +131,7 @@ describe("DilutionSummaryCard", () => {
       );
 
       // Total: 1 - (0.80 * 0.85) = 1 - 0.68 = 0.32 = 32%
-      expect(screen.getByTestId("total-dilution")).toHaveTextContent("32.0%");
+      expect(screen.getByTestId("total-dilution")).toHaveTextContent("32%");
     });
   });
 

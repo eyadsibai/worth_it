@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/base';
-import { TEST_DATA, SELECTORS, TIMEOUTS } from '../utils/test-data';
+import { TEST_DATA, TIMEOUTS } from '../utils/test-data';
 
 /**
  * Test Suite: RSU Equity Form
