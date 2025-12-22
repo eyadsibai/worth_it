@@ -62,6 +62,8 @@ export function EmployeeDashboard() {
   // Use the custom hook for chained calculations
   const {
     hasValidData,
+    isPending,
+    isFetching,
     isCalculating,
     result: startupScenarioResult,
     error,
@@ -175,8 +177,8 @@ export function EmployeeDashboard() {
           </Card>
         )}
 
-        {/* Loading state */}
-        {hasValidData && !startupScenarioResult && isCalculating && (
+        {/* Loading state - first load only (no stale data) */}
+        {hasValidData && !startupScenarioResult && isPending && (
           <Card className="terminal-card animate-scale-in">
             <CardContent className="py-16 text-center">
               <div className="flex flex-col items-center gap-6">
@@ -207,7 +209,8 @@ export function EmployeeDashboard() {
         {startupScenarioResult && debouncedGlobalSettings && debouncedCurrentJob && debouncedEquityDetails && (
           <ScenarioResults
             results={startupScenarioResult}
-            isLoading={isCalculating}
+            isLoading={isPending}
+            isFetching={isFetching}
             globalSettings={debouncedGlobalSettings}
             currentJob={debouncedCurrentJob}
             equityDetails={debouncedEquityDetails}

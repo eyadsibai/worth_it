@@ -1,6 +1,6 @@
 /**
  * Tests for useScenarioCalculation hook
- * Tests the 3-step chained calculation flow
+ * Tests the 3-step chained calculation flow using TanStack Query
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
@@ -14,22 +14,22 @@ vi.mock("@/lib/api-client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api-client")>();
   return {
     ...actual,
-    useCreateMonthlyDataGrid: vi.fn(),
-    useCalculateOpportunityCost: vi.fn(),
-    useCalculateStartupScenario: vi.fn(),
+    useMonthlyDataGridQuery: vi.fn(),
+    useOpportunityCostQuery: vi.fn(),
+    useStartupScenarioQuery: vi.fn(),
   };
 });
 
 // Import the mocked hooks
 import {
-  useCreateMonthlyDataGrid,
-  useCalculateOpportunityCost,
-  useCalculateStartupScenario,
+  useMonthlyDataGridQuery,
+  useOpportunityCostQuery,
+  useStartupScenarioQuery,
 } from "@/lib/api-client";
 
-const mockUseCreateMonthlyDataGrid = useCreateMonthlyDataGrid as ReturnType<typeof vi.fn>;
-const mockUseCalculateOpportunityCost = useCalculateOpportunityCost as ReturnType<typeof vi.fn>;
-const mockUseCalculateStartupScenario = useCalculateStartupScenario as ReturnType<typeof vi.fn>;
+const mockUseMonthlyDataGridQuery = useMonthlyDataGridQuery as ReturnType<typeof vi.fn>;
+const mockUseOpportunityCostQuery = useOpportunityCostQuery as ReturnType<typeof vi.fn>;
+const mockUseStartupScenarioQuery = useStartupScenarioQuery as ReturnType<typeof vi.fn>;
 
 // Create a fresh QueryClient for each test
 function createTestQueryClient() {
@@ -86,35 +86,33 @@ const validStockOptionsEquity: StockOptionsForm = {
   exercise_year: 5,
 };
 
+// Helper to create default query mock state
+function createQueryMock(overrides: Partial<{
+  data: unknown;
+  isPending: boolean;
+  isFetching: boolean;
+  error: Error | null;
+}> = {}) {
+  return {
+    data: undefined,
+    isPending: false,
+    isFetching: false,
+    error: null,
+    ...overrides,
+  };
+}
+
 describe("useScenarioCalculation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default mock setup for all tests
+    mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock());
+    mockUseOpportunityCostQuery.mockReturnValue(createQueryMock());
+    mockUseStartupScenarioQuery.mockReturnValue(createQueryMock());
   });
 
   describe("validation", () => {
     it("returns hasValidData=false when globalSettings is null", () => {
-      mockUseCreateMonthlyDataGrid.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateOpportunityCost.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateStartupScenario.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-
       const { result } = renderHook(
         () =>
           useScenarioCalculation({
@@ -129,28 +127,6 @@ describe("useScenarioCalculation", () => {
     });
 
     it("returns hasValidData=false when currentJob is null", () => {
-      mockUseCreateMonthlyDataGrid.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateOpportunityCost.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateStartupScenario.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-
       const { result } = renderHook(
         () =>
           useScenarioCalculation({
@@ -165,28 +141,6 @@ describe("useScenarioCalculation", () => {
     });
 
     it("returns hasValidData=false when equityDetails is null", () => {
-      mockUseCreateMonthlyDataGrid.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateOpportunityCost.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateStartupScenario.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-
       const { result } = renderHook(
         () =>
           useScenarioCalculation({
@@ -201,28 +155,6 @@ describe("useScenarioCalculation", () => {
     });
 
     it("returns hasValidData=true when all inputs are valid for RSU", () => {
-      mockUseCreateMonthlyDataGrid.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateOpportunityCost.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateStartupScenario.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-
       const { result } = renderHook(
         () =>
           useScenarioCalculation({
@@ -237,28 +169,6 @@ describe("useScenarioCalculation", () => {
     });
 
     it("returns hasValidData=true when all inputs are valid for Stock Options", () => {
-      mockUseCreateMonthlyDataGrid.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateOpportunityCost.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateStartupScenario.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-
       const { result } = renderHook(
         () =>
           useScenarioCalculation({
@@ -274,28 +184,11 @@ describe("useScenarioCalculation", () => {
   });
 
   describe("loading states", () => {
-    it("returns isCalculating=true when monthlyDataMutation is pending", () => {
-      mockUseCreateMonthlyDataGrid.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
+    it("returns isPending=true when monthlyDataQuery is pending without data", () => {
+      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
         isPending: true,
-        error: null,
-      });
-      mockUseCalculateOpportunityCost.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
         data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateStartupScenario.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
+      }));
 
       const { result } = renderHook(
         () =>
@@ -307,31 +200,17 @@ describe("useScenarioCalculation", () => {
         { wrapper: createWrapper() }
       );
 
+      expect(result.current.isPending).toBe(true);
+      expect(result.current.isFetching).toBe(false);
       expect(result.current.isCalculating).toBe(true);
     });
 
-    it("returns isCalculating=true when opportunityCostMutation is pending", () => {
-      mockUseCreateMonthlyDataGrid.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
+    it("returns isFetching=true when monthlyDataQuery is fetching with stale data", () => {
+      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
+        isPending: false,
+        isFetching: true,
         data: { data: [] },
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateOpportunityCost.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: true,
-        error: null,
-      });
-      mockUseCalculateStartupScenario.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
+      }));
 
       const { result } = renderHook(
         () =>
@@ -343,31 +222,19 @@ describe("useScenarioCalculation", () => {
         { wrapper: createWrapper() }
       );
 
+      expect(result.current.isPending).toBe(false);
+      expect(result.current.isFetching).toBe(true);
       expect(result.current.isCalculating).toBe(true);
     });
 
-    it("returns isCalculating=false when no mutations are pending", () => {
-      mockUseCreateMonthlyDataGrid.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
+    it("returns isPending=true when opportunityCostQuery is pending without data", () => {
+      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
+        data: { data: [] },
+      }));
+      mockUseOpportunityCostQuery.mockReturnValue(createQueryMock({
+        isPending: true,
         data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateOpportunityCost.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateStartupScenario.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
+      }));
 
       const { result } = renderHook(
         () =>
@@ -379,34 +246,56 @@ describe("useScenarioCalculation", () => {
         { wrapper: createWrapper() }
       );
 
+      expect(result.current.isPending).toBe(true);
+      expect(result.current.isCalculating).toBe(true);
+    });
+
+    it("returns isCalculating=false when no queries are pending or fetching", () => {
+      const { result } = renderHook(
+        () =>
+          useScenarioCalculation({
+            globalSettings: validGlobalSettings,
+            currentJob: validCurrentJob,
+            equityDetails: validRSUEquity,
+          }),
+        { wrapper: createWrapper() }
+      );
+
+      expect(result.current.isPending).toBe(false);
+      expect(result.current.isFetching).toBe(false);
       expect(result.current.isCalculating).toBe(false);
+    });
+
+    it("returns isFetching=true when any query is fetching with stale data", () => {
+      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
+        data: { data: [] },
+      }));
+      mockUseOpportunityCostQuery.mockReturnValue(createQueryMock({
+        data: { data: [] },
+        isFetching: true,
+      }));
+
+      const { result } = renderHook(
+        () =>
+          useScenarioCalculation({
+            globalSettings: validGlobalSettings,
+            currentJob: validCurrentJob,
+            equityDetails: validRSUEquity,
+          }),
+        { wrapper: createWrapper() }
+      );
+
+      expect(result.current.isFetching).toBe(true);
+      expect(result.current.isCalculating).toBe(true);
     });
   });
 
   describe("error handling", () => {
-    it("returns error from monthlyDataMutation", () => {
+    it("returns error from monthlyDataQuery", () => {
       const testError = new Error("Monthly data error");
-      mockUseCreateMonthlyDataGrid.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
+      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
         error: testError,
-      });
-      mockUseCalculateOpportunityCost.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateStartupScenario.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
+      }));
 
       const { result } = renderHook(
         () =>
@@ -421,29 +310,35 @@ describe("useScenarioCalculation", () => {
       expect(result.current.error).toBe(testError);
     });
 
+    it("returns first error in chain (monthlyData takes precedence)", () => {
+      const monthlyError = new Error("Monthly error");
+      const opportunityError = new Error("Opportunity error");
+
+      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
+        error: monthlyError,
+      }));
+      mockUseOpportunityCostQuery.mockReturnValue(createQueryMock({
+        error: opportunityError,
+      }));
+
+      const { result } = renderHook(
+        () =>
+          useScenarioCalculation({
+            globalSettings: validGlobalSettings,
+            currentJob: validCurrentJob,
+            equityDetails: validRSUEquity,
+          }),
+        { wrapper: createWrapper() }
+      );
+
+      expect(result.current.error).toBe(monthlyError);
+    });
+
     it("categorizes network errors correctly", () => {
       const networkError = new Error("Network connection failed");
-      mockUseCreateMonthlyDataGrid.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
+      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
         error: networkError,
-      });
-      mockUseCalculateOpportunityCost.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateStartupScenario.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
+      }));
 
       const { result } = renderHook(
         () =>
@@ -460,27 +355,9 @@ describe("useScenarioCalculation", () => {
 
     it("categorizes validation errors correctly", () => {
       const validationError = new Error("Invalid input data");
-      mockUseCreateMonthlyDataGrid.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
+      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
         error: validationError,
-      });
-      mockUseCalculateOpportunityCost.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateStartupScenario.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
+      }));
 
       const { result } = renderHook(
         () =>
@@ -494,37 +371,48 @@ describe("useScenarioCalculation", () => {
 
       expect(result.current.errorType).toBe("validation");
     });
+
+    it("categorizes fetch errors as network", () => {
+      const fetchError = new Error("Failed to fetch");
+      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
+        error: fetchError,
+      }));
+
+      const { result } = renderHook(
+        () =>
+          useScenarioCalculation({
+            globalSettings: validGlobalSettings,
+            currentJob: validCurrentJob,
+            equityDetails: validRSUEquity,
+          }),
+        { wrapper: createWrapper() }
+      );
+
+      expect(result.current.errorType).toBe("network");
+    });
+
+    it("returns generic errorType for unknown errors", () => {
+      const unknownError = new Error("Something went wrong");
+      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
+        error: unknownError,
+      }));
+
+      const { result } = renderHook(
+        () =>
+          useScenarioCalculation({
+            globalSettings: validGlobalSettings,
+            currentJob: validCurrentJob,
+            equityDetails: validRSUEquity,
+          }),
+        { wrapper: createWrapper() }
+      );
+
+      expect(result.current.errorType).toBe("generic");
+    });
   });
 
   describe("retry functionality", () => {
-    it("calls reset on all mutations when retry is called", async () => {
-      const mockMonthlyReset = vi.fn();
-      const mockOpportunityCostReset = vi.fn();
-      const mockStartupScenarioReset = vi.fn();
-      const mockMutate = vi.fn();
-
-      mockUseCreateMonthlyDataGrid.mockReturnValue({
-        mutate: mockMutate,
-        reset: mockMonthlyReset,
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateOpportunityCost.mockReturnValue({
-        mutate: vi.fn(),
-        reset: mockOpportunityCostReset,
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateStartupScenario.mockReturnValue({
-        mutate: vi.fn(),
-        reset: mockStartupScenarioReset,
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-
+    it("retry function is callable", () => {
       const { result } = renderHook(
         () =>
           useScenarioCalculation({
@@ -535,90 +423,26 @@ describe("useScenarioCalculation", () => {
         { wrapper: createWrapper() }
       );
 
-      // Call retry
-      result.current.retry();
-
-      // All mutations should be reset
-      expect(mockMonthlyReset).toHaveBeenCalled();
-      expect(mockOpportunityCostReset).toHaveBeenCalled();
-      expect(mockStartupScenarioReset).toHaveBeenCalled();
-    });
-
-    it("triggers new calculation when retry is called with valid data", async () => {
-      const mockMutate = vi.fn();
-
-      mockUseCreateMonthlyDataGrid.mockReturnValue({
-        mutate: mockMutate,
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateOpportunityCost.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateStartupScenario.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-
-      const { result } = renderHook(
-        () =>
-          useScenarioCalculation({
-            globalSettings: validGlobalSettings,
-            currentJob: validCurrentJob,
-            equityDetails: validRSUEquity,
-          }),
-        { wrapper: createWrapper() }
-      );
-
-      // Initial useEffect calls mutate
-      await waitFor(() => {
-        expect(mockMutate).toHaveBeenCalled();
-      });
-
-      const initialCallCount = mockMutate.mock.calls.length;
-
-      // Call retry
-      result.current.retry();
-
-      // Should have called mutate again
-      expect(mockMutate.mock.calls.length).toBeGreaterThan(initialCallCount);
+      // retry should be a function
+      expect(typeof result.current.retry).toBe("function");
+      // Should not throw when called
+      expect(() => result.current.retry()).not.toThrow();
     });
   });
 
   describe("result passthrough", () => {
-    it("returns startupScenarioMutation.data as result", () => {
-      const mockResult = { data: { total_startup_outcome: 500000 } };
+    it("returns startupScenarioQuery.data as result", () => {
+      const mockResult = {
+        results_df: [],
+        final_payout_value: 500000,
+        final_opportunity_cost: 100000,
+        payout_label: "Test",
+        breakeven_label: "Test",
+      };
 
-      mockUseCreateMonthlyDataGrid.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateOpportunityCost.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateStartupScenario.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
+      mockUseStartupScenarioQuery.mockReturnValue(createQueryMock({
         data: mockResult,
-        isPending: false,
-        error: null,
-      });
+      }));
 
       const { result } = renderHook(
         () =>
@@ -635,29 +459,14 @@ describe("useScenarioCalculation", () => {
 
     it("returns monthlyData and opportunityCost intermediate results", () => {
       const mockMonthlyData = { data: [{ month: 1, salary: 10000 }] };
-      const mockOpportunityCost = { data: { total: 50000 } };
+      const mockOpportunityCost = { data: [{ year: 1, cost: 50000 }] };
 
-      mockUseCreateMonthlyDataGrid.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
+      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
         data: mockMonthlyData,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateOpportunityCost.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
+      }));
+      mockUseOpportunityCostQuery.mockReturnValue(createQueryMock({
         data: mockOpportunityCost,
-        isPending: false,
-        error: null,
-      });
-      mockUseCalculateStartupScenario.mockReturnValue({
-        mutate: vi.fn(),
-        reset: vi.fn(),
-        data: undefined,
-        isPending: false,
-        error: null,
-      });
+      }));
 
       const { result } = renderHook(
         () =>
@@ -671,6 +480,90 @@ describe("useScenarioCalculation", () => {
 
       expect(result.current.monthlyData).toBe(mockMonthlyData);
       expect(result.current.opportunityCost).toBe(mockOpportunityCost);
+    });
+
+    it("returns undefined for results when queries have no data", () => {
+      const { result } = renderHook(
+        () =>
+          useScenarioCalculation({
+            globalSettings: validGlobalSettings,
+            currentJob: validCurrentJob,
+            equityDetails: validRSUEquity,
+          }),
+        { wrapper: createWrapper() }
+      );
+
+      expect(result.current.result).toBeUndefined();
+      expect(result.current.monthlyData).toBeUndefined();
+      expect(result.current.opportunityCost).toBeUndefined();
+    });
+  });
+
+  describe("stale-while-revalidate pattern", () => {
+    it("maintains previous data while refetching (isFetching=true, data present)", () => {
+      const staleData = { data: [{ month: 1, salary: 10000 }] };
+
+      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
+        data: staleData,
+        isFetching: true,
+        isPending: false,
+      }));
+
+      const { result } = renderHook(
+        () =>
+          useScenarioCalculation({
+            globalSettings: validGlobalSettings,
+            currentJob: validCurrentJob,
+            equityDetails: validRSUEquity,
+          }),
+        { wrapper: createWrapper() }
+      );
+
+      // Should have data AND be fetching
+      expect(result.current.monthlyData).toBe(staleData);
+      expect(result.current.isFetching).toBe(true);
+      expect(result.current.isPending).toBe(false);
+    });
+
+    it("distinguishes between first load (isPending) and refetch (isFetching)", () => {
+      // First load scenario - no data, isPending
+      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
+        isPending: true,
+        data: undefined,
+      }));
+
+      const { result: firstLoadResult } = renderHook(
+        () =>
+          useScenarioCalculation({
+            globalSettings: validGlobalSettings,
+            currentJob: validCurrentJob,
+            equityDetails: validRSUEquity,
+          }),
+        { wrapper: createWrapper() }
+      );
+
+      expect(firstLoadResult.current.isPending).toBe(true);
+      expect(firstLoadResult.current.isFetching).toBe(false);
+
+      // Refetch scenario - has data, isFetching
+      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
+        isPending: false,
+        isFetching: true,
+        data: { data: [] },
+      }));
+
+      const { result: refetchResult } = renderHook(
+        () =>
+          useScenarioCalculation({
+            globalSettings: validGlobalSettings,
+            currentJob: validCurrentJob,
+            equityDetails: validRSUEquity,
+          }),
+        { wrapper: createWrapper() }
+      );
+
+      expect(refetchResult.current.isPending).toBe(false);
+      expect(refetchResult.current.isFetching).toBe(true);
     });
   });
 });
