@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/base';
+import { TIMEOUTS } from '../utils/test-data';
 
 /**
  * Test Suite: Waterfall Analysis (Founder Mode)
@@ -51,7 +52,7 @@ test.describe('Founder Mode Navigation', () => {
     await founderTab.click();
 
     // Verify Cap Table section is visible
-    await expect(page.getByText(/Cap Table/i).first()).toBeVisible();
+    await expect(page.getByText(/Cap Table/i).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display three tabs in Founder mode: Cap Table, Funding, Waterfall', async ({ page }) => {
@@ -61,16 +62,16 @@ test.describe('Founder Mode Navigation', () => {
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
 
     // Wait for the cap table manager to load
-    await page.waitForSelector('text=/Cap Table/i');
+    await page.waitForSelector('text=/Cap Table/i', { timeout: TIMEOUTS.elementVisible });
 
     // Check for the three tabs
     const capTableTab = page.getByRole('tab', { name: /Cap Table/i }).first();
     const fundingTab = page.getByRole('tab', { name: /Funding/i }).first();
     const waterfallTab = page.getByRole('tab', { name: /Waterfall/i }).first();
 
-    await expect(capTableTab).toBeVisible();
-    await expect(fundingTab).toBeVisible();
-    await expect(waterfallTab).toBeVisible();
+    await expect(capTableTab).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    await expect(fundingTab).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    await expect(waterfallTab).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -78,7 +79,7 @@ test.describe('Cap Table - Adding Stakeholders', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
   });
 
   test('should add a founder stakeholder', async ({ page }) => {
@@ -88,7 +89,7 @@ test.describe('Cap Table - Adding Stakeholders', () => {
 
     // Select type (Founder is default)
     const typeSelect = page.locator('button[role="combobox"]').filter({ hasText: /Founder/i }).first();
-    await expect(typeSelect).toBeVisible();
+    await expect(typeSelect).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Fill ownership percentage (using placeholder selector since NumberInputField doesn't set name)
     const ownershipInput = page.getByPlaceholder('25');
@@ -98,9 +99,9 @@ test.describe('Cap Table - Adding Stakeholders', () => {
     await page.getByRole('button', { name: /Add Stakeholder/i }).click();
 
     // Verify stakeholder appears in list (use first() since name may appear multiple times)
-    await expect(page.getByText(TEST_STAKEHOLDERS.founder.name).first()).toBeVisible();
+    await expect(page.getByText(TEST_STAKEHOLDERS.founder.name).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
     // Ownership percentage is shown in the stakeholder list
-    await expect(page.getByText(`${TEST_STAKEHOLDERS.founder.ownershipPct}.0%`).first()).toBeVisible();
+    await expect(page.getByText(`${TEST_STAKEHOLDERS.founder.ownershipPct}.0%`).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should add an investor stakeholder', async ({ page }) => {
@@ -126,7 +127,7 @@ test.describe('Cap Table - Adding Stakeholders', () => {
     await page.getByRole('button', { name: /Add Stakeholder/i }).click();
 
     // Verify stakeholder appears in list (use first() since name may appear multiple times)
-    await expect(page.getByText(TEST_STAKEHOLDERS.investor.name).first()).toBeVisible();
+    await expect(page.getByText(TEST_STAKEHOLDERS.investor.name).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display stakeholder count after adding multiple stakeholders', async ({ page }) => {
@@ -141,7 +142,7 @@ test.describe('Cap Table - Adding Stakeholders', () => {
     await page.getByRole('button', { name: /Add Stakeholder/i }).click();
 
     // Verify stakeholder count
-    await expect(page.getByText(/Stakeholders \(2\)/i)).toBeVisible();
+    await expect(page.getByText(/Stakeholders \(2\)/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should remove a stakeholder', async ({ page }) => {
@@ -151,7 +152,7 @@ test.describe('Cap Table - Adding Stakeholders', () => {
     await page.getByRole('button', { name: /Add Stakeholder/i }).click();
 
     // Verify it was added (use first() since name appears in multiple places)
-    await expect(page.getByText('To Be Removed').first()).toBeVisible();
+    await expect(page.getByText('To Be Removed').first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Click remove button (trash icon) - the button is in the same row as the stakeholder name
     // Using a more specific selector: find the motion.div row containing "To Be Removed", then find the delete button
@@ -160,7 +161,7 @@ test.describe('Cap Table - Adding Stakeholders', () => {
     await removeButton.click();
 
     // Verify it was removed
-    await expect(page.getByText('To Be Removed')).not.toBeVisible();
+    await expect(page.getByText('To Be Removed')).not.toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -168,7 +169,7 @@ test.describe('Waterfall Tab - Preference Tiers', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add stakeholders first
     await page.locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDERS.founder.name);
@@ -177,7 +178,7 @@ test.describe('Waterfall Tab - Preference Tiers', () => {
 
     // Navigate to Waterfall tab
     await page.getByRole('tab', { name: /Waterfall/i }).click();
-    await page.waitForSelector('text=/Add Preference Tier/i');
+    await page.waitForSelector('text=/Add Preference Tier/i', { timeout: TIMEOUTS.elementVisible });
   });
 
   test('should add a preference tier', async ({ page }) => {
@@ -193,8 +194,8 @@ test.describe('Waterfall Tab - Preference Tiers', () => {
     await page.getByRole('button', { name: /Add Preference Tier/i }).click();
 
     // Verify tier appears in list (use exact match since "Series A" also appears in waterfall steps text)
-    await expect(page.getByText('Series A', { exact: true })).toBeVisible();
-    await expect(page.getByText(/\$5\.0M invested/i)).toBeVisible();
+    await expect(page.getByText('Series A', { exact: true })).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    await expect(page.getByText(/\$5\.0M invested/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display preference stack count after adding tiers', async ({ page }) => {
@@ -204,7 +205,7 @@ test.describe('Waterfall Tab - Preference Tiers', () => {
     await page.getByRole('button', { name: /Add Preference Tier/i }).click();
 
     // Verify preference stack count
-    await expect(page.getByText(/Preference Stack \(1 tier/i)).toBeVisible();
+    await expect(page.getByText(/Preference Stack \(1 tier/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should toggle participating preferred', async ({ page }) => {
@@ -220,7 +221,7 @@ test.describe('Waterfall Tab - Preference Tiers', () => {
     await page.getByRole('button', { name: /Add Preference Tier/i }).click();
 
     // Verify participating badge is shown
-    await expect(page.getByText(/Participating/i).first()).toBeVisible();
+    await expect(page.getByText(/Participating/i).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should show total preference amount', async ({ page }) => {
@@ -230,7 +231,7 @@ test.describe('Waterfall Tab - Preference Tiers', () => {
     await page.getByRole('button', { name: /Add Preference Tier/i }).click();
 
     // Verify total is shown in the preference stack card
-    await expect(page.getByText(/Total: \$5\.0M/i)).toBeVisible();
+    await expect(page.getByText(/Total: \$5\.0M/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -246,12 +247,12 @@ test.describe('Waterfall Tab - Exit Valuation Slider', () => {
 
     // Navigate to Waterfall tab
     await page.getByRole('tab', { name: /Waterfall/i }).click();
-    await page.waitForSelector('text=/Exit Valuation/i');
+    await page.waitForSelector('text=/Exit Valuation/i', { timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display exit valuation slider', async ({ page }) => {
-    await expect(page.getByText(/Exit Valuation/i).first()).toBeVisible();
-    await expect(page.locator('[role="slider"]').first()).toBeVisible();
+    await expect(page.getByText(/Exit Valuation/i).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    await expect(page.locator('[role="slider"]').first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should use quick select buttons for valuation', async ({ page }) => {
@@ -261,7 +262,7 @@ test.describe('Waterfall Tab - Exit Valuation Slider', () => {
 
     // Verify the value changed (check input field shows 100)
     const valueInput = page.locator('input.text-4xl');
-    await expect(valueInput).toHaveValue('100');
+    await expect(valueInput).toHaveValue('100', { timeout: TIMEOUTS.formInput });
   });
 
   test('should allow manual valuation input', async ({ page }) => {
@@ -271,7 +272,7 @@ test.describe('Waterfall Tab - Exit Valuation Slider', () => {
     await valueInput.blur();
 
     // Verify the display shows $75M
-    await expect(page.getByText(/\$75\.0M exit valuation/i)).toBeVisible();
+    await expect(page.getByText(/\$75\.0M exit valuation/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should update slider when using quick select', async ({ page }) => {
@@ -280,11 +281,11 @@ test.describe('Waterfall Tab - Exit Valuation Slider', () => {
 
     // Verify the button is now "default" variant (selected state)
     const selectedButton = page.getByRole('button', { name: '$250M' });
-    await expect(selectedButton).toBeVisible();
+    await expect(selectedButton).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Verify the value input shows 250
     const valueInput = page.locator('input.text-4xl');
-    await expect(valueInput).toHaveValue('250');
+    await expect(valueInput).toHaveValue('250', { timeout: TIMEOUTS.formInput });
   });
 });
 
@@ -304,16 +305,16 @@ test.describe('Waterfall Tab - Chart and Table Views', () => {
 
     // Navigate to Waterfall tab
     await page.getByRole('tab', { name: /Waterfall/i }).click();
-    await page.waitForSelector('text=/Distribution Analysis/i');
+    await page.waitForSelector('text=/Distribution Analysis/i', { timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display stacked bar chart by default', async ({ page }) => {
     // Verify chart view is active (Chart tab is selected)
     const chartTab = page.getByRole('tab', { name: /Chart/i });
-    await expect(chartTab).toHaveAttribute('data-state', 'active');
+    await expect(chartTab).toHaveAttribute('data-state', 'active', { timeout: TIMEOUTS.elementPresent });
 
     // Verify chart is visible (Recharts container)
-    await expect(page.locator('.recharts-responsive-container')).toBeVisible();
+    await expect(page.locator('.recharts-responsive-container')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should switch to table view', async ({ page }) => {
@@ -321,13 +322,13 @@ test.describe('Waterfall Tab - Chart and Table Views', () => {
     await page.getByRole('tab', { name: 'Table', exact: true }).click();
 
     // Verify table view shows stakeholder payouts
-    await expect(page.getByText(/Stakeholder Payouts/i)).toBeVisible();
+    await expect(page.getByText(/Stakeholder Payouts/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should update chart when valuation changes', async ({ page }) => {
     // Get initial state of chart
     const chartContainer = page.locator('.recharts-responsive-container');
-    await expect(chartContainer).toBeVisible();
+    await expect(chartContainer).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Change valuation using quick select
     await page.getByRole('button', { name: '$100M' }).click();
@@ -336,7 +337,7 @@ test.describe('Waterfall Tab - Chart and Table Views', () => {
     await page.waitForTimeout(500);
 
     // Chart should still be visible (updated)
-    await expect(chartContainer).toBeVisible();
+    await expect(chartContainer).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should show payout table with correct columns', async ({ page }) => {
@@ -344,8 +345,8 @@ test.describe('Waterfall Tab - Chart and Table Views', () => {
     await page.getByRole('tab', { name: 'Table', exact: true }).click();
 
     // Verify table headers
-    await expect(page.getByText(/Stakeholder Payouts/i)).toBeVisible();
-    await expect(page.getByText(/Exit:/i)).toBeVisible();
+    await expect(page.getByText(/Stakeholder Payouts/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    await expect(page.getByText(/Exit:/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -382,19 +383,19 @@ test.describe('Waterfall Tab - Waterfall Steps Breakdown', () => {
   });
 
   test('should display waterfall steps section', async ({ page }) => {
-    await expect(page.getByText(/Waterfall Steps/i).first()).toBeVisible();
-    await expect(page.getByText(/Step-by-step breakdown/i)).toBeVisible();
+    await expect(page.getByText(/Waterfall Steps/i).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    await expect(page.getByText(/Step-by-step breakdown/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should show step numbers and descriptions', async ({ page }) => {
     // Verify step badges and descriptions are visible
     const waterfallSteps = page.locator('text=/liquidation preference|Pro-rata distribution/i');
-    await expect(waterfallSteps.first()).toBeVisible();
+    await expect(waterfallSteps.first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should show remaining proceeds after each step', async ({ page }) => {
     // Verify "Remaining:" text is shown for steps
-    await expect(page.getByText(/Remaining:/i).first()).toBeVisible();
+    await expect(page.getByText(/Remaining:/i).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should update steps when preference tier is added', async ({ page }) => {
@@ -412,7 +413,7 @@ test.describe('Waterfall Tab - Waterfall Steps Breakdown', () => {
     await page.waitForTimeout(1000);
 
     // Verify preference stack shows 2 tiers after adding second one
-    await expect(page.getByText(/Preference Stack \(2 tiers?\)/i)).toBeVisible();
+    await expect(page.getByText(/Preference Stack \(2 tiers?\)/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -443,7 +444,7 @@ test.describe('Waterfall Tab - Complete Flow', () => {
     await page.getByRole('button', { name: /Add Stakeholder/i }).click();
 
     // Verify all stakeholders added
-    await expect(page.getByText(/Stakeholders \(3\)/i)).toBeVisible();
+    await expect(page.getByText(/Stakeholders \(3\)/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Step 3: Navigate to Waterfall tab
     await page.getByRole('tab', { name: /Waterfall/i }).click();
@@ -461,21 +462,21 @@ test.describe('Waterfall Tab - Complete Flow', () => {
 
     // Step 6: Verify results
     // Chart is visible
-    await expect(page.locator('.recharts-responsive-container')).toBeVisible();
+    await expect(page.locator('.recharts-responsive-container')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Waterfall steps are shown
-    await expect(page.getByText(/Waterfall Steps/i).first()).toBeVisible();
+    await expect(page.getByText(/Waterfall Steps/i).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Step 7: Switch to table view (use exact match to avoid matching "Cap Table")
     await page.getByRole('tab', { name: 'Table', exact: true }).click();
-    await expect(page.getByText(/Stakeholder Payouts/i)).toBeVisible();
+    await expect(page.getByText(/Stakeholder Payouts/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Step 8: Change valuation and verify update
     await page.getByRole('button', { name: '$100M' }).click();
     await page.waitForTimeout(500);
 
     // Verify exit badge updated (format is "Exit: $100.00M")
-    await expect(page.getByText(/Exit:.*100/i)).toBeVisible();
+    await expect(page.getByText(/Exit:.*100/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should handle empty cap table gracefully', async ({ page }) => {
@@ -486,6 +487,6 @@ test.describe('Waterfall Tab - Complete Flow', () => {
     await page.getByRole('tab', { name: /Waterfall/i }).click();
 
     // Should show empty state message
-    await expect(page.getByText(/Add stakeholders to your cap table/i)).toBeVisible();
+    await expect(page.getByText(/Add stakeholders to your cap table/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });

@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/base';
+import { TIMEOUTS } from '../utils/test-data';
 
 /**
  * Test Suite: Monte Carlo Simulations
@@ -16,7 +17,7 @@ test.describe('Monte Carlo Simulations', () => {
     await helpers.completeRSUScenario();
 
     // Look for Monte Carlo section
-    await expect(page.getByText(/Monte Carlo/i).first()).toBeVisible();
+    await expect(page.getByText(/Monte Carlo/i).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should allow configuring Monte Carlo parameters', async ({ page, helpers }) => {
@@ -27,10 +28,10 @@ test.describe('Monte Carlo Simulations', () => {
     // Find number of simulations input (wait for Monte Carlo section to appear)
     const numSimsInput = page.locator('input[name="num_simulations"]');
     if (await numSimsInput.count() > 0) {
-      await numSimsInput.first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+      await numSimsInput.first().waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible }).catch(() => {});
       if (await numSimsInput.first().isVisible()) {
         await numSimsInput.first().fill('500');
-        await expect(numSimsInput.first()).toHaveValue('500');
+        await expect(numSimsInput.first()).toHaveValue('500', { timeout: TIMEOUTS.formInput });
       }
     }
   });
@@ -46,8 +47,8 @@ test.describe('Monte Carlo Simulations', () => {
       await runButton.first().click();
 
       // Wait for simulation results to appear
-      const hasVisualization = await page.getByText(/Distribution/i).isVisible({ timeout: 10000 }).catch(() => false);
-      const hasResults = await page.getByText(/Simulation/i).isVisible({ timeout: 10000 }).catch(() => false);
+      const hasVisualization = await page.getByText(/Distribution/i).isVisible({ timeout: TIMEOUTS.monteCarlo }).catch(() => false);
+      const hasResults = await page.getByText(/Simulation/i).isVisible({ timeout: TIMEOUTS.monteCarlo }).catch(() => false);
 
       expect(hasVisualization || hasResults).toBeTruthy();
     }
@@ -64,7 +65,7 @@ test.describe('Monte Carlo Simulations', () => {
       await runButton.first().click();
 
       // Wait for visualizations to appear
-      await page.getByText(/Distribution/i).first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+      await page.getByText(/Distribution/i).first().waitFor({ state: 'visible', timeout: TIMEOUTS.monteCarlo }).catch(() => {});
 
       // Take screenshot to capture visualizations
       await page.screenshot({
@@ -80,7 +81,7 @@ test.describe('Monte Carlo Simulations', () => {
     await helpers.completeStockOptionsScenario();
 
     // Verify Monte Carlo section is available for stock options too
-    const monteCarloSection = await page.getByText(/Monte Carlo/i).first().isVisible().catch(() => false);
+    const monteCarloSection = await page.getByText(/Monte Carlo/i).first().isVisible({ timeout: TIMEOUTS.elementVisible }).catch(() => false);
     expect(monteCarloSection).toBeTruthy();
   });
 });
@@ -96,17 +97,17 @@ test.describe('Monte Carlo Parameter Variations', () => {
     const maxValInput = page.locator('input[name="max_exit_valuation"]');
 
     if (await minValInput.count() > 0) {
-      await minValInput.first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+      await minValInput.first().waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible }).catch(() => {});
       if (await minValInput.first().isVisible()) {
         await minValInput.first().fill('50000000');
-        await expect(minValInput.first()).toHaveValue('50000000');
+        await expect(minValInput.first()).toHaveValue('50000000', { timeout: TIMEOUTS.formInput });
       }
     }
 
     if (await maxValInput.count() > 0) {
       if (await maxValInput.first().isVisible()) {
         await maxValInput.first().fill('200000000');
-        await expect(maxValInput.first()).toHaveValue('200000000');
+        await expect(maxValInput.first()).toHaveValue('200000000', { timeout: TIMEOUTS.formInput });
       }
     }
   });
@@ -119,7 +120,7 @@ test.describe('Monte Carlo Parameter Variations', () => {
     // Look for distribution type toggle or selector
     const distributionToggle = page.locator('input[name="use_triangular_distribution"]');
     if (await distributionToggle.count() > 0) {
-      await distributionToggle.first().waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+      await distributionToggle.first().waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible }).catch(() => {});
       if (await distributionToggle.first().isVisible()) {
         // Toggle the distribution type
         await distributionToggle.first().click();

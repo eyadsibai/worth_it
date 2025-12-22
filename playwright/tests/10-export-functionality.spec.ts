@@ -1,6 +1,6 @@
 import { test, expect } from '../fixtures/base';
+import { TIMEOUTS } from '../utils/test-data';
 import * as fs from 'fs';
-import * as path from 'path';
 
 /**
  * Test Suite: Export Functionality (Founder Mode)
@@ -27,13 +27,13 @@ test.describe('Export Menu - Visibility', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display export button in cap table header', async ({ page }) => {
     // Look for the export menu button (dropdown trigger)
     const exportButton = page.getByRole('button', { name: /export/i });
-    await expect(exportButton).toBeVisible();
+    await expect(exportButton).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should open export dropdown menu on click', async ({ page }) => {
@@ -42,8 +42,8 @@ test.describe('Export Menu - Visibility', () => {
     await exportButton.click();
 
     // Verify dropdown menu items are visible (use first() since there may be multiple)
-    await expect(page.getByRole('menuitem', { name: /csv/i }).first()).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: /pdf/i }).first()).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /csv/i }).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    await expect(page.getByRole('menuitem', { name: /pdf/i }).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -51,7 +51,7 @@ test.describe('Export Menu - CSV Export', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add stakeholders for export
     await page.locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDERS.founder.name);
@@ -67,12 +67,12 @@ test.describe('Export Menu - CSV Export', () => {
     await page.getByRole('button', { name: /Add Stakeholder/i }).click();
 
     // Verify stakeholders were added
-    await expect(page.getByText(/Stakeholders \(2\)/i)).toBeVisible();
+    await expect(page.getByText(/Stakeholders \(2\)/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should trigger CSV download on click', async ({ page }) => {
     // Set up download listener
-    const downloadPromise = page.waitForEvent('download');
+    const downloadPromise = page.waitForEvent('download', { timeout: TIMEOUTS.calculation });
 
     // Click export button
     const exportButton = page.getByRole('button', { name: /export/i });
@@ -88,7 +88,7 @@ test.describe('Export Menu - CSV Export', () => {
 
   test('should include stakeholder data in CSV export', async ({ page }) => {
     // Set up download listener
-    const downloadPromise = page.waitForEvent('download');
+    const downloadPromise = page.waitForEvent('download', { timeout: TIMEOUTS.calculation });
 
     // Click export and select CSV (use first() since there may be multiple menus)
     await page.getByRole('button', { name: /export/i }).click();
@@ -116,7 +116,7 @@ test.describe('Export Menu - PDF Export', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add a stakeholder
     await page.locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDERS.founder.name);
@@ -126,7 +126,7 @@ test.describe('Export Menu - PDF Export', () => {
 
   test('should trigger PDF download on click', async ({ page }) => {
     // Set up download listener
-    const downloadPromise = page.waitForEvent('download');
+    const downloadPromise = page.waitForEvent('download', { timeout: TIMEOUTS.calculation });
 
     // Click export button
     await page.getByRole('button', { name: /export/i }).click();
@@ -141,7 +141,7 @@ test.describe('Export Menu - PDF Export', () => {
 
   test('should generate valid PDF file', async ({ page }) => {
     // Set up download listener
-    const downloadPromise = page.waitForEvent('download');
+    const downloadPromise = page.waitForEvent('download', { timeout: TIMEOUTS.calculation });
 
     // Click export and select PDF
     await page.getByRole('button', { name: /export/i }).click();
@@ -163,14 +163,14 @@ test.describe('Export Menu - Empty State', () => {
   test('should still allow export with empty cap table', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Export button should still be visible
     const exportButton = page.getByRole('button', { name: /export/i });
-    await expect(exportButton).toBeVisible();
+    await expect(exportButton).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Should be able to open dropdown
     await exportButton.click();
-    await expect(page.getByRole('menuitem', { name: /csv/i }).first()).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /csv/i }).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });

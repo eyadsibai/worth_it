@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/base';
+import { TIMEOUTS } from '../utils/test-data';
 
 /**
  * Test Suite: Calculation Accuracy Tests
@@ -24,8 +25,8 @@ test.describe('Edge Cases - Zero Values', () => {
     await salaryInput.fill('0');
 
     // The form should still be usable
-    await expect(salaryInput).toHaveValue('0');
-    await expect(page.locator('body')).toBeVisible();
+    await expect(salaryInput).toHaveValue('0', { timeout: TIMEOUTS.formInput });
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should handle zero equity grant percentage', async ({ page, helpers }) => {
@@ -54,7 +55,7 @@ test.describe('Edge Cases - Zero Values', () => {
     await page.waitForTimeout(1000);
 
     // UI should not crash
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should handle zero exit valuation', async ({ page, helpers }) => {
@@ -81,7 +82,7 @@ test.describe('Edge Cases - Zero Values', () => {
 
     // UI should handle gracefully
     await page.waitForTimeout(1000);
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -110,7 +111,7 @@ test.describe('Edge Cases - Large Numbers', () => {
 
     // Should handle large numbers without crashing
     await page.waitForTimeout(1000);
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should handle large number of stock options', async ({ page, helpers }) => {
@@ -138,7 +139,7 @@ test.describe('Edge Cases - Large Numbers', () => {
 
     // Should handle large numbers without crashing - wait for form to process
     await page.waitForTimeout(1000);
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should handle very high salary values', async ({ page, helpers }) => {
@@ -151,7 +152,7 @@ test.describe('Edge Cases - Large Numbers', () => {
     await salaryInput.fill('500000'); // $500k/month = $6M/year
 
     // Should accept and display
-    await expect(salaryInput).toHaveValue('500000');
+    await expect(salaryInput).toHaveValue('500000', { timeout: TIMEOUTS.formInput });
   });
 });
 
@@ -180,7 +181,7 @@ test.describe('Edge Cases - Small Numbers', () => {
 
     // Should handle fractional percentages without crashing
     await page.waitForTimeout(1000);
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should handle small strike price', async ({ page, helpers }) => {
@@ -208,7 +209,7 @@ test.describe('Edge Cases - Small Numbers', () => {
 
     // Should handle small numbers without crashing
     await page.waitForTimeout(1000);
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -262,7 +263,7 @@ test.describe('Currency Formatting Consistency', () => {
 
     // Wait for form to process - just verify it doesn't crash
     await page.waitForTimeout(1000);
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should format large currency values correctly', async ({ page }) => {
@@ -270,7 +271,7 @@ test.describe('Currency Formatting Consistency', () => {
 
     // Switch to Founder mode for waterfall analysis
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add a stakeholder
     await page.locator('input[placeholder="e.g., John Smith"]').fill('Test Founder');
@@ -279,13 +280,13 @@ test.describe('Currency Formatting Consistency', () => {
 
     // Navigate to Waterfall tab
     await page.getByRole('tab', { name: /Waterfall/i }).click();
-    await page.waitForSelector('text=/Exit Valuation/i');
+    await page.waitForSelector('text=/Exit Valuation/i', { timeout: TIMEOUTS.elementVisible });
 
     // Set high valuation ($250M)
     await page.getByRole('button', { name: '$250M' }).click();
 
     // Should format in millions with M suffix (use first() to avoid multiple matches)
-    await expect(page.getByText(/\$250/).first()).toBeVisible();
+    await expect(page.getByText(/\$250/).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should format percentages consistently', async ({ page }) => {
@@ -293,7 +294,7 @@ test.describe('Currency Formatting Consistency', () => {
 
     // Switch to Founder mode
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add a stakeholder with specific ownership
     const nameInput = page.locator('input[placeholder="e.g., John Smith"]');
@@ -304,7 +305,7 @@ test.describe('Currency Formatting Consistency', () => {
     // Wait for stakeholder to be added and verify the add button click worked
     await page.waitForTimeout(1000);
     // Just verify the page doesn't crash - the form should still be visible
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 

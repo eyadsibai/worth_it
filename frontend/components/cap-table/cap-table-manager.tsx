@@ -54,6 +54,11 @@ interface CapTableManagerProps {
   onInstrumentsChange: (instruments: FundingInstrument[]) => void;
   preferenceTiers: PreferenceTier[];
   onPreferenceTiersChange: (tiers: PreferenceTier[]) => void;
+  /**
+   * When true, hides the stakeholder form and option pool cards
+   * (they're shown in the sidebar instead for consistent layout)
+   */
+  hideSidebarContent?: boolean;
 }
 
 const WIZARD_SKIPPED_KEY = "cap-table-wizard-skipped";
@@ -65,6 +70,7 @@ export function CapTableManager({
   onInstrumentsChange,
   preferenceTiers,
   onPreferenceTiersChange,
+  hideSidebarContent = false,
 }: CapTableManagerProps) {
   const [activeSection, setActiveSection] = React.useState<"cap-table" | "funding" | "waterfall">("cap-table");
   const [wizardSkipped, setWizardSkipped] = React.useState(() => {
@@ -385,93 +391,96 @@ export function CapTableManager({
         </div>
 
         <TabsContent value="cap-table" className="space-y-6 mt-6">
-          <div className="grid lg:grid-cols-2 gap-6">
-            {/* Add Stakeholder Form */}
-            <Card className="terminal-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Add Stakeholder
-            </CardTitle>
-            <CardDescription>
-              Add founders, employees, investors, or advisors to your cap table
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <StakeholderForm onSubmit={handleAddStakeholder} />
-          </CardContent>
-        </Card>
+          {/* Stakeholder Form and Option Pool - hidden when shown in sidebar */}
+          {!hideSidebarContent && (
+            <div className="grid lg:grid-cols-2 gap-6">
+              {/* Add Stakeholder Form */}
+              <Card className="terminal-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Add Stakeholder
+                  </CardTitle>
+                  <CardDescription>
+                    Add founders, employees, investors, or advisors to your cap table
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <StakeholderForm onSubmit={handleAddStakeholder} />
+                </CardContent>
+              </Card>
 
-        {/* Option Pool */}
-        <Card className="terminal-card">
-          <CardHeader>
-            <CardTitle>Option Pool</CardTitle>
-            <CardDescription>
-              Reserve equity for future employee grants
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Reserved for Options</Label>
-                <span className="text-sm tabular-nums">{capTable.option_pool_pct}%</span>
-              </div>
-              <Slider
-                value={[capTable.option_pool_pct]}
-                onValueChange={handleOptionPoolChange}
-                min={0}
-                max={30}
-                step={1}
-              />
-              <p className="text-xs text-muted-foreground">
-                Typical range: 10-20% for early-stage startups
-              </p>
+              {/* Option Pool */}
+              <Card className="terminal-card">
+                <CardHeader>
+                  <CardTitle>Option Pool</CardTitle>
+                  <CardDescription>
+                    Reserve equity for future employee grants
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Reserved for Options</Label>
+                      <span className="text-sm tabular-nums">{capTable.option_pool_pct}%</span>
+                    </div>
+                    <Slider
+                      value={[capTable.option_pool_pct]}
+                      onValueChange={handleOptionPoolChange}
+                      min={0}
+                      max={30}
+                      step={1}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Typical range: 10-20% for early-stage startups
+                    </p>
+                  </div>
+
+                  {/* Allocation Summary */}
+                  <motion.div
+                    className="p-4 rounded-lg bg-muted/50 space-y-2"
+                    whileHover={{ scale: 1.01 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="flex justify-between text-sm">
+                      <span>Stakeholders</span>
+                      <span className="tabular-nums">
+                        <AnimatedPercentage
+                          value={capTable.stakeholders.reduce((sum, s) => sum + s.ownership_pct, 0)}
+                          decimals={1}
+                        />
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Option Pool</span>
+                      <span className="tabular-nums">
+                        <AnimatedPercentage value={capTable.option_pool_pct} decimals={0} />
+                      </span>
+                    </div>
+                    <div className="border-t pt-2 flex justify-between font-medium">
+                      <span>Total Allocated</span>
+                      <span
+                        className={`tabular-nums ${
+                          totalOwnership > 100 ? "text-destructive" : "text-terminal"
+                        }`}
+                      >
+                        <AnimatedPercentage value={totalOwnership} decimals={1} />
+                      </span>
+                    </div>
+                    {totalOwnership > 100 && (
+                      <motion.p
+                        className="text-xs text-destructive"
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                      >
+                        Warning: Total exceeds 100%
+                      </motion.p>
+                    )}
+                  </motion.div>
+                </CardContent>
+              </Card>
             </div>
-
-            {/* Allocation Summary */}
-            <motion.div
-              className="p-4 rounded-lg bg-muted/50 space-y-2"
-              whileHover={{ scale: 1.01 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="flex justify-between text-sm">
-                <span>Stakeholders</span>
-                <span className="tabular-nums">
-                  <AnimatedPercentage
-                    value={capTable.stakeholders.reduce((sum, s) => sum + s.ownership_pct, 0)}
-                    decimals={1}
-                  />
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Option Pool</span>
-                <span className="tabular-nums">
-                  <AnimatedPercentage value={capTable.option_pool_pct} decimals={0} />
-                </span>
-              </div>
-              <div className="border-t pt-2 flex justify-between font-medium">
-                <span>Total Allocated</span>
-                <span
-                  className={`tabular-nums ${
-                    totalOwnership > 100 ? "text-destructive" : "text-terminal"
-                  }`}
-                >
-                  <AnimatedPercentage value={totalOwnership} decimals={1} />
-                </span>
-              </div>
-              {totalOwnership > 100 && (
-                <motion.p
-                  className="text-xs text-destructive"
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  Warning: Total exceeds 100%
-                </motion.p>
-              )}
-            </motion.div>
-          </CardContent>
-            </Card>
-          </div>
+          )}
 
           {/* Stakeholders List */}
           {capTable.stakeholders.length > 0 && (

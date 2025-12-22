@@ -132,9 +132,9 @@ test.describe('Error Handling and Edge Cases', () => {
     await helpers.setSliderValue('Exit Year', 7, 1, 1);
     await helpers.setSliderValue('Exit Year', 5, 1, 1);
 
-    // App should remain stable - verify final value with explicit timeout
+    // App should remain stable - verify final value with data-slot for FormItem
     const label = page.getByText('Exit Year', { exact: true });
-    const formItem = label.locator('..').locator('..');
+    const formItem = page.locator('[data-slot="form-item"]').filter({ has: label });
     const slider = formItem.locator('[role="slider"]');
     await expect(slider).toHaveAttribute('aria-valuenow', '5', { timeout: TIMEOUTS.formInput });
   });

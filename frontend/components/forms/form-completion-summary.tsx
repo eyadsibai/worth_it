@@ -60,7 +60,7 @@ export function FormCompletionSummary({
   return (
     <div
       className={cn(
-        "rounded-lg border bg-card p-3 text-sm",
+        "terminal-card-sm text-sm",
         className
       )}
     >

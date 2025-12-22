@@ -113,7 +113,9 @@ export function EmployeeDashboard() {
           !showInputs && "hidden"
         )}
       >
-        <ExampleLoader />
+        <div className="terminal-card-sm">
+          <ExampleLoader />
+        </div>
         <FormCompletionSummary status={formStatus} />
         <GlobalSettingsFormComponent value={globalSettings} onChange={setGlobalSettings} />
         <CurrentJobFormComponent value={currentJob} onChange={setCurrentJob} />

@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/base';
+import { TIMEOUTS } from '../utils/test-data';
 
 /**
  * Test Suite: API Response Validation
@@ -449,13 +450,13 @@ test.describe('Loading States During API Calls', () => {
     await helpers.waitForAPIConnection();
 
     // Verify form elements are interactive
-    await expect(page.locator('[role="slider"]').first()).toBeVisible();
+    await expect(page.locator('[role="slider"]').first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Use simple approach: find the Current Job card and get first number input (Monthly Salary)
     const currentJobCard = page.locator('.glass-card').filter({ hasText: 'Current Job' });
-    await expect(currentJobCard).toBeVisible();
+    await expect(currentJobCard).toBeVisible({ timeout: TIMEOUTS.elementVisible });
     const salaryInput = currentJobCard.locator('input[type="number"]').first();
-    await expect(salaryInput).toBeVisible();
+    await expect(salaryInput).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should show results when scenario is calculated', async ({ page, helpers }) => {
@@ -470,7 +471,7 @@ test.describe('Loading States During API Calls', () => {
     await helpers.waitForScenarioResults();
 
     // Verify we see the detailed analysis section
-    await expect(page.getByText(/Detailed Analysis/i)).toBeVisible();
+    await expect(page.getByText(/Detailed Analysis/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -486,9 +487,9 @@ test.describe('Network Failure Handling', () => {
     await page.goto('/');
 
     // The UI should not crash - page should still render
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
     // Main heading should still be visible
-    await expect(page.getByRole('heading', { name: /Offer Analysis/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Offer Analysis/i })).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should recover when API becomes available again', async ({ page, helpers }) => {
@@ -513,7 +514,7 @@ test.describe('Network Failure Handling', () => {
 
     // Page should load properly now
     await helpers.waitForAPIConnection();
-    await expect(page.getByRole('heading', { name: /Offer Analysis/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Offer Analysis/i })).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display API error in UI when request fails', async ({ page, helpers }) => {
@@ -536,7 +537,7 @@ test.describe('Network Failure Handling', () => {
     await salaryInput.fill('15000');
 
     // The UI should handle the error gracefully - not crash
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -572,6 +573,6 @@ test.describe('API Response Consistency', () => {
     // The frontend should display the detailed analysis section
     // This ensures the data flow from API to UI is working correctly
     const resultsSection = page.locator('text=/Detailed Analysis/i').locator('..');
-    await expect(resultsSection).toBeVisible();
+    await expect(resultsSection).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });

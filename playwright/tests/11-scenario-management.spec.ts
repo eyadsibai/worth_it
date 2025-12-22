@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/base';
+import { TIMEOUTS } from '../utils/test-data';
 import * as fs from 'fs';
 
 /**
@@ -27,7 +28,7 @@ test.describe('Scenario Management - Save Functionality', () => {
 
     // Navigate to Founder mode
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add a stakeholder
     await page.locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDER.name);
@@ -38,11 +39,11 @@ test.describe('Scenario Management - Save Functionality', () => {
   test('should display "Save Current" button', async ({ page }) => {
     // Look for the Saved Scenarios card - use text selector for CardTitle
     const scenarioCardTitle = page.getByText('Saved Scenarios', { exact: true });
-    await expect(scenarioCardTitle).toBeVisible();
+    await expect(scenarioCardTitle).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Find Save Current button
     const saveButton = page.getByRole('button', { name: /Save Current/i });
-    await expect(saveButton).toBeVisible();
+    await expect(saveButton).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should show name input when Save Current is clicked', async ({ page }) => {
@@ -51,11 +52,11 @@ test.describe('Scenario Management - Save Functionality', () => {
 
     // Verify name input appears
     const nameInput = page.getByPlaceholder(/Scenario name/i);
-    await expect(nameInput).toBeVisible();
+    await expect(nameInput).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Verify Save Scenario and Cancel buttons appear
-    await expect(page.getByRole('button', { name: /Save Scenario/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Cancel/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Save Scenario/i })).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    await expect(page.getByRole('button', { name: /Cancel/i })).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should save scenario with entered name', async ({ page }) => {
@@ -70,7 +71,7 @@ test.describe('Scenario Management - Save Functionality', () => {
     await page.getByRole('button', { name: /Save Scenario/i }).click();
 
     // Verify scenario appears in the list
-    await expect(page.getByText(TEST_SCENARIO_NAME)).toBeVisible();
+    await expect(page.getByText(TEST_SCENARIO_NAME)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should cancel saving when Cancel is clicked', async ({ page }) => {
@@ -85,10 +86,10 @@ test.describe('Scenario Management - Save Functionality', () => {
     await page.getByRole('button', { name: /Cancel/i }).click();
 
     // Verify we're back to Save Current state
-    await expect(page.getByRole('button', { name: /Save Current/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Save Current/i })).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Verify scenario was not saved
-    await expect(page.getByText('Should Not Be Saved')).not.toBeVisible();
+    await expect(page.getByText('Should Not Be Saved')).not.toBeVisible({ timeout: TIMEOUTS.elementPresent });
   });
 
   test('should disable Save Scenario button when name is empty', async ({ page }) => {
@@ -97,7 +98,7 @@ test.describe('Scenario Management - Save Functionality', () => {
 
     // Save Scenario button should be disabled
     const saveScenarioButton = page.getByRole('button', { name: /Save Scenario/i });
-    await expect(saveScenarioButton).toBeDisabled();
+    await expect(saveScenarioButton).toBeDisabled({ timeout: TIMEOUTS.elementPresent });
   });
 
   test('should save scenario on Enter key press', async ({ page }) => {
@@ -110,7 +111,7 @@ test.describe('Scenario Management - Save Functionality', () => {
     await nameInput.press('Enter');
 
     // Verify scenario was saved
-    await expect(page.getByText('Enter Key Scenario')).toBeVisible();
+    await expect(page.getByText('Enter Key Scenario')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -123,7 +124,7 @@ test.describe('Scenario Management - Load Functionality', () => {
 
     // Navigate to Founder mode and add stakeholder
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     await page.locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDER.name);
     await page.getByPlaceholder('25').fill(TEST_STAKEHOLDER.ownershipPct.toString());
@@ -133,7 +134,7 @@ test.describe('Scenario Management - Load Functionality', () => {
     await page.getByRole('button', { name: /Save Current/i }).click();
     await page.getByPlaceholder(/Scenario name/i).fill(TEST_SCENARIO_NAME);
     await page.getByRole('button', { name: /Save Scenario/i }).click();
-    await expect(page.getByText(TEST_SCENARIO_NAME)).toBeVisible();
+    await expect(page.getByText(TEST_SCENARIO_NAME)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display load button for saved scenarios', async ({ page }) => {
@@ -142,14 +143,14 @@ test.describe('Scenario Management - Load Functionality', () => {
 
     // Find load button (FolderOpen icon)
     const loadButton = scenarioRow.getByRole('button', { name: /Load/i });
-    await expect(loadButton).toBeVisible();
+    await expect(loadButton).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should load scenario when load button is clicked', async ({ page }) => {
     // Clear the current cap table by removing the stakeholder
     // Find the stakeholder in the list and click its remove button
     const stakeholderText = page.getByText(TEST_STAKEHOLDER.name).first();
-    await expect(stakeholderText).toBeVisible();
+    await expect(stakeholderText).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // The remove button is in the same row - find it relative to the stakeholder card
     const stakeholderCard = page.locator('[class*="terminal-card"]').filter({ hasText: /Stakeholders/ });
@@ -157,7 +158,7 @@ test.describe('Scenario Management - Load Functionality', () => {
     await removeButton.click();
 
     // Verify stakeholder is removed (the Stakeholders card hides when empty)
-    await expect(page.getByText(TEST_STAKEHOLDER.name)).not.toBeVisible();
+    await expect(page.getByText(TEST_STAKEHOLDER.name)).not.toBeVisible({ timeout: TIMEOUTS.elementPresent });
 
     // Load the saved scenario
     const scenarioRow = page.locator('div').filter({ hasText: TEST_SCENARIO_NAME }).first();
@@ -165,7 +166,7 @@ test.describe('Scenario Management - Load Functionality', () => {
     await loadButton.click();
 
     // Verify stakeholder is restored
-    await expect(page.getByText(TEST_STAKEHOLDER.name).first()).toBeVisible();
+    await expect(page.getByText(TEST_STAKEHOLDER.name).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -176,7 +177,7 @@ test.describe('Scenario Management - Delete Functionality', () => {
     await page.reload();
 
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     await page.locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDER.name);
     await page.getByPlaceholder('25').fill(TEST_STAKEHOLDER.ownershipPct.toString());
@@ -186,13 +187,13 @@ test.describe('Scenario Management - Delete Functionality', () => {
     await page.getByRole('button', { name: /Save Current/i }).click();
     await page.getByPlaceholder(/Scenario name/i).fill('Scenario To Delete');
     await page.getByRole('button', { name: /Save Scenario/i }).click();
-    await expect(page.getByText('Scenario To Delete')).toBeVisible();
+    await expect(page.getByText('Scenario To Delete')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display delete button for saved scenarios', async ({ page }) => {
     const scenarioRow = page.locator('div').filter({ hasText: 'Scenario To Delete' }).first();
     const deleteButton = scenarioRow.getByRole('button', { name: /Delete/i });
-    await expect(deleteButton).toBeVisible();
+    await expect(deleteButton).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should delete scenario when delete button is clicked', async ({ page }) => {
@@ -201,7 +202,7 @@ test.describe('Scenario Management - Delete Functionality', () => {
     await deleteButton.click();
 
     // Verify scenario is removed
-    await expect(page.getByText('Scenario To Delete')).not.toBeVisible();
+    await expect(page.getByText('Scenario To Delete')).not.toBeVisible({ timeout: TIMEOUTS.elementPresent });
   });
 });
 
@@ -212,7 +213,7 @@ test.describe('Scenario Management - Export/Import Functionality', () => {
     await page.reload();
 
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     await page.locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDER.name);
     await page.getByPlaceholder('25').fill(TEST_STAKEHOLDER.ownershipPct.toString());
@@ -222,19 +223,19 @@ test.describe('Scenario Management - Export/Import Functionality', () => {
     await page.getByRole('button', { name: /Save Current/i }).click();
     await page.getByPlaceholder(/Scenario name/i).fill('Export Test Scenario');
     await page.getByRole('button', { name: /Save Scenario/i }).click();
-    await expect(page.getByText('Export Test Scenario')).toBeVisible();
+    await expect(page.getByText('Export Test Scenario')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display export button for saved scenarios', async ({ page }) => {
     const scenarioRow = page.locator('div').filter({ hasText: 'Export Test Scenario' }).first();
     // The button has sr-only text "Export JSON"
     const exportButton = scenarioRow.getByRole('button', { name: /Export JSON/i });
-    await expect(exportButton).toBeVisible();
+    await expect(exportButton).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should trigger JSON download on export click', async ({ page }) => {
     // Set up download listener
-    const downloadPromise = page.waitForEvent('download');
+    const downloadPromise = page.waitForEvent('download', { timeout: TIMEOUTS.calculation });
 
     const scenarioRow = page.locator('div').filter({ hasText: 'Export Test Scenario' }).first();
     const exportButton = scenarioRow.getByRole('button', { name: /Export JSON/i });
@@ -246,7 +247,7 @@ test.describe('Scenario Management - Export/Import Functionality', () => {
   });
 
   test('should export valid JSON with scenario data', async ({ page }) => {
-    const downloadPromise = page.waitForEvent('download');
+    const downloadPromise = page.waitForEvent('download', { timeout: TIMEOUTS.calculation });
 
     const scenarioRow = page.locator('div').filter({ hasText: 'Export Test Scenario' }).first();
     await scenarioRow.getByRole('button', { name: /Export JSON/i }).click();
@@ -268,7 +269,7 @@ test.describe('Scenario Management - Export/Import Functionality', () => {
   test('should display import button', async ({ page }) => {
     // Import button uses asChild which renders as a span in a label
     const importButton = page.getByText('Import', { exact: true });
-    await expect(importButton).toBeVisible();
+    await expect(importButton).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should import scenario from JSON file', async ({ page }) => {
@@ -305,7 +306,7 @@ test.describe('Scenario Management - Export/Import Functionality', () => {
     await fileInput.setInputFiles(tempFile);
 
     // Wait for import to complete and verify
-    await expect(page.getByText('Imported Scenario')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Imported Scenario')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Clean up
     fs.unlinkSync(tempFile);
@@ -319,10 +320,10 @@ test.describe('Scenario Management - Empty State', () => {
     await page.reload();
 
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Verify empty state message
-    await expect(page.getByText(/No saved scenarios yet/i)).toBeVisible();
+    await expect(page.getByText(/No saved scenarios yet/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -333,7 +334,7 @@ test.describe('Scenario Management - Persistence', () => {
     await page.reload();
 
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add stakeholder
     await page.locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDER.name);
@@ -348,9 +349,9 @@ test.describe('Scenario Management - Persistence', () => {
     // Reload page
     await page.reload();
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Verify scenario still exists
-    await expect(page.getByText('Persistent Scenario')).toBeVisible();
+    await expect(page.getByText('Persistent Scenario')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });

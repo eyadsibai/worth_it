@@ -70,7 +70,7 @@ test.describe('Backend Error Display', () => {
 
     // Should either show error message or fail gracefully
     // (not crash or show raw error)
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should not display raw error JSON to user', async ({ page, helpers }) => {
@@ -101,7 +101,7 @@ test.describe('Backend Error Display', () => {
 
     // Page should not crash - main validation is UI remains functional
     // Note: If raw errors are shown, that's a frontend bug to fix separately
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -123,7 +123,7 @@ test.describe('Validation Error Display', () => {
     expect(value.length).toBeGreaterThanOrEqual(0);
 
     // Page should not crash
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should validate required fields before calculation', async ({ page, helpers }) => {
@@ -138,7 +138,7 @@ test.describe('Validation Error Display', () => {
 
     // Should not crash when fields aren't filled
     // The main validation is that the page remains functional
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should highlight field with validation error', async ({ page, helpers }) => {
@@ -153,12 +153,12 @@ test.describe('Validation Error Display', () => {
     await page.waitForTimeout(500);
 
     // Page should remain functional
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Forms should still be interactive
     const rsuPanel = page.getByRole('tabpanel', { name: 'RSUs' });
     const equityInput = rsuPanel.locator('input[type="number"]').nth(1);
-    await expect(equityInput).toBeVisible();
+    await expect(equityInput).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -177,10 +177,10 @@ test.describe('Timeout Handling', () => {
     await page.goto('/');
 
     // Page should still load
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Eventually should load main content
-    await expect(page.getByText(/Offer Analysis|Worth It/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Offer Analysis|Worth It/i)).toBeVisible({ timeout: TIMEOUTS.navigation });
   });
 
   test('should show appropriate state during slow calculation', async ({ page, helpers }) => {
@@ -202,7 +202,7 @@ test.describe('Timeout Handling', () => {
     await page.waitForTimeout(1000);
 
     // Either shows loading indicator or handles delay gracefully
-    const isLoading = await page.getByText(/Loading|Calculating|Analyzing/i).isVisible().catch(() => false);
+    const isLoading = await page.getByText(/Loading|Calculating|Analyzing/i).isVisible({ timeout: TIMEOUTS.elementPresent }).catch(() => false);
     const isStillFunctional = await page.locator('body').isVisible();
 
     expect(isLoading || isStillFunctional).toBeTruthy();
@@ -234,7 +234,7 @@ test.describe('Timeout Handling', () => {
     await page.waitForTimeout(3000);
 
     // Page should still be functional
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -267,7 +267,7 @@ test.describe('Malformed Response Handling', () => {
     await page.waitForTimeout(2000);
 
     // Should not crash
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should handle incomplete JSON response', async ({ page, helpers }) => {
@@ -297,7 +297,7 @@ test.describe('Malformed Response Handling', () => {
     await page.waitForTimeout(2000);
 
     // Should not crash
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should handle empty response body', async ({ page, helpers }) => {
@@ -327,7 +327,7 @@ test.describe('Malformed Response Handling', () => {
     await page.waitForTimeout(2000);
 
     // Should not crash
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should handle response with unexpected structure', async ({ page, helpers }) => {
@@ -361,7 +361,7 @@ test.describe('Malformed Response Handling', () => {
     await page.waitForTimeout(2000);
 
     // Should not crash
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -425,13 +425,13 @@ test.describe('Form Input Edge Cases', () => {
     expect(value.length).toBeGreaterThan(0);
 
     // Should not crash
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should handle special characters in text inputs', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Try special characters in name field with XSS payload
     const nameInput = page.locator('input[placeholder="e.g., John Smith"]');
@@ -447,7 +447,7 @@ test.describe('Form Input Edge Cases', () => {
     // React's JSX escaping renders <script> as literal text, not as an executable tag
     // If the script executed, Playwright would throw on the alert dialog
     // The page remaining functional proves the XSS was neutralized
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should handle negative numbers appropriately', async ({ page, helpers }) => {
@@ -463,7 +463,7 @@ test.describe('Form Input Edge Cases', () => {
 
     // Either rejects negative (shows positive or 0) or handles it
     // Main thing is it doesn't crash
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -482,7 +482,7 @@ test.describe('Concurrent Request Handling', () => {
     }
 
     // Should not crash
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Final value should be set
     const finalValue = await salaryInput.inputValue();
