@@ -189,7 +189,7 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
                 tooltip={TOOLTIPS.exitValuationMean}
                 min={0}
                 step={1000000}
-                prefix="SAR"
+                prefix="$"
                 placeholder="100000000"
                 formatDisplay={true}
               />
@@ -202,7 +202,7 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
                 tooltip={TOOLTIPS.exitValuationStd}
                 min={0}
                 step={1000000}
-                prefix="SAR"
+                prefix="$"
                 placeholder="50000000"
                 formatDisplay={true}
               />

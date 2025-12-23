@@ -23,7 +23,7 @@ interface LiveRegionProps {
  * @example
  * ```tsx
  * // Polite announcement (waits for screen reader to finish)
- * <LiveRegion>Calculation complete. Net benefit: SAR 245,000</LiveRegion>
+ * <LiveRegion>Calculation complete. Net benefit: $245,000</LiveRegion>
  *
  * // Assertive announcement (interrupts immediately)
  * <LiveRegion assertive>Error: Invalid input</LiveRegion>

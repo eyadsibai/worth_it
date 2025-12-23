@@ -412,7 +412,9 @@ export function AnimatedPercentage({
   React.useEffect(() => {
     const unsubscribe = springValue.on("change", (latest) => {
       if (ref.current) {
-        ref.current.textContent = latest.toFixed(decimals) + "%";
+        // Remove trailing zeros for cleaner display
+        const formatted = latest.toFixed(decimals).replace(/\.?0+$/, "");
+        ref.current.textContent = formatted + "%";
       }
     });
     return unsubscribe;

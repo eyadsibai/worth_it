@@ -33,10 +33,14 @@ interface FundingRoundsManagerProps {
   optionPoolPct?: number; // For dilution preview
 }
 
-// Format currency
+// Format currency (no trailing zeros)
 function formatCurrency(value: number): string {
+  const formatNum = (n: number, decimals: number) => {
+    const fixed = n.toFixed(decimals);
+    return fixed.replace(/\.?0+$/, "");
+  };
   if (value >= 1000000) {
-    return `$${(value / 1000000).toFixed(2)}M`;
+    return `$${formatNum(value / 1000000, 2)}M`;
   }
   return `$${value.toLocaleString()}`;
 }
@@ -135,9 +139,13 @@ export function FundingRoundsManager({
             ${" "}
             <AnimatedNumber
               value={totalRaised}
-              formatValue={(v) =>
-                v >= 1000000 ? `${(v / 1000000).toFixed(2)}M` : v.toLocaleString()
-              }
+              formatValue={(v) => {
+                if (v >= 1000000) {
+                  const num = v / 1000000;
+                  return num % 1 === 0 ? `${num}M` : `${num.toFixed(2).replace(/\.?0+$/, "")}M`;
+                }
+                return v.toLocaleString();
+              }}
             />
           </div>
         </motion.div>

@@ -14,19 +14,23 @@ interface WaterfallTableProps {
   distribution: WaterfallDistribution | null;
 }
 
-// Format currency for display
+// Format currency for display (no trailing .00)
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) {
     return "-";
   }
+  const formatNum = (n: number, decimals: number) => {
+    const fixed = n.toFixed(decimals);
+    return fixed.replace(/\.?0+$/, "");
+  };
   if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(2)}B`;
+    return `$${formatNum(value / 1_000_000_000, 2)}B`;
   }
   if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(2)}M`;
+    return `$${formatNum(value / 1_000_000, 2)}M`;
   }
   if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(1)}K`;
+    return `$${formatNum(value / 1_000, 1)}K`;
   }
   return `$${value.toFixed(0)}`;
 }

@@ -352,13 +352,13 @@ describe("NumberInputField with hint and example props", () => {
             form={form}
             name="salary"
             label="Monthly Salary"
-            hint="Tech average: SAR 8K-15K"
+            hint="Tech average: $8K-15K"
           />
         )}
       </NumberTestWrapper>
     );
 
-    expect(screen.getByText("Tech average: SAR 8K-15K")).toBeInTheDocument();
+    expect(screen.getByText("Tech average: $8K-15K")).toBeInTheDocument();
   });
 
   it("renders hint with muted styling", () => {
@@ -369,13 +369,13 @@ describe("NumberInputField with hint and example props", () => {
             form={form}
             name="salary"
             label="Monthly Salary"
-            hint="Tech average: SAR 8K-15K"
+            hint="Tech average: $8K-15K"
           />
         )}
       </NumberTestWrapper>
     );
 
-    const hint = screen.getByText("Tech average: SAR 8K-15K");
+    const hint = screen.getByText("Tech average: $8K-15K");
     expect(hint).toHaveClass("text-muted-foreground");
   });
 
@@ -427,14 +427,14 @@ describe("NumberInputField with hint and example props", () => {
             name="salary"
             label="Monthly Salary"
             description="Your gross monthly salary"
-            hint="Tech average: SAR 8K-15K"
+            hint="Tech average: $8K-15K"
           />
         )}
       </NumberTestWrapper>
     );
 
     expect(screen.getByText("Your gross monthly salary")).toBeInTheDocument();
-    expect(screen.getByText("Tech average: SAR 8K-15K")).toBeInTheDocument();
+    expect(screen.getByText("Tech average: $8K-15K")).toBeInTheDocument();
   });
 
   it("does not render hint when not provided", () => {

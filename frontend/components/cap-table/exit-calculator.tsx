@@ -55,16 +55,20 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
   const totalPayout = payouts.reduce((sum, p) => sum + p.payout, 0);
 
   const formatCurrency = (value: number): string => {
+    const formatNum = (n: number, decimals: number) => {
+      const fixed = n.toFixed(decimals);
+      return fixed.replace(/\.?0+$/, "");
+    };
     if (value >= 1000000000) {
-      return `SAR ${(value / 1000000000).toFixed(2)}B`;
+      return `$${formatNum(value / 1000000000, 2)}B`;
     }
     if (value >= 1000000) {
-      return `SAR ${(value / 1000000).toFixed(2)}M`;
+      return `$${formatNum(value / 1000000, 2)}M`;
     }
     if (value >= 1000) {
-      return `SAR ${(value / 1000).toFixed(1)}K`;
+      return `$${formatNum(value / 1000, 1)}K`;
     }
-    return `SAR ${value.toFixed(0)}`;
+    return `$${value.toFixed(0)}`;
   };
 
   return (
@@ -80,7 +84,7 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
           <Label htmlFor="exit-valuation">Exit Valuation</Label>
           <div className="relative">
             <span className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2">
-              SAR
+              $
             </span>
             <Input
               id="exit-valuation"
@@ -138,7 +142,9 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
                   <TableCell className="text-muted-foreground capitalize">
                     {row.type.replace("_", " ")}
                   </TableCell>
-                  <TableCell className="text-right">{row.ownershipPct.toFixed(2)}%</TableCell>
+                  <TableCell className="text-right">
+                    {row.ownershipPct.toFixed(2).replace(/\.?0+$/, "")}%
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">
                     <HighlightOnChange value={row.payout}>
                       {formatCurrency(row.payout)}
@@ -149,7 +155,9 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
               <TableRow className="border-t-2 font-semibold">
                 <TableCell>Total</TableCell>
                 <TableCell />
-                <TableCell className="text-right">{totalAllocatedPct.toFixed(2)}%</TableCell>
+                <TableCell className="text-right">
+                  {totalAllocatedPct.toFixed(2).replace(/\.?0+$/, "")}%
+                </TableCell>
                 <TableCell className="text-terminal text-right tabular-nums">
                   <HighlightOnChange value={totalPayout}>
                     {formatCurrency(totalPayout)}

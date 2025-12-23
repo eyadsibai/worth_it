@@ -292,7 +292,8 @@ export function QuickAdjustPanel({
                       Equity %
                     </Label>
                     <span className="text-accent text-sm tabular-nums">
-                      {equityPct.toFixed(2)}%
+                      {equityPct % 1 === 0 ? equityPct : equityPct.toFixed(2).replace(/\.?0+$/, "")}
+                      %
                     </span>
                   </div>
                   <Slider
@@ -320,7 +321,10 @@ export function QuickAdjustPanel({
                       Exit Price/Share
                     </Label>
                     <span className="text-accent text-sm tabular-nums">
-                      ${exitPricePerShare.toFixed(2)}
+                      $
+                      {exitPricePerShare % 1 === 0
+                        ? exitPricePerShare
+                        : exitPricePerShare.toFixed(2).replace(/\.?0+$/, "")}
                     </span>
                   </div>
                   <Slider

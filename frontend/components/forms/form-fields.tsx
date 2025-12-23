@@ -76,7 +76,7 @@ interface NumberInputFieldProps extends FormFieldProps {
   prefix?: string;
   suffix?: string;
   formatDisplay?: boolean;
-  /** Hint text displayed below the input (e.g., "Tech average: SAR 8K-15K") */
+  /** Hint text displayed below the input (e.g., "Tech average: $8K-15K") */
   hint?: string;
   /** Example value shown as placeholder when no placeholder is set */
   exampleValue?: number;

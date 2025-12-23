@@ -21,7 +21,7 @@ function formatNumber(num: number): string {
 }
 
 function formatPercent(pct: number): string {
-  return `${pct.toFixed(2)}%`;
+  return `${pct.toFixed(2).replace(/\.?0+$/, "")}%`;
 }
 
 /** Row data for the pro-forma cap table */

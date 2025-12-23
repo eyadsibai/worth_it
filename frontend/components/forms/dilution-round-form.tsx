@@ -138,7 +138,7 @@ export function DilutionRoundFormComponent({
                   description="Valuation before round (optional)"
                   min={0}
                   step={1000000}
-                  prefix="SAR"
+                  prefix="$"
                   placeholder="50000000"
                   formatDisplay={true}
                 />
@@ -152,7 +152,7 @@ export function DilutionRoundFormComponent({
                   description="Capital raised (optional)"
                   min={0}
                   step={1000000}
-                  prefix="SAR"
+                  prefix="$"
                   placeholder="10000000"
                   formatDisplay={true}
                 />
@@ -164,7 +164,7 @@ export function DilutionRoundFormComponent({
                   description="Updated monthly salary (optional)"
                   min={0}
                   step={1000}
-                  prefix="SAR"
+                  prefix="$"
                   placeholder="12000"
                   formatDisplay={true}
                 />

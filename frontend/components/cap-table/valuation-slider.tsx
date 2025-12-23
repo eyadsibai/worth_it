@@ -17,13 +17,17 @@ interface ValuationSliderProps {
   breakevenPoints?: Record<string, number>;
 }
 
-// Format currency for display
+// Format currency for display (no trailing zeros)
 function formatCurrency(value: number): string {
+  const formatNum = (n: number, decimals: number) => {
+    const fixed = n.toFixed(decimals);
+    return fixed.replace(/\.?0+$/, "");
+  };
   if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(2)}B`;
+    return `$${formatNum(value / 1_000_000_000, 2)}B`;
   }
   if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(1)}M`;
+    return `$${formatNum(value / 1_000_000, 1)}M`;
   }
   if (value >= 1_000) {
     return `$${(value / 1_000).toFixed(0)}K`;

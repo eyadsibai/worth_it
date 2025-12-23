@@ -8,6 +8,32 @@ Modern financial analysis tool for evaluating startup job offers with real-time 
 
 ## 🚀 Quick Start
 
+### One Command (Recommended)
+
+```bash
+./scripts/start.sh
+```
+
+This starts both backend and frontend with automatic dependency installation.
+
+**Options:**
+
+```bash
+./scripts/start.sh --clean   # Kill existing processes on ports 8000/3000 first
+./scripts/start.sh --stop    # Stop all running services
+./scripts/start.sh --help    # Show help
+```
+
+**Troubleshooting:**
+
+If you see "port already in use" errors:
+
+```bash
+./scripts/start.sh --clean   # Automatically kill blocking processes
+```
+
+### Manual Start (Alternative)
+
 **Backend:**
 
 ```bash
@@ -24,7 +50,7 @@ npm install
 npm run dev
 ```
 
-Visit:
+**Visit:**
 
 - **Frontend**: <http://localhost:3000>
 - **API Docs**: <http://localhost:8000/docs>

@@ -94,6 +94,34 @@ export function formatCurrencyCompact(value: number): string {
 }
 
 /**
+ * Format a large number with a suffix (M, B, K) without trailing .00
+ * @param value - The number to format
+ * @param prefix - Currency prefix (default: "$")
+ * @returns Formatted string (e.g., "$10M", "$1.5B")
+ */
+export function formatLargeNumber(value: number, prefix: string = "$"): string {
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+
+  if (absValue >= 1_000_000_000) {
+    const num = absValue / 1_000_000_000;
+    const formatted = num % 1 === 0 ? num.toFixed(0) : num.toFixed(2).replace(/\.?0+$/, "");
+    return `${sign}${prefix}${formatted}B`;
+  }
+  if (absValue >= 1_000_000) {
+    const num = absValue / 1_000_000;
+    const formatted = num % 1 === 0 ? num.toFixed(0) : num.toFixed(2).replace(/\.?0+$/, "");
+    return `${sign}${prefix}${formatted}M`;
+  }
+  if (absValue >= 1_000) {
+    const num = absValue / 1_000;
+    const formatted = num % 1 === 0 ? num.toFixed(0) : num.toFixed(1).replace(/\.?0+$/, "");
+    return `${sign}${prefix}${formatted}K`;
+  }
+  return `${sign}${prefix}${absValue.toFixed(0)}`;
+}
+
+/**
  * Format a number as USD currency with decimals (for Fundcy-style display)
  * Returns an object with main part and decimal part for styled rendering
  * @param value - The number to format
