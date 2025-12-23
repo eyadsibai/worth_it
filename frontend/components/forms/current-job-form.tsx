@@ -3,11 +3,10 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown } from "lucide-react";
 import { CurrentJobFormSchema, type CurrentJobForm } from "@/lib/schemas";
 import { Form } from "@/components/ui/form";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CollapsibleCard } from "@/components/ui/collapsible-card";
+import { InformationBox } from "@/components/ui/information-box";
 import { NumberInputField, SliderField, SelectField } from "./form-fields";
 import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 import { TOOLTIPS } from "@/lib/constants/tooltips";
@@ -18,10 +17,11 @@ interface CurrentJobFormProps {
   value?: CurrentJobForm | null;
   /** @deprecated Use `value` prop instead for controlled form synchronization */
   defaultValues?: Partial<CurrentJobForm>;
+  /** Callback fired when form values change (only fires when form is valid) */
   onChange?: (data: CurrentJobForm) => void;
-  /** Enable collapsible card behavior (default: true) */
+  /** Enable collapsible card behavior @default true */
   collapsible?: boolean;
-  /** Initial open state when collapsible (default: true) */
+  /** Initial open state when collapsible @default true */
   defaultOpen?: boolean;
 }
 
@@ -89,15 +89,13 @@ export function CurrentJobFormComponent({
           formatValue={(value) => `${value.toFixed(1)}%`}
         />
 
-        <div className="space-y-4 p-4 border border-border rounded-lg bg-gradient-to-br from-muted/30 to-muted/50">
-          <h4 className="font-semibold text-sm flex items-center gap-2">
-            <div className="h-1.5 w-1.5 rounded-full bg-chart-3"></div>
-            Salary Surplus Investment
-          </h4>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            If your startup salary is lower, the difference will be invested
-          </p>
-
+        <InformationBox
+          title="Salary Surplus Investment"
+          description="If your startup salary is lower, the difference will be invested"
+          variant="gradient"
+          accentColor="chart-3"
+          className="space-y-4"
+        >
           <SliderField
             form={form}
             name="assumed_annual_roi"
@@ -119,47 +117,21 @@ export function CurrentJobFormComponent({
               { value: "Annually", label: "Annually" },
             ]}
           />
-        </div>
+        </InformationBox>
       </form>
     </Form>
   );
 
-  if (collapsible) {
-    return (
-      <Collapsible defaultOpen={defaultOpen}>
-        <Card className="terminal-card animate-slide-up border-l-4 border-l-chart-3/60" data-tour="current-job-card">
-          <CollapsibleTrigger asChild>
-            <CardHeader className="pb-4 cursor-pointer hover:bg-muted/30 transition-colors rounded-t-2xl">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1.5">
-                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-chart-3"></div>
-                    Current Job
-                  </CardTitle>
-                  <CardDescription>Your current employment details</CardDescription>
-                </div>
-                <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=closed]_&]:-rotate-90" />
-              </div>
-            </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-            <CardContent>{formContent}</CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
-    );
-  }
-
   return (
-    <Card className="terminal-card animate-slide-up border-l-4 border-l-chart-3/60" data-tour="current-job-card">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-chart-3"></div>
-          Current Job
-        </CardTitle>
-        <CardDescription>Your current employment details</CardDescription>
-      </CardHeader>
-      <CardContent>{formContent}</CardContent>
-    </Card>
+    <CollapsibleCard
+      title="Current Job"
+      description="Your current employment details"
+      accentColor="chart-3"
+      collapsible={collapsible}
+      defaultOpen={defaultOpen}
+      dataTour="current-job-card"
+    >
+      {formContent}
+    </CollapsibleCard>
   );
 }

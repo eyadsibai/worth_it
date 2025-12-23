@@ -21,10 +21,14 @@ import type { Stakeholder, StakeholderFormData } from "@/lib/schemas";
  * - Left sidebar (380px): Stakeholder form, Option Pool controls, allocation summary
  * - Right column: Cap table manager with tabs (Cap Table, Funding, Waterfall)
  *
- * IMPORTANT: This component uses useCapTableHistory to ensure sidebar mutations
- * (adding stakeholders, adjusting option pool) are tracked in the undo/redo history.
- * The raw store setters are passed to CapTableManager, which wraps them internally
- * for its own mutations. Both use the same shared history store.
+ * HISTORY ARCHITECTURE:
+ * This component uses useCapTableHistory to track sidebar mutations (adding stakeholders,
+ * adjusting option pool) in the undo/redo history. CapTableManager receives raw store setters
+ * but internally wraps them with its own useCapTableHistory hook. Both components share the
+ * same global history store (useHistoryStore from Zustand), so undo/redo is unified:
+ * - Sidebar actions push to history via historySetCapTable
+ * - CapTableManager actions push to the same history via its internal wrapped setters
+ * - Undo/Redo toolbar restores state from this shared history
  */
 export function FounderDashboard() {
   // Get raw state and setters from the global store

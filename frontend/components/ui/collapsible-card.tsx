@@ -14,6 +14,8 @@ interface CollapsibleCardProps {
   children: React.ReactNode;
   /** Additional className for the card container */
   className?: string;
+  /** Whether the card can be collapsed (default: true) */
+  collapsible?: boolean;
   /** Whether the card starts open (default: true) */
   defaultOpen?: boolean;
   /** Controlled open state */
@@ -39,6 +41,7 @@ export function CollapsibleCard({
   description,
   children,
   className,
+  collapsible = true,
   defaultOpen = true,
   open,
   onOpenChange,
@@ -62,37 +65,56 @@ export function CollapsibleCard({
     accent: "bg-accent",
   };
 
+  const cardClassName = cn(
+    "terminal-card animate-slide-up border-l-4",
+    accentColorMap[accentColor],
+    className
+  );
+
+  const headerContent = (
+    <div className="space-y-1.5">
+      <div className="text-lg font-semibold flex items-center gap-2">
+        {icon ?? <div className={cn("h-2 w-2 rounded-full", dotColorMap[accentColor])} />}
+        {title}
+      </div>
+      {description && (
+        <div className="text-sm text-muted-foreground">{description}</div>
+      )}
+    </div>
+  );
+
+  // Non-collapsible static card
+  if (!collapsible) {
+    return (
+      <div className={cardClassName} data-tour={dataTour}>
+        <div className="px-6 pt-6 pb-4">
+          {headerContent}
+        </div>
+        <div className="px-6 pb-6">
+          {children}
+        </div>
+      </div>
+    );
+  }
+
+  // Collapsible card (default)
   return (
     <Collapsible
       defaultOpen={defaultOpen}
       open={open}
       onOpenChange={onOpenChange}
     >
-      <div
-        className={cn(
-          "terminal-card animate-slide-up border-l-4",
-          accentColorMap[accentColor],
-          className
-        )}
-        data-tour={dataTour}
-      >
+      <div className={cardClassName} data-tour={dataTour}>
         {/* Clickable Header */}
         <CollapsibleTrigger asChild>
           <button
             type="button"
-            className="w-full px-6 pt-6 pb-4 text-left flex items-center justify-between hover:bg-muted/30 transition-colors rounded-t-2xl"
+            className="group w-full px-6 pt-6 pb-4 text-left flex items-center justify-between hover:bg-muted/30 transition-colors rounded-t-2xl"
           >
-            <div className="space-y-1.5">
-              <div className="text-lg font-semibold flex items-center gap-2">
-                {icon ?? <div className={cn("h-2 w-2 rounded-full", dotColorMap[accentColor])} />}
-                {title}
-              </div>
-              {description && (
-                <div className="text-sm text-muted-foreground">{description}</div>
-              )}
-            </div>
+            {headerContent}
             <ChevronDown
-              className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=closed]_&]:rotate-[-90deg]"
+              className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-data-[state=closed]:rotate-[-90deg]"
+              aria-hidden="true"
             />
           </button>
         </CollapsibleTrigger>

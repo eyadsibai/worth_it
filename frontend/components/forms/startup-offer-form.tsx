@@ -1,9 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RSUFormComponent } from "./rsu-form";
 import { StockOptionsFormComponent } from "./stock-options-form";
@@ -12,11 +10,13 @@ import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
 interface StartupOfferFormProps {
   /** External value to sync with (e.g., from Zustand store) */
   value?: RSUForm | StockOptionsForm | null;
+  /** Callback fired when RSU form values change (only when RSU tab is active and form is valid) */
   onRSUChange?: (data: RSUForm) => void;
+  /** Callback fired when Stock Options form values change (only when Options tab is active and form is valid) */
   onStockOptionsChange?: (data: StockOptionsForm) => void;
-  /** Enable collapsible card behavior (default: true) */
+  /** Enable collapsible card behavior @default true */
   collapsible?: boolean;
-  /** Initial open state when collapsible (default: true) */
+  /** Initial open state when collapsible @default true */
   defaultOpen?: boolean;
 }
 
@@ -75,42 +75,16 @@ export function StartupOfferFormComponent({
     </Tabs>
   );
 
-  if (collapsible) {
-    return (
-      <Collapsible defaultOpen={defaultOpen}>
-        <Card className="terminal-card animate-slide-up border-l-4 border-l-primary/50" data-tour="startup-offer-card">
-          <CollapsibleTrigger asChild>
-            <CardHeader className="pb-4 cursor-pointer hover:bg-muted/30 transition-colors rounded-t-2xl">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1.5">
-                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-primary"></div>
-                    Startup Offer
-                  </CardTitle>
-                  <CardDescription>Configure your equity package</CardDescription>
-                </div>
-                <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=closed]_&]:-rotate-90" />
-              </div>
-            </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-            <CardContent>{formContent}</CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
-    );
-  }
-
   return (
-    <Card className="terminal-card animate-slide-up border-l-4 border-l-primary/50" data-tour="startup-offer-card">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-primary"></div>
-          Startup Offer
-        </CardTitle>
-        <CardDescription>Configure your equity package</CardDescription>
-      </CardHeader>
-      <CardContent>{formContent}</CardContent>
-    </Card>
+    <CollapsibleCard
+      title="Startup Offer"
+      description="Configure your equity package"
+      accentColor="primary"
+      collapsible={collapsible}
+      defaultOpen={defaultOpen}
+      dataTour="startup-offer-card"
+    >
+      {formContent}
+    </CollapsibleCard>
   );
 }

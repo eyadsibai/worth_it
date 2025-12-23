@@ -9,6 +9,7 @@ import { AnimatedText, AnimatePresence, motion } from "@/lib/motion";
 import { useAppStore } from "@/lib/store";
 import { useDraftAutoSave, getDraft, clearDraft, useBeforeUnload, useReducedMotion } from "@/lib/hooks";
 import { useFirstVisit } from "@/lib/hooks/use-first-visit";
+import { toast } from "sonner";
 import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
 
 export default function Home() {
@@ -66,24 +67,36 @@ export default function Home() {
   );
   useBeforeUnload(hasUnsavedChanges);
 
-  // Automatically restore saved draft on mount (no dialog - just restore silently)
+  // Automatically restore saved draft on mount with error handling
   React.useEffect(() => {
     if (appMode !== "employee") return;
 
     const draft = getDraft();
     if (draft) {
-      // Auto-restore draft without showing dialog
-      const { data } = draft;
-      if (data.globalSettings) {
-        setGlobalSettings(data.globalSettings as Parameters<typeof setGlobalSettings>[0]);
+      try {
+        const { data } = draft;
+        if (data.globalSettings) {
+          setGlobalSettings(data.globalSettings as Parameters<typeof setGlobalSettings>[0]);
+        }
+        if (data.currentJob) {
+          setCurrentJob(data.currentJob as Parameters<typeof setCurrentJob>[0]);
+        }
+        if (data.equityDetails) {
+          setEquityDetails(data.equityDetails as RSUForm | StockOptionsForm);
+        }
+        toast.success("Draft restored", {
+          description: "Your previous work has been restored",
+          duration: 3000,
+        });
+      } catch (error) {
+        console.error("Failed to restore draft:", error);
+        toast.error("Could not restore draft", {
+          description: "Your previous work couldn't be loaded. Starting fresh.",
+          duration: 5000,
+        });
+      } finally {
+        clearDraft();
       }
-      if (data.currentJob) {
-        setCurrentJob(data.currentJob as Parameters<typeof setCurrentJob>[0]);
-      }
-      if (data.equityDetails) {
-        setEquityDetails(data.equityDetails as RSUForm | StockOptionsForm);
-      }
-      clearDraft();
     }
   }, [appMode, setGlobalSettings, setCurrentJob, setEquityDetails]);
 

@@ -55,8 +55,11 @@ interface CapTableManagerProps {
   preferenceTiers: PreferenceTier[];
   onPreferenceTiersChange: (tiers: PreferenceTier[]) => void;
   /**
-   * When true, hides the stakeholder form and option pool cards
-   * (they're shown in the sidebar instead for consistent layout)
+   * When true, hides the stakeholder form and option pool cards from the
+   * Cap Table tab (they're shown in the sidebar instead for FounderDashboard layout).
+   * When false (default), displays these cards inline within the Cap Table tab
+   * for standalone usage.
+   * @default false
    */
   hideSidebarContent?: boolean;
 }
