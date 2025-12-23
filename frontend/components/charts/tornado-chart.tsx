@@ -202,7 +202,7 @@ function TornadoTooltip({
           <span className="tabular-nums">{formatCurrencyCompact(data.highValue)}</span>
         </p>
         {showImpactLabels && (
-          <p className="mt-1 pt-1 border-t border-gray-600">
+          <p className="mt-1 pt-1 border-t border-border">
             <span className="text-gray-400">Total impact: </span>
             <span className="font-medium tabular-nums">
               {formatCurrencyCompact(data.impact)}

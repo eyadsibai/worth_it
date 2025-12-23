@@ -39,7 +39,7 @@ export function SummaryCard({ stats, className }: SummaryCardProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Total Scenarios */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-1">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               Total Scenarios
@@ -70,7 +70,7 @@ export function SummaryCard({ stats, className }: SummaryCardProps) {
 
         {/* Worth It Analysis */}
         {stats.employeeScenarios > 0 && (
-          <div className="pt-4 border-t">
+          <div className="pt-4 border-t border-border">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-muted-foreground">Worth It Rate</span>
               <span className="text-sm font-medium">{worthItPercentage}%</span>
@@ -98,7 +98,7 @@ export function SummaryCard({ stats, className }: SummaryCardProps) {
 
         {/* Best Opportunity */}
         {stats.bestOpportunity && (
-          <div className="pt-4 border-t">
+          <div className="pt-4 border-t border-border">
             <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
               Best Opportunity
             </p>
@@ -119,7 +119,7 @@ export function SummaryCard({ stats, className }: SummaryCardProps) {
 
         {/* Average Net Benefit */}
         {stats.employeeScenarios > 0 && (
-          <div className="pt-4 border-t">
+          <div className="pt-4 border-t border-border">
             <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
               Average Net Benefit
             </p>

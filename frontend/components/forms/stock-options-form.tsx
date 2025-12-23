@@ -124,7 +124,7 @@ export function StockOptionsFormComponent({
           hint={FIELD_HINTS.strike_price}
         />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <SliderField
             form={form}
             name="vesting_period"
@@ -148,7 +148,7 @@ export function StockOptionsFormComponent({
           />
         </div>
 
-        <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+        <div className="space-y-4 p-4 border border-border rounded-lg bg-muted/50">
           <h4 className="font-medium text-sm">Exercise Strategy</h4>
 
           <SelectField

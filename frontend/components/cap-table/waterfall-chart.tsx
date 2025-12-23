@@ -66,8 +66,8 @@ function CustomTooltip({
   if (active && payload && payload.length) {
     const total = payload.reduce((sum, entry) => sum + entry.value, 0);
     return (
-      <div className="bg-popover border rounded-lg shadow-lg p-3 min-w-[200px]">
-        <p className="font-medium border-b pb-2 mb-2">Exit: {label}</p>
+      <div className="bg-popover border border-border rounded-lg shadow-lg p-3 min-w-[200px]">
+        <p className="font-medium border-b border-border pb-2 mb-2">Exit: {label}</p>
         {payload.map((entry) => (
           <div key={entry.name} className="flex justify-between text-sm py-0.5">
             <span className="flex items-center gap-2">
@@ -80,7 +80,7 @@ function CustomTooltip({
             <span className="tabular-nums">{formatCurrency(entry.value)}</span>
           </div>
         ))}
-        <div className="border-t mt-2 pt-2 flex justify-between font-medium">
+        <div className="border-t border-border mt-2 pt-2 flex justify-between font-medium">
           <span>Total</span>
           <span className="tabular-nums">{formatCurrency(total)}</span>
         </div>

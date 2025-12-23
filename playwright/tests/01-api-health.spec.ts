@@ -14,11 +14,18 @@ test.describe('API Health and Connection', () => {
   test('should load the home page successfully', async ({ page, helpers }) => {
     await page.goto('/');
 
-    // Wait for page to be ready (dismisses welcome dialog automatically via fixture)
+    // Wait for page to be ready (dismisses welcome dialog automatically via helper)
     await helpers.waitForAPIConnection();
 
-    // Verify page title or main heading with explicit timeout
-    await expect(page.getByRole('heading', { name: /Offer Analysis/i })).toBeVisible({
+    // Verify page heading contains "Offer" and "Analysis" text (split across spans)
+    // The h1 heading uses AnimatedText components that render as spans
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible({
+      timeout: TIMEOUTS.elementVisible,
+    });
+    await expect(page.getByText('Offer').first()).toBeVisible({
+      timeout: TIMEOUTS.elementVisible,
+    });
+    await expect(page.getByText('Analysis').first()).toBeVisible({
       timeout: TIMEOUTS.elementVisible,
     });
   });

@@ -32,7 +32,7 @@ test.describe('Equity Type Switching', () => {
     // Verify current job data is preserved - use container-scoped selector
     const currentJobCard = page.locator('.glass-card').filter({ hasText: 'Current Job' });
     const currentJobSalaryInput = currentJobCard.locator('input[type="number"]').first();
-    await expect(currentJobSalaryInput).toHaveValue(TEST_DATA.currentJob.monthlySalary.toString());
+    await expect(currentJobSalaryInput).toHaveValue(TEST_DATA.currentJob.monthlySalary.toString(), { timeout: TIMEOUTS.formInput });
   });
 
   test('should preserve startup salary when switching equity types', async ({ page, helpers }) => {
@@ -54,10 +54,10 @@ test.describe('Equity Type Switching', () => {
     // The Stock Options tab should be visible and usable
     const optionsPanel = page.getByRole('tabpanel', { name: 'Stock Options' });
     const optionsSalaryInput = optionsPanel.locator('input[type="number"]').first();
-    await expect(optionsSalaryInput).toBeVisible();
+    await expect(optionsSalaryInput).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // UI should not crash when switching between tabs
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should recalculate scenario when switching equity types', async ({ page, helpers }) => {
@@ -78,7 +78,7 @@ test.describe('Equity Type Switching', () => {
     await page.waitForTimeout(2000);
 
     // UI should handle the switch without crashing
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -113,7 +113,7 @@ test.describe('Mode Switching (Employee vs Founder)', () => {
 
     // Go to Founder mode first
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add some data in Founder mode
     await page.locator('input[placeholder="e.g., John Smith"]').fill('Test Founder');
@@ -125,7 +125,7 @@ test.describe('Mode Switching (Employee vs Founder)', () => {
 
     // Verify Employee mode UI is shown
     await helpers.waitForAPIConnection();
-    await expect(page.getByText(/Current Job/i).first()).toBeVisible();
+    await expect(page.getByText(/Current Job/i).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should preserve Founder mode data when switching modes', async ({ page }) => {
@@ -133,7 +133,7 @@ test.describe('Mode Switching (Employee vs Founder)', () => {
 
     // Go to Founder mode
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add a stakeholder
     await page.locator('input[placeholder="e.g., John Smith"]').fill('Persistent Founder');
@@ -141,7 +141,7 @@ test.describe('Mode Switching (Employee vs Founder)', () => {
     await page.getByRole('button', { name: /Add Stakeholder/i }).click();
 
     // Verify added
-    await expect(page.getByText('Persistent Founder').first()).toBeVisible();
+    await expect(page.getByText('Persistent Founder').first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Switch to Employee mode
     await page.getByRole('tab', { name: /I'm an Employee/i }).click();
@@ -149,10 +149,10 @@ test.describe('Mode Switching (Employee vs Founder)', () => {
 
     // Switch back to Founder mode
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Data should still be there
-    await expect(page.getByText('Persistent Founder').first()).toBeVisible();
+    await expect(page.getByText('Persistent Founder').first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -162,26 +162,26 @@ test.describe('Cap Table with Funding Integration', () => {
 
     // Go to Founder mode
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Cap Table/i');
+    await page.waitForSelector('text=/Cap Table/i', { timeout: TIMEOUTS.elementVisible });
 
     // Click Funding tab
     await page.getByRole('tab', { name: /Funding/i }).first().click();
 
     // Should show funding interface
-    await expect(page.getByText(/SAFE|Convertible|Instrument/i).first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/SAFE|Convertible|Instrument/i).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should navigate to Waterfall tab from Cap Table', async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Cap Table/i');
+    await page.waitForSelector('text=/Cap Table/i', { timeout: TIMEOUTS.elementVisible });
 
     // Click Waterfall tab
     await page.getByRole('tab', { name: /Waterfall/i }).first().click();
 
     // Should show waterfall interface (might show empty state if no stakeholders)
-    const hasWaterfall = await page.getByText(/Exit Valuation|Waterfall|Distribution/i).first().isVisible({ timeout: 5000 }).catch(() => false);
-    const hasEmptyState = await page.getByText(/Add stakeholders/i).isVisible({ timeout: 2000 }).catch(() => false);
+    const hasWaterfall = await page.getByText(/Exit Valuation|Waterfall|Distribution/i).first().isVisible({ timeout: TIMEOUTS.elementVisible }).catch(() => false);
+    const hasEmptyState = await page.getByText(/Add stakeholders/i).isVisible({ timeout: TIMEOUTS.elementPresent }).catch(() => false);
 
     expect(hasWaterfall || hasEmptyState).toBeTruthy();
   });
@@ -191,7 +191,7 @@ test.describe('Funding Instruments Integration', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add initial stakeholders
     await page.locator('input[placeholder="e.g., John Smith"]').fill('Founder');
@@ -205,7 +205,7 @@ test.describe('Funding Instruments Integration', () => {
   test('should display funding instruments section', async ({ page }) => {
     // Should show option to add funding instruments
     const hasFundingUI =
-      (await page.getByText(/SAFE|Convertible|Instrument|Funding/i).first().isVisible({ timeout: 5000 }).catch(() => false));
+      (await page.getByText(/SAFE|Convertible|Instrument|Funding/i).first().isVisible({ timeout: TIMEOUTS.elementVisible }).catch(() => false));
 
     expect(hasFundingUI).toBeTruthy();
   });
@@ -213,11 +213,11 @@ test.describe('Funding Instruments Integration', () => {
   test('should allow adding a SAFE note', async ({ page }) => {
     // Look for SAFE option
     const safeButton = page.getByRole('button', { name: /SAFE|Add.*Instrument/i });
-    if (await safeButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await safeButton.isVisible({ timeout: TIMEOUTS.elementPresent }).catch(() => false)) {
       await safeButton.click();
 
       // Should show SAFE configuration form
-      await expect(page.getByText(/Investment|Amount|Cap|Discount/i).first()).toBeVisible({ timeout: 3000 });
+      await expect(page.getByText(/Investment|Amount|Cap|Discount/i).first()).toBeVisible({ timeout: TIMEOUTS.elementPresent });
     }
   });
 });
@@ -238,7 +238,7 @@ test.describe('Dilution Preview Integration', () => {
       await toggle.click();
 
       // Should reveal dilution configuration
-      await expect(page.getByText(/Dilution|Round|Series/i).first()).toBeVisible({ timeout: 3000 });
+      await expect(page.getByText(/Dilution|Round|Series/i).first()).toBeVisible({ timeout: TIMEOUTS.elementPresent });
     }
   });
 
@@ -257,11 +257,11 @@ test.describe('Dilution Preview Integration', () => {
 
       // Look for add round button
       const addRoundButton = page.getByRole('button', { name: /Add.*Round|Add Dilution/i });
-      if (await addRoundButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+      if (await addRoundButton.isVisible({ timeout: TIMEOUTS.elementPresent }).catch(() => false)) {
         await addRoundButton.click();
 
         // Should show round configuration
-        await expect(page.getByText(/Series|Round|Year|Dilution/i).first()).toBeVisible();
+        await expect(page.getByText(/Series|Round|Year|Dilution/i).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
       }
     }
   });
@@ -279,7 +279,7 @@ test.describe('Results Display Across Features', () => {
     await page.waitForTimeout(2000);
 
     // Check for result elements
-    const hasResults = await page.getByText(/Detailed Analysis|Results|Scenario/i).first().isVisible().catch(() => false);
+    const hasResults = await page.getByText(/Detailed Analysis|Results|Scenario/i).first().isVisible({ timeout: TIMEOUTS.elementVisible }).catch(() => false);
 
     // Switch to Stock Options
     await helpers.selectStockOptionsEquityType();
@@ -287,7 +287,7 @@ test.describe('Results Display Across Features', () => {
     await page.waitForTimeout(2000);
 
     // UI should handle both equity types without crashing
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
     expect(hasResults).toBeTruthy();
   });
 });
@@ -308,7 +308,7 @@ test.describe('Data Flow Between Components', () => {
 
     // Results should update - just verify UI doesn't crash
     await page.waitForTimeout(1000);
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should update results when current job salary changes', async ({ page, helpers }) => {
@@ -328,7 +328,7 @@ test.describe('Data Flow Between Components', () => {
 
     // Results should recalculate - just verify UI doesn't crash
     await page.waitForTimeout(1000);
-    await expect(page.locator('body')).toBeVisible();
+    await expect(page.locator('body')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
@@ -359,7 +359,7 @@ test.describe('State Persistence', () => {
 
     // Go to Founder mode
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add a stakeholder
     await page.locator('input[placeholder="e.g., John Smith"]').fill('Reload Test Founder');
@@ -367,14 +367,14 @@ test.describe('State Persistence', () => {
     await page.getByRole('button', { name: /Add Stakeholder/i }).click();
 
     // Verify added
-    await expect(page.getByText('Reload Test Founder').first()).toBeVisible();
+    await expect(page.getByText('Reload Test Founder').first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
 
     // Reload page
     await page.reload();
     await page.getByRole('tab', { name: /I'm a Founder/i }).click();
-    await page.waitForSelector('text=/Add Stakeholder/i');
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Should still show the stakeholder (localStorage persistence)
-    await expect(page.getByText('Reload Test Founder').first()).toBeVisible({ timeout: 3000 });
+    await expect(page.getByText('Reload Test Founder').first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });

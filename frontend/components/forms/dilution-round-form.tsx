@@ -44,7 +44,7 @@ export function DilutionRoundFormComponent({
   };
 
   return (
-    <Card className={`transition-all ${isEnabled ? 'border-primary/20 bg-primary/5' : 'border-muted'}`}>
+    <Card className={`transition-all ${isEnabled ? 'border-primary/20 bg-primary/5' : 'border-border'}`}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

@@ -32,7 +32,7 @@ test.describe('Complete RSU Scenario Analysis', () => {
     await helpers.completeRSUScenario();
 
     // Verify financial metrics are displayed
-    await expect(page.getByText(/Net Financial Impact/i)).toBeVisible();
+    await expect(page.getByText(/Net Financial Impact/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display opportunity cost calculation', async ({ page, helpers }) => {
@@ -41,7 +41,7 @@ test.describe('Complete RSU Scenario Analysis', () => {
     await helpers.completeRSUScenario();
 
     // Verify opportunity cost section
-    await expect(page.getByText(/Opportunity Cost/i)).toBeVisible();
+    await expect(page.getByText(/Opportunity Cost/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should show startup payout with equity value', async ({ page, helpers }) => {
@@ -50,7 +50,7 @@ test.describe('Complete RSU Scenario Analysis', () => {
     await helpers.completeRSUScenario();
 
     // Verify startup payout is shown
-    await expect(page.getByText(/Startup Total/i)).toBeVisible();
+    await expect(page.getByText(/Startup Total/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display calculation progress indicator', async ({ page, helpers }) => {
@@ -67,8 +67,8 @@ test.describe('Complete RSU Scenario Analysis', () => {
     const resultsText = page.locator(SELECTORS.results.scenarioResults);
 
     // One of these should be visible
-    const isCalculating = await calculatingText.isVisible().catch(() => false);
-    const hasResults = await resultsText.isVisible().catch(() => false);
+    const isCalculating = await calculatingText.isVisible({ timeout: TIMEOUTS.elementVisible }).catch(() => false);
+    const hasResults = await resultsText.isVisible({ timeout: TIMEOUTS.elementVisible }).catch(() => false);
 
     expect(isCalculating || hasResults).toBeTruthy();
   });
@@ -87,7 +87,7 @@ test.describe('Complete RSU Scenario Analysis', () => {
     await helpers.setSliderValue('Exit Year', 7, 1, 1);
 
     // Results should still be visible (potentially updated)
-    await expect(page.locator(SELECTORS.results.scenarioResults)).toBeVisible();
+    await expect(page.locator(SELECTORS.results.scenarioResults)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should take screenshot of complete RSU scenario', async ({ page, helpers }) => {
@@ -96,7 +96,7 @@ test.describe('Complete RSU Scenario Analysis', () => {
     await helpers.completeRSUScenario();
 
     // Wait for results to be fully rendered
-    await expect(page.locator(SELECTORS.results.scenarioResults)).toBeVisible();
+    await expect(page.locator(SELECTORS.results.scenarioResults)).toBeVisible({ timeout: TIMEOUTS.calculation });
 
     // Take screenshot
     await page.screenshot({

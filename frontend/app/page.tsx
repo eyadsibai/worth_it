@@ -4,12 +4,12 @@ import * as React from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ModeToggle } from "@/components/mode-toggle";
 import { FounderDashboard, EmployeeDashboard } from "@/components/dashboard";
-import { DraftRecoveryDialog } from "@/components/draft-recovery-dialog";
 import { WelcomeModal } from "@/components/onboarding/welcome-modal";
 import { AnimatedText, AnimatePresence, motion } from "@/lib/motion";
 import { useAppStore } from "@/lib/store";
-import { useDraftAutoSave, getDraft, clearDraft, useBeforeUnload, useReducedMotion, type DraftData } from "@/lib/hooks";
+import { useDraftAutoSave, getDraft, clearDraft, useBeforeUnload, useReducedMotion } from "@/lib/hooks";
 import { useFirstVisit } from "@/lib/hooks/use-first-visit";
+import { toast } from "sonner";
 import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
 
 export default function Home() {
@@ -25,9 +25,7 @@ export default function Home() {
     setEquityDetails,
   } = useAppStore();
 
-  // Draft auto-save and recovery
-  const [showDraftDialog, setShowDraftDialog] = React.useState(false);
-  const [savedDraft, setSavedDraft] = React.useState<DraftData | null>(null);
+  // Draft auto-save (recovery happens automatically without dialog)
 
   // First-time user onboarding
   const { isFirstVisit, isLoaded: isOnboardingLoaded, markAsOnboarded } = useFirstVisit();
@@ -69,43 +67,39 @@ export default function Home() {
   );
   useBeforeUnload(hasUnsavedChanges);
 
-  // Check for saved draft on mount
+  // Automatically restore saved draft on mount with error handling
   React.useEffect(() => {
     if (appMode !== "employee") return;
 
     const draft = getDraft();
     if (draft) {
-      setSavedDraft(draft);
-      setShowDraftDialog(true);
+      try {
+        const { data } = draft;
+        if (data.globalSettings) {
+          setGlobalSettings(data.globalSettings as Parameters<typeof setGlobalSettings>[0]);
+        }
+        if (data.currentJob) {
+          setCurrentJob(data.currentJob as Parameters<typeof setCurrentJob>[0]);
+        }
+        if (data.equityDetails) {
+          setEquityDetails(data.equityDetails as RSUForm | StockOptionsForm);
+        }
+        toast.success("Draft restored", {
+          description: "Your previous work has been restored",
+          duration: 3000,
+        });
+      } catch (error) {
+        console.error("Failed to restore draft:", error);
+        toast.error("Could not restore draft", {
+          description: "Your previous work couldn't be loaded. Starting fresh.",
+          duration: 5000,
+        });
+      } finally {
+        clearDraft();
+      }
     }
-  }, [appMode]);
+  }, [appMode, setGlobalSettings, setCurrentJob, setEquityDetails]);
 
-  // Handle draft restore
-  const handleRestoreDraft = React.useCallback(() => {
-    if (!savedDraft) return;
-
-    const { data } = savedDraft;
-    if (data.globalSettings) {
-      setGlobalSettings(data.globalSettings as Parameters<typeof setGlobalSettings>[0]);
-    }
-    if (data.currentJob) {
-      setCurrentJob(data.currentJob as Parameters<typeof setCurrentJob>[0]);
-    }
-    if (data.equityDetails) {
-      setEquityDetails(data.equityDetails as RSUForm | StockOptionsForm);
-    }
-
-    clearDraft();
-    setShowDraftDialog(false);
-    setSavedDraft(null);
-  }, [savedDraft, setGlobalSettings, setCurrentJob, setEquityDetails]);
-
-  // Handle draft discard
-  const handleDiscardDraft = React.useCallback(() => {
-    clearDraft();
-    setShowDraftDialog(false);
-    setSavedDraft(null);
-  }, []);
 
   return (
     <AppShell>
@@ -127,7 +121,7 @@ export default function Home() {
           <AnimatedText
             text={appMode === "employee"
               ? "Compare startup offers to your current job with equity modeling, dilution scenarios, and Monte Carlo simulations"
-              : "Simulate funding rounds, model ownership dilution, and understand your exit scenarios"
+              : "Simulate funding rounds, model ownership dilution, and understand your exit scenarios with waterfall analysis"
             }
             as="p"
             className="text-base text-muted-foreground max-w-2xl leading-relaxed"
@@ -163,16 +157,6 @@ export default function Home() {
           )}
         </AnimatePresence>
       </div>
-
-      {/* Draft Recovery Dialog */}
-      {savedDraft && (
-        <DraftRecoveryDialog
-          open={showDraftDialog}
-          draft={savedDraft}
-          onRestore={handleRestoreDraft}
-          onDiscard={handleDiscardDraft}
-        />
-      )}
 
       {/* Onboarding Modal for First-Time Users */}
       <WelcomeModal

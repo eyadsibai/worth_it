@@ -60,7 +60,7 @@ export function FormCompletionSummary({
   return (
     <div
       className={cn(
-        "rounded-lg border bg-card p-3 text-sm",
+        "terminal-card-sm text-sm",
         className
       )}
     >
@@ -92,7 +92,7 @@ export function FormCompletionSummary({
 
       {/* Expanded details */}
       {isExpanded && sectionNames.length > 0 && (
-        <div className="mt-3 space-y-2 border-t pt-3">
+        <div className="mt-3 space-y-2 border-t border-border pt-3">
           {sectionNames.map((name) => {
             const section = status.sections[name];
             const { icon: Icon, className: iconClass, label } = getStatusIcon(section.status);

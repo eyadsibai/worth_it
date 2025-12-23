@@ -160,7 +160,7 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
           hint={FIELD_HINTS.total_equity_grant_pct}
         />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <SliderField
             form={form}
             name="vesting_period"

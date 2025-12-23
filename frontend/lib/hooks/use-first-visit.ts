@@ -13,7 +13,12 @@ export function useFirstVisit() {
   const [isFirstVisit, setIsFirstVisit] = useState(() => {
     // Only access localStorage on the client side
     if (typeof window === "undefined") return true;
-    return localStorage.getItem(STORAGE_KEY) !== "true";
+    try {
+      return localStorage.getItem(STORAGE_KEY) !== "true";
+    } catch {
+      // localStorage unavailable (private browsing, cross-origin iframe, etc.)
+      return true;
+    }
   });
   // Loaded state is true when running in browser (client-side)
   const [isLoaded] = useState(() => typeof window !== "undefined");
@@ -21,14 +26,24 @@ export function useFirstVisit() {
   // Mark user as onboarded
   const markAsOnboarded = useCallback(() => {
     if (typeof window === "undefined") return;
-    localStorage.setItem(STORAGE_KEY, "true");
+    try {
+      localStorage.setItem(STORAGE_KEY, "true");
+    } catch (error) {
+      // localStorage unavailable - continue without persisting
+      console.warn("Could not save onboarding state:", error);
+    }
     setIsFirstVisit(false);
   }, []);
 
   // Reset onboarding state (for "Show tutorial again" feature)
   const resetOnboarding = useCallback(() => {
     if (typeof window === "undefined") return;
-    localStorage.removeItem(STORAGE_KEY);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      // localStorage unavailable - continue without persisting
+      console.warn("Could not reset onboarding state:", error);
+    }
     setIsFirstVisit(true);
   }, []);
 

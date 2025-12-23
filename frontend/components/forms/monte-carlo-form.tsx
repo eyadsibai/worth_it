@@ -4,12 +4,12 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form, FormField } from "@/components/ui/form";
+import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import { InformationBox } from "@/components/ui/information-box";
 import { NumberInputField, SliderField } from "./form-fields";
+import { DistributionSection } from "./distribution-section";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, PlayCircle, CheckCircle2 } from "lucide-react";
 import { TOOLTIPS } from "@/lib/constants/tooltips";
@@ -185,9 +185,10 @@ export function MonteCarloFormComponent({
             />
 
             {/* Exit Valuation - Always enabled */}
-            <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-              <h4 className="font-medium text-sm">Exit Valuation Distribution (Normal)</h4>
-
+            <InformationBox
+              title="Exit Valuation Distribution (Normal)"
+              className="space-y-4"
+            >
               <NumberInputField
                 form={form}
                 name="exit_valuation_mean"
@@ -213,242 +214,180 @@ export function MonteCarloFormComponent({
                 placeholder="50000000"
                 formatDisplay={true}
               />
-            </div>
+            </InformationBox>
 
             {/* Salary Growth Rate */}
-            <Collapsible open={form.watch("growth_rate_enabled")}>
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                <FormField
-                  control={form.control}
-                  name="growth_rate_enabled"
-                  render={({ field }) => (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-sm">Salary Growth Rate Distribution (PERT)</h4>
-                        <p className="text-xs text-muted-foreground">Simulate uncertainty in salary growth rates</p>
-                      </div>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </div>
-                  )}
-                />
-
-                <CollapsibleContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <NumberInputField
-                      form={form}
-                      name="growth_rate_min"
-                      label="Minimum"
-                      description="Pessimistic case"
-                      tooltip={TOOLTIPS.salaryGrowthMin}
-                      min={-50}
-                      max={100}
-                      step={0.5}
-                      suffix="%"
-                      placeholder="2"
-                    />
-
-                    <NumberInputField
-                      form={form}
-                      name="growth_rate_mode"
-                      label="Most Likely"
-                      description="Expected case"
-                      tooltip={TOOLTIPS.salaryGrowthMode}
-                      min={-50}
-                      max={100}
-                      step={0.5}
-                      suffix="%"
-                      placeholder="5"
-                    />
-
-                    <NumberInputField
-                      form={form}
-                      name="growth_rate_max"
-                      label="Maximum"
-                      description="Optimistic case"
-                      tooltip={TOOLTIPS.salaryGrowthMax}
-                      min={-50}
-                      max={100}
-                      step={0.5}
-                      suffix="%"
-                      placeholder="12"
-                    />
-                  </div>
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
+            <DistributionSection
+              form={form}
+              enabledFieldName="growth_rate_enabled"
+              title="Salary Growth Rate Distribution"
+              description="Simulate uncertainty in salary growth rates"
+              distributionType="PERT"
+            >
+              <NumberInputField
+                form={form}
+                name="growth_rate_min"
+                label="Minimum"
+                description="Pessimistic case"
+                tooltip={TOOLTIPS.salaryGrowthMin}
+                min={-50}
+                max={100}
+                step={0.5}
+                suffix="%"
+                placeholder="2"
+              />
+              <NumberInputField
+                form={form}
+                name="growth_rate_mode"
+                label="Most Likely"
+                description="Expected case"
+                tooltip={TOOLTIPS.salaryGrowthMode}
+                min={-50}
+                max={100}
+                step={0.5}
+                suffix="%"
+                placeholder="5"
+              />
+              <NumberInputField
+                form={form}
+                name="growth_rate_max"
+                label="Maximum"
+                description="Optimistic case"
+                tooltip={TOOLTIPS.salaryGrowthMax}
+                min={-50}
+                max={100}
+                step={0.5}
+                suffix="%"
+                placeholder="12"
+              />
+            </DistributionSection>
 
             {/* ROI */}
-            <Collapsible open={form.watch("roi_enabled")}>
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                <FormField
-                  control={form.control}
-                  name="roi_enabled"
-                  render={({ field }) => (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-sm">Investment ROI Distribution (Normal)</h4>
-                        <p className="text-xs text-muted-foreground">Simulate uncertainty in investment returns</p>
-                      </div>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </div>
-                  )}
-                />
-
-                <CollapsibleContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <NumberInputField
-                      form={form}
-                      name="roi_mean"
-                      label="Mean ROI"
-                      description="Expected annual return"
-                      tooltip={TOOLTIPS.roiMean}
-                      min={0}
-                      max={50}
-                      step={0.5}
-                      suffix="%"
-                      placeholder="7"
-                    />
-
-                    <NumberInputField
-                      form={form}
-                      name="roi_std"
-                      label="Standard Deviation"
-                      description="Uncertainty in returns"
-                      tooltip={TOOLTIPS.roiStd}
-                      min={0}
-                      max={20}
-                      step={0.5}
-                      suffix="%"
-                      placeholder="2"
-                    />
-                  </div>
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
+            <DistributionSection
+              form={form}
+              enabledFieldName="roi_enabled"
+              title="Investment ROI Distribution"
+              description="Simulate uncertainty in investment returns"
+              distributionType="Normal"
+              columns={2}
+            >
+              <NumberInputField
+                form={form}
+                name="roi_mean"
+                label="Mean ROI"
+                description="Expected annual return"
+                tooltip={TOOLTIPS.roiMean}
+                min={0}
+                max={50}
+                step={0.5}
+                suffix="%"
+                placeholder="7"
+              />
+              <NumberInputField
+                form={form}
+                name="roi_std"
+                label="Standard Deviation"
+                description="Uncertainty in returns"
+                tooltip={TOOLTIPS.roiStd}
+                min={0}
+                max={20}
+                step={0.5}
+                suffix="%"
+                placeholder="2"
+              />
+            </DistributionSection>
 
             {/* Exit Year */}
-            <Collapsible open={form.watch("exit_year_enabled")}>
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                <FormField
-                  control={form.control}
-                  name="exit_year_enabled"
-                  render={({ field }) => (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-sm">Exit Year Distribution (PERT)</h4>
-                        <p className="text-xs text-muted-foreground">Simulate uncertainty in when exit occurs</p>
-                      </div>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </div>
-                  )}
-                />
-
-                <CollapsibleContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <NumberInputField
-                      form={form}
-                      name="exit_year_min"
-                      label="Earliest Exit"
-                      description="Minimum years"
-                      tooltip={TOOLTIPS.exitYearMin}
-                      min={1}
-                      max={20}
-                      step={1}
-                      suffix=" yrs"
-                      placeholder="3"
-                    />
-
-                    <NumberInputField
-                      form={form}
-                      name="exit_year_mode"
-                      label="Expected Exit"
-                      description="Most likely years"
-                      tooltip={TOOLTIPS.exitYearMode}
-                      min={1}
-                      max={20}
-                      step={1}
-                      suffix=" yrs"
-                      placeholder="5"
-                    />
-
-                    <NumberInputField
-                      form={form}
-                      name="exit_year_max"
-                      label="Latest Exit"
-                      description="Maximum years"
-                      tooltip={TOOLTIPS.exitYearMax}
-                      min={1}
-                      max={20}
-                      step={1}
-                      suffix=" yrs"
-                      placeholder="10"
-                    />
-                  </div>
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
+            <DistributionSection
+              form={form}
+              enabledFieldName="exit_year_enabled"
+              title="Exit Year Distribution"
+              description="Simulate uncertainty in when exit occurs"
+              distributionType="PERT"
+            >
+              <NumberInputField
+                form={form}
+                name="exit_year_min"
+                label="Earliest Exit"
+                description="Minimum years"
+                tooltip={TOOLTIPS.exitYearMin}
+                min={1}
+                max={20}
+                step={1}
+                suffix=" yrs"
+                placeholder="3"
+              />
+              <NumberInputField
+                form={form}
+                name="exit_year_mode"
+                label="Expected Exit"
+                description="Most likely years"
+                tooltip={TOOLTIPS.exitYearMode}
+                min={1}
+                max={20}
+                step={1}
+                suffix=" yrs"
+                placeholder="5"
+              />
+              <NumberInputField
+                form={form}
+                name="exit_year_max"
+                label="Latest Exit"
+                description="Maximum years"
+                tooltip={TOOLTIPS.exitYearMax}
+                min={1}
+                max={20}
+                step={1}
+                suffix=" yrs"
+                placeholder="10"
+              />
+            </DistributionSection>
 
             {/* Dilution */}
-            <Collapsible open={form.watch("dilution_enabled")}>
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                <FormField
-                  control={form.control}
-                  name="dilution_enabled"
-                  render={({ field }) => (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-sm">Dilution Distribution (PERT)</h4>
-                        <p className="text-xs text-muted-foreground">Simulate uncertainty in equity dilution</p>
-                      </div>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </div>
-                  )}
-                />
-
-                <CollapsibleContent className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <NumberInputField
-                      form={form}
-                      name="dilution_min"
-                      label="Minimum Dilution"
-                      description="Best case"
-                      tooltip={TOOLTIPS.dilutionMin}
-                      min={0}
-                      max={100}
-                      step={1}
-                      suffix="%"
-                      placeholder="10"
-                    />
-
-                    <NumberInputField
-                      form={form}
-                      name="dilution_mode"
-                      label="Expected Dilution"
-                      description="Most likely"
-                      tooltip={TOOLTIPS.dilutionMode}
-                      min={0}
-                      max={100}
-                      step={1}
-                      suffix="%"
-                      placeholder="25"
-                    />
-
-                    <NumberInputField
-                      form={form}
-                      name="dilution_max"
-                      label="Maximum Dilution"
-                      description="Worst case"
-                      tooltip={TOOLTIPS.dilutionMax}
-                      min={0}
-                      max={100}
-                      step={1}
-                      suffix="%"
-                      placeholder="50"
-                    />
-                  </div>
-                </CollapsibleContent>
-              </div>
-            </Collapsible>
+            <DistributionSection
+              form={form}
+              enabledFieldName="dilution_enabled"
+              title="Dilution Distribution"
+              description="Simulate uncertainty in equity dilution"
+              distributionType="PERT"
+            >
+              <NumberInputField
+                form={form}
+                name="dilution_min"
+                label="Minimum Dilution"
+                description="Best case"
+                tooltip={TOOLTIPS.dilutionMin}
+                min={0}
+                max={100}
+                step={1}
+                suffix="%"
+                placeholder="10"
+              />
+              <NumberInputField
+                form={form}
+                name="dilution_mode"
+                label="Expected Dilution"
+                description="Most likely"
+                tooltip={TOOLTIPS.dilutionMode}
+                min={0}
+                max={100}
+                step={1}
+                suffix="%"
+                placeholder="25"
+              />
+              <NumberInputField
+                form={form}
+                name="dilution_max"
+                label="Maximum Dilution"
+                description="Worst case"
+                tooltip={TOOLTIPS.dilutionMax}
+                min={0}
+                max={100}
+                step={1}
+                suffix="%"
+                placeholder="50"
+              />
+            </DistributionSection>
 
             {/* Progress Display */}
             {isRunning && (

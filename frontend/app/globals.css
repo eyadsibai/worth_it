@@ -114,8 +114,8 @@
   --muted: oklch(22% 0.01 250);
   --muted-foreground: oklch(60% 0.01 250);
   /* Accent: Lime green */
-  --accent: oklch(72% 0.18 115);
-  --accent-foreground: oklch(14% 0.02 155);
+  --accent: oklch(25% 0.06 155);
+  --accent-foreground: oklch(92% 0.005 250);
   /* Amber/Lime: Same as accent in dark */
   --amber: oklch(72% 0.18 115);
   --amber-foreground: oklch(14% 0.02 155);
@@ -198,6 +198,17 @@
   }
 
   .terminal-card:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Compact terminal card - for smaller UI elements like status indicators */
+  .terminal-card-sm {
+    @apply bg-card rounded-2xl p-3;
+    @apply transition-all duration-200 ease-out;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+
+  .terminal-card-sm:hover {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
   }
 
@@ -408,6 +419,37 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Collapsible animations for Radix Collapsible components */
+@keyframes collapsible-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes collapsible-up {
+  from {
+    height: var(--radix-collapsible-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+.animate-collapsible-down {
+  animation: collapsible-down 0.2s ease-out;
+}
+
+.animate-collapsible-up {
+  animation: collapsible-up 0.2s ease-out;
 }
 
 /* =============================================================================

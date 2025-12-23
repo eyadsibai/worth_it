@@ -31,8 +31,8 @@ test.describe('Complete Stock Options Scenario Analysis', () => {
     await helpers.waitForAPIConnection();
     await helpers.completeStockOptionsScenario();
 
-    // Verify financial metrics are displayed
-    await expect(page.getByText(/Net Financial Impact/i)).toBeVisible();
+    // Verify financial metrics are displayed (actual UI text)
+    await expect(page.getByText(/Final Payout/i).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should show exercise cost impact for stock options', async ({ page, helpers }) => {
@@ -41,46 +41,59 @@ test.describe('Complete Stock Options Scenario Analysis', () => {
     await helpers.completeStockOptionsScenario();
 
     // The results should be visible with options-specific calculations
-    await expect(page.locator(SELECTORS.results.scenarioResults)).toBeVisible();
-    await expect(page.getByText(/Startup Total/i)).toBeVisible();
+    await expect(page.locator(SELECTORS.results.scenarioResults)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    // Verify opportunity cost is displayed (shows alternative path value)
+    await expect(page.getByText(/Opportunity Cost/i).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
-  test('should handle early exercise strategy', async ({ page, helpers }) => {
+  test('should handle after vesting exercise strategy', async ({ page, helpers }) => {
     await page.goto('/');
     await helpers.waitForAPIConnection();
 
-    // Fill forms but select early exercise
+    // Fill forms but select after vesting exercise
     await helpers.fillGlobalSettings();
     await helpers.fillCurrentJobForm();
 
     // Select Stock Options and fill form
     await helpers.selectStockOptionsEquityType();
 
-    // Fill in basic fields - wait for salary input to be visible
-    const salaryInput = page.locator('input[name="monthly_salary"]').last();
-    await salaryInput.waitFor({ state: 'visible' });
-    await salaryInput.fill('12500');
+    // Get Stock Options tabpanel and its inputs
+    const optionsPanel = page.getByRole('tabpanel', { name: 'Stock Options' });
+    await optionsPanel.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
 
-    const numOptionsInput = page.locator('input[name="num_options"]');
-    await numOptionsInput.fill('50000');
+    // Text inputs (formatDisplay=true): Monthly Salary, Number of Options
+    const textInputs = optionsPanel.locator('input[type="text"]');
+    await textInputs.first().waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
 
-    const strikePriceInput = page.locator('input[name="strike_price"]');
-    await strikePriceInput.fill('1.0');
+    // Monthly Salary - first textbox
+    await textInputs.nth(0).click({ clickCount: 3 });
+    await page.keyboard.type('12500');
 
-    const exitPriceInput = page.locator('input[name="exit_price_per_share"]');
-    await exitPriceInput.fill('10.0');
+    // Number of Options - second textbox
+    await textInputs.nth(1).click({ clickCount: 3 });
+    await page.keyboard.type('50000');
 
-    // Select "Early Exercise" strategy
-    const strategySection = page.getByText('Exercise Strategy').locator('..');
+    // Number inputs: Strike Price, Exit Price
+    const numberInputs = optionsPanel.locator('input[type="number"]');
+    await numberInputs.first().waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
+
+    // Strike Price - first number input
+    await numberInputs.nth(0).fill('1.0');
+
+    // Exit Price - second number input
+    await numberInputs.nth(1).fill('10.0');
+
+    // Select "After Vesting" strategy (UI label is "When to Exercise")
+    const strategySection = optionsPanel.getByText('When to Exercise').locator('..');
     const combobox = strategySection.locator('button[role="combobox"]').first();
     await combobox.click();
-    await page.getByRole('option', { name: 'Early Exercise' }).click();
+    await page.getByRole('option', { name: 'After Vesting' }).click();
 
     // Wait for results
     await helpers.waitForScenarioResults();
 
     // Verify results are displayed
-    await expect(page.locator(SELECTORS.results.scenarioResults)).toBeVisible();
+    await expect(page.locator(SELECTORS.results.scenarioResults)).toBeVisible({ timeout: TIMEOUTS.calculation });
   });
 
   test('should compare Stock Options vs RSU by switching between them', async ({ page, helpers }) => {
@@ -90,21 +103,28 @@ test.describe('Complete Stock Options Scenario Analysis', () => {
     // First, complete Stock Options scenario
     await helpers.completeStockOptionsScenario();
     const resultsSelector = page.locator(SELECTORS.results.scenarioResults);
-    await expect(resultsSelector).toBeVisible();
+    await expect(resultsSelector).toBeVisible({ timeout: TIMEOUTS.calculation });
 
     // Now switch to RSU
     await helpers.selectRSUEquityType();
 
-    // Fill RSU form - wait for equity input to appear
-    const equityInput = page.locator('input[name="total_equity_grant_pct"]');
-    await equityInput.waitFor({ state: 'visible' });
-    await equityInput.fill('0.5');
+    // Get RSU tabpanel and its inputs
+    const rsuPanel = page.getByRole('tabpanel', { name: 'RSUs' });
+    await rsuPanel.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
 
-    const valuationInput = page.locator('input[name="exit_valuation"]');
-    await valuationInput.fill('100000000');
+    // Total Equity Grant % - the only number input in RSU panel
+    const numberInput = rsuPanel.locator('input[type="number"]');
+    await numberInput.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
+    await numberInput.fill('0.5');
+
+    // Exit Valuation - second textbox in RSU panel (formatDisplay=true)
+    const textInputs = rsuPanel.locator('input[type="text"]');
+    // Triple-click to select all (works cross-platform)
+    await textInputs.nth(1).click({ clickCount: 3 });
+    await page.keyboard.type('100000000');
 
     // Results should still be visible
-    await expect(resultsSelector).toBeVisible();
+    await expect(resultsSelector).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should take screenshot of complete Stock Options scenario', async ({ page, helpers }) => {
@@ -113,7 +133,7 @@ test.describe('Complete Stock Options Scenario Analysis', () => {
     await helpers.completeStockOptionsScenario();
 
     // Wait for results to be fully rendered
-    await expect(page.locator(SELECTORS.results.scenarioResults)).toBeVisible();
+    await expect(page.locator(SELECTORS.results.scenarioResults)).toBeVisible({ timeout: TIMEOUTS.calculation });
 
     // Take screenshot
     await page.screenshot({

@@ -167,7 +167,7 @@ export function ValuationSlider({
 
         {/* Breakeven Points */}
         {relevantBreakevens.length > 0 && (
-          <div className="space-y-2 pt-2 border-t">
+          <div className="space-y-2 pt-2 border-t border-border">
             <Label className="text-sm text-muted-foreground">Breakeven Points</Label>
             <div className="space-y-1">
               {relevantBreakevens.map(([name, breakeven]) => (

@@ -310,7 +310,7 @@ export function ValuationCalculator() {
             </TabsContent>
           </Tabs>
 
-          <div className="flex gap-3 mt-6 pt-4 border-t">
+          <div className="flex gap-3 mt-6 pt-4 border-t border-border">
             <Button
               onClick={handleSubmit}
               disabled={isLoading}

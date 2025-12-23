@@ -354,7 +354,7 @@ export function SliderField({
                     type="button"
                     onClick={handleEditClick}
                     aria-label={`Edit ${label} value`}
-                    className="h-8 min-w-[4rem] rounded-md border border-input bg-background px-2 text-center text-sm font-medium hover:bg-accent hover:text-accent-foreground touch-target"
+                    className="h-8 min-w-[5rem] rounded-md border border-input bg-background px-2 text-center text-sm font-medium hover:bg-accent hover:text-accent-foreground touch-target whitespace-nowrap"
                   >
                     {formatValue ? formatValue(field.value) : field.value}
                   </button>
