@@ -430,7 +430,7 @@ test.describe('Form Input Edge Cases', () => {
 
   test('should handle special characters in text inputs', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Try special characters in name field with XSS payload

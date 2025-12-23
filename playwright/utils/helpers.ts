@@ -40,74 +40,84 @@ export class WorthItHelpers {
   }
 
   /**
-   * Set a Radix UI slider value by label
-   * Radix UI sliders don't use input elements, so we need keyboard interaction
+   * Set a Radix UI slider value by using the direct input feature
    *
-   * Note: The DOM structure is:
-   * FormItem > [label container] + FormControl > Slider
-   * We need to find the FormItem that contains the label, then find the slider within it.
+   * The SliderField component has an "Edit {label} value" button that opens
+   * an input field for direct value entry. This is MUCH faster than using
+   * keyboard navigation (ArrowRight/ArrowLeft) which can require 70+ key presses.
    *
-   * For sliders with small step values (e.g., 0.1), uses End/Home keys to jump to
-   * extremes, then fine-tunes with ArrowLeft/ArrowRight from the closer end.
-   * This is much faster than pressing ArrowRight 70+ times.
+   * Fallback: If the edit button isn't found (older slider style), uses keyboard navigation.
    */
   async setSliderValue(labelText: string, targetValue: number, min: number = 0, step: number = 1) {
     // Find the label with explicit timeout
     const label = this.page.getByText(labelText, { exact: true });
     await label.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
 
-    // Find the closest ancestor that contains both the label and a slider
-    // FormItem uses data-slot="form-item" attribute from shadcn/ui
-    // Traverse up to find the FormItem, or use locator that contains both
+    // Find the closest ancestor FormItem that contains both the label and a slider
     const formItem = this.page.locator('[data-slot="form-item"]').filter({ has: label });
-    const slider = formItem.locator('[role="slider"]');
 
-    // If no form-item found, try alternative: find slider near the label text
-    const sliderCount = await slider.count();
-    let targetSlider = slider;
+    // Try the fast path: use the "Edit {label} value" button for direct input
+    const editButton = formItem.getByRole('button', { name: `Edit ${labelText} value` });
+    const hasEditButton = await editButton.count() > 0;
 
-    if (sliderCount === 0) {
-      // Fallback: look for slider in the same section/card as the label
-      const card = this.page.locator('.terminal-card').filter({ has: label });
-      targetSlider = card.locator('[role="slider"]').first();
-    }
+    if (hasEditButton) {
+      // Fast path: Click edit button, type value, press Enter
+      await editButton.click();
 
-    await targetSlider.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
+      // Wait for the input to appear and focus
+      const valueInput = formItem.locator('input[type="number"]');
+      await valueInput.waitFor({ state: 'visible', timeout: TIMEOUTS.formInput });
 
-    // Get slider max value from aria-valuemax
-    const maxValue = parseFloat(await targetSlider.getAttribute('aria-valuemax') || '100');
+      // Clear and type the new value
+      await valueInput.fill(targetValue.toString());
 
-    // Calculate steps needed from each end
-    const stepsFromMin = Math.round((targetValue - min) / step);
-    const stepsFromMax = Math.round((maxValue - targetValue) / step);
+      // Press Enter to commit
+      await valueInput.press('Enter');
 
-    await targetSlider.focus();
-
-    // For integer step sliders (step >= 1), use the simpler approach
-    if (step >= 1) {
-      await targetSlider.press('Home');
-      for (let i = 0; i < stepsFromMin; i++) {
-        await targetSlider.press('ArrowRight');
-      }
+      // Wait for the edit mode to close (button reappears)
+      await editButton.waitFor({ state: 'visible', timeout: TIMEOUTS.formInput });
     } else {
-      // For decimal step sliders, start from the closer end to minimize key presses
+      // Fallback: Use keyboard navigation for older slider styles
+      const slider = formItem.locator('[role="slider"]');
+
+      // If no form-item found, try alternative: find slider near the label text
+      const sliderCount = await slider.count();
+      let targetSlider = slider;
+
+      if (sliderCount === 0) {
+        // Fallback: look for slider in the same section/card as the label
+        const card = this.page.locator('.terminal-card').filter({ has: label });
+        targetSlider = card.locator('[role="slider"]').first();
+      }
+
+      await targetSlider.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
+
+      // Get slider max value from aria-valuemax
+      const maxValue = parseFloat(await targetSlider.getAttribute('aria-valuemax') || '100');
+
+      // Calculate steps needed from each end
+      const stepsFromMin = Math.round((targetValue - min) / step);
+      const stepsFromMax = Math.round((maxValue - targetValue) / step);
+
+      await targetSlider.focus();
+
+      // Use the closer end to minimize key presses
       if (stepsFromMin <= stepsFromMax) {
-        // Start from min
         await targetSlider.press('Home');
-        for (let i = 0; i < stepsFromMin; i++) {
+        for (let i = 0; i < Math.min(stepsFromMin, 20); i++) {
           await targetSlider.press('ArrowRight');
         }
       } else {
-        // Start from max
         await targetSlider.press('End');
-        for (let i = 0; i < stepsFromMax; i++) {
+        for (let i = 0; i < Math.min(stepsFromMax, 20); i++) {
           await targetSlider.press('ArrowLeft');
         }
       }
     }
 
-    // Verify the value was set
-    await expect(targetSlider).toHaveAttribute('aria-valuenow', targetValue.toString(), { timeout: TIMEOUTS.formInput });
+    // Verify the slider value was set (check the slider's aria-valuenow)
+    const slider = formItem.locator('[role="slider"]');
+    await expect(slider).toHaveAttribute('aria-valuenow', targetValue.toString(), { timeout: TIMEOUTS.formInput });
   }
 
   /**

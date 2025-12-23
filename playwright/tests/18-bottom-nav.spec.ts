@@ -25,7 +25,7 @@ test.describe('PR #218: Bottom Navigation', () => {
       await expect(bottomNav).toBeVisible();
     });
 
-    test('should have Forms, Results, Save, and More nav items', async ({ page }) => {
+    test('should have Inputs, Results, Save, and More nav items', async ({ page }) => {
       await page.goto('/');
       await page.waitForSelector('h1');
 
@@ -33,7 +33,7 @@ test.describe('PR #218: Bottom Navigation', () => {
       await expect(bottomNav).toBeVisible();
 
       // Check for all navigation items using text content
-      await expect(bottomNav.getByText('Forms')).toBeVisible();
+      await expect(bottomNav.getByText('Inputs')).toBeVisible();
       await expect(bottomNav.getByText('Results')).toBeVisible();
       await expect(bottomNav.getByText('Save')).toBeVisible();
       await expect(bottomNav.getByText('More')).toBeVisible();
@@ -50,13 +50,13 @@ test.describe('PR #218: Bottom Navigation', () => {
       await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
 
       const bottomNav = page.getByTestId('bottom-nav');
-      const formsButton = bottomNav.locator('button').filter({ hasText: 'Forms' });
+      const inputsButton = bottomNav.locator('button').filter({ hasText: 'Inputs' });
 
-      // Click Forms to activate it
-      await formsButton.click();
+      // Click Inputs to activate it
+      await inputsButton.click();
 
       // Should now have aria-current="page"
-      await expect(formsButton).toHaveAttribute('aria-current', 'page');
+      await expect(inputsButton).toHaveAttribute('aria-current', 'page');
     });
 
     test('should navigate to Results section when Results is clicked', async ({ page, helpers }) => {
@@ -79,7 +79,7 @@ test.describe('PR #218: Bottom Navigation', () => {
       await expect(resultsButton).toHaveAttribute('aria-current', 'page');
     });
 
-    test('should navigate back to Forms section', async ({ page, helpers }) => {
+    test('should navigate back to Inputs section', async ({ page, helpers }) => {
       await page.goto('/');
       await page.waitForSelector('h1');
 
@@ -95,12 +95,12 @@ test.describe('PR #218: Bottom Navigation', () => {
       await bottomNav.locator('button').filter({ hasText: 'Results' }).click();
       await page.waitForTimeout(200);
 
-      // Click forms
-      const formsButton = bottomNav.locator('button').filter({ hasText: 'Forms' });
-      await formsButton.click();
+      // Click inputs
+      const inputsButton = bottomNav.locator('button').filter({ hasText: 'Inputs' });
+      await inputsButton.click();
 
-      // Forms should be active again
-      await expect(formsButton).toHaveAttribute('aria-current', 'page');
+      // Inputs should be active again
+      await expect(inputsButton).toHaveAttribute('aria-current', 'page');
     });
 
     test('should have safe-area padding class for notched devices', async ({ page }) => {

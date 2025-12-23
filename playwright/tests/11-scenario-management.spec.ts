@@ -20,14 +20,15 @@ const TEST_STAKEHOLDER = {
 };
 
 test.describe('Scenario Management - Save Functionality', () => {
-  test.beforeEach(async ({ page }) => {
-    // Clear localStorage before each test
+  test.beforeEach(async ({ page, helpers }) => {
+    // Clear localStorage and navigate fresh
     await page.goto('/');
     await page.evaluate(() => localStorage.clear());
-    await page.reload();
+    // Navigate again to load with cleared localStorage (fixture handles welcome dialog)
+    await page.goto('/');
 
     // Navigate to Founder mode
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add a stakeholder
@@ -116,14 +117,14 @@ test.describe('Scenario Management - Save Functionality', () => {
 });
 
 test.describe('Scenario Management - Load Functionality', () => {
-  test.beforeEach(async ({ page }) => {
-    // Clear localStorage and set up a saved scenario
+  test.beforeEach(async ({ page, helpers }) => {
+    // Clear localStorage and navigate fresh (fixture handles welcome dialog)
     await page.goto('/');
     await page.evaluate(() => localStorage.clear());
-    await page.reload();
+    await page.goto('/');
 
     // Navigate to Founder mode and add stakeholder
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     await page.locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDER.name);
@@ -148,35 +149,46 @@ test.describe('Scenario Management - Load Functionality', () => {
 
   test('should load scenario when load button is clicked', async ({ page }) => {
     // Clear the current cap table by removing the stakeholder
-    // Find the stakeholder in the list and click its remove button
-    const stakeholderText = page.getByText(TEST_STAKEHOLDER.name).first();
-    await expect(stakeholderText).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    // Find the delete button for the stakeholder (has specific aria-label)
+    const deleteStakeholderButton = page.getByRole('button', { name: `Delete ${TEST_STAKEHOLDER.name}` });
+    await expect(deleteStakeholderButton).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    await deleteStakeholderButton.click();
 
-    // The remove button is in the same row - find it relative to the stakeholder card
-    const stakeholderCard = page.locator('[class*="terminal-card"]').filter({ hasText: /Stakeholders/ });
-    const removeButton = stakeholderCard.locator('button').filter({ has: page.locator('svg.lucide-trash-2') });
-    await removeButton.click();
+    // Confirm deletion in the dialog
+    await page.getByRole('button', { name: 'Delete' }).click();
 
-    // Verify stakeholder is removed (the Stakeholders card hides when empty)
-    await expect(page.getByText(TEST_STAKEHOLDER.name)).not.toBeVisible({ timeout: TIMEOUTS.elementPresent });
+    // Set wizard-skipped flag and reload so the wizard doesn't take over
+    // React reads localStorage only at mount, so we need to reload after setting
+    await page.evaluate(() => localStorage.setItem('cap-table-wizard-skipped', 'true'));
+    await page.goto('/');
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
+    await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
+
+    // Scroll to the Saved Scenarios section to find the Load button
+    // CardTitle is a div, not a heading, so use getByText
+    const savedScenariosTitle = page.getByText('Saved Scenarios', { exact: true });
+    await savedScenariosTitle.scrollIntoViewIfNeeded();
 
     // Load the saved scenario
-    const scenarioRow = page.locator('div').filter({ hasText: TEST_SCENARIO_NAME }).first();
-    const loadButton = scenarioRow.getByRole('button', { name: /Load/i });
+    const loadButton = page.getByRole('button', { name: 'Load' }).first();
     await loadButton.click();
 
-    // Verify stakeholder is restored
+    // Verify stakeholder is restored - the Stakeholders card should reappear
+    // CardTitle is a div, not a heading
+    await expect(page.getByText(/^Stakeholders \(/)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    // And the stakeholder name should be visible
     await expect(page.getByText(TEST_STAKEHOLDER.name).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });
 
 test.describe('Scenario Management - Delete Functionality', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, helpers }) => {
+    // Clear localStorage and navigate fresh (fixture handles welcome dialog)
     await page.goto('/');
     await page.evaluate(() => localStorage.clear());
-    await page.reload();
+    await page.goto('/');
 
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     await page.locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDER.name);
@@ -191,28 +203,32 @@ test.describe('Scenario Management - Delete Functionality', () => {
   });
 
   test('should display delete button for saved scenarios', async ({ page }) => {
-    const scenarioRow = page.locator('div').filter({ hasText: 'Scenario To Delete' }).first();
-    const deleteButton = scenarioRow.getByRole('button', { name: /Delete/i });
-    await expect(deleteButton).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    // Use specific aria-label to target the scenario delete button (not stakeholder delete)
+    const deleteScenarioButton = page.getByRole('button', { name: 'Delete Scenario To Delete' });
+    await expect(deleteScenarioButton).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should delete scenario when delete button is clicked', async ({ page }) => {
-    const scenarioRow = page.locator('div').filter({ hasText: 'Scenario To Delete' }).first();
-    const deleteButton = scenarioRow.getByRole('button', { name: /Delete/i });
-    await deleteButton.click();
+    // Use specific aria-label to target the scenario delete button
+    const deleteScenarioButton = page.getByRole('button', { name: 'Delete Scenario To Delete' });
+    await deleteScenarioButton.click();
 
-    // Verify scenario is removed
+    // Confirm deletion in the dialog
+    await page.getByRole('button', { name: 'Delete' }).click();
+
+    // Verify scenario is removed from the saved scenarios list
     await expect(page.getByText('Scenario To Delete')).not.toBeVisible({ timeout: TIMEOUTS.elementPresent });
   });
 });
 
 test.describe('Scenario Management - Export/Import Functionality', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, helpers }) => {
+    // Clear localStorage and navigate fresh (fixture handles welcome dialog)
     await page.goto('/');
     await page.evaluate(() => localStorage.clear());
-    await page.reload();
+    await page.goto('/');
 
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     await page.locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDER.name);
@@ -314,13 +330,23 @@ test.describe('Scenario Management - Export/Import Functionality', () => {
 });
 
 test.describe('Scenario Management - Empty State', () => {
-  test('should show empty state when no scenarios saved', async ({ page }) => {
+  test('should show empty state when no scenarios saved', async ({ page, helpers }) => {
+    // Clear localStorage (including wizard skipped flag) and navigate fresh
     await page.goto('/');
     await page.evaluate(() => localStorage.clear());
-    await page.reload();
 
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    // Set wizard as skipped so we see the normal cap table layout (not the wizard)
+    // The wizard hides ScenarioManager when showing
+    await page.evaluate(() => localStorage.setItem('cap-table-wizard-skipped', 'true'));
+    await page.goto('/');
+
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
+
+    // Scroll to the Saved Scenarios section (it's at the bottom of the page)
+    // CardTitle is a div, not a heading, so use getByText
+    const savedScenariosTitle = page.getByText('Saved Scenarios', { exact: true });
+    await savedScenariosTitle.scrollIntoViewIfNeeded();
 
     // Verify empty state message
     await expect(page.getByText(/No saved scenarios yet/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
@@ -328,12 +354,13 @@ test.describe('Scenario Management - Empty State', () => {
 });
 
 test.describe('Scenario Management - Persistence', () => {
-  test('should persist scenarios across page reloads', async ({ page }) => {
+  test('should persist scenarios across page reloads', async ({ page, helpers }) => {
+    // Clear localStorage and navigate fresh (fixture handles welcome dialog)
     await page.goto('/');
     await page.evaluate(() => localStorage.clear());
-    await page.reload();
+    await page.goto('/');
 
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add stakeholder
@@ -346,12 +373,12 @@ test.describe('Scenario Management - Persistence', () => {
     await page.getByPlaceholder(/Scenario name/i).fill('Persistent Scenario');
     await page.getByRole('button', { name: /Save Scenario/i }).click();
 
-    // Reload page
-    await page.reload();
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    // Navigate fresh to simulate page reload (fixture handles welcome dialog)
+    await page.goto('/');
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
-    // Verify scenario still exists
+    // Verify scenario still exists (persisted in localStorage)
     await expect(page.getByText('Persistent Scenario')).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 });

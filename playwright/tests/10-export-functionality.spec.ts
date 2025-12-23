@@ -26,7 +26,7 @@ const TEST_STAKEHOLDERS = {
 test.describe('Export Menu - Visibility', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
   });
 
@@ -50,7 +50,7 @@ test.describe('Export Menu - Visibility', () => {
 test.describe('Export Menu - CSV Export', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add stakeholders for export
@@ -115,7 +115,7 @@ test.describe('Export Menu - CSV Export', () => {
 test.describe('Export Menu - PDF Export', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add a stakeholder
@@ -162,7 +162,7 @@ test.describe('Export Menu - PDF Export', () => {
 test.describe('Export Menu - Empty State', () => {
   test('should still allow export with empty cap table', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Export button should still be visible

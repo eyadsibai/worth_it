@@ -97,7 +97,7 @@ test.describe('Mode Switching (Employee vs Founder)', () => {
     });
 
     // Switch to Founder mode
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
 
     // Wait for mode switch
     await page.waitForTimeout(TIMEOUTS.animation);
@@ -112,7 +112,7 @@ test.describe('Mode Switching (Employee vs Founder)', () => {
     await page.goto('/');
 
     // Go to Founder mode first
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add some data in Founder mode
@@ -132,7 +132,7 @@ test.describe('Mode Switching (Employee vs Founder)', () => {
     await page.goto('/');
 
     // Go to Founder mode
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add a stakeholder
@@ -148,7 +148,7 @@ test.describe('Mode Switching (Employee vs Founder)', () => {
     await page.waitForTimeout(500);
 
     // Switch back to Founder mode
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Data should still be there
@@ -161,7 +161,7 @@ test.describe('Cap Table with Funding Integration', () => {
     await page.goto('/');
 
     // Go to Founder mode
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Cap Table/i', { timeout: TIMEOUTS.elementVisible });
 
     // Click Funding tab
@@ -173,7 +173,7 @@ test.describe('Cap Table with Funding Integration', () => {
 
   test('should navigate to Waterfall tab from Cap Table', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Cap Table/i', { timeout: TIMEOUTS.elementVisible });
 
     // Click Waterfall tab
@@ -190,7 +190,7 @@ test.describe('Cap Table with Funding Integration', () => {
 test.describe('Funding Instruments Integration', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add initial stakeholders
@@ -358,7 +358,7 @@ test.describe('State Persistence', () => {
     await page.goto('/');
 
     // Go to Founder mode
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add a stakeholder
@@ -371,7 +371,7 @@ test.describe('State Persistence', () => {
 
     // Reload page
     await page.reload();
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Should still show the stakeholder (localStorage persistence)
