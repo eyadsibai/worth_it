@@ -10,6 +10,7 @@ import { StakeholderForm } from "@/components/cap-table/stakeholder-form";
 import { TemplatePicker } from "@/components/templates/template-picker";
 import { motion, AnimatedPercentage } from "@/lib/motion";
 import { useAppStore } from "@/lib/store";
+import { useCapTableHistory } from "@/lib/hooks/use-cap-table-history";
 import { generateId } from "@/lib/utils";
 import type { Stakeholder, StakeholderFormData } from "@/lib/schemas";
 
@@ -19,18 +20,36 @@ import type { Stakeholder, StakeholderFormData } from "@/lib/schemas";
  * Layout matches EmployeeDashboard with:
  * - Left sidebar (380px): Stakeholder form, Option Pool controls, allocation summary
  * - Right column: Cap table manager with tabs (Cap Table, Funding, Waterfall)
+ *
+ * IMPORTANT: This component uses useCapTableHistory to ensure sidebar mutations
+ * (adding stakeholders, adjusting option pool) are tracked in the undo/redo history.
+ * The raw store setters are passed to CapTableManager, which wraps them internally
+ * for its own mutations. Both use the same shared history store.
  */
 export function FounderDashboard() {
+  // Get raw state and setters from the global store
   const {
     capTable,
     instruments,
     preferenceTiers,
-    setCapTable,
-    setInstruments,
-    setPreferenceTiers,
+    setCapTable: rawSetCapTable,
+    setInstruments: rawSetInstruments,
+    setPreferenceTiers: rawSetPreferenceTiers,
   } = useAppStore();
 
+  // Wrap setters with history tracking for sidebar actions
+  // This ensures undo/redo works for stakeholder additions and option pool changes
+  const { setCapTable: historySetCapTable } = useCapTableHistory({
+    capTable,
+    instruments,
+    preferenceTiers,
+    onCapTableChange: rawSetCapTable,
+    onInstrumentsChange: rawSetInstruments,
+    onPreferenceTiersChange: rawSetPreferenceTiers,
+  });
+
   // Handle adding a stakeholder from the sidebar form
+  // Uses history-aware setter so undo/redo works from the Cap Table toolbar
   const handleAddStakeholder = React.useCallback(
     (formData: StakeholderFormData) => {
       const newStakeholder: Stakeholder = {
@@ -50,23 +69,30 @@ export function FounderDashboard() {
           : undefined,
       };
 
-      setCapTable({
-        ...capTable,
-        stakeholders: [...capTable.stakeholders, newStakeholder],
-      });
+      historySetCapTable(
+        {
+          ...capTable,
+          stakeholders: [...capTable.stakeholders, newStakeholder],
+        },
+        `Add stakeholder: ${newStakeholder.name}`
+      );
     },
-    [capTable, setCapTable]
+    [capTable, historySetCapTable]
   );
 
   // Handle option pool slider change
+  // Uses history-aware setter so undo/redo works from the Cap Table toolbar
   const handleOptionPoolChange = React.useCallback(
     (value: number[]) => {
-      setCapTable({
-        ...capTable,
-        option_pool_pct: value[0],
-      });
+      historySetCapTable(
+        {
+          ...capTable,
+          option_pool_pct: value[0],
+        },
+        `Set option pool to ${value[0]}%`
+      );
     },
-    [capTable, setCapTable]
+    [capTable, historySetCapTable]
   );
 
   const totalOwnership =
@@ -193,11 +219,11 @@ export function FounderDashboard() {
       <div className="space-y-6">
         <CapTableManager
           capTable={capTable}
-          onCapTableChange={setCapTable}
+          onCapTableChange={rawSetCapTable}
           instruments={instruments}
-          onInstrumentsChange={setInstruments}
+          onInstrumentsChange={rawSetInstruments}
           preferenceTiers={preferenceTiers}
-          onPreferenceTiersChange={setPreferenceTiers}
+          onPreferenceTiersChange={rawSetPreferenceTiers}
           hideSidebarContent
         />
       </div>
