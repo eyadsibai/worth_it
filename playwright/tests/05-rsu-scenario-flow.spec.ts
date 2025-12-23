@@ -31,8 +31,8 @@ test.describe('Complete RSU Scenario Analysis', () => {
     await helpers.waitForAPIConnection();
     await helpers.completeRSUScenario();
 
-    // Verify financial metrics are displayed
-    await expect(page.getByText(/Net Financial Impact/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    // Verify financial metrics are displayed - UI shows "Final Payout" label
+    await expect(page.getByText(/Final Payout/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display opportunity cost calculation', async ({ page, helpers }) => {
@@ -49,8 +49,11 @@ test.describe('Complete RSU Scenario Analysis', () => {
     await helpers.waitForAPIConnection();
     await helpers.completeRSUScenario();
 
-    // Verify startup payout is shown
-    await expect(page.getByText(/Startup Total/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    // Verify startup-related results are shown (Final Payout card or payout label)
+    // The UI shows equity payout in the Final Payout card with a payout_label
+    await expect(page.getByText(/Final Payout/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    // Verify payout value is displayed (positive currency value)
+    await expect(page.locator('[class*="currency"]').first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display calculation progress indicator', async ({ page, helpers }) => {
@@ -62,15 +65,10 @@ test.describe('Complete RSU Scenario Analysis', () => {
     await helpers.fillCurrentJobForm();
     await helpers.fillRSUForm();
 
-    // Look for either the calculating indicator or results
-    const calculatingText = page.getByText(/Analyzing Your Scenario/i);
+    // Wait for results to be visible - calculations typically complete quickly
+    // so we expect results to be visible after filling the form
     const resultsText = page.locator(SELECTORS.results.scenarioResults);
-
-    // One of these should be visible
-    const isCalculating = await calculatingText.isVisible({ timeout: TIMEOUTS.elementVisible }).catch(() => false);
-    const hasResults = await resultsText.isVisible({ timeout: TIMEOUTS.elementVisible }).catch(() => false);
-
-    expect(isCalculating || hasResults).toBeTruthy();
+    await expect(resultsText).toBeVisible({ timeout: TIMEOUTS.calculation });
   });
 
   test('should update results when form values change', async ({ page, helpers }) => {

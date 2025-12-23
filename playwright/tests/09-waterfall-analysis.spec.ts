@@ -47,8 +47,8 @@ test.describe('Founder Mode Navigation', () => {
   test('should switch to Founder mode', async ({ page }) => {
     await page.goto('/');
 
-    // Click on "I'm a Founder" tab
-    const founderTab = page.getByRole('tab', { name: /I'm a Founder/i });
+    // Click on "Model Cap Table" tab
+    const founderTab = page.getByRole('tab', { name: /Model Cap Table/i });
     await founderTab.click();
 
     // Verify Cap Table section is visible
@@ -59,7 +59,7 @@ test.describe('Founder Mode Navigation', () => {
     await page.goto('/');
 
     // Switch to Founder mode
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
 
     // Wait for the cap table manager to load
     await page.waitForSelector('text=/Cap Table/i', { timeout: TIMEOUTS.elementVisible });
@@ -78,7 +78,7 @@ test.describe('Founder Mode Navigation', () => {
 test.describe('Cap Table - Adding Stakeholders', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
   });
 
@@ -168,7 +168,7 @@ test.describe('Cap Table - Adding Stakeholders', () => {
 test.describe('Waterfall Tab - Preference Tiers', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add stakeholders first
@@ -238,7 +238,7 @@ test.describe('Waterfall Tab - Preference Tiers', () => {
 test.describe('Waterfall Tab - Exit Valuation Slider', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
 
     // Add a stakeholder
     await page.locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDERS.founder.name);
@@ -292,7 +292,7 @@ test.describe('Waterfall Tab - Exit Valuation Slider', () => {
 test.describe('Waterfall Tab - Chart and Table Views', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
 
     // Add stakeholders
     await page.locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDERS.founder.name);
@@ -353,7 +353,7 @@ test.describe('Waterfall Tab - Chart and Table Views', () => {
 test.describe('Waterfall Tab - Waterfall Steps Breakdown', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
 
     // Add founder stakeholder
     await page.locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDERS.founder.name);
@@ -422,7 +422,7 @@ test.describe('Waterfall Tab - Complete Flow', () => {
     await page.goto('/');
 
     // Step 1: Switch to Founder mode
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
 
     // Step 2: Add multiple stakeholders
     // Founder
@@ -481,7 +481,7 @@ test.describe('Waterfall Tab - Complete Flow', () => {
 
   test('should handle empty cap table gracefully', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
 
     // Navigate directly to Waterfall tab without adding stakeholders
     await page.getByRole('tab', { name: /Waterfall/i }).click();

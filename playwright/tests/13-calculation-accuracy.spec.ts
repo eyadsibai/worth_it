@@ -270,7 +270,7 @@ test.describe('Currency Formatting Consistency', () => {
     await page.goto('/');
 
     // Switch to Founder mode for waterfall analysis
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add a stakeholder
@@ -293,7 +293,7 @@ test.describe('Currency Formatting Consistency', () => {
     await page.goto('/');
 
     // Switch to Founder mode
-    await page.getByRole('tab', { name: /I'm a Founder/i }).click();
+    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add a stakeholder with specific ownership
