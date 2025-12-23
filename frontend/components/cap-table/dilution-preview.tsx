@@ -75,8 +75,7 @@ export function DilutionPreview({
     const existingHolders = dilutionData.filter((d) => !d.isNew);
     const avgDilution =
       existingHolders.length > 0
-        ? existingHolders.reduce((sum, d) => sum + d.dilutionPct, 0) /
-          existingHolders.length
+        ? existingHolders.reduce((sum, d) => sum + d.dilutionPct, 0) / existingHolders.length
         : 0;
 
     return {
@@ -97,7 +96,7 @@ export function DilutionPreview({
       <Card className="terminal-card border-dashed">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
-            <Loader2 className="h-4 w-4 animate-spin text-terminal" />
+            <Loader2 className="text-terminal h-4 w-4 animate-spin" />
             Calculating Dilution...
           </CardTitle>
         </CardHeader>
@@ -114,26 +113,26 @@ export function DilutionPreview({
     <Card className="terminal-card border-dashed">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          <BarChart3 className="h-4 w-4 text-terminal" />
+          <BarChart3 className="text-terminal h-4 w-4" />
           Dilution Preview
         </CardTitle>
         {summaryStats && (
-          <div className="flex gap-4 text-sm text-muted-foreground">
+          <div className="text-muted-foreground flex gap-4 text-sm">
             <span>
               Post-money:{" "}
-              <span className="tabular-nums text-foreground">
+              <span className="text-foreground tabular-nums">
                 ${(summaryStats.postMoneyValuation / 1_000_000).toFixed(1)}M
               </span>
             </span>
             <span>
               New investor:{" "}
-              <span className="tabular-nums text-terminal">
+              <span className="text-terminal tabular-nums">
                 {summaryStats.newInvestorPct.toFixed(1)}%
               </span>
             </span>
             <span>
               Dilution:{" "}
-              <span className="tabular-nums text-destructive">
+              <span className="text-destructive tabular-nums">
                 {summaryStats.avgDilutionPct.toFixed(1)}%
               </span>
             </span>

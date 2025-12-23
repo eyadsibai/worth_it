@@ -98,11 +98,7 @@ function createWrapper() {
   });
 
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return React.createElement(
-      QueryClientProvider,
-      { client: queryClient },
-      children
-    );
+    return React.createElement(QueryClientProvider, { client: queryClient }, children);
   };
 }
 
@@ -654,11 +650,7 @@ describe("APIError", () => {
       ];
       const error = new APIError("VALIDATION_ERROR", "Invalid input", details);
 
-      expect(error.getErrorFields()).toEqual([
-        "exit_year",
-        "monthly_salary",
-        "equity_pct",
-      ]);
+      expect(error.getErrorFields()).toEqual(["exit_year", "monthly_salary", "equity_pct"]);
     });
 
     it("returns empty array when details is null", () => {

@@ -23,11 +23,14 @@ export function MonteCarloPdf({ data }: MonteCarloPdfProps) {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-2">Probability Density Function</h3>
-      <p className="text-sm text-muted-foreground mb-4">
+      <h3 className="mb-2 text-lg font-semibold">Probability Density Function</h3>
+      <p className="text-muted-foreground mb-4 text-sm">
         Smooth approximation of the probability distribution
       </p>
-      <div role="img" aria-label="Probability density function line chart showing smooth approximation of outcome distribution">
+      <div
+        role="img"
+        aria-label="Probability density function line chart showing smooth approximation of outcome distribution"
+      >
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
@@ -44,7 +47,12 @@ export function MonteCarloPdf({ data }: MonteCarloPdfProps) {
               className="text-xs"
               tick={{ fill: colors.foreground }}
               stroke={colors.muted}
-              label={{ value: "Density", angle: -90, position: "insideLeft", fill: colors.foreground }}
+              label={{
+                value: "Density",
+                angle: -90,
+                position: "insideLeft",
+                fill: colors.foreground,
+              }}
             />
             <Tooltip {...tooltipStyles} />
             <Line

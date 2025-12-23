@@ -49,7 +49,7 @@ const formatType = (type: string) => {
 
 export function DilutionTable({ data }: DilutionTableProps) {
   return (
-    <div className="rounded-lg border overflow-hidden">
+    <div className="overflow-hidden rounded-lg border">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
@@ -68,10 +68,7 @@ export function DilutionTable({ data }: DilutionTableProps) {
               <TableCell>
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{row.name}</span>
-                  <Badge
-                    variant="outline"
-                    className={`text-xs ${getTypeColor(row.type)}`}
-                  >
+                  <Badge variant="outline" className={`text-xs ${getTypeColor(row.type)}`}>
                     {formatType(row.type)}
                   </Badge>
                 </div>
@@ -79,21 +76,17 @@ export function DilutionTable({ data }: DilutionTableProps) {
               <TableCell className="text-right tabular-nums">
                 {row.isNew ? "—" : `${row.beforePct.toFixed(1)}%`}
               </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {row.afterPct.toFixed(1)}%
-              </TableCell>
+              <TableCell className="text-right tabular-nums">{row.afterPct.toFixed(1)}%</TableCell>
               <TableCell className="text-right">
                 {row.isNew ? (
-                  <span className="inline-flex items-center gap-1 text-terminal">
+                  <span className="text-terminal inline-flex items-center gap-1">
                     <Star className="h-3 w-3" aria-hidden="true" />
                     <span className="text-xs font-medium">new</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-destructive">
+                  <span className="text-destructive inline-flex items-center gap-1">
                     <TrendingDown className="h-3 w-3" aria-hidden="true" />
-                    <span className="tabular-nums text-sm">
-                      {row.dilutionPct.toFixed(1)}%
-                    </span>
+                    <span className="text-sm tabular-nums">{row.dilutionPct.toFixed(1)}%</span>
                   </span>
                 )}
               </TableCell>

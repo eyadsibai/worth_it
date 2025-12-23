@@ -222,9 +222,7 @@ test.describe("UX Improvements - Issues #128, #129, #147", () => {
       }
 
       // Find exit valuation input
-      const exitInput = page
-        .locator('input[name*="exit"], input[name*="valuation"]')
-        .first();
+      const exitInput = page.locator('input[name*="exit"], input[name*="valuation"]').first();
 
       if (await exitInput.isVisible()) {
         const placeholder = await exitInput.getAttribute("placeholder");

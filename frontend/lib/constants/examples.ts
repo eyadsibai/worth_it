@@ -1,9 +1,4 @@
-import type {
-  GlobalSettingsForm,
-  CurrentJobForm,
-  RSUForm,
-  StockOptionsForm,
-} from "@/lib/schemas";
+import type { GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm } from "@/lib/schemas";
 
 export type ExampleStage = "early" | "growth" | "late" | "big-tech";
 

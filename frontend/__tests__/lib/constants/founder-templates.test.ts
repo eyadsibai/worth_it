@@ -4,11 +4,7 @@ import {
   getFounderTemplateById,
   type FounderTemplate,
 } from "@/lib/constants/founder-templates";
-import {
-  CapTableSchema,
-  FundingInstrumentSchema,
-  PreferenceTierSchema,
-} from "@/lib/schemas";
+import { CapTableSchema, FundingInstrumentSchema, PreferenceTierSchema } from "@/lib/schemas";
 
 describe("FOUNDER_TEMPLATES", () => {
   it("contains exactly 4 templates", () => {

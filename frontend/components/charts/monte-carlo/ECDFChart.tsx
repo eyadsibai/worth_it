@@ -17,9 +17,7 @@ interface ECDFChartProps {
   netOutcomes: number[];
 }
 
-export const ECDFChart = memo(function ECDFChart({
-  netOutcomes,
-}: ECDFChartProps) {
+export const ECDFChart = memo(function ECDFChart({ netOutcomes }: ECDFChartProps) {
   const ecdfData = useMemo(() => {
     const sorted = [...netOutcomes].sort((a, b) => a - b);
     return sorted.map((value, index) => ({
@@ -31,8 +29,8 @@ export const ECDFChart = memo(function ECDFChart({
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-2">Cumulative Distribution</h3>
-      <p className="text-sm text-muted-foreground mb-4">
+      <h3 className="mb-2 text-lg font-semibold">Cumulative Distribution</h3>
+      <p className="text-muted-foreground mb-4 text-sm">
         Probability that outcome is less than or equal to a given value
       </p>
       <ResponsiveContainer width="100%" height={400}>

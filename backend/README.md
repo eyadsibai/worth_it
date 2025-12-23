@@ -21,12 +21,14 @@ uv run ruff check src/ tests/
 ## API Documentation
 
 Once running, visit:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+
+- Swagger UI: <http://localhost:8000/docs>
+- ReDoc: <http://localhost:8000/redoc>
 
 ## Architecture
 
 **3-Tier Design:**
+
 1. **Core Logic** ([src/worth_it/calculations/](src/worth_it/calculations/)) - Pure Python financial calculations (modular package)
 2. **REST API** ([src/worth_it/api/](src/worth_it/api/)) - FastAPI endpoints + WebSocket for Monte Carlo
 3. **Data Models** ([src/worth_it/models.py](src/worth_it/models.py)) - Pydantic validation schemas
@@ -43,6 +45,7 @@ Once running, visit:
 ## Configuration
 
 Copy `.env.example` to `.env` and configure:
+
 - `API_HOST` - API host (default: 0.0.0.0)
 - `API_PORT` - API port (default: 8000)
 - `CORS_ORIGINS` - Allowed CORS origins

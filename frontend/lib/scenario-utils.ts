@@ -158,9 +158,9 @@ export function importFounderScenario(file: File): Promise<FounderScenario> {
         // Validate with Zod schema for type safety and data integrity
         const result = FounderScenarioSchema.safeParse(parsed);
         if (!result.success) {
-          const errorMessages = result.error.issues.map((issue) =>
-            `${issue.path.join('.')}: ${issue.message}`
-          ).join(', ');
+          const errorMessages = result.error.issues
+            .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+            .join(", ");
           throw new Error(`Invalid scenario format: ${errorMessages}`);
         }
 

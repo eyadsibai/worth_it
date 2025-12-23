@@ -3,15 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import {
-  Home,
-  Info,
-  Moon,
-  Sun,
-  Monitor,
-  Users,
-  Briefcase,
-} from "lucide-react";
+import { Home, Info, Moon, Sun, Monitor, Users, Briefcase } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -50,31 +42,23 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <CommandEmpty>No results found.</CommandEmpty>
 
         <CommandGroup heading="Navigation">
-          <CommandItem
-            onSelect={() => runCommand(() => router.push("/"))}
-          >
+          <CommandItem onSelect={() => runCommand(() => router.push("/"))}>
             <Home className="mr-2 h-4 w-4" />
             Go to Analysis
           </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => router.push("/about"))}
-          >
+          <CommandItem onSelect={() => runCommand(() => router.push("/about"))}>
             <Info className="mr-2 h-4 w-4" />
             Go to About
           </CommandItem>
         </CommandGroup>
 
         <CommandGroup heading="Mode">
-          <CommandItem
-            onSelect={() => runCommand(() => setAppMode("employee"))}
-          >
+          <CommandItem onSelect={() => runCommand(() => setAppMode("employee"))}>
             <Briefcase className="mr-2 h-4 w-4" />
             Employee Mode
             <CommandShortcut>E</CommandShortcut>
           </CommandItem>
-          <CommandItem
-            onSelect={() => runCommand(() => setAppMode("founder"))}
-          >
+          <CommandItem onSelect={() => runCommand(() => setAppMode("founder"))}>
             <Users className="mr-2 h-4 w-4" />
             Founder Mode
             <CommandShortcut>F</CommandShortcut>

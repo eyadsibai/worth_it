@@ -227,9 +227,7 @@ describe("ScenarioManager", () => {
     const user = userEvent.setup();
     const newScenario = { ...mockScenario, id: "new-uuid", name: "New Scenario" };
     mockCreateFounderScenario.mockReturnValue(newScenario);
-    mockLoadFounderScenarios
-      .mockReturnValueOnce([])
-      .mockReturnValueOnce([newScenario]);
+    mockLoadFounderScenarios.mockReturnValueOnce([]).mockReturnValueOnce([newScenario]);
 
     render(
       <ScenarioManager
@@ -251,9 +249,7 @@ describe("ScenarioManager", () => {
 
   it("refreshes scenario list after delete", async () => {
     const user = userEvent.setup();
-    mockLoadFounderScenarios
-      .mockReturnValueOnce([mockScenario])
-      .mockReturnValueOnce([]);
+    mockLoadFounderScenarios.mockReturnValueOnce([mockScenario]).mockReturnValueOnce([]);
 
     render(
       <ScenarioManager

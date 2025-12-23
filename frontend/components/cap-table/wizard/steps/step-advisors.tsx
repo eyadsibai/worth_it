@@ -39,17 +39,13 @@ export function StepAdvisors({
   };
 
   const handleNameChange = (id: string, name: string) => {
-    const updatedAdvisors = data.advisors.map((a) =>
-      a.id === id ? { ...a, name } : a
-    );
+    const updatedAdvisors = data.advisors.map((a) => (a.id === id ? { ...a, name } : a));
     onDataChange({ advisors: updatedAdvisors });
   };
 
   const handleOwnershipChange = (id: string, value: string) => {
     const ownershipPct = parseFloat(value) || 0;
-    const updatedAdvisors = data.advisors.map((a) =>
-      a.id === id ? { ...a, ownershipPct } : a
-    );
+    const updatedAdvisors = data.advisors.map((a) => (a.id === id ? { ...a, ownershipPct } : a));
     onDataChange({ advisors: updatedAdvisors });
   };
 
@@ -75,9 +71,9 @@ export function StepAdvisors({
     return (
       <div className="space-y-6">
         {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <Target className="h-6 w-6 text-primary" />
+        <div className="space-y-2 text-center">
+          <div className="bg-primary/10 mx-auto flex h-12 w-12 items-center justify-center rounded-full">
+            <Target className="text-primary h-6 w-6" />
           </div>
           <h2 className="text-2xl font-semibold">Do you have any advisors?</h2>
           <p className="text-muted-foreground">
@@ -99,7 +95,7 @@ export function StepAdvisors({
         <div className="flex justify-between pt-8">
           <div className="flex gap-2">
             <Button variant="outline" onClick={onBack}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
             <Button variant="ghost" onClick={onSkipWizard}>
@@ -117,9 +113,9 @@ export function StepAdvisors({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <Target className="h-6 w-6 text-primary" />
+      <div className="space-y-2 text-center">
+        <div className="bg-primary/10 mx-auto flex h-12 w-12 items-center justify-center rounded-full">
+          <Target className="text-primary h-6 w-6" />
         </div>
         <h2 className="text-2xl font-semibold">Add your advisors</h2>
         <p className="text-muted-foreground">
@@ -153,9 +149,7 @@ export function StepAdvisors({
                   />
                 </div>
                 <div className="w-24">
-                  <Label htmlFor={`advisor-ownership-${advisor.id}`}>
-                    Equity
-                  </Label>
+                  <Label htmlFor={`advisor-ownership-${advisor.id}`}>Equity</Label>
                   <div className="relative">
                     <Input
                       id={`advisor-ownership-${advisor.id}`}
@@ -168,7 +162,7 @@ export function StepAdvisors({
                       className="pr-8 tabular-nums"
                       aria-label={`Advisor ${index + 1} equity percentage`}
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                    <span className="text-muted-foreground absolute top-1/2 right-3 -translate-y-1/2 text-sm">
                       %
                     </span>
                   </div>
@@ -197,13 +191,13 @@ export function StepAdvisors({
           className="mt-4 w-full"
           disabled={data.advisors.length >= 5}
         >
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="mr-2 h-4 w-4" />
           Add Advisor
         </Button>
       </Card>
 
       {/* Info */}
-      <p className="text-sm text-muted-foreground text-center">
+      <p className="text-muted-foreground text-center text-sm">
         💡 Typical advisor equity: 0.25% - 1% depending on involvement level
       </p>
 
@@ -211,7 +205,7 @@ export function StepAdvisors({
       <div className="flex justify-between pt-4">
         <div className="flex gap-2">
           <Button variant="outline" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
           <Button variant="ghost" onClick={onSkipWizard}>
@@ -220,7 +214,7 @@ export function StepAdvisors({
         </div>
         <Button onClick={onNext} disabled={!hasValidAdvisors}>
           Next
-          <ArrowRight className="h-4 w-4 ml-2" />
+          <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>

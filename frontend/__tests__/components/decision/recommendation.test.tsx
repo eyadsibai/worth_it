@@ -177,7 +177,9 @@ describe("DecisionRecommendationDisplay", () => {
         />
       );
 
-      expect(screen.getByText("Strong expected financial gain with high confidence")).toBeInTheDocument();
+      expect(
+        screen.getByText("Strong expected financial gain with high confidence")
+      ).toBeInTheDocument();
     });
 
     it("displays pros", () => {
@@ -190,7 +192,9 @@ describe("DecisionRecommendationDisplay", () => {
 
       expect(screen.getByText("Pros")).toBeInTheDocument();
       expect(screen.getByText("Positive expected financial value")).toBeInTheDocument();
-      expect(screen.getByText("Strong learning and skill development opportunity")).toBeInTheDocument();
+      expect(
+        screen.getByText("Strong learning and skill development opportunity")
+      ).toBeInTheDocument();
     });
   });
 
@@ -238,7 +242,9 @@ describe("DecisionRecommendationDisplay", () => {
       );
 
       expect(screen.getByText("Warnings")).toBeInTheDocument();
-      expect(screen.getByText("Limited financial runway increases stress risk")).toBeInTheDocument();
+      expect(
+        screen.getByText("Limited financial runway increases stress risk")
+      ).toBeInTheDocument();
     });
   });
 
@@ -347,12 +353,7 @@ describe("DecisionRecommendationDisplay", () => {
         recommendation: "lean_accept",
       };
 
-      render(
-        <DecisionRecommendationDisplay
-          recommendation={leanAccept}
-          inputs={mockInputs}
-        />
-      );
+      render(<DecisionRecommendationDisplay recommendation={leanAccept} inputs={mockInputs} />);
 
       expect(screen.getByText("Lean Towards Accept")).toBeInTheDocument();
     });
@@ -364,12 +365,7 @@ describe("DecisionRecommendationDisplay", () => {
         recommendation: "neutral",
       };
 
-      render(
-        <DecisionRecommendationDisplay
-          recommendation={neutral}
-          inputs={mockInputs}
-        />
-      );
+      render(<DecisionRecommendationDisplay recommendation={neutral} inputs={mockInputs} />);
 
       expect(screen.getByText("Neutral - Your Call")).toBeInTheDocument();
     });
@@ -381,12 +377,7 @@ describe("DecisionRecommendationDisplay", () => {
         recommendation: "lean_reject",
       };
 
-      render(
-        <DecisionRecommendationDisplay
-          recommendation={leanReject}
-          inputs={mockInputs}
-        />
-      );
+      render(<DecisionRecommendationDisplay recommendation={leanReject} inputs={mockInputs} />);
 
       expect(screen.getByText("Lean Towards Decline")).toBeInTheDocument();
     });

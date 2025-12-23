@@ -79,22 +79,22 @@ export function GlobalSettingsFormComponent({
   if (collapsible) {
     return (
       <Collapsible defaultOpen={defaultOpen}>
-        <Card className="terminal-card animate-slide-up border-l-4 border-l-primary/30">
+        <Card className="terminal-card animate-slide-up border-l-primary/30 border-l-4">
           <CollapsibleTrigger asChild>
-            <CardHeader className="pb-4 cursor-pointer hover:bg-muted/30 transition-colors rounded-t-2xl">
+            <CardHeader className="hover:bg-muted/30 cursor-pointer rounded-t-2xl pb-4 transition-colors">
               <div className="flex items-center justify-between">
                 <div className="space-y-1.5">
-                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-primary"></div>
+                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                    <div className="bg-primary h-2 w-2 rounded-full"></div>
                     Global Settings
                   </CardTitle>
                   <CardDescription>Configure the analysis timeframe</CardDescription>
                 </div>
-                <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 [[data-state=closed]_&]:-rotate-90" />
+                <ChevronDown className="text-muted-foreground h-5 w-5 transition-transform duration-200 [[data-state=closed]_&]:-rotate-90" />
               </div>
             </CardHeader>
           </CollapsibleTrigger>
-          <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
+          <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
             <CardContent>{formContent}</CardContent>
           </CollapsibleContent>
         </Card>
@@ -103,10 +103,10 @@ export function GlobalSettingsFormComponent({
   }
 
   return (
-    <Card className="terminal-card animate-slide-up border-l-4 border-l-primary/30">
+    <Card className="terminal-card animate-slide-up border-l-primary/30 border-l-4">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-primary"></div>
+        <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+          <div className="bg-primary h-2 w-2 rounded-full"></div>
           Global Settings
         </CardTitle>
         <CardDescription>Configure the analysis timeframe</CardDescription>

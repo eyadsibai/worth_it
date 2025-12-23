@@ -15,17 +15,20 @@ Enhance the form experience with real-time visual feedback including inline vali
 Visual indicators inside form fields showing validation state after user interaction.
 
 **States:**
+
 - `✓` Green checkmark - Field is valid
 - `✗` Red X - Field has validation error
 - `⚠` Amber warning - Field is valid but has domain warning
 - No indicator - Field not yet touched
 
 **Behavior:**
+
 - Indicators appear after field is touched (`isTouched && isDirty`)
 - Positioned inside input, right-aligned
 - Animate on state change for visual feedback
 
 **Files to modify:**
+
 - `components/forms/form-fields.tsx` - Add `ValidationIndicator` to field components
 - `components/ui/input.tsx` - Add padding-right for indicator space
 
@@ -46,6 +49,7 @@ Domain-aware warnings for valid but suspicious values.
 **Principle:** Warnings are for improbable values, not impossible ones (schema handles those).
 
 **Implementation:**
+
 - `lib/hooks/use-field-warnings.ts` - Hook returning warnings based on field name and value
 - `components/ui/form-warning.tsx` - Amber-styled warning message component
 - Warnings are advisory only - do not block form submission
@@ -55,6 +59,7 @@ Domain-aware warnings for valid but suspicious values.
 Collapsible status bar showing overall form progress.
 
 **States per form:**
+
 - ✓ Complete (green) - All fields valid
 - ⚠ Has Warnings (amber) - Valid but has warnings
 - ✗ Incomplete (red) - Has validation errors
@@ -64,6 +69,7 @@ Collapsible status bar showing overall form progress.
 **Expanded view:** Shows each form with status and first error/warning
 
 **Implementation:**
+
 - `components/forms/form-completion-summary.tsx` - Summary component
 - `lib/hooks/use-form-status.ts` - Hook to aggregate form states
 - Clicking a section scrolls to that form
@@ -71,17 +77,20 @@ Collapsible status bar showing overall form progress.
 ## Visual Design
 
 ### Colors (using existing design tokens)
+
 - Valid: `text-chart-3` (lime green)
 - Error: `text-destructive` (red)
 - Warning: `text-amber-500` / `text-yellow-600`
 
 ### Animation
+
 - Indicator fade-in on state change
 - Summary collapse/expand with smooth transition
 
 ## File Changes Summary
 
 **New files:**
+
 - `lib/hooks/use-field-warnings.ts`
 - `lib/hooks/use-form-status.ts`
 - `components/ui/form-warning.tsx`
@@ -89,6 +98,7 @@ Collapsible status bar showing overall form progress.
 - `components/forms/validation-indicator.tsx`
 
 **Modified files:**
+
 - `components/forms/form-fields.tsx` - Add validation indicators
 - `components/ui/input.tsx` - Add right padding variant
 - `components/layout/sidebar.tsx` - Add form completion summary

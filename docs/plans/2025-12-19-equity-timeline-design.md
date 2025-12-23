@@ -179,12 +179,14 @@ Chart shows single area of vested percentage climbing over time.
 Compact toggle chips, inline with header:
 
 **Founder Mode:**
+
 - Funding Rounds
 - Stakeholders
 - Option Pool
 - Conversions
 
 **Employee Mode:**
+
 - Grant Date
 - Cliff
 - Vesting Milestones

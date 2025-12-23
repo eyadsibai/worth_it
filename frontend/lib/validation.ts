@@ -23,11 +23,7 @@ export function isValidStockOptionsData(data: StockOptionsForm): boolean {
  * All critical fields must be > 0 to prevent 400 errors from the backend
  */
 export function isValidRSUData(data: RSUForm): boolean {
-  return (
-    data.total_equity_grant_pct > 0 &&
-    data.exit_valuation > 0 &&
-    data.monthly_salary > 0
-  );
+  return data.total_equity_grant_pct > 0 && data.exit_valuation > 0 && data.monthly_salary > 0;
 }
 
 /**
@@ -90,8 +86,7 @@ export function getFirstInvalidEquityField(
     // Check Stock Options fields in priority order
     if (!data.num_options || data.num_options <= 0) return "num_options";
     if (!data.strike_price || data.strike_price <= 0) return "strike_price";
-    if (!data.exit_price_per_share || data.exit_price_per_share <= 0)
-      return "exit_price_per_share";
+    if (!data.exit_price_per_share || data.exit_price_per_share <= 0) return "exit_price_per_share";
     if (!data.monthly_salary || data.monthly_salary <= 0) return "monthly_salary";
   } else if (isRSUForm(data)) {
     // Check RSU fields in priority order

@@ -27,7 +27,10 @@ export function useSidebarFormStatus(
     };
 
     // Current Job
-    const hasLowSalary = currentJob?.monthly_salary !== undefined && currentJob.monthly_salary < 1000 && currentJob.monthly_salary > 0;
+    const hasLowSalary =
+      currentJob?.monthly_salary !== undefined &&
+      currentJob.monthly_salary < 1000 &&
+      currentJob.monthly_salary > 0;
     result["Current Job"] = {
       isValid: currentJob !== null,
       isTouched: currentJob !== null,
@@ -38,7 +41,10 @@ export function useSidebarFormStatus(
     };
 
     // Startup Offer
-    const hasLowStartupSalary = equityDetails?.monthly_salary !== undefined && equityDetails.monthly_salary < 1000 && equityDetails.monthly_salary > 0;
+    const hasLowStartupSalary =
+      equityDetails?.monthly_salary !== undefined &&
+      equityDetails.monthly_salary < 1000 &&
+      equityDetails.monthly_salary > 0;
     const hasZeroStartupSalary = equityDetails?.monthly_salary === 0;
     result["Startup Offer"] = {
       isValid: equityDetails !== null,

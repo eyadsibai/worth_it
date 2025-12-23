@@ -11,52 +11,50 @@ export function Header() {
   const { setOpen } = useCommandPalette();
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur-sm no-print">
+    <header className="border-border/50 bg-background/95 no-print fixed top-0 right-0 left-0 z-50 border-b backdrop-blur-sm">
       <div className="container flex h-14 items-center justify-between">
         <div className="flex items-center gap-2">
-          <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10 border border-primary/20 transition-all group-hover:bg-primary/15 group-hover:border-primary/30">
-            <TrendingUp className="h-4 w-4 text-primary" />
-          </div>
-          <span className="text-base font-semibold tracking-tight text-foreground">
-            Worth It
-          </span>
-        </Link>
+          <Link href="/" className="group flex items-center gap-2.5">
+            <div className="bg-primary/10 border-primary/20 group-hover:bg-primary/15 group-hover:border-primary/30 flex h-8 w-8 items-center justify-center rounded-lg border transition-all">
+              <TrendingUp className="text-primary h-4 w-4" />
+            </div>
+            <span className="text-foreground text-base font-semibold tracking-tight">Worth It</span>
+          </Link>
         </div>
 
         <div className="flex items-center gap-1">
-          <nav className="hidden md:flex items-center mr-2">
+          <nav className="mr-2 hidden items-center md:flex">
             <Link
               href="/"
-              className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors hover:bg-secondary text-foreground"
+              className="hover:bg-secondary text-foreground rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
             >
               Analysis
             </Link>
             <Link
               href="/valuation"
-              className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors hover:bg-secondary text-muted-foreground hover:text-foreground"
+              className="hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
             >
               Valuation
             </Link>
             <Link
               href="/about"
-              className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors hover:bg-secondary text-muted-foreground hover:text-foreground"
+              className="hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
             >
               About
             </Link>
           </nav>
 
-          <div className="h-4 w-px bg-border mx-2 hidden md:block" />
+          <div className="bg-border mx-2 hidden h-4 w-px md:block" />
 
           <Button
             variant="outline"
             size="sm"
-            className="hidden md:flex items-center gap-2 text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground hidden items-center gap-2 md:flex"
             onClick={() => setOpen(true)}
           >
             <Search className="h-4 w-4" />
             <span className="text-xs">Search</span>
-            <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+            <kbd className="bg-muted pointer-events-none hidden h-5 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100 select-none sm:flex">
               <span className="text-xs">⌘</span>K
             </kbd>
           </Button>

@@ -134,7 +134,12 @@ describe("transformVersionsToEvents", () => {
       snapshot: createMockSnapshot({
         stakeholders: [
           createMockStakeholder({ name: "Founder", ownership_pct: 80 }),
-          createMockStakeholder({ id: "s2", name: "Investor", type: "investor", ownership_pct: 20 }),
+          createMockStakeholder({
+            id: "s2",
+            name: "Investor",
+            type: "investor",
+            ownership_pct: 20,
+          }),
         ],
       }),
     });

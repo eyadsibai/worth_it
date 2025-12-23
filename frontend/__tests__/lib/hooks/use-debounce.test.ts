@@ -21,10 +21,9 @@ describe("useDebounce", () => {
   });
 
   it("does not update value before delay", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebounce(value, 300),
-      { initialProps: { value: "initial" } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebounce(value, 300), {
+      initialProps: { value: "initial" },
+    });
 
     rerender({ value: "updated" });
 
@@ -40,10 +39,9 @@ describe("useDebounce", () => {
   });
 
   it("updates value after delay", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebounce(value, 300),
-      { initialProps: { value: "initial" } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebounce(value, 300), {
+      initialProps: { value: "initial" },
+    });
 
     rerender({ value: "updated" });
 
@@ -56,10 +54,9 @@ describe("useDebounce", () => {
   });
 
   it("uses default delay of 300ms", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebounce(value),
-      { initialProps: { value: "initial" } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebounce(value), {
+      initialProps: { value: "initial" },
+    });
 
     rerender({ value: "updated" });
 
@@ -77,10 +74,9 @@ describe("useDebounce", () => {
   });
 
   it("resets timer on rapid changes", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebounce(value, 300),
-      { initialProps: { value: "initial" } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebounce(value, 300), {
+      initialProps: { value: "initial" },
+    });
 
     // First update
     rerender({ value: "first" });
@@ -107,10 +103,9 @@ describe("useDebounce", () => {
   });
 
   it("handles number values", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebounce(value, 300),
-      { initialProps: { value: 0 } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebounce(value, 300), {
+      initialProps: { value: 0 },
+    });
 
     rerender({ value: 42 });
 
@@ -125,10 +120,9 @@ describe("useDebounce", () => {
     const initialObj = { count: 0 };
     const updatedObj = { count: 1 };
 
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebounce(value, 300),
-      { initialProps: { value: initialObj } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebounce(value, 300), {
+      initialProps: { value: initialObj },
+    });
 
     rerender({ value: updatedObj });
 
@@ -140,10 +134,9 @@ describe("useDebounce", () => {
   });
 
   it("handles null and undefined", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebounce(value, 300),
-      { initialProps: { value: "initial" as string | null | undefined } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebounce(value, 300), {
+      initialProps: { value: "initial" as string | null | undefined },
+    });
 
     rerender({ value: null });
     act(() => {
@@ -161,10 +154,9 @@ describe("useDebounce", () => {
   it("cleans up timer on unmount", () => {
     const clearTimeoutSpy = vi.spyOn(global, "clearTimeout");
 
-    const { unmount, rerender } = renderHook(
-      ({ value }) => useDebounce(value, 300),
-      { initialProps: { value: "initial" } }
-    );
+    const { unmount, rerender } = renderHook(({ value }) => useDebounce(value, 300), {
+      initialProps: { value: "initial" },
+    });
 
     rerender({ value: "updated" });
     unmount();
@@ -174,10 +166,9 @@ describe("useDebounce", () => {
   });
 
   it("handles different delay values", () => {
-    const { result, rerender } = renderHook(
-      ({ value, delay }) => useDebounce(value, delay),
-      { initialProps: { value: "initial", delay: 500 } }
-    );
+    const { result, rerender } = renderHook(({ value, delay }) => useDebounce(value, delay), {
+      initialProps: { value: "initial", delay: 500 },
+    });
 
     rerender({ value: "updated", delay: 500 });
 
@@ -195,10 +186,9 @@ describe("useDebounce", () => {
   });
 
   it("handles zero delay", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebounce(value, 0),
-      { initialProps: { value: "initial" } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebounce(value, 0), {
+      initialProps: { value: "initial" },
+    });
 
     rerender({ value: "updated" });
 
@@ -211,10 +201,9 @@ describe("useDebounce", () => {
   });
 
   it("handles changing delay values", () => {
-    const { result, rerender } = renderHook(
-      ({ value, delay }) => useDebounce(value, delay),
-      { initialProps: { value: "initial", delay: 300 } }
-    );
+    const { result, rerender } = renderHook(({ value, delay }) => useDebounce(value, delay), {
+      initialProps: { value: "initial", delay: 300 },
+    });
 
     // Change both value and delay
     rerender({ value: "updated", delay: 100 });

@@ -25,8 +25,7 @@ export function useMonteCarloStats(netOutcomes: number[]): MonteCarloStats {
     const min = sorted[0];
     const max = sorted[sorted.length - 1];
     const std = Math.sqrt(
-      netOutcomes.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
-        netOutcomes.length
+      netOutcomes.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / netOutcomes.length
     );
     const positiveCount = netOutcomes.filter((x) => x > 0).length;
     const positiveRate = (positiveCount / netOutcomes.length) * 100;

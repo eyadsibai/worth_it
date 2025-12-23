@@ -1,46 +1,86 @@
 # Pre-commit hooks for code quality
-# Install: uv run --with pre-commit pre-commit install
-# Run manually: uv run --with pre-commit pre-commit run --all-files
+# Install: uv run --directory backend pre-commit install
+# Run manually: uv run --directory backend pre-commit run --all-files
+
+default_stages: [pre-commit]
+fail_fast: false
 
 repos:
+  # ============================================================================
+  # FAST CHECKS (run first for quick feedback)
+  # ============================================================================
+
   # General file checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^(playwright-report/|frontend/playwright-report/)
       - id: end-of-file-fixer
+        exclude: ^(playwright-report/|frontend/playwright-report/|frontend/test-results/)
       - id: check-yaml
+        args: [--unsafe]  # Allow custom tags
       - id: check-json
+        exclude: ^(frontend/playwright-report/|playwright-report/)
+      - id: check-toml
       - id: check-added-large-files
         args: ['--maxkb=1000']
       - id: check-merge-conflict
       - id: check-case-conflict
       - id: detect-private-key
       - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
 
-  # Python code formatting with ruff (matches CI: ruff check .)
+  # ============================================================================
+  # SECRETS DETECTION (security-critical, run early)
+  # ============================================================================
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+
+  # ============================================================================
+  # SHELL SCRIPTS
+  # ============================================================================
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        args: [--severity=warning]
+        files: ^scripts/.*\.sh$
+
+  # ============================================================================
+  # PYTHON (Backend)
+  # ============================================================================
+
+  # Ruff - Fast Python linter and formatter (replaces flake8, isort, black)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.7
+    rev: v0.8.4
     hooks:
       # Linter - auto-fix issues before commit
       - id: ruff
-        args: [--fix]
+        args: [--fix, --unsafe-fixes]
         files: ^backend/
       # Formatter
       - id: ruff-format
         files: ^backend/
 
-  # Type checking with mypy (matches CI files)
+  # Type checking with mypy
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.0
+    rev: v1.14.1
     hooks:
       - id: mypy
         additional_dependencies:
           - pandas-stubs
+          - types-requests
         args: [--ignore-missing-imports]
         files: ^backend/src/worth_it/
 
-  # Type checking with pyright (matches CI)
+  # Type checking with pyright (stricter than mypy)
   - repo: local
     hooks:
       - id: pyright
@@ -50,33 +90,52 @@ repos:
         files: ^backend/src/worth_it/
         pass_filenames: false
 
-  # Security checks
+  # Security checks with bandit
   - repo: https://github.com/pycqa/bandit
-    rev: 1.9.2
+    rev: 1.8.0
     hooks:
       - id: bandit
         args: ['-c', 'backend/pyproject.toml']
         additional_dependencies: ['bandit[toml]']
         files: ^backend/
+        exclude: ^backend/tests/
 
-  # Frontend linting (matches CI: npm run lint)
+  # ============================================================================
+  # FRONTEND (TypeScript/JavaScript)
+  # ============================================================================
+
+  # ESLint and Prettier - Lint and format TypeScript/JavaScript
   - repo: local
     hooks:
+      # Prettier - Format frontend files (runs from frontend/ to use local plugins)
+      - id: prettier
+        name: prettier (frontend)
+        entry: bash -c 'cd frontend && npx prettier --write --ignore-unknown "${@#frontend/}"' --
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js|jsx|css|json|md)$
+        exclude: ^(frontend/playwright-report/|frontend/test-results/|frontend/lib/generated/)
+
       - id: frontend-lint
         name: frontend eslint
         entry: bash -c 'cd frontend && npm run lint'
         language: system
         files: ^frontend/.*\.(ts|tsx|js|jsx)$
+        exclude: ^frontend/lib/generated/
         pass_filenames: false
 
+      # TypeScript type checking
       - id: frontend-typecheck
         name: frontend typecheck
         entry: bash -c 'cd frontend && npm run type-check'
         language: system
         files: ^frontend/.*\.(ts|tsx)$
+        exclude: ^frontend/lib/generated/
         pass_filenames: false
 
-  # Dependency auditing - check for unused/missing dependencies
+  # ============================================================================
+  # DEPENDENCY AUDITING
+  # ============================================================================
+
   - repo: local
     hooks:
       - id: deptry
@@ -88,7 +147,48 @@ repos:
 
       - id: depcheck
         name: depcheck (frontend)
-        entry: bash -c 'cd frontend && npx depcheck --ignores="@types/*,eslint*,prettier*,vitest,@vitest/*,@vitejs/*,@testing-library/*,jsdom,@playwright/*,axe-playwright,tw-animate-css,tailwindcss,@tailwindcss/*,critters"'
+        entry: bash -c 'cd frontend && npx depcheck --ignores="@types/*,eslint*,prettier*,vitest,@vitest/*,@vitejs/*,@testing-library/*,jsdom,@playwright/*,axe-playwright,tw-animate-css,tailwindcss,@tailwindcss/*,critters,openapi-zod-client"'
         language: system
         files: ^frontend/package\.json$
         pass_filenames: false
+
+  # ============================================================================
+  # COMMIT MESSAGE (conventional commits)
+  # ============================================================================
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args:
+          - feat
+          - fix
+          - docs
+          - style
+          - refactor
+          - perf
+          - test
+          - build
+          - ci
+          - chore
+          - revert
+
+  # ============================================================================
+  # MARKDOWN (Documentation)
+  # ============================================================================
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.43.0
+    hooks:
+      - id: markdownlint
+        args: ['--fix', '--disable', 'MD013', 'MD024', 'MD033', 'MD036', 'MD040', 'MD041', 'MD029', '--']
+        # MD013: Line length (disabled - code blocks can be long)
+        # MD024: Duplicate headings (disabled - common in docs with repeated sections)
+        # MD033: Inline HTML (disabled - we use HTML in markdown)
+        # MD036: Emphasis as heading (disabled - used in step guides)
+        # MD040: Fenced code language (disabled - not all blocks need language)
+        # MD041: First line should be heading (disabled - not always needed)
+        # MD029: Ordered list prefix (disabled - allow non-1 prefixes)
+        files: \.(md|markdown)$
+        exclude: ^(frontend/playwright-report/|playwright-report/|docs/plans/|\.github/|codebase_analysis\.md)

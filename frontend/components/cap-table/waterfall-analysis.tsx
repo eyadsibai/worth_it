@@ -13,11 +13,7 @@ import { ValuationSlider } from "./valuation-slider";
 import { useCalculateWaterfall } from "@/lib/api-client";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { generateId } from "@/lib/utils";
-import type {
-  CapTable,
-  PreferenceTier,
-  PricedRound,
-} from "@/lib/schemas";
+import type { CapTable, PreferenceTier, PricedRound } from "@/lib/schemas";
 
 interface WaterfallAnalysisProps {
   capTable: CapTable;
@@ -25,11 +21,7 @@ interface WaterfallAnalysisProps {
 }
 
 // Generate exit valuations for chart
-function generateExitValuations(
-  min: number,
-  max: number,
-  count: number
-): number[] {
+function generateExitValuations(min: number, max: number, count: number): number[] {
   const step = (max - min) / (count - 1);
   return Array.from({ length: count }, (_, i) => min + step * i);
 }
@@ -158,8 +150,8 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
           {waterfallMutation.isPending && (
             <Card className="terminal-card">
               <CardContent className="py-12 text-center">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto text-accent" />
-                <p className="mt-4 text-muted-foreground">Calculating waterfall distribution...</p>
+                <Loader2 className="text-accent mx-auto h-8 w-8 animate-spin" />
+                <p className="text-muted-foreground mt-4">Calculating waterfall distribution...</p>
               </CardContent>
             </Card>
           )}
@@ -168,8 +160,8 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
           {waterfallMutation.isError && (
             <Card className="terminal-card border-destructive/30">
               <CardContent className="py-8 text-center">
-                <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
-                <p className="mt-4 text-destructive">
+                <AlertCircle className="text-destructive mx-auto h-8 w-8" />
+                <p className="text-destructive mt-4">
                   {waterfallMutation.error?.message || "Calculation failed"}
                 </p>
                 <Button
@@ -200,9 +192,7 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
                 />
               )}
 
-              {activeView === "table" && (
-                <WaterfallTable distribution={selectedDistribution} />
-              )}
+              {activeView === "table" && <WaterfallTable distribution={selectedDistribution} />}
 
               {/* Waterfall Steps */}
               {selectedDistribution && selectedDistribution.waterfall_steps.length > 0 && (
@@ -221,22 +211,22 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
                       {selectedDistribution.waterfall_steps.map((step) => (
                         <div
                           key={step.step_number}
-                          className="flex items-start gap-4 p-3 rounded-lg bg-muted/50"
+                          className="bg-muted/50 flex items-start gap-4 rounded-lg p-3"
                         >
-                          <Badge variant="outline" className="tabular-nums shrink-0">
+                          <Badge variant="outline" className="shrink-0 tabular-nums">
                             {step.step_number}
                           </Badge>
-                          <div className="flex-1 min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p className="font-medium">{step.description}</p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-muted-foreground text-sm">
                               Recipients: {step.recipients.join(", ")}
                             </p>
                           </div>
-                          <div className="text-right shrink-0">
-                            <p className="tabular-nums font-medium">
+                          <div className="shrink-0 text-right">
+                            <p className="font-medium tabular-nums">
                               ${(step.amount / 1_000_000).toFixed(2)}M
                             </p>
-                            <p className="text-xs text-muted-foreground tabular-nums">
+                            <p className="text-muted-foreground text-xs tabular-nums">
                               Remaining: ${(step.remaining_proceeds / 1_000_000).toFixed(2)}M
                             </p>
                           </div>
@@ -253,7 +243,7 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
         /* Empty State */
         <Card className="terminal-card">
           <CardContent className="py-12 text-center">
-            <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+            <BarChart3 className="text-muted-foreground/50 mx-auto mb-4 h-12 w-12" />
             <p className="text-muted-foreground">
               Add stakeholders to your cap table to see waterfall analysis
             </p>

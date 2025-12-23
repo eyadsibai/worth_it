@@ -5,7 +5,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { NumberInputField, SelectField, TextInputField, CheckboxField, SliderField } from "@/components/forms/form-fields";
+import {
+  NumberInputField,
+  SelectField,
+  TextInputField,
+  CheckboxField,
+  SliderField,
+} from "@/components/forms/form-fields";
 import { StakeholderFormSchema, type StakeholderFormData } from "@/lib/schemas";
 import { InformationBox } from "@/components/ui/information-box";
 import { UserPlus } from "lucide-react";

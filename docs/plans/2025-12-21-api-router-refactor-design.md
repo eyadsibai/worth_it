@@ -42,6 +42,7 @@ backend/src/worth_it/
 ### Shared Dependencies
 
 `dependencies.py` contains:
+
 - `limiter` - Rate limiter instance
 - `startup_service` - StartupService for scenario calculations
 - `cap_table_service` - CapTableService for cap table operations
@@ -62,6 +63,7 @@ backend/src/worth_it/
 **Decision**: Extract tracker infrastructure to `dependencies.py`, keep WS endpoint in `monte_carlo.py`.
 
 **Rationale**:
+
 - The `WebSocketConnectionTracker` is reusable infrastructure, not Monte Carlo-specific
 - The actual endpoint logic belongs with its REST sibling
 - Future WebSocket endpoints can reuse the tracker

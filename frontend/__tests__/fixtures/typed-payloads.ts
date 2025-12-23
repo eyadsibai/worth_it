@@ -101,12 +101,12 @@ export const simParamConfigsValuation: SimParamConfigs = {
 };
 
 export const simParamConfigsROI: SimParamConfigs = {
-  annual_roi: { min: 0.03, max: 0.10 },
+  annual_roi: { min: 0.03, max: 0.1 },
 };
 
 export const simParamConfigsMultiple: SimParamConfigs = {
   exit_valuation: { min: 20_000_000.0, max: 100_000_000.0 },
-  annual_roi: { min: 0.03, max: 0.10 },
+  annual_roi: { min: 0.03, max: 0.1 },
   failure_probability: { min: 0.1, max: 0.5 },
 };
 

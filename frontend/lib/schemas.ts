@@ -102,12 +102,14 @@ export type APIErrorResponse = z.infer<typeof APIErrorResponseSchema>;
  * Range for a variable parameter in Monte Carlo/Sensitivity simulations.
  * The simulation will sample values between min and max.
  */
-export const SimParamRangeSchema = z.object({
-  min: z.number(),
-  max: z.number(),
-}).refine((data) => data.min <= data.max, {
-  message: "min must be less than or equal to max",
-});
+export const SimParamRangeSchema = z
+  .object({
+    min: z.number(),
+    max: z.number(),
+  })
+  .refine((data) => data.min <= data.max, {
+    message: "min must be less than or equal to max",
+  });
 export type SimParamRange = z.infer<typeof SimParamRangeSchema>;
 
 /**
@@ -468,12 +470,14 @@ export type StakeholderFormData = z.infer<typeof StakeholderFormSchema>;
 // Exit scenario for founder mode
 export const ExitScenarioSchema = z.object({
   exit_valuation: z.number().min(0),
-  stakeholder_payouts: z.array(z.object({
-    stakeholder_id: z.string(),
-    name: z.string(),
-    ownership_pct: z.number(),
-    payout: z.number(),
-  })),
+  stakeholder_payouts: z.array(
+    z.object({
+      stakeholder_id: z.string(),
+      name: z.string(),
+      ownership_pct: z.number(),
+      payout: z.number(),
+    })
+  ),
   total_payout: z.number(),
 });
 export type ExitScenario = z.infer<typeof ExitScenarioSchema>;
@@ -615,9 +619,7 @@ export const ConvertedInstrumentDetailSchema = z.object({
   ownership_pct: z.number(),
   accrued_interest: z.number().nullable(), // Only for notes
 });
-export type ConvertedInstrumentDetail = z.infer<
-  typeof ConvertedInstrumentDetailSchema
->;
+export type ConvertedInstrumentDetail = z.infer<typeof ConvertedInstrumentDetailSchema>;
 
 // Summary of conversion results
 export const ConversionSummarySchema = z.object({
@@ -645,9 +647,7 @@ export const CapTableConversionRequestSchema = z.object({
   instruments: z.array(z.union([SAFESchema, ConvertibleNoteSchema])),
   priced_round: PricedRoundSchema,
 });
-export type CapTableConversionRequest = z.infer<
-  typeof CapTableConversionRequestSchema
->;
+export type CapTableConversionRequest = z.infer<typeof CapTableConversionRequestSchema>;
 
 // Response from conversion endpoint
 export const CapTableConversionResponseSchema = z.object({
@@ -655,9 +655,7 @@ export const CapTableConversionResponseSchema = z.object({
   converted_instruments: z.array(ConvertedInstrumentDetailSchema),
   summary: ConversionSummarySchema,
 });
-export type CapTableConversionResponse = z.infer<
-  typeof CapTableConversionResponseSchema
->;
+export type CapTableConversionResponse = z.infer<typeof CapTableConversionResponseSchema>;
 
 // ============================================================================
 // Waterfall Analysis Schemas
@@ -1120,7 +1118,9 @@ export type RevenueMultipleFormData = z.infer<typeof RevenueMultipleFormSchema>;
  * Uses objects with value property for react-hook-form useFieldArray compatibility.
  */
 export const DCFFormSchema = z.object({
-  projectedCashFlows: z.array(z.object({ value: z.number() })).min(1, "At least one cash flow required"),
+  projectedCashFlows: z
+    .array(z.object({ value: z.number() }))
+    .min(1, "At least one cash flow required"),
   discountRate: z.number().gt(0, "Discount rate must be positive").max(100, "Rate too high"),
   terminalGrowthRate: z.number().min(0).max(100).optional(),
 });

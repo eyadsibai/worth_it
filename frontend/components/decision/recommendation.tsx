@@ -28,10 +28,7 @@ import type {
   DecisionInputs,
   ComparisonFactor,
 } from "@/lib/decision-framework";
-import {
-  generateComparisonTable,
-  getRecommendationLabel,
-} from "@/lib/decision-framework";
+import { generateComparisonTable, getRecommendationLabel } from "@/lib/decision-framework";
 
 // ============================================================================
 // Types
@@ -75,13 +72,13 @@ function ScoreGauge({ score, maxScore, label, explanation }: ScoreGaugeProps) {
           {score.toFixed(1)}/{maxScore}
         </span>
       </div>
-      <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+      <div className="bg-muted relative h-2 overflow-hidden rounded-full">
         <div
-          className={cn("absolute left-0 top-0 h-full rounded-full transition-all", getColor())}
+          className={cn("absolute top-0 left-0 h-full rounded-full transition-all", getColor())}
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <p className="text-xs text-muted-foreground">{explanation}</p>
+      <p className="text-muted-foreground text-xs">{explanation}</p>
     </div>
   );
 }
@@ -110,7 +107,7 @@ function ConsiderationList({ title, items, icon, variant }: ConsiderationListPro
       </div>
       <ul className="space-y-1 pl-6">
         {items.map((item, idx) => (
-          <li key={idx} className="text-sm text-muted-foreground list-disc">
+          <li key={idx} className="text-muted-foreground list-disc text-sm">
             {item}
           </li>
         ))}
@@ -127,27 +124,27 @@ function ComparisonTable({ factors }: ComparisonTableProps) {
   const getAdvantageIcon = (advantage: ComparisonFactor["advantage"]) => {
     switch (advantage) {
       case "startup":
-        return <TrendingUp className="h-4 w-4 text-terminal" />;
+        return <TrendingUp className="text-terminal h-4 w-4" />;
       case "current":
         return <TrendingDown className="h-4 w-4 text-amber-500" />;
       default:
-        return <Minus className="h-4 w-4 text-muted-foreground" />;
+        return <Minus className="text-muted-foreground h-4 w-4" />;
     }
   };
 
   return (
-    <div className="rounded-lg border overflow-hidden">
+    <div className="overflow-hidden rounded-lg border">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50">
-            <TableHead className="text-xs uppercase tracking-wide font-medium">Factor</TableHead>
-            <TableHead className="text-xs uppercase tracking-wide font-medium text-center">
+            <TableHead className="text-xs font-medium tracking-wide uppercase">Factor</TableHead>
+            <TableHead className="text-center text-xs font-medium tracking-wide uppercase">
               Current Job
             </TableHead>
-            <TableHead className="text-xs uppercase tracking-wide font-medium text-center">
+            <TableHead className="text-center text-xs font-medium tracking-wide uppercase">
               Startup
             </TableHead>
-            <TableHead className="text-xs uppercase tracking-wide font-medium w-12" />
+            <TableHead className="w-12 text-xs font-medium tracking-wide uppercase" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -156,7 +153,7 @@ function ComparisonTable({ factors }: ComparisonTableProps) {
               <TableCell className="text-sm font-medium">{factor.factor}</TableCell>
               <TableCell
                 className={cn(
-                  "text-sm text-center",
+                  "text-center text-sm",
                   factor.advantage === "current" && "text-terminal font-medium"
                 )}
               >
@@ -164,15 +161,13 @@ function ComparisonTable({ factors }: ComparisonTableProps) {
               </TableCell>
               <TableCell
                 className={cn(
-                  "text-sm text-center",
+                  "text-center text-sm",
                   factor.advantage === "startup" && "text-terminal font-medium"
                 )}
               >
                 {factor.startup}
               </TableCell>
-              <TableCell className="text-center">
-                {getAdvantageIcon(factor.advantage)}
-              </TableCell>
+              <TableCell className="text-center">{getAdvantageIcon(factor.advantage)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -214,13 +209,13 @@ export function DecisionRecommendationDisplay({
       <Card>
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+              <Sparkles className="text-primary h-5 w-5" />
               Your Personalized Recommendation
             </CardTitle>
             {onRedo && (
               <Button variant="ghost" size="sm" onClick={onRedo}>
-                <RotateCcw className="h-4 w-4 mr-1" />
+                <RotateCcw className="mr-1 h-4 w-4" />
                 Redo
               </Button>
             )}
@@ -229,12 +224,12 @@ export function DecisionRecommendationDisplay({
 
         <CardContent className="space-y-6">
           {/* Overall Score and Recommendation */}
-          <div className="text-center space-y-4">
+          <div className="space-y-4 text-center">
             <div>
-              <p className="text-sm text-muted-foreground mb-2">Overall Score</p>
+              <p className="text-muted-foreground mb-2 text-sm">Overall Score</p>
               <div className="flex items-center justify-center gap-4">
-                <div className="relative w-24 h-24">
-                  <svg className="w-24 h-24 transform -rotate-90">
+                <div className="relative h-24 w-24">
+                  <svg className="h-24 w-24 -rotate-90 transform">
                     <circle
                       cx="48"
                       cy="48"
@@ -274,23 +269,24 @@ export function DecisionRecommendationDisplay({
             <Badge
               variant={recommendationBadgeVariant()}
               className={cn(
-                "text-sm px-4 py-1.5",
+                "px-4 py-1.5 text-sm",
                 recommendation.recommendation === "accept" && "bg-terminal hover:bg-terminal/90",
-                recommendation.recommendation === "lean_accept" && "bg-lime-600 hover:bg-lime-700 text-white"
+                recommendation.recommendation === "lean_accept" &&
+                  "bg-lime-600 text-white hover:bg-lime-700"
               )}
             >
               {getRecommendationLabel(recommendation.recommendation)}
             </Badge>
 
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            <p className="text-muted-foreground mx-auto max-w-md text-sm">
               {recommendation.recommendationText}
             </p>
           </div>
 
           {/* Factor Scores */}
-          <div className="space-y-4 pt-4 border-t border-border">
-            <h4 className="text-sm font-medium text-muted-foreground">Factor Breakdown</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="border-border space-y-4 border-t pt-4">
+            <h4 className="text-muted-foreground text-sm font-medium">Factor Breakdown</h4>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <ScoreGauge {...recommendation.factorScores.financial} />
               <ScoreGauge {...recommendation.factorScores.risk} />
               <ScoreGauge {...recommendation.factorScores.career} />

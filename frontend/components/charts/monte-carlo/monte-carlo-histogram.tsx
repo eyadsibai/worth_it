@@ -24,11 +24,14 @@ export function MonteCarloHistogram({ data }: MonteCarloHistogramProps) {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-2">Distribution of Net Outcomes</h3>
-      <p className="text-sm text-muted-foreground mb-4">
+      <h3 className="mb-2 text-lg font-semibold">Distribution of Net Outcomes</h3>
+      <p className="text-muted-foreground mb-4 text-sm">
         Frequency distribution showing how often different outcomes occur
       </p>
-      <div role="img" aria-label="Histogram showing distribution of net outcomes from Monte Carlo simulation">
+      <div
+        role="img"
+        aria-label="Histogram showing distribution of net outcomes from Monte Carlo simulation"
+      >
         <ResponsiveContainer width="100%" height={400}>
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
@@ -45,7 +48,12 @@ export function MonteCarloHistogram({ data }: MonteCarloHistogramProps) {
               className="text-xs"
               tick={{ fill: colors.foreground }}
               stroke={colors.muted}
-              label={{ value: "Frequency", angle: -90, position: "insideLeft", fill: colors.foreground }}
+              label={{
+                value: "Frequency",
+                angle: -90,
+                position: "insideLeft",
+                fill: colors.foreground,
+              }}
             />
             <Tooltip {...tooltipStyles} />
             <Bar dataKey="count" fill={colors.chart1} radius={[4, 4, 0, 0]}>

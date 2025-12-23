@@ -8,11 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, History, Edit2 } from "lucide-react";
 import { NumberInputField, SelectField } from "./form-fields";
 import type { DilutionRoundForm } from "@/lib/schemas";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatCurrency } from "@/lib/format-utils";
 
 interface CompletedRoundsSectionProps {
@@ -63,10 +59,8 @@ export function CompletedRoundsSection({
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <History className="h-4 w-4 text-muted-foreground" />
-              <CardTitle className="text-sm font-medium">
-                Funding History
-              </CardTitle>
+              <History className="text-muted-foreground h-4 w-4" />
+              <CardTitle className="text-sm font-medium">Funding History</CardTitle>
               <Badge variant="secondary" className="text-xs">
                 {completedRounds.length} round{completedRounds.length !== 1 ? "s" : ""}
               </Badge>
@@ -75,11 +69,7 @@ export function CompletedRoundsSection({
             <div className="flex items-center gap-2">
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  {isOpen ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
+                  {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   <span className="sr-only">Toggle history</span>
                 </Button>
               </CollapsibleTrigger>
@@ -87,16 +77,14 @@ export function CompletedRoundsSection({
           </div>
 
           {/* Summary line always visible */}
-          <div className="flex flex-wrap gap-4 mt-2 text-sm text-muted-foreground">
+          <div className="text-muted-foreground mt-2 flex flex-wrap gap-4 text-sm">
             <span>
               Total dilution:{" "}
-              <span className="font-medium text-foreground">{totalDilutionPct}%</span>
+              <span className="text-foreground font-medium">{totalDilutionPct}%</span>
             </span>
             <span>
               Total raised:{" "}
-              <span className="font-medium text-foreground">
-                {formatCurrency(totalRaised)}
-              </span>
+              <span className="text-foreground font-medium">{formatCurrency(totalRaised)}</span>
             </span>
           </div>
         </CardHeader>
@@ -111,7 +99,7 @@ export function CompletedRoundsSection({
                 onClick={() => setIsEditing(!isEditing)}
                 className="text-xs"
               >
-                <Edit2 className="h-3 w-3 mr-1" />
+                <Edit2 className="mr-1 h-3 w-3" />
                 {isEditing ? "Done Editing" : "Edit History"}
               </Button>
             </div>
@@ -133,10 +121,9 @@ export function CompletedRoundsSection({
             </div>
 
             {/* Explanation text */}
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               These rounds occurred before you joined. Your equity grant (
-              {form.watch("total_equity_grant_pct")}%) is already post-dilution from
-              these rounds.
+              {form.watch("total_equity_grant_pct")}%) is already post-dilution from these rounds.
             </p>
           </CardContent>
         </CollapsibleContent>
@@ -153,23 +140,18 @@ interface CompletedRoundItemProps {
   isEditing: boolean;
 }
 
-function CompletedRoundItem({
-  form,
-  round,
-  roundIndex,
-  isEditing,
-}: CompletedRoundItemProps) {
+function CompletedRoundItem({ form, round, roundIndex, isEditing }: CompletedRoundItemProps) {
   const yearsAgo = Math.abs(round.year);
 
   if (!isEditing) {
     // Read-only summary view
     return (
-      <div className="flex items-center justify-between py-2 px-3 rounded-md bg-background/50">
+      <div className="bg-background/50 flex items-center justify-between rounded-md px-3 py-2">
         <div className="flex items-center gap-3">
           <Badge variant="outline" className="text-xs">
             {round.round_name}
           </Badge>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-muted-foreground text-sm">
             {yearsAgo} year{yearsAgo !== 1 ? "s" : ""} ago
           </span>
         </div>
@@ -189,18 +171,18 @@ function CompletedRoundItem({
 
   // Editable view
   return (
-    <Card className="border-dashed border-border">
-      <CardContent className="p-4 space-y-3">
+    <Card className="border-border border-dashed">
+      <CardContent className="space-y-3 p-4">
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="text-xs">
             {round.round_name}
           </Badge>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-muted-foreground text-xs">
             (Completed {yearsAgo} year{yearsAgo !== 1 ? "s" : ""} ago)
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <SelectField
             form={form}
             name={`dilution_rounds.${roundIndex}.round_type`}

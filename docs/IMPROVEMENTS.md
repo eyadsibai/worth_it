@@ -11,12 +11,14 @@ The repository has been transformed from a Streamlit-based application to a mode
 ## 🏗️ Architecture Evolution
 
 ### Previous Architecture (Streamlit)
+
 - Single-file Streamlit UI (`app.py`)
 - Tightly coupled UI and calculations
 - Limited real-time feedback
 - No API layer
 
 ### Current Architecture (Next.js + FastAPI)
+
 ```
 ┌──────────────────────────┐
 │  Next.js Frontend (3000) │  shadcn/ui + Recharts
@@ -43,6 +45,7 @@ The repository has been transformed from a Streamlit-based application to a mode
 ### 1. Modern Frontend (Next.js 16)
 
 **Components:**
+
 - shadcn/ui for accessible, customizable components
 - Recharts for interactive data visualizations
 - React Hook Form + Zod for type-safe form handling
@@ -50,6 +53,7 @@ The repository has been transformed from a Streamlit-based application to a mode
 - Dark mode support with next-themes
 
 **Key Features:**
+
 - Real-time form validation
 - Debounced API calls (prevents waterfall requests)
 - WebSocket-powered Monte Carlo progress updates
@@ -58,6 +62,7 @@ The repository has been transformed from a Streamlit-based application to a mode
 ### 2. REST API (FastAPI)
 
 **Endpoints:**
+
 - `GET /health` - Health check with version
 - `POST /api/monthly-data-grid` - Monthly financial projections
 - `POST /api/opportunity-cost` - Opportunity cost calculations
@@ -72,16 +77,19 @@ The repository has been transformed from a Streamlit-based application to a mode
 ### 3. Comprehensive Testing
 
 **Backend (~50 tests):**
+
 - Unit tests for all calculations
 - API endpoint tests
 - WebSocket tests
 - Integration tests
 
 **Frontend:**
+
 - TypeScript compile-time safety
 - Zod runtime validation
 
 **E2E (Playwright - 8 test suites):**
+
 - API health checks
 - Form interactions
 - RSU scenario flows
@@ -92,6 +100,7 @@ The repository has been transformed from a Streamlit-based application to a mode
 ### 4. CI/CD Pipeline
 
 **GitHub Actions:**
+
 - Automated testing on push/PR
 - Backend linting (ruff)
 - Type checking (pyright)
@@ -100,11 +109,13 @@ The repository has been transformed from a Streamlit-based application to a mode
 ### 5. Developer Experience
 
 **Pre-commit Hooks:**
+
 - Ruff formatting and linting
 - Type checking
 - Security scanning (bandit)
 
 **Configuration:**
+
 - Environment-based settings
 - CORS configuration
 - Configurable simulation limits
@@ -127,6 +138,7 @@ The repository has been transformed from a Streamlit-based application to a mode
 ## 🔧 Configuration System
 
 ### Backend Configuration (`backend/.env`)
+
 ```bash
 API_HOST=0.0.0.0
 API_PORT=8000
@@ -137,6 +149,7 @@ MAX_SIMULATIONS=10000
 ```
 
 ### Frontend Configuration (`frontend/.env.local`)
+
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
@@ -146,16 +159,19 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 ## 📝 Future Enhancements
 
 ### High Priority
+
 1. **Scenario Comparison** - Compare multiple job offers side-by-side
 2. **Export to PDF/Excel** - Share analysis with stakeholders
 3. **Save/Load Scenarios** - Persist calculations
 
 ### Medium Priority
+
 4. **Tax Calculations** - Capital gains, AMT, income tax
 5. **Currency Support** - Multi-currency with exchange rates
 6. **Docker Compose** - One-command local development
 
 ### Nice to Have
+
 7. **API Authentication** - JWT-based auth for production
 8. **Error Tracking** - Sentry integration
 9. **Performance Monitoring** - Prometheus metrics

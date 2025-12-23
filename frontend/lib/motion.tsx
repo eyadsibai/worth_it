@@ -1,6 +1,14 @@
 "use client";
 
-import { motion, type HTMLMotionProps, type Variants, useInView, useSpring, useMotionValue, AnimatePresence } from "framer-motion";
+import {
+  motion,
+  type HTMLMotionProps,
+  type Variants,
+  useInView,
+  useSpring,
+  useMotionValue,
+  AnimatePresence,
+} from "framer-motion";
 import * as React from "react";
 import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
 import { formatCurrencyWithDecimals, formatCurrencyCompact } from "@/lib/format-utils";
@@ -56,7 +64,7 @@ export const staggerItem: Variants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.3, ease: "easeOut" }
+    transition: { duration: 0.3, ease: "easeOut" },
   },
 };
 
@@ -89,7 +97,12 @@ export function MotionFadeIn({ children, className, ...props }: MotionDivProps) 
 /**
  * Animated container that fades in and slides up
  */
-export function MotionFadeInUp({ children, className, delay = 0, ...props }: MotionDivProps & { delay?: number }) {
+export function MotionFadeInUp({
+  children,
+  className,
+  delay = 0,
+  ...props
+}: MotionDivProps & { delay?: number }) {
   return (
     <motion.div
       initial="hidden"
@@ -163,7 +176,7 @@ export function MotionCard({ children, className, ...props }: MotionDivProps) {
       whileHover={{
         y: -4,
         boxShadow: "0 10px 40px -10px rgba(0, 0, 0, 0.2)",
-        transition: { duration: 0.2 }
+        transition: { duration: 0.2 },
       }}
       whileTap={{ scale: 0.99 }}
       className={className}
@@ -213,13 +226,13 @@ export function AnimatedNumber({
   value,
   duration = 0.8,
   formatValue,
-  className
+  className,
 }: AnimatedNumberProps) {
   const ref = React.useRef<HTMLSpanElement>(null);
   const motionValue = useMotionValue(0);
   const springValue = useSpring(motionValue, {
     duration: duration * 1000,
-    bounce: 0
+    bounce: 0,
   });
   const isInView = useInView(ref, { once: true, margin: "-50px" });
 
@@ -244,7 +257,11 @@ export function AnimatedNumber({
     return unsubscribe;
   }, [springValue, memoizedFormatter]);
 
-  return <span ref={ref} className={className}>{memoizedFormatter(0)}</span>;
+  return (
+    <span ref={ref} className={className}>
+      {memoizedFormatter(0)}
+    </span>
+  );
 }
 
 /**
@@ -253,7 +270,7 @@ export function AnimatedNumber({
 export function AnimatedCurrency({
   value,
   currency = "$",
-  className
+  className,
 }: {
   value: number;
   currency?: string;
@@ -343,14 +360,12 @@ export function AnimatedCurrencyDisplay({
       {/* Full format shown on lg+ screens, compact on smaller when responsive */}
       <span className={`tabular-nums ${responsive ? "hidden lg:inline" : ""}`}>
         <span ref={mainRef}>{main}</span>
-        <span ref={decimalRef} className="currency-decimal">{decimal}</span>
+        <span ref={decimalRef} className="currency-decimal">
+          {decimal}
+        </span>
       </span>
       {/* Compact format shown only on smaller screens when responsive */}
-      {responsive && (
-        <span className="tabular-nums lg:hidden">
-          {formatCurrencyCompact(value)}
-        </span>
-      )}
+      {responsive && <span className="tabular-nums lg:hidden">{formatCurrencyCompact(value)}</span>}
       <AnimatePresence>
         {delta !== null && (
           <motion.span
@@ -358,12 +373,8 @@ export function AnimatedCurrencyDisplay({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 5 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
-            className={`text-xs font-mono tabular-nums ${
-              delta > 0
-                ? "text-terminal"
-                : delta < 0
-                  ? "text-destructive"
-                  : ""
+            className={`font-mono text-xs tabular-nums ${
+              delta > 0 ? "text-terminal" : delta < 0 ? "text-destructive" : ""
             }`}
           >
             {delta > 0 ? "+" : ""}
@@ -381,7 +392,7 @@ export function AnimatedCurrencyDisplay({
 export function AnimatedPercentage({
   value,
   decimals = 2,
-  className
+  className,
 }: {
   value: number;
   decimals?: number;
@@ -407,7 +418,11 @@ export function AnimatedPercentage({
     return unsubscribe;
   }, [springValue, decimals]);
 
-  return <span ref={ref} className={className}>0%</span>;
+  return (
+    <span ref={ref} className={className}>
+      0%
+    </span>
+  );
 }
 
 // ============================================================================
@@ -428,7 +443,7 @@ export function AnimatedProgress({
   value,
   max = 100,
   className,
-  barClassName
+  barClassName,
 }: AnimatedProgressProps) {
   const percentage = Math.min((value / max) * 100, 100);
 
@@ -451,7 +466,13 @@ export function AnimatedProgress({
 /**
  * Pulsing dot indicator
  */
-export function PulsingDot({ className, color = "bg-terminal" }: { className?: string; color?: string }) {
+export function PulsingDot({
+  className,
+  color = "bg-terminal",
+}: {
+  className?: string;
+  color?: string;
+}) {
   return (
     <span className={`relative flex h-2 w-2 ${className}`}>
       <motion.span
@@ -495,7 +516,7 @@ export function Skeleton({ className }: SkeletonProps) {
 export function HighlightOnChange({
   children,
   value,
-  className
+  className,
 }: {
   children: React.ReactNode;
   value: unknown;
@@ -515,9 +536,17 @@ export function HighlightOnChange({
 
   return (
     <motion.span
-      animate={highlight ? {
-        backgroundColor: ["rgba(var(--terminal), 0)", "rgba(var(--terminal), 0.2)", "rgba(var(--terminal), 0)"]
-      } : {}}
+      animate={
+        highlight
+          ? {
+              backgroundColor: [
+                "rgba(var(--terminal), 0)",
+                "rgba(var(--terminal), 0.2)",
+                "rgba(var(--terminal), 0)",
+              ],
+            }
+          : {}
+      }
       transition={{ duration: 0.6 }}
       className={className}
     >

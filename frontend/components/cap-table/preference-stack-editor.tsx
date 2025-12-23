@@ -86,9 +86,7 @@ export function PreferenceStackEditor({
     };
 
     // Insert in correct seniority order
-    const updatedTiers = [...tiers, newTier].sort(
-      (a, b) => a.seniority - b.seniority
-    );
+    const updatedTiers = [...tiers, newTier].sort((a, b) => a.seniority - b.seniority);
     onTiersChange(updatedTiers);
 
     // Reset form
@@ -107,11 +105,7 @@ export function PreferenceStackEditor({
   };
 
   const handleToggleParticipating = (id: string, participating: boolean) => {
-    onTiersChange(
-      tiers.map((t) =>
-        t.id === id ? { ...t, participating } : t
-      )
-    );
+    onTiersChange(tiers.map((t) => (t.id === id ? { ...t, participating } : t)));
   };
 
   const totalInvested = tiers.reduce((sum, t) => sum + t.investment_amount, 0);
@@ -125,9 +119,7 @@ export function PreferenceStackEditor({
             <Layers className="h-5 w-5" />
             Add Preference Tier
           </CardTitle>
-          <CardDescription>
-            Define liquidation preference for each funding round
-          </CardDescription>
+          <CardDescription>Define liquidation preference for each funding round</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -226,10 +218,10 @@ export function PreferenceStackEditor({
                 />
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+              <div className="bg-muted/50 flex items-center justify-between rounded-lg p-4">
                 <div className="space-y-0.5">
                   <Label>Participating Preferred</Label>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     Gets preference + pro-rata share of remaining proceeds
                   </p>
                 </div>
@@ -238,10 +230,7 @@ export function PreferenceStackEditor({
                   name="participating"
                   render={({ field }) => (
                     <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
                   )}
                 />
@@ -283,7 +272,7 @@ export function PreferenceStackEditor({
               )}
 
               <Button type="submit" className="w-full">
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="mr-2 h-4 w-4" />
                 Add Preference Tier
               </Button>
             </form>
@@ -301,22 +290,20 @@ export function PreferenceStackEditor({
                 Total: {formatCurrency(totalInvested)}
               </Badge>
             </CardTitle>
-            <CardDescription>
-              Higher seniority (lower number) gets paid first
-            </CardDescription>
+            <CardDescription>Higher seniority (lower number) gets paid first</CardDescription>
           </CardHeader>
           <CardContent>
             <MotionList className="space-y-3">
               {tiers.map((tier) => (
                 <MotionListItem key={tier.id}>
                   <motion.div
-                    className="flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50"
+                    className="bg-card hover:bg-accent/50 flex items-center gap-3 rounded-lg border p-3"
                     whileHover={{ x: 4 }}
                     transition={{ duration: 0.15 }}
                   >
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                    <div className="text-muted-foreground flex items-center gap-2">
                       <GripVertical className="h-4 w-4" />
-                      <span className="tabular-nums text-sm w-6">{tier.seniority}</span>
+                      <span className="w-6 text-sm tabular-nums">{tier.seniority}</span>
                     </div>
 
                     <div className="flex-1">
@@ -326,28 +313,23 @@ export function PreferenceStackEditor({
                           {tier.liquidation_multiplier}x
                         </Badge>
                         {tier.participating && (
-                          <Badge
-                            variant="secondary"
-                            className="text-xs bg-chart-3/20 text-chart-3"
-                          >
+                          <Badge variant="secondary" className="bg-chart-3/20 text-chart-3 text-xs">
                             Participating
                             {tier.participation_cap && ` (${tier.participation_cap}x cap)`}
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-muted-foreground text-sm">
                         {formatCurrency(tier.investment_amount)} invested
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1">
-                        <Label className="text-xs text-muted-foreground">Part.</Label>
+                        <Label className="text-muted-foreground text-xs">Part.</Label>
                         <Switch
                           checked={tier.participating}
-                          onCheckedChange={(checked) =>
-                            handleToggleParticipating(tier.id, checked)
-                          }
+                          onCheckedChange={(checked) => handleToggleParticipating(tier.id, checked)}
                         />
                       </div>
                       <Button
@@ -365,7 +347,7 @@ export function PreferenceStackEditor({
             </MotionList>
 
             {/* Summary */}
-            <div className="mt-4 p-4 rounded-lg bg-muted/50 space-y-2">
+            <div className="bg-muted/50 mt-4 space-y-2 rounded-lg p-4">
               <div className="flex justify-between text-sm">
                 <span>Total Preference Amount</span>
                 <span className="tabular-nums">
@@ -392,7 +374,7 @@ export function PreferenceStackEditor({
       {tiers.length === 0 && (
         <Card className="terminal-card">
           <CardContent className="py-8 text-center">
-            <Layers className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
+            <Layers className="text-muted-foreground/50 mx-auto mb-4 h-12 w-12" />
             <p className="text-muted-foreground">
               No preference tiers defined. Add your first funding round above.
             </p>

@@ -209,9 +209,7 @@ export function scoreRisk(risk: RiskAssessment): FactorScore {
   // Clamp to 0-10
   score = Math.max(0, Math.min(10, score));
 
-  const explanation = factors.length > 0
-    ? factors.join(", ")
-    : "Neutral risk profile";
+  const explanation = factors.length > 0 ? factors.join(", ") : "Neutral risk profile";
 
   return {
     score,
@@ -263,11 +261,12 @@ export function scoreCareer(career: CareerFactors): FactorScore {
   // Clamp to 0-10
   score = Math.max(0, Math.min(10, score));
 
-  const explanation = highlights.length > 0
-    ? highlights.join(", ")
-    : career.learningOpportunity === "low" && career.careerGrowth === "low"
-      ? "Limited career advancement opportunity"
-      : "Moderate career opportunity";
+  const explanation =
+    highlights.length > 0
+      ? highlights.join(", ")
+      : career.learningOpportunity === "low" && career.careerGrowth === "low"
+        ? "Limited career advancement opportunity"
+        : "Moderate career opportunity";
 
   return {
     score,
@@ -314,9 +313,7 @@ export function scorePersonal(personal: PersonalFactors): FactorScore {
   // Clamp to 0-10
   score = Math.max(0, Math.min(10, score));
 
-  const explanation = factors.length > 0
-    ? factors.join(", ")
-    : "Neutral personal fit";
+  const explanation = factors.length > 0 ? factors.join(", ") : "Neutral personal fit";
 
   return {
     score,
@@ -359,19 +356,24 @@ export function generateRecommendation(inputs: DecisionInputs): DecisionRecommen
 
   if (overallScore >= 7.5) {
     recommendation = "accept";
-    recommendationText = "This looks like a strong opportunity for you. The numbers and personal factors align well.";
+    recommendationText =
+      "This looks like a strong opportunity for you. The numbers and personal factors align well.";
   } else if (overallScore >= 6) {
     recommendation = "lean_accept";
-    recommendationText = "The opportunity has merit. Consider the warnings below, but overall it leans positive.";
+    recommendationText =
+      "The opportunity has merit. Consider the warnings below, but overall it leans positive.";
   } else if (overallScore >= 4.5) {
     recommendation = "neutral";
-    recommendationText = "This is a close call. Weigh the pros and cons carefully based on what matters most to you.";
+    recommendationText =
+      "This is a close call. Weigh the pros and cons carefully based on what matters most to you.";
   } else if (overallScore >= 3) {
     recommendation = "lean_reject";
-    recommendationText = "There are some concerns. The opportunity may not be the best fit given your situation.";
+    recommendationText =
+      "There are some concerns. The opportunity may not be the best fit given your situation.";
   } else {
     recommendation = "reject";
-    recommendationText = "This opportunity doesn't align well with your current situation and priorities.";
+    recommendationText =
+      "This opportunity doesn't align well with your current situation and priorities.";
   }
 
   // Generate considerations
@@ -416,7 +418,10 @@ export function generateRecommendation(inputs: DecisionInputs): DecisionRecommen
   if (inputs.personal.excitementLevel === "low") {
     cons.push("Lack of excitement may affect long-term satisfaction");
   }
-  if (inputs.personal.riskTolerance === "conservative" && inputs.financial.positiveOutcomeProbability < 0.6) {
+  if (
+    inputs.personal.riskTolerance === "conservative" &&
+    inputs.financial.positiveOutcomeProbability < 0.6
+  ) {
     warnings.push("This may be riskier than your typical comfort level");
   }
 
@@ -469,8 +474,12 @@ export function generateComparisonTable(inputs: DecisionInputs): ComparisonFacto
     factor: "Learning Opportunity",
     currentJob: "Medium", // Assume medium for current job
     startup: capitalize(inputs.career.learningOpportunity),
-    advantage: inputs.career.learningOpportunity === "high" ? "startup"
-      : inputs.career.learningOpportunity === "low" ? "current" : "neutral",
+    advantage:
+      inputs.career.learningOpportunity === "high"
+        ? "startup"
+        : inputs.career.learningOpportunity === "low"
+          ? "current"
+          : "neutral",
   });
 
   // Career growth
@@ -478,8 +487,12 @@ export function generateComparisonTable(inputs: DecisionInputs): ComparisonFacto
     factor: "Career Growth",
     currentJob: "Medium",
     startup: capitalize(inputs.career.careerGrowth),
-    advantage: inputs.career.careerGrowth === "high" ? "startup"
-      : inputs.career.careerGrowth === "low" ? "current" : "neutral",
+    advantage:
+      inputs.career.careerGrowth === "high"
+        ? "startup"
+        : inputs.career.careerGrowth === "low"
+          ? "current"
+          : "neutral",
   });
 
   // Risk level
@@ -491,8 +504,12 @@ export function generateComparisonTable(inputs: DecisionInputs): ComparisonFacto
   });
 
   // Financial fit
-  const runwayLabel = inputs.risk.financialRunway === "more_than_12_months" ? "Strong"
-    : inputs.risk.financialRunway === "6_to_12_months" ? "Adequate" : "Tight";
+  const runwayLabel =
+    inputs.risk.financialRunway === "more_than_12_months"
+      ? "Strong"
+      : inputs.risk.financialRunway === "6_to_12_months"
+        ? "Adequate"
+        : "Tight";
   factors.push({
     factor: "Financial Fit",
     currentJob: "Safe",
@@ -514,7 +531,9 @@ function capitalize(str: string): string {
 /**
  * Get recommendation color for UI styling
  */
-export function getRecommendationColor(recommendation: DecisionRecommendation["recommendation"]): string {
+export function getRecommendationColor(
+  recommendation: DecisionRecommendation["recommendation"]
+): string {
   switch (recommendation) {
     case "accept":
       return "text-green-600 dark:text-green-400";
@@ -532,7 +551,9 @@ export function getRecommendationColor(recommendation: DecisionRecommendation["r
 /**
  * Get recommendation label for display
  */
-export function getRecommendationLabel(recommendation: DecisionRecommendation["recommendation"]): string {
+export function getRecommendationLabel(
+  recommendation: DecisionRecommendation["recommendation"]
+): string {
   switch (recommendation) {
     case "accept":
       return "Strongly Recommend";

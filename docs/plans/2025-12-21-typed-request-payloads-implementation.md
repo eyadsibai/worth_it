@@ -13,6 +13,7 @@
 ## Task 1: Add VariableParam Enum and SimParamRange (Backend)
 
 **Files:**
+
 - Modify: `backend/src/worth_it/models.py`
 - Create: `backend/tests/test_typed_models.py`
 
@@ -130,6 +131,7 @@ Issue #248"
 ## Task 2: Add RSUParams and StockOptionsParams (Backend)
 
 **Files:**
+
 - Modify: `backend/src/worth_it/models.py`
 - Modify: `backend/tests/test_typed_models.py`
 
@@ -275,6 +277,7 @@ Issue #248"
 ## Task 3: Add BaseParams Model (Backend)
 
 **Files:**
+
 - Modify: `backend/src/worth_it/models.py`
 - Modify: `backend/tests/test_typed_models.py`
 
@@ -414,6 +417,7 @@ Issue #248"
 ## Task 4: Update Request Models (Backend)
 
 **Files:**
+
 - Modify: `backend/src/worth_it/models.py`
 - Modify: `backend/tests/test_typed_models.py`
 
@@ -573,6 +577,7 @@ Issue #248"
 ## Task 5: Update StartupScenarioRequest (Backend)
 
 **Files:**
+
 - Modify: `backend/src/worth_it/models.py`
 - Modify: `backend/tests/test_typed_models.py`
 
@@ -654,6 +659,7 @@ Issue #248"
 ## Task 6: Fix Existing Backend Tests
 
 **Files:**
+
 - Modify: `backend/tests/test_api.py`
 - Modify: `backend/tests/test_integration.py`
 
@@ -689,6 +695,7 @@ Issue #248"
 ## Task 7: Add Frontend Schemas (TypeScript)
 
 **Files:**
+
 - Modify: `frontend/lib/schemas.ts`
 - Modify: `frontend/__tests__/lib/schemas.test.ts`
 
@@ -887,6 +894,7 @@ Issue #248"
 ## Task 8: Update Frontend Request Schemas
 
 **Files:**
+
 - Modify: `frontend/lib/schemas.ts`
 - Modify: `frontend/__tests__/lib/schemas.test.ts`
 
@@ -976,6 +984,7 @@ Issue #248"
 ## Task 9: Run E2E Tests and Verify Integration
 
 **Files:**
+
 - None (verification only)
 
 **Step 1: Run backend tests**
@@ -1011,6 +1020,7 @@ Issue #248"
 ## Task 10: Cleanup and Documentation
 
 **Files:**
+
 - Modify: `backend/src/worth_it/models.py` (remove old validate_base_params if still present)
 - Modify: `docs/plans/2025-12-21-typed-request-payloads-design.md` (mark complete)
 

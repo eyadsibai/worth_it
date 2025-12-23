@@ -29,6 +29,7 @@ worth_it/
 This project uses **`uv`** for Python package management. Do NOT use `pip` or `python` directly.
 
 **Install uv** (if not already installed):
+
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
@@ -36,21 +37,25 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ### Setup & Running
 
 **1. Install dependencies:**
+
 ```bash
 uv sync
 ```
 
 **2. Run the application:**
+
 ```bash
 uv run streamlit run app.py
 ```
 
 **3. Run tests:**
+
 ```bash
 uv run pytest test_calculations.py -v
 ```
 
 **Important Commands:**
+
 - ✅ **Use**: `uv run pytest` - Runs tests with proper environment
 - ✅ **Use**: `uv run streamlit` - Runs Streamlit app with proper environment
 - ✅ **Use**: `uv sync` - Installs/updates dependencies
@@ -92,6 +97,7 @@ User Inputs → Monthly Data Grid → Opportunity Cost → Startup Scenario → 
 ```
 
 **Step-by-step**:
+
 1. **Monthly Data Grid**: Creates month-by-month salary comparison
 2. **Opportunity Cost**: Calculates future value of salary difference if invested
 3. **Startup Scenario**: Calculates equity value at exit (with dilution, vesting, sales)
@@ -102,12 +108,14 @@ User Inputs → Monthly Data Grid → Opportunity Cost → Startup Scenario → 
 The tool supports two equity compensation types:
 
 #### A. RSUs (Restricted Stock Units)
+
 - Direct equity percentage (e.g., 5%)
 - Subject to dilution from funding rounds
 - Can model secondary equity sales
 - Valued based on company valuation
 
 #### B. Stock Options
+
 - Number of options + strike price
 - Profit = (Exit Price - Strike Price) × Vested Options
 - Exercise costs can be modeled (early vs. at exit)
@@ -115,10 +123,12 @@ The tool supports two equity compensation types:
 ### 3. Dilution & Secondary Sales
 
 **Dilution Rounds**: Users can model multiple funding rounds that dilute equity
+
 - Can specify dilution % directly OR calculate from valuation
 - Each round has: year, dilution %, optional new salary
 
 **Secondary Sales**: Users can sell vested equity during funding rounds
+
 - Percentage of vested equity at time of sale
 - Cash from sale is invested (grows with opportunity cost returns)
 - Remaining equity is reduced for final payout
@@ -129,11 +139,13 @@ The tool supports two equity compensation types:
 Two simulation modes:
 
 #### Vectorized (Fast)
+
 - Used when exit year is FIXED
 - All calculations done with NumPy arrays (parallelized)
 - Variables: valuation, ROI, salary growth, dilution
 
 #### Iterative (Slower)
+
 - Used when exit year is SIMULATED
 - Runs full calculation for each simulation
 - Necessary because exit year affects vesting, dilution timing, etc.
@@ -143,27 +155,32 @@ Two simulation modes:
 ## Critical Code Sections
 
 ### 1. Opportunity Cost Calculation
+
 **File**: `calculations.py:63-204`
 
 **Purpose**: Calculates future value of foregone salary if invested at current job
 
 **Key Points**:
+
 - Cash from equity sales is tracked SEPARATELY from opportunity cost
 - Equity sale cash is startup-side wealth, NOT foregone BigCorp earnings
 - Exercise costs reduce the investable surplus
 
 **Important**:
+
 ```python
 # Cash from sales is added to final payout, NOT subtracted from opportunity cost
 results_df["Cash From Sale (FV)"] = cash_from_sale_future_values
 ```
 
 ### 2. Startup Scenario Calculation
+
 **File**: `calculations.py:217-381`
 
 **Purpose**: Calculates final equity value considering vesting, dilution, and sales
 
 **Key Formula** (RSUs):
+
 ```
 Final Payout = (Initial Equity % × Cumulative Dilution × Vested % × Remaining Equity Factor)
                × Exit Valuation
@@ -171,32 +188,38 @@ Final Payout = (Initial Equity % × Cumulative Dilution × Vested % × Remaining
 ```
 
 **Critical**:
+
 - `remaining_equity_factor` accounts for sold equity: `(1 - sale_1%) × (1 - sale_2%) × ...`
 - Sales after exit year are IGNORED
 - Cash from sales is added at the END
 
 ### 3. Vectorized Monte Carlo
+
 **File**: `calculations.py:522-683`
 
 **Purpose**: Fast Monte Carlo when exit year is fixed
 
 **Recently Fixed Bugs** (see commit 7953ad4):
+
 - ✅ Now handles equity sales correctly (remaining_equity_factor + cash from sales)
 - ✅ Now handles option exercise costs
 - ✅ Properly calculates future value of sale proceeds
 
 **Important Code**:
+
 ```python
 # Lines 604-661: Equity sales handling
 # Lines 556-577: Exercise costs handling
 ```
 
 ### 4. Iterative Monte Carlo
+
 **File**: `calculations.py:686-795`
 
 **Purpose**: Monte Carlo when exit year varies
 
 **Recently Fixed Bug** (commit 7953ad4):
+
 - ✅ Now passes `startup_params` and `options_params` to `calculate_annual_opportunity_cost`
 - ✅ Now passes `dilution_rounds` to `create_monthly_data_grid`
 
@@ -209,6 +232,7 @@ Final Payout = (Initial Equity % × Cumulative Dilution × Vested % × Remaining
 ### Test Organization
 
 Tests are organized by functionality:
+
 - **Core Functions** (7 tests): Basic building blocks
 - **RSU Scenarios** (3 tests): RSU calculations with/without dilution
 - **Stock Options** (1 test): Options valuation
@@ -255,6 +279,7 @@ startup_params = {
 ```
 
 **When to pass what**:
+
 - `calculate_annual_opportunity_cost()` needs `startup_params` for equity sales, `options_params` for exercise costs
 - `calculate_startup_scenario()` needs full `startup_params`
 - Monte Carlo functions need `base_params` (includes all above)
@@ -262,6 +287,7 @@ startup_params = {
 ### 2. Equity Sales Calculation Pattern
 
 **Standard pattern** (used in 3 places):
+
 ```python
 # 1. Calculate vested percentage at sale time
 vested_pct_at_sale = np.clip((sale_year / total_vesting_years), 0, 1)
@@ -316,12 +342,14 @@ current_salaries = base_salary * ((1 + growth_rates[:, np.newaxis]) ** year_indi
 ### 1. ⚠️ Equity Sales vs. Opportunity Cost
 
 **WRONG**:
+
 ```python
 # DO NOT subtract cash from sales from opportunity cost
 opportunity_cost -= cash_from_sales  # ❌
 ```
 
 **RIGHT**:
+
 ```python
 # Track separately and add to final payout
 results_df["Cash From Sale (FV)"] = cash_from_sales_fv
@@ -333,6 +361,7 @@ final_payout += cash_from_sales_fv  # ✅
 ### 2. ⚠️ Sequential Sales Calculation
 
 **WRONG**:
+
 ```python
 # Each sale is NOT independent
 for sale in sales:
@@ -340,6 +369,7 @@ for sale in sales:
 ```
 
 **RIGHT**:
+
 ```python
 # Each sale is a percentage of REMAINING equity
 cumulative_sold_factor = 1.0
@@ -352,6 +382,7 @@ for sale in sales:
 ### 3. ⚠️ Exit Year Boundary
 
 **Sales after exit year must be ignored**:
+
 ```python
 if r["year"] <= exit_year:  # ✅ Include sales AT exit year
     # Process sale
@@ -360,6 +391,7 @@ if r["year"] <= exit_year:  # ✅ Include sales AT exit year
 ### 4. ⚠️ Cliff Vesting
 
 **Vesting is ZERO before cliff**:
+
 ```python
 vested_pct = np.where(
     years >= cliff_years,  # ✅ Cliff check first
@@ -371,6 +403,7 @@ vested_pct = np.where(
 ### 5. ⚠️ Monte Carlo Parameter Passing
 
 **WRONG** (old bug):
+
 ```python
 opportunity_cost_df = calculate_annual_opportunity_cost(
     monthly_df, roi, frequency  # ❌ Missing startup_params!
@@ -378,6 +411,7 @@ opportunity_cost_df = calculate_annual_opportunity_cost(
 ```
 
 **RIGHT**:
+
 ```python
 opportunity_cost_df = calculate_annual_opportunity_cost(
     monthly_df, roi, frequency,
@@ -414,11 +448,13 @@ uv run pytest test_calculations.py -v
 ### 3. When to Add Tests
 
 **Always add tests when**:
+
 - Adding a new calculation feature
 - Fixing a bug (test should fail before fix, pass after)
 - Changing calculation logic
 
 **Test should cover**:
+
 - Happy path (normal inputs)
 - Edge cases (zero values, cliff boundaries, sales after exit)
 - Different equity types (RSUs vs Options)
@@ -452,6 +488,7 @@ git push -u origin <branch-name>
 ### 1. Code Quality
 
 #### A. Type Hints
+
 **Current**: Minimal type hints (`Dict[str, Any]` everywhere)
 **Improvement**: Use Pydantic models or TypedDict for better type safety
 
@@ -473,7 +510,9 @@ def calculate_startup_scenario(params: StartupParams) -> StartupResults:
 ```
 
 #### B. Reduce Code Duplication
+
 **Issue**: Equity sales calculation is duplicated in 3 places:
+
 1. `calculate_annual_opportunity_cost()` (lines 93-126)
 2. `calculate_startup_scenario()` (lines 294-309)
 3. `run_monte_carlo_simulation_vectorized()` (lines 604-654)
@@ -494,12 +533,15 @@ def calculate_equity_sales(
 ```
 
 #### C. Magic Numbers
+
 **Issue**: Hard-coded values scattered throughout
+
 ```python
 gamma = 4.0  # What is this? Why 4.0?
 ```
 
 **Improvement**: Use named constants
+
 ```python
 PERT_GAMMA = 4.0  # PERT distribution shape parameter (standard value)
 ```
@@ -507,13 +549,16 @@ PERT_GAMMA = 4.0  # PERT distribution shape parameter (standard value)
 ### 2. Testing
 
 #### A. Test Coverage
+
 **Current**: ~85% coverage (estimated)
 **Missing**:
+
 - Sensitivity analysis edge cases
 - Error handling (invalid inputs)
 - Very large simulation counts (performance)
 
 **Add tests for**:
+
 ```python
 def test_invalid_inputs():
     """Test that invalid inputs raise appropriate errors"""
@@ -529,6 +574,7 @@ def test_monthly_vs_annual_consistency():
 ```
 
 #### B. Property-Based Testing
+
 **Current**: Fixed test cases only
 **Improvement**: Use Hypothesis for property-based testing
 
@@ -549,8 +595,10 @@ def test_final_payout_never_negative(equity_pct, dilution, valuation):
 ### 3. Performance
 
 #### A. Monte Carlo Optimization
+
 **Current**: Iterative mode is very slow for large simulations
 **Improvement**:
+
 1. Vectorize more of the iterative calculation
 2. Use Numba JIT compilation for hot loops
 3. Add progress indicators for long-running simulations
@@ -565,6 +613,7 @@ def calculate_opportunity_costs_vectorized(salaries, roi, months):
 ```
 
 #### B. Caching
+
 **Improvement**: Cache repeated calculations (e.g., PERT distributions)
 
 ```python
@@ -579,10 +628,12 @@ def get_pert_samples(min_val, max_val, mode, size):
 ### 4. Features
 
 #### A. Tax Modeling
+
 **Missing**: No tax calculations (AMT for options, capital gains, income tax)
 **Impact**: Results can be significantly off without tax considerations
 
 **Improvement**:
+
 ```python
 class TaxParams:
     income_tax_rate: float
@@ -594,20 +645,24 @@ def calculate_after_tax_outcome(..., tax_params: TaxParams):
 ```
 
 #### B. Vesting Acceleration
+
 **Missing**: No modeling of acceleration clauses (single/double trigger)
 **Common in acquisitions**: Equity vests faster on acquisition
 
 #### C. Risk-Adjusted Returns
+
 **Missing**: No explicit risk adjustment (only via failure probability)
 **Improvement**: Allow users to specify risk-free rate for Sharpe ratio calculation
 
 #### D. Comparison Mode
+
 **Missing**: Can't compare multiple offers side-by-side
 **Improvement**: Allow saving multiple scenarios and comparing them
 
 ### 5. UI/UX
 
 #### A. Input Validation
+
 **Current**: Minimal validation, easy to enter nonsensical values
 **Improvement**: Add validation with helpful error messages
 
@@ -621,10 +676,12 @@ if equity_pct > 0.5:
 ```
 
 #### B. Guided Tour
+
 **Missing**: New users may not understand inputs
 **Improvement**: Add interactive tutorial/walkthrough
 
 #### C. Save/Load Scenarios
+
 **Missing**: Can't save configurations
 **Improvement**: Export/import scenarios as JSON
 
@@ -637,14 +694,17 @@ if st.button("Save Scenario"):
 ### 6. Documentation
 
 #### A. README.md
+
 **Current**: Empty
 **Needed**:
+
 - Project description
 - Installation instructions
 - Usage guide with screenshots
 - Example scenarios
 
 #### B. Docstring Improvements
+
 **Current**: Basic docstrings
 **Improvement**: Add examples and parameter descriptions
 
@@ -692,6 +752,7 @@ def calculate_irr(monthly_surpluses: pd.Series, final_payout_value: float) -> fl
 **Symptom**: Tests fail with NaN or Inf values
 
 **Debug**:
+
 ```python
 # Add assertions to catch early
 assert not np.any(np.isnan(final_opportunity_cost)), "NaN in opportunity cost"
@@ -707,6 +768,7 @@ print(f"Valuation range: {sim_params['valuation'].min():,.0f} to {sim_params['va
 **Symptom**: `ValueError: operands could not be broadcast together`
 
 **Debug**:
+
 ```python
 # Print shapes before operations
 print(f"investable_surpluses shape: {investable_surpluses.shape}")
@@ -723,6 +785,7 @@ assert investable_surpluses.shape[1] == total_months
 **Symptom**: `AssertionError: assert X == pytest.approx(Y)`
 
 **Debug**:
+
 ```python
 # Print actual vs expected
 print(f"Expected: {expected:.10f}")
@@ -740,6 +803,7 @@ print(f"Remaining factor: {remaining_equity_factor}")
 **Symptom**: App crashes or shows wrong values
 
 **Debug**:
+
 ```python
 # Add debug expander
 with st.expander("🐛 Debug Info"):
@@ -815,19 +879,20 @@ def sample_opportunity_cost_df():
 
 ## Additional Resources
 
-- **NumPy Broadcasting**: https://numpy.org/doc/stable/user/basics.broadcasting.html
-- **PERT Distribution**: https://en.wikipedia.org/wiki/PERT_distribution
-- **IRR Calculation**: https://numpy.org/numpy-financial/latest/irr.html
-- **Monte Carlo Methods**: https://en.wikipedia.org/wiki/Monte_Carlo_method
-- **Streamlit Docs**: https://docs.streamlit.io
+- **NumPy Broadcasting**: <https://numpy.org/doc/stable/user/basics.broadcasting.html>
+- **PERT Distribution**: <https://en.wikipedia.org/wiki/PERT_distribution>
+- **IRR Calculation**: <https://numpy.org/numpy-financial/latest/irr.html>
+- **Monte Carlo Methods**: <https://en.wikipedia.org/wiki/Monte_Carlo_method>
+- **Streamlit Docs**: <https://docs.streamlit.io>
 
 ---
 
 ## Contact & Support
 
-**Original Author**: Eyad Sibai (https://linkedin.com/in/eyadsibai)
+**Original Author**: Eyad Sibai (<https://linkedin.com/in/eyadsibai>)
 
 **Recent Major Fixes**:
+
 - **Commit 1097421** (2025-01-07): Fixed critical exercise cost logic bug where exercise costs were INCREASING outcomes instead of decreasing them
   - Exercise costs now properly tracked and subtracted from final outcomes
   - Added comprehensive test `test_exercise_costs_reduce_net_outcomes()`

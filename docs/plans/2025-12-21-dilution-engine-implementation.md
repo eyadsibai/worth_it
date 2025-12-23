@@ -13,6 +13,7 @@
 ## Task 1: Create DilutionResult Dataclass
 
 **Files:**
+
 - Create: `backend/src/worth_it/calculations/dilution_engine.py`
 - Create: `backend/tests/test_dilution_engine.py`
 
@@ -126,6 +127,7 @@ Immutable result type for dilution pipeline with:
 ## Task 2: Create DilutionPipeline Base Structure
 
 **Files:**
+
 - Modify: `backend/src/worth_it/calculations/dilution_engine.py`
 - Modify: `backend/tests/test_dilution_engine.py`
 
@@ -251,6 +253,7 @@ Immutable fluent pipeline structure with:
 ## Task 3: Add with_simulated_dilution Method
 
 **Files:**
+
 - Modify: `backend/src/worth_it/calculations/dilution_engine.py`
 - Modify: `backend/tests/test_dilution_engine.py`
 
@@ -334,6 +337,7 @@ pre-computed dilution values. Bypasses full pipeline."
 ## Task 4: Add classify Method
 
 **Files:**
+
 - Modify: `backend/src/worth_it/calculations/dilution_engine.py`
 - Modify: `backend/tests/test_dilution_engine.py`
 
@@ -446,6 +450,7 @@ upcoming (future) based on status field or year sign."
 ## Task 5: Add apply_historical Method
 
 **Files:**
+
 - Modify: `backend/src/worth_it/calculations/dilution_engine.py`
 - Modify: `backend/tests/test_dilution_engine.py`
 
@@ -555,6 +560,7 @@ rounds. This dilution applies from day 0."
 ## Task 6: Add apply_safe_conversions Method
 
 **Files:**
+
 - Modify: `backend/src/worth_it/calculations/dilution_engine.py`
 - Modify: `backend/tests/test_dilution_engine.py`
 
@@ -706,6 +712,7 @@ round occurs at or after their year."
 ## Task 7: Add apply_future_rounds Method
 
 **Files:**
+
 - Modify: `backend/src/worth_it/calculations/dilution_engine.py`
 - Modify: `backend/tests/test_dilution_engine.py`
 
@@ -872,6 +879,7 @@ Calculates cumulative dilution factor for each year by:
 ## Task 8: Add build Method
 
 **Files:**
+
 - Modify: `backend/src/worth_it/calculations/dilution_engine.py`
 - Modify: `backend/tests/test_dilution_engine.py`
 
@@ -1002,6 +1010,7 @@ Finalizes the pipeline and returns DilutionResult with:
 ## Task 9: Add calculate_dilution_schedule Convenience Function
 
 **Files:**
+
 - Modify: `backend/src/worth_it/calculations/dilution_engine.py`
 - Modify: `backend/tests/test_dilution_engine.py`
 
@@ -1138,6 +1147,7 @@ Public API that wraps the fluent pipeline for common use cases:
 ## Task 10: Export from calculations package
 
 **Files:**
+
 - Modify: `backend/src/worth_it/calculations/__init__.py`
 
 **Step 1: Write the failing test**
@@ -1202,6 +1212,7 @@ git commit -m "feat(dilution): export dilution engine from calculations package"
 ## Task 11: Integrate into startup_scenario.py
 
 **Files:**
+
 - Modify: `backend/src/worth_it/calculations/startup_scenario.py:81-160`
 
 **Step 1: Verify existing tests pass**
@@ -1268,6 +1279,7 @@ calculate_dilution_schedule(). Behavior unchanged."
 ## Task 12: Update backend CLAUDE.md with pattern guide
 
 **Files:**
+
 - Modify: `backend/CLAUDE.md`
 
 **Step 1: Add fluent pipeline pattern section**
@@ -1297,6 +1309,7 @@ result = MyPipeline(data).step_one().step_two().build()
 ```
 
 **Key principles:**
+
 - `frozen=True` for immutability
 - Each method returns new instance via `dataclasses.replace()`
 - Private fields prefixed with `_` for intermediate state
@@ -1304,6 +1317,7 @@ result = MyPipeline(data).step_one().step_two().build()
 - Convenience function wraps pipeline for simple API
 
 **Reference implementation:** `calculations/dilution_engine.py`
+
 ```
 
 **Step 2: Commit**

@@ -24,11 +24,14 @@ export function MonteCarloBoxPlot({ data }: MonteCarloBoxPlotProps) {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-2">Outcome Percentiles</h3>
-      <p className="text-sm text-muted-foreground mb-4">
+      <h3 className="mb-2 text-lg font-semibold">Outcome Percentiles</h3>
+      <p className="text-muted-foreground mb-4 text-sm">
         Visual summary of distribution showing quartiles and extremes
       </p>
-      <div role="img" aria-label="Horizontal bar chart showing outcome percentiles from minimum to maximum">
+      <div
+        role="img"
+        aria-label="Horizontal bar chart showing outcome percentiles from minimum to maximum"
+      >
         <ResponsiveContainer width="100%" height={400}>
           <BarChart data={data} layout="horizontal">
             <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
@@ -46,10 +49,7 @@ export function MonteCarloBoxPlot({ data }: MonteCarloBoxPlotProps) {
               tick={{ fill: colors.foreground }}
               stroke={colors.muted}
             />
-            <Tooltip
-              formatter={(value: number) => formatCurrency(value)}
-              {...tooltipStyles}
-            />
+            <Tooltip formatter={(value: number) => formatCurrency(value)} {...tooltipStyles} />
             <Bar dataKey="value" fill={colors.chart1} radius={[0, 4, 4, 0]} />
             <ReferenceLine x={0} stroke={colors.muted} strokeDasharray="3 3" />
           </BarChart>

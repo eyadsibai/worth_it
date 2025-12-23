@@ -179,10 +179,9 @@ describe("useFormStatus hook", () => {
       },
     };
 
-    const { result, rerender } = renderHook(
-      ({ sections }) => useFormStatus(sections),
-      { initialProps: { sections: initialSections } }
-    );
+    const { result, rerender } = renderHook(({ sections }) => useFormStatus(sections), {
+      initialProps: { sections: initialSections },
+    });
 
     expect(result.current.completedSections).toBe(0);
 

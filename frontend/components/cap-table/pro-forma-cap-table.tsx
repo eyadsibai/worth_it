@@ -3,7 +3,11 @@
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
-import { ResponsiveTable, ResponsiveTableFooter, type Column } from "@/components/ui/responsive-table";
+import {
+  ResponsiveTable,
+  ResponsiveTableFooter,
+  type Column,
+} from "@/components/ui/responsive-table";
 import type { CapTable, ConversionResult } from "@/lib/schemas";
 
 interface ProFormaCapTableProps {
@@ -32,11 +36,7 @@ interface TableRow {
   isPool?: boolean;
 }
 
-export function ProFormaCapTable({
-  capTable,
-  conversions,
-  isLoading,
-}: ProFormaCapTableProps) {
+export function ProFormaCapTable({ capTable, conversions, isLoading }: ProFormaCapTableProps) {
   // Calculate total shares including conversions
   const conversionShares = conversions.reduce((sum, c) => sum + c.shares_issued, 0);
   const totalProFormaShares = capTable.total_shares + conversionShares;
@@ -44,9 +44,7 @@ export function ProFormaCapTable({
   // Recalculate ownership percentages for existing stakeholders
   const existingStakeholders = capTable.stakeholders.map((s) => ({
     ...s,
-    proFormaOwnership: totalProFormaShares > 0
-      ? (s.shares / totalProFormaShares) * 100
-      : 0,
+    proFormaOwnership: totalProFormaShares > 0 ? (s.shares / totalProFormaShares) * 100 : 0,
   }));
 
   // Create rows for converted investors
@@ -74,7 +72,7 @@ export function ProFormaCapTable({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin mr-2" />
+        <Loader2 className="mr-2 h-6 w-6 animate-spin" />
         <span className="text-muted-foreground">Calculating pro-forma ownership...</span>
       </div>
     );
@@ -82,7 +80,7 @@ export function ProFormaCapTable({
 
   if (!hasStakeholders) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
+      <div className="text-muted-foreground py-8 text-center">
         No stakeholders in the cap table yet.
       </div>
     );
@@ -111,15 +109,17 @@ export function ProFormaCapTable({
     })),
     // Option pool
     ...(capTable.option_pool_pct > 0
-      ? [{
-          id: "option-pool",
-          name: "Option Pool (Reserved)",
-          type: "Pool",
-          typeVariant: "outline" as const,
-          shares: null,
-          ownership: capTable.option_pool_pct,
-          isPool: true,
-        }]
+      ? [
+          {
+            id: "option-pool",
+            name: "Option Pool (Reserved)",
+            type: "Pool",
+            typeVariant: "outline" as const,
+            shares: null,
+            ownership: capTable.option_pool_pct,
+            isPool: true,
+          },
+        ]
       : []),
   ];
 
@@ -168,14 +168,12 @@ export function ProFormaCapTable({
         data={allRows}
         columns={columns}
         getRowKey={(row) => row.id}
-        rowClassName={(row) =>
-          row.isConverted ? "bg-muted/30" : row.isPool ? "bg-muted/20" : ""
-        }
+        rowClassName={(row) => (row.isConverted ? "bg-muted/30" : row.isPool ? "bg-muted/20" : "")}
         footer={footer}
       />
 
       {conversions.length > 0 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           Pro-forma view includes {conversions.length} pending conversion(s) totaling{" "}
           {formatNumber(conversionShares)} new shares.
         </p>

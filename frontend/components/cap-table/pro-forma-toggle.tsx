@@ -10,11 +10,7 @@ interface ProFormaToggleProps {
   disabled?: boolean;
 }
 
-export function ProFormaToggle({
-  isProForma,
-  onToggle,
-  disabled = false,
-}: ProFormaToggleProps) {
+export function ProFormaToggle({ isProForma, onToggle, disabled = false }: ProFormaToggleProps) {
   return (
     <div className="flex items-center gap-3">
       <div className="flex items-center gap-2">
@@ -36,7 +32,7 @@ export function ProFormaToggle({
           )}
         </Label>
       </div>
-      <span className="text-xs text-muted-foreground">
+      <span className="text-muted-foreground text-xs">
         {isProForma
           ? "Showing ownership after SAFE/Note conversion"
           : "View ownership after conversion"}

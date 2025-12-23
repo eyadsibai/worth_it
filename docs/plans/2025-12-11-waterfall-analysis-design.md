@@ -11,6 +11,7 @@ Implement a waterfall analysis feature showing how exit proceeds are distributed
 ## Requirements
 
 From issue #111:
+
 - Liquidation preferences are paid before common
 - Participating preferred gets preference + pro-rata share
 - Non-participating preferred converts if pro-rata is higher
@@ -20,12 +21,14 @@ From issue #111:
 ## User Experience
 
 ### Output Format
+
 - **Distribution table**: Shows $ amounts and % at multiple valuations
 - **Stacked bar chart**: Visual showing how proceeds split across valuations
 - **Step-by-step breakdown**: Educational view of who gets paid when
 - **Interactive slider**: Explore specific valuations dynamically
 
 ### Input Flow
+
 1. User opens Founder Mode → "Waterfall Analysis" tab
 2. Clicks "Generate from Rounds" → auto-populates from existing PricedRounds
 3. (Optional) Edits tiers - reorder seniority, adjust terms
@@ -35,6 +38,7 @@ From issue #111:
 ## Data Models
 
 ### PreferenceTier
+
 ```python
 class PreferenceTier(BaseModel):
     """A single tier in the liquidation preference stack."""
@@ -49,6 +53,7 @@ class PreferenceTier(BaseModel):
 ```
 
 ### WaterfallRequest
+
 ```python
 class WaterfallRequest(BaseModel):
     """Request to calculate waterfall distribution."""
@@ -58,6 +63,7 @@ class WaterfallRequest(BaseModel):
 ```
 
 ### WaterfallResponse
+
 ```python
 class StakeholderPayout(BaseModel):
     """Payout for a single stakeholder."""
@@ -115,6 +121,7 @@ def calculate_waterfall(
 ```
 
 ### Edge Cases
+
 - **Insufficient proceeds**: Senior tiers paid first, junior may get partial/nothing
 - **Conversion decision**: Non-participating preferred auto-converts when pro-rata > preference
 - **Participation caps**: Stop participating when cap is reached
@@ -129,6 +136,7 @@ def calculate_waterfall_distribution(request: WaterfallRequest):
 ```
 
 ### Example Request
+
 ```json
 {
   "cap_table": { "stakeholders": [...], "total_shares": 10000000 },
@@ -172,6 +180,7 @@ components/
 ```
 
 ### Chart Design
+
 - X-axis: Exit valuation ($10M → $500M)
 - Y-axis: Percentage of proceeds (0-100%)
 - Stacked bars: Different colors per stakeholder/tier
@@ -190,6 +199,7 @@ components/
 ## Test Plan
 
 ### Backend Tests (test_calculations.py)
+
 ```python
 - test_waterfall_single_tier_non_participating
 - test_waterfall_participating_uncapped
@@ -202,6 +212,7 @@ components/
 ```
 
 ### Frontend Tests
+
 - Schema validation tests
 - Component rendering tests
 - Chart data transformation tests

@@ -4,7 +4,15 @@ import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Target, ArrowLeftRight, AlertCircle } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  TrendingUp,
+  TrendingDown,
+  Target,
+  ArrowLeftRight,
+  AlertCircle,
+} from "lucide-react";
 import {
   MonteCarloHistogram,
   MonteCarloEcdf,
@@ -56,8 +64,16 @@ export function MonteCarloVisualizations({
     // Guard: Return safe defaults for empty arrays
     if (netOutcomes.length === 0) {
       return {
-        mean: 0, median: 0, std: 0, min: 0, max: 0,
-        p10: 0, p25: 0, p75: 0, p90: 0, positiveRate: 0
+        mean: 0,
+        median: 0,
+        std: 0,
+        min: 0,
+        max: 0,
+        p10: 0,
+        p25: 0,
+        p75: 0,
+        p90: 0,
+        positiveRate: 0,
       };
     }
 
@@ -105,11 +121,13 @@ export function MonteCarloVisualizations({
     // Handle single-value edge case: when all values are identical, min === max
     // This would cause binWidth = 0, leading to NaN in bin calculations
     if (min === max) {
-      return [{
-        bin: min,
-        count: netOutcomes.length,
-        label: formatCurrency(min),
-      }];
+      return [
+        {
+          bin: min,
+          count: netOutcomes.length,
+          label: formatCurrency(min),
+        },
+      ];
     }
 
     const binWidth = (max - min) / bins;
@@ -181,17 +199,15 @@ export function MonteCarloVisualizations({
       <Card data-tour="monte-carlo-chart">
         <CardHeader>
           <CardTitle>Monte Carlo Results</CardTitle>
-          <CardDescription>
-            No simulation data available
-          </CardDescription>
+          <CardDescription>No simulation data available</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-12 text-center">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Simulation Results</h3>
+            <AlertCircle className="text-muted-foreground mb-4 h-12 w-12" />
+            <h3 className="mb-2 text-lg font-semibold">No Simulation Results</h3>
             <p className="text-muted-foreground max-w-md">
-              Run a Monte Carlo simulation to see the distribution of possible outcomes.
-              This helps you understand the range of potential returns based on different scenarios.
+              Run a Monte Carlo simulation to see the distribution of possible outcomes. This helps
+              you understand the range of potential returns based on different scenarios.
             </p>
           </div>
         </CardContent>
@@ -209,30 +225,25 @@ export function MonteCarloVisualizations({
       </CardHeader>
       <CardContent className="space-y-6" data-tour="monte-carlo-stats">
         {/* Plain-English Summary Headline */}
-        <div
-          data-testid="monte-carlo-headline"
-          className="text-2xl font-semibold text-center py-4"
-        >
+        <div data-testid="monte-carlo-headline" className="py-4 text-center text-2xl font-semibold">
           {headline}
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-muted/50 rounded-lg p-4 flex flex-col items-center">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="bg-muted/50 flex flex-col items-center rounded-lg p-4">
+            <div className="text-muted-foreground mb-1 flex items-center gap-2 text-sm">
               <Target className="h-4 w-4" />
               <span>Expected Value</span>
             </div>
-            <span className="text-xl font-semibold tabular-nums">
-              {formatCurrency(stats.mean)}
-            </span>
+            <span className="text-xl font-semibold tabular-nums">{formatCurrency(stats.mean)}</span>
           </div>
-          <div className="bg-muted/50 rounded-lg p-4 flex flex-col items-center">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+          <div className="bg-muted/50 flex flex-col items-center rounded-lg p-4">
+            <div className="text-muted-foreground mb-1 flex items-center gap-2 text-sm">
               {stats.positiveRate >= 50 ? (
-                <TrendingUp className="h-4 w-4 text-terminal" />
+                <TrendingUp className="text-terminal h-4 w-4" />
               ) : (
-                <TrendingDown className="h-4 w-4 text-destructive" />
+                <TrendingDown className="text-destructive h-4 w-4" />
               )}
               <span>Success Probability</span>
             </div>
@@ -244,8 +255,8 @@ export function MonteCarloVisualizations({
               {stats.positiveRate.toFixed(1)}%
             </span>
           </div>
-          <div className="bg-muted/50 rounded-lg p-4 flex flex-col items-center">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+          <div className="bg-muted/50 flex flex-col items-center rounded-lg p-4">
+            <div className="text-muted-foreground mb-1 flex items-center gap-2 text-sm">
               <ArrowLeftRight className="h-4 w-4" />
               <span>Outcome Range</span>
             </div>
@@ -258,20 +269,14 @@ export function MonteCarloVisualizations({
         {/* Histogram Section (visible only when collapsed to avoid duplication) */}
         {!isExpanded && (
           <div className="space-y-2">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Distribution of Outcomes
-            </h3>
+            <h3 className="text-muted-foreground text-sm font-medium">Distribution of Outcomes</h3>
             <MonteCarloHistogram data={histogramData} />
           </div>
         )}
 
         {/* Expand/Collapse Button */}
         <div className="flex justify-center">
-          <Button
-            variant="outline"
-            onClick={handleToggleExpanded}
-            className="gap-2"
-          >
+          <Button variant="outline" onClick={handleToggleExpanded} className="gap-2">
             {isExpanded ? (
               <>
                 <ChevronUp className="h-4 w-4" />

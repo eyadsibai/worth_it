@@ -24,7 +24,9 @@ import {
 // Test Fixtures
 // ============================================================================
 
-const createFinancialAnalysis = (overrides: Partial<FinancialAnalysis> = {}): FinancialAnalysis => ({
+const createFinancialAnalysis = (
+  overrides: Partial<FinancialAnalysis> = {}
+): FinancialAnalysis => ({
   netBenefit: 100000,
   positiveOutcomeProbability: 0.6,
   expectedValue: 80000,
@@ -115,14 +117,18 @@ describe("scoreFinancial", () => {
   });
 
   it("clamps score between 0 and 10", () => {
-    const veryBad = scoreFinancial(createFinancialAnalysis({
-      netBenefit: -500000,
-      positiveOutcomeProbability: 0.1,
-    }));
-    const veryGood = scoreFinancial(createFinancialAnalysis({
-      netBenefit: 1000000,
-      positiveOutcomeProbability: 0.95,
-    }));
+    const veryBad = scoreFinancial(
+      createFinancialAnalysis({
+        netBenefit: -500000,
+        positiveOutcomeProbability: 0.1,
+      })
+    );
+    const veryGood = scoreFinancial(
+      createFinancialAnalysis({
+        netBenefit: 1000000,
+        positiveOutcomeProbability: 0.95,
+      })
+    );
 
     expect(veryBad.score).toBeGreaterThanOrEqual(0);
     expect(veryGood.score).toBeLessThanOrEqual(10);
@@ -172,11 +178,13 @@ describe("scoreRisk", () => {
   });
 
   it("gives lowest score for maximum risk factors", () => {
-    const highRisk = scoreRisk(createRiskAssessment({
-      financialRunway: "less_than_6_months",
-      hasDependents: true,
-      needsIncomeStability: true,
-    }));
+    const highRisk = scoreRisk(
+      createRiskAssessment({
+        financialRunway: "less_than_6_months",
+        hasDependents: true,
+        needsIncomeStability: true,
+      })
+    );
 
     expect(highRisk.score).toBeLessThanOrEqual(2);
   });
@@ -215,19 +223,23 @@ describe("scoreCareer", () => {
   });
 
   it("weights learning and growth more heavily", () => {
-    const highLearning = scoreCareer(createCareerFactors({
-      learningOpportunity: "high",
-      careerGrowth: "low",
-      networkValue: "low",
-      goalAlignment: "low",
-    }));
+    const highLearning = scoreCareer(
+      createCareerFactors({
+        learningOpportunity: "high",
+        careerGrowth: "low",
+        networkValue: "low",
+        goalAlignment: "low",
+      })
+    );
 
-    const highNetwork = scoreCareer(createCareerFactors({
-      learningOpportunity: "low",
-      careerGrowth: "low",
-      networkValue: "high",
-      goalAlignment: "low",
-    }));
+    const highNetwork = scoreCareer(
+      createCareerFactors({
+        learningOpportunity: "low",
+        careerGrowth: "low",
+        networkValue: "high",
+        goalAlignment: "low",
+      })
+    );
 
     // Learning should contribute more than network
     expect(highLearning.score).toBeGreaterThan(highNetwork.score);
@@ -381,8 +393,8 @@ describe("generateRecommendation", () => {
 
     const result = generateRecommendation(inputs);
 
-    const hasLowProbWarning = result.considerations.warnings.some(
-      (w) => w.toLowerCase().includes("low probability")
+    const hasLowProbWarning = result.considerations.warnings.some((w) =>
+      w.toLowerCase().includes("low probability")
     );
     expect(hasLowProbWarning).toBe(true);
   });

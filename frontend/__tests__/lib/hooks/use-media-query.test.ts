@@ -136,10 +136,9 @@ describe("useMediaQuery", () => {
       removeEventListener: mockRemoveEventListener,
     }));
 
-    const { result, rerender } = renderHook(
-      ({ query }) => useMediaQuery(query),
-      { initialProps: { query: "(max-width: 640px)" } }
-    );
+    const { result, rerender } = renderHook(({ query }) => useMediaQuery(query), {
+      initialProps: { query: "(max-width: 640px)" },
+    });
 
     expect(result.current).toBe(false);
 

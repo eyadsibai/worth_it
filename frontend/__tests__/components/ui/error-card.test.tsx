@@ -24,12 +24,7 @@ describe("ErrorCard", () => {
     });
 
     it("renders with custom title", () => {
-      render(
-        <ErrorCard
-          title="Connection Error"
-          message="Unable to connect to the server"
-        />
-      );
+      render(<ErrorCard title="Connection Error" message="Unable to connect to the server" />);
 
       expect(screen.getByText("Connection Error")).toBeInTheDocument();
       expect(screen.getByText("Unable to connect to the server")).toBeInTheDocument();
@@ -129,7 +124,12 @@ describe("ErrorCard", () => {
     });
 
     it("renders custom suggestions when provided", () => {
-      render(<ErrorCard message="Custom error" suggestions={["Check your API key", "Verify server status"]} />);
+      render(
+        <ErrorCard
+          message="Custom error"
+          suggestions={["Check your API key", "Verify server status"]}
+        />
+      );
       expect(screen.getByText("Check your API key")).toBeInTheDocument();
       expect(screen.getByText("Verify server status")).toBeInTheDocument();
     });
@@ -171,7 +171,13 @@ describe("ErrorCard", () => {
   describe("Error Details Display", () => {
     it("can show/hide detailed error information", async () => {
       const user = userEvent.setup();
-      render(<ErrorCard message="Error occurred" errorDetails="Stack trace: Error at line 42..." showDetailsToggle={true} />);
+      render(
+        <ErrorCard
+          message="Error occurred"
+          errorDetails="Stack trace: Error at line 42..."
+          showDetailsToggle={true}
+        />
+      );
       expect(screen.queryByText(/stack trace/i)).not.toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: /show details/i }));
       expect(screen.getByText(/stack trace/i)).toBeInTheDocument();

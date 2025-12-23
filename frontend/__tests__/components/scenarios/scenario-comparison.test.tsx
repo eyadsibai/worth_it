@@ -28,9 +28,7 @@ function createWrapper() {
     },
   });
   return function Wrapper({ children }: { children: React.ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -152,7 +150,9 @@ describe("ScenarioComparison - Basic", () => {
   });
 
   it("returns null when no scenarios provided", () => {
-    const { container } = render(<ScenarioComparison scenarios={[]} />, { wrapper: createWrapper() });
+    const { container } = render(<ScenarioComparison scenarios={[]} />, {
+      wrapper: createWrapper(),
+    });
     expect(container.firstChild).toBeNull();
   });
 
@@ -160,15 +160,14 @@ describe("ScenarioComparison - Basic", () => {
     const onClose = vi.fn();
     const user = userEvent.setup();
 
-    render(
-      <ScenarioComparison scenarios={[createScenario()]} onClose={onClose} />,
-      { wrapper: createWrapper() }
-    );
+    render(<ScenarioComparison scenarios={[createScenario()]} onClose={onClose} />, {
+      wrapper: createWrapper(),
+    });
 
     // Find the close button by looking for buttons with X icon (SVG with lucide-x class)
     const buttons = screen.getAllByRole("button");
-    const closeButton = buttons.find(btn =>
-      btn.querySelector("svg.lucide-x") || btn.querySelector("[class*='lucide-x']")
+    const closeButton = buttons.find(
+      (btn) => btn.querySelector("svg.lucide-x") || btn.querySelector("[class*='lucide-x']")
     );
 
     // If no lucide-x found, use the last small icon button

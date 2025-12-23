@@ -8,13 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { SAFEForm } from "./safe-form";
 import { ConvertibleNoteForm } from "./convertible-note-form";
 import { PricedRoundForm } from "./priced-round-form";
-import {
-  motion,
-  MotionFadeInUp,
-  MotionList,
-  MotionListItem,
-  AnimatedNumber,
-} from "@/lib/motion";
+import { motion, MotionFadeInUp, MotionList, MotionListItem, AnimatedNumber } from "@/lib/motion";
 import { generateId } from "@/lib/utils";
 import type {
   FundingInstrument,
@@ -132,20 +126,23 @@ export function FundingRoundsManager({
       {/* Summary Stats */}
       <div className="grid grid-cols-4 gap-4 text-sm">
         <motion.div
-          className="p-3 border rounded-lg cursor-default"
+          className="cursor-default rounded-lg border p-3"
           whileHover={{ scale: 1.02, borderColor: "hsl(var(--terminal))" }}
           transition={{ duration: 0.2 }}
         >
           <div className="text-muted-foreground">Total Raised</div>
-          <div className="text-lg tabular-nums font-medium text-terminal">
-            $ <AnimatedNumber
+          <div className="text-terminal text-lg font-medium tabular-nums">
+            ${" "}
+            <AnimatedNumber
               value={totalRaised}
-              formatValue={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(2)}M` : v.toLocaleString()}
+              formatValue={(v) =>
+                v >= 1000000 ? `${(v / 1000000).toFixed(2)}M` : v.toLocaleString()
+              }
             />
           </div>
         </motion.div>
         <motion.div
-          className="p-3 border rounded-lg cursor-default"
+          className="cursor-default rounded-lg border p-3"
           whileHover={{ scale: 1.02, borderColor: "hsl(var(--chart-1))" }}
           transition={{ duration: 0.2 }}
         >
@@ -155,7 +152,7 @@ export function FundingRoundsManager({
           </div>
         </motion.div>
         <motion.div
-          className="p-3 border rounded-lg cursor-default"
+          className="cursor-default rounded-lg border p-3"
           whileHover={{ scale: 1.02, borderColor: "hsl(var(--chart-2))" }}
           transition={{ duration: 0.2 }}
         >
@@ -165,7 +162,7 @@ export function FundingRoundsManager({
           </div>
         </motion.div>
         <motion.div
-          className="p-3 border rounded-lg cursor-default"
+          className="cursor-default rounded-lg border p-3"
           whileHover={{ scale: 1.02, borderColor: "hsl(var(--chart-3))" }}
           transition={{ duration: 0.2 }}
         >
@@ -180,13 +177,11 @@ export function FundingRoundsManager({
       <Card className="terminal-card">
         <CardHeader>
           <CardTitle>Add Funding Instrument</CardTitle>
-          <CardDescription>
-            Track SAFEs, convertible notes, and priced rounds
-          </CardDescription>
+          <CardDescription>Track SAFEs, convertible notes, and priced rounds</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
-            <TabsList className="grid w-full grid-cols-3 mb-4">
+            <TabsList className="mb-4 grid w-full grid-cols-3">
               <TabsTrigger value="safe" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 SAFE
@@ -233,14 +228,20 @@ export function FundingRoundsManager({
                 {instruments.map((instrument) => (
                   <MotionListItem key={instrument.id}>
                     <motion.div
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                      className="hover:bg-muted/50 flex items-center justify-between rounded-lg border p-3 transition-colors"
                       whileHover={{ x: 4, borderColor: "hsl(var(--terminal) / 0.5)" }}
                       transition={{ duration: 0.15 }}
                     >
                       <div className="flex items-center gap-3">
-                        {instrument.type === "SAFE" && <FileText className="h-5 w-5 text-blue-500" />}
-                        {instrument.type === "CONVERTIBLE_NOTE" && <Banknote className="h-5 w-5 text-green-500" />}
-                        {instrument.type === "PRICED_ROUND" && <TrendingUp className="h-5 w-5 text-purple-500" />}
+                        {instrument.type === "SAFE" && (
+                          <FileText className="h-5 w-5 text-blue-500" />
+                        )}
+                        {instrument.type === "CONVERTIBLE_NOTE" && (
+                          <Banknote className="h-5 w-5 text-green-500" />
+                        )}
+                        {instrument.type === "PRICED_ROUND" && (
+                          <TrendingUp className="h-5 w-5 text-purple-500" />
+                        )}
 
                         <div>
                           <div className="font-medium">
@@ -248,12 +249,14 @@ export function FundingRoundsManager({
                             {instrument.type === "CONVERTIBLE_NOTE" && instrument.investor_name}
                             {instrument.type === "PRICED_ROUND" && instrument.round_name}
                           </div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-muted-foreground text-sm">
                             {instrument.type === "SAFE" && (
                               <>
                                 {formatCurrency(instrument.investment_amount)}
-                                {instrument.valuation_cap && ` • Cap: ${formatCurrency(instrument.valuation_cap)}`}
-                                {instrument.discount_pct && ` • ${instrument.discount_pct}% discount`}
+                                {instrument.valuation_cap &&
+                                  ` • Cap: ${formatCurrency(instrument.valuation_cap)}`}
+                                {instrument.discount_pct &&
+                                  ` • ${instrument.discount_pct}% discount`}
                               </>
                             )}
                             {instrument.type === "CONVERTIBLE_NOTE" && (
@@ -267,7 +270,8 @@ export function FundingRoundsManager({
                               <>
                                 {formatCurrency(instrument.amount_raised)}
                                 {` • Pre: ${formatCurrency(instrument.pre_money_valuation)}`}
-                                {instrument.lead_investor && ` • Led by ${instrument.lead_investor}`}
+                                {instrument.lead_investor &&
+                                  ` • Led by ${instrument.lead_investor}`}
                               </>
                             )}
                           </div>
@@ -275,11 +279,15 @@ export function FundingRoundsManager({
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <Badge variant={
-                          instrument.type === "SAFE" ? "default" :
-                          instrument.type === "CONVERTIBLE_NOTE" ? "secondary" :
-                          "outline"
-                        }>
+                        <Badge
+                          variant={
+                            instrument.type === "SAFE"
+                              ? "default"
+                              : instrument.type === "CONVERTIBLE_NOTE"
+                                ? "secondary"
+                                : "outline"
+                          }
+                        >
                           {instrument.type === "SAFE" && "SAFE"}
                           {instrument.type === "CONVERTIBLE_NOTE" && "Note"}
                           {instrument.type === "PRICED_ROUND" && "Priced"}
@@ -289,7 +297,7 @@ export function FundingRoundsManager({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              className="text-muted-foreground hover:text-destructive h-8 w-8"
                               aria-label={`Delete ${instrument.type === "PRICED_ROUND" ? instrument.round_name : instrument.investor_name}`}
                             >
                               <Trash2 className="h-4 w-4" />

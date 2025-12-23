@@ -46,11 +46,7 @@ const mockConversions: ConversionResult[] = [
 describe("ProFormaCapTable", () => {
   it("renders table headers", () => {
     render(
-      <ProFormaCapTable
-        capTable={mockCapTable}
-        conversions={mockConversions}
-        isLoading={false}
-      />
+      <ProFormaCapTable capTable={mockCapTable} conversions={mockConversions} isLoading={false} />
     );
 
     expect(screen.getByRole("columnheader", { name: /stakeholder/i })).toBeInTheDocument();
@@ -59,13 +55,7 @@ describe("ProFormaCapTable", () => {
   });
 
   it("displays existing stakeholders", () => {
-    render(
-      <ProFormaCapTable
-        capTable={mockCapTable}
-        conversions={[]}
-        isLoading={false}
-      />
-    );
+    render(<ProFormaCapTable capTable={mockCapTable} conversions={[]} isLoading={false} />);
 
     expect(screen.getByText("Alice Founder")).toBeInTheDocument();
     expect(screen.getByText("Bob Founder")).toBeInTheDocument();
@@ -73,11 +63,7 @@ describe("ProFormaCapTable", () => {
 
   it("displays converted investors", () => {
     render(
-      <ProFormaCapTable
-        capTable={mockCapTable}
-        conversions={mockConversions}
-        isLoading={false}
-      />
+      <ProFormaCapTable capTable={mockCapTable} conversions={mockConversions} isLoading={false} />
     );
 
     expect(screen.getByText("Y Combinator")).toBeInTheDocument();
@@ -85,11 +71,7 @@ describe("ProFormaCapTable", () => {
 
   it("shows shares issued from conversion", () => {
     render(
-      <ProFormaCapTable
-        capTable={mockCapTable}
-        conversions={mockConversions}
-        isLoading={false}
-      />
+      <ProFormaCapTable capTable={mockCapTable} conversions={mockConversions} isLoading={false} />
     );
 
     // Conversion should show 1,000,000 shares (getAllByText since it appears in both table and summary)
@@ -98,13 +80,7 @@ describe("ProFormaCapTable", () => {
   });
 
   it("shows loading state", () => {
-    render(
-      <ProFormaCapTable
-        capTable={mockCapTable}
-        conversions={[]}
-        isLoading={true}
-      />
-    );
+    render(<ProFormaCapTable capTable={mockCapTable} conversions={[]} isLoading={true} />);
 
     expect(screen.getByText(/calculating/i)).toBeInTheDocument();
   });
@@ -116,24 +92,14 @@ describe("ProFormaCapTable", () => {
       option_pool_pct: 0,
     };
 
-    render(
-      <ProFormaCapTable
-        capTable={emptyCapTable}
-        conversions={[]}
-        isLoading={false}
-      />
-    );
+    render(<ProFormaCapTable capTable={emptyCapTable} conversions={[]} isLoading={false} />);
 
     expect(screen.getByText(/no stakeholders/i)).toBeInTheDocument();
   });
 
   it("calculates total shares including conversions", () => {
     render(
-      <ProFormaCapTable
-        capTable={mockCapTable}
-        conversions={mockConversions}
-        isLoading={false}
-      />
+      <ProFormaCapTable capTable={mockCapTable} conversions={mockConversions} isLoading={false} />
     );
 
     // Total should be 10M + 1M = 11M
@@ -142,11 +108,7 @@ describe("ProFormaCapTable", () => {
 
   it("displays conversion badge for converted investors", () => {
     render(
-      <ProFormaCapTable
-        capTable={mockCapTable}
-        conversions={mockConversions}
-        isLoading={false}
-      />
+      <ProFormaCapTable capTable={mockCapTable} conversions={mockConversions} isLoading={false} />
     );
 
     // Should show some indicator that this is from SAFE conversion
@@ -155,11 +117,7 @@ describe("ProFormaCapTable", () => {
 
   it("shows recalculated ownership percentages", () => {
     render(
-      <ProFormaCapTable
-        capTable={mockCapTable}
-        conversions={mockConversions}
-        isLoading={false}
-      />
+      <ProFormaCapTable capTable={mockCapTable} conversions={mockConversions} isLoading={false} />
     );
 
     // The conversion result shows 9.09% for Y Combinator

@@ -140,12 +140,14 @@ CapTable
 ### SAFE (Simple Agreement for Future Equity)
 
 **Terms**:
+
 - Valuation Cap
 - Discount (optional)
 - Pro-rata rights (optional)
 - MFN clause (optional)
 
 **Conversion** (triggered by priced round):
+
 ```
 conversion_price = min(
   valuation_cap / fully_diluted_shares,
@@ -155,6 +157,7 @@ shares_issued = investment_amount / conversion_price
 ```
 
 **Example**:
+
 ```
 SAFE: $500K at $5M cap, 20% discount
 Series A: $10M pre-money, $1/share
@@ -169,11 +172,13 @@ Shares = $500K / $0.80 = 625,000 shares
 ### Convertible Note
 
 **Terms** (same as SAFE plus):
+
 - Interest Rate
 - Maturity Date
 - Principal + Accrued Interest converts
 
 **Conversion**:
+
 ```
 accrued_interest = principal × interest_rate × time_elapsed_years
 total_converting = principal + accrued_interest
@@ -184,6 +189,7 @@ shares_issued = total_converting / conversion_price
 ### Priced Round
 
 **Terms**:
+
 - Pre-money Valuation
 - Amount Raised
 - Price Per Share
@@ -191,6 +197,7 @@ shares_issued = total_converting / conversion_price
 - Board seats, anti-dilution, etc. (future)
 
 **Mechanics**:
+
 ```
 pre_money_valuation = $10M
 amount_raised = $2M
@@ -206,12 +213,14 @@ existing_dilution = amount_raised / post_money = 16.67%
 ### Simple 1x Non-Participating (Starting Point)
 
 Investors choose between:
+
 - **Option A**: Take preference (get investment back)
 - **Option B**: Convert to common (participate pro-rata)
 
 They pick whichever is higher.
 
 **Example - High Exit**:
+
 ```
 Exit Proceeds: $50M
 Investor: $5M invested, 20% ownership, 1x non-participating
@@ -224,6 +233,7 @@ Founders get: $50M × 80% = $40M
 ```
 
 **Example - Low Exit**:
+
 ```
 Exit Proceeds: $10M
 Investor: $5M invested, 20% ownership
@@ -259,6 +269,7 @@ interface LiquidationPreference {
 ```
 
 **Starting Simple**:
+
 - All investors: 1x non-participating
 - Pari passu (equal seniority)
 - Founders hold common with no preferences
@@ -311,6 +322,7 @@ interface LiquidationPreference {
 ## Section 6: Implementation Phases
 
 ### Phase 1: Foundation
+
 - [ ] Cap table data model with stakeholders
 - [ ] Simple ownership tracking (no instruments yet)
 - [ ] Basic exit calculator (no preferences)
@@ -318,24 +330,28 @@ interface LiquidationPreference {
 - [ ] Founder mode toggle in UI
 
 ### Phase 2: Funding Instruments
+
 - [ ] SAFE support with conversion mechanics
 - [ ] Convertible Note support (interest, maturity)
 - [ ] Priced Round triggers conversion
 - [ ] Cap table evolution view (before/after each round)
 
 ### Phase 3: Exit Modeling
+
 - [ ] 1x non-participating liquidation preference
 - [ ] Exit waterfall calculator
 - [ ] Payout distribution chart
 - [ ] Break-even analysis
 
 ### Phase 4: Scenario Comparison
+
 - [ ] Save/duplicate scenarios
 - [ ] Side-by-side comparison view
 - [ ] Sensitivity charts (payout vs exit value slider)
 - [ ] Export comparison results
 
 ### Phase 5: Advanced (Future)
+
 - [ ] Participating preferred (double-dip)
 - [ ] Multiple liquidation stacks (seniority)
 - [ ] Option pool shuffling
@@ -347,18 +363,21 @@ interface LiquidationPreference {
 ## Technical Notes
 
 ### Frontend Changes
+
 - New route: `/founder` or mode toggle on main page
 - Cap table state management (likely React Context or Zustand)
 - New form components for stakeholders, instruments
 - New chart components for waterfall, ownership evolution
 
 ### Backend Changes
+
 - New endpoints for cap table CRUD
 - Conversion calculation endpoints
 - Exit waterfall calculation endpoint
 - Scenario comparison endpoint
 
 ### Schemas
+
 - Extend Zod schemas for new data types
 - Match Pydantic models in backend
 - Validation for instrument terms

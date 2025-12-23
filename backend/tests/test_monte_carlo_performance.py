@@ -150,9 +150,9 @@ class TestVectorizedPerformance:
         )
 
         # Performance assertion: 10k simulations should complete in < 1 second
-        assert timing["mean"] < 1.0, (
-            f"Vectorized simulation with {num_simulations} sims took {timing['mean']:.3f}s"
-        )
+        assert (
+            timing["mean"] < 1.0
+        ), f"Vectorized simulation with {num_simulations} sims took {timing['mean']:.3f}s"
 
         # Verify results are valid
         result = timing["result"]
@@ -232,9 +232,9 @@ class TestIterativePerformance:
 
         # Performance assertion: 1k simulations should complete in < 30 seconds
         # (iterative is expected to be much slower)
-        assert timing["mean"] < 30.0, (
-            f"Iterative simulation with {num_simulations} sims took {timing['mean']:.3f}s"
-        )
+        assert (
+            timing["mean"] < 30.0
+        ), f"Iterative simulation with {num_simulations} sims took {timing['mean']:.3f}s"
 
         # Verify results are valid
         result = timing["result"]
@@ -263,9 +263,9 @@ class TestEndToEndPerformance:
         print(f"\n10k simulations (vectorized): {timing['mean'] * 1000:.1f}ms")
 
         # Target: < 500ms for 10k simulations
-        assert timing["mean"] < 0.5, (
-            f"10k simulations took {timing['mean'] * 1000:.1f}ms (target: <500ms)"
-        )
+        assert (
+            timing["mean"] < 0.5
+        ), f"10k simulations took {timing['mean'] * 1000:.1f}ms (target: <500ms)"
 
     def test_monte_carlo_monthly_vs_annual_frequency(
         self,

@@ -33,21 +33,18 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <MobileViewProvider>
-      <div className="min-h-screen flex flex-col bg-noise">
+      <div className="bg-noise flex min-h-screen flex-col">
         <SkipLink />
         <Header />
-        <div className="flex-1 flex overflow-hidden pt-14">
+        <div className="flex flex-1 overflow-hidden pt-14">
           <main
             id="main-content"
-            className="flex-1 overflow-auto page-enter px-4 md:px-6 pb-20 md:pb-0"
+            className="page-enter flex-1 overflow-auto px-4 pb-20 md:px-6 md:pb-0"
           >
             {children}
           </main>
         </div>
-        <BottomNav
-          onSaveClick={handleCommandPalette}
-          onMoreClick={handleCommandPalette}
-        />
+        <BottomNav onSaveClick={handleCommandPalette} onMoreClick={handleCommandPalette} />
       </div>
     </MobileViewProvider>
   );

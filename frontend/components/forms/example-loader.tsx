@@ -42,12 +42,10 @@ export function ExampleLoader() {
           <DropdownMenuItem
             key={scenario.id}
             onClick={() => handleLoadExample(scenario.id, scenario.name)}
-            className="flex flex-col items-start gap-0.5 cursor-pointer py-2"
+            className="flex cursor-pointer flex-col items-start gap-0.5 py-2"
           >
             <span className="font-medium">{scenario.name}</span>
-            <span className="text-xs text-muted-foreground">
-              {scenario.description}
-            </span>
+            <span className="text-muted-foreground text-xs">{scenario.description}</span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

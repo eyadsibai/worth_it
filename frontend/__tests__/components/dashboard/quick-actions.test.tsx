@@ -67,43 +67,24 @@ describe("QuickActions", () => {
   });
 
   it("shows Compare All button when hasScenarios and onCompareAll provided", () => {
-    render(
-      <QuickActions
-        {...defaultProps}
-        hasScenarios={true}
-        onCompareAll={mockOnCompareAll}
-      />
-    );
+    render(<QuickActions {...defaultProps} hasScenarios={true} onCompareAll={mockOnCompareAll} />);
     expect(screen.getByText("Compare All")).toBeInTheDocument();
     expect(screen.getByText("Side by side")).toBeInTheDocument();
   });
 
   it("calls onCompareAll when clicking Compare All", () => {
-    render(
-      <QuickActions
-        {...defaultProps}
-        hasScenarios={true}
-        onCompareAll={mockOnCompareAll}
-      />
-    );
+    render(<QuickActions {...defaultProps} hasScenarios={true} onCompareAll={mockOnCompareAll} />);
     fireEvent.click(screen.getByText("Compare All"));
     expect(mockOnCompareAll).toHaveBeenCalled();
   });
 
   it("does not show Compare All when hasScenarios but no onCompareAll", () => {
-    render(
-      <QuickActions
-        {...defaultProps}
-        hasScenarios={true}
-      />
-    );
+    render(<QuickActions {...defaultProps} hasScenarios={true} />);
     expect(screen.queryByText("Compare All")).not.toBeInTheDocument();
   });
 
   it("applies custom className", () => {
-    const { container } = render(
-      <QuickActions {...defaultProps} className="custom-class" />
-    );
+    const { container } = render(<QuickActions {...defaultProps} className="custom-class" />);
     expect(container.firstChild).toHaveClass("custom-class");
   });
 });

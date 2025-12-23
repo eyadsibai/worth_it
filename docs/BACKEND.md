@@ -95,9 +95,11 @@ The application now uses a **microservices architecture** with FastAPI as the ba
 ### Core Calculation Endpoints
 
 #### `GET /health`
+
 Health check endpoint to verify API is running.
 
 **Response:**
+
 ```json
 {
   "status": "healthy",
@@ -106,9 +108,11 @@ Health check endpoint to verify API is running.
 ```
 
 #### `POST /api/monthly-data-grid`
+
 Creates a DataFrame with monthly financial projections.
 
 **Request:**
+
 ```json
 {
   "exit_year": 5,
@@ -120,6 +124,7 @@ Creates a DataFrame with monthly financial projections.
 ```
 
 **Response:**
+
 ```json
 {
   "data": [
@@ -136,9 +141,11 @@ Creates a DataFrame with monthly financial projections.
 ```
 
 #### `POST /api/opportunity-cost`
+
 Calculates the opportunity cost of foregone salary.
 
 **Request:**
+
 ```json
 {
   "monthly_data": [...],
@@ -150,6 +157,7 @@ Calculates the opportunity cost of foregone salary.
 ```
 
 **Response:**
+
 ```json
 {
   "data": [
@@ -164,9 +172,11 @@ Calculates the opportunity cost of foregone salary.
 ```
 
 #### `POST /api/startup-scenario`
+
 Calculates financial outcomes for startup equity package.
 
 **Request:**
+
 ```json
 {
   "opportunity_cost_data": [...],
@@ -182,6 +192,7 @@ Calculates financial outcomes for startup equity package.
 ```
 
 **Response:**
+
 ```json
 {
   "results_df": [...],
@@ -195,9 +206,11 @@ Calculates financial outcomes for startup equity package.
 ```
 
 #### `POST /api/irr`
+
 Calculates Internal Rate of Return.
 
 **Request:**
+
 ```json
 {
   "monthly_surpluses": [10000, 10000, ...],
@@ -206,6 +219,7 @@ Calculates Internal Rate of Return.
 ```
 
 **Response:**
+
 ```json
 {
   "irr": 15.67
@@ -213,9 +227,11 @@ Calculates Internal Rate of Return.
 ```
 
 #### `POST /api/npv`
+
 Calculates Net Present Value.
 
 **Request:**
+
 ```json
 {
   "monthly_surpluses": [10000, 10000, ...],
@@ -225,6 +241,7 @@ Calculates Net Present Value.
 ```
 
 **Response:**
+
 ```json
 {
   "npv": 567890.12
@@ -232,9 +249,11 @@ Calculates Net Present Value.
 ```
 
 #### `POST /api/monte-carlo`
+
 Runs Monte Carlo simulation for probabilistic analysis.
 
 **Request:**
+
 ```json
 {
   "num_simulations": 1000,
@@ -244,6 +263,7 @@ Runs Monte Carlo simulation for probabilistic analysis.
 ```
 
 **Response:**
+
 ```json
 {
   "net_outcomes": [123456.78, 234567.89, ...],
@@ -252,9 +272,11 @@ Runs Monte Carlo simulation for probabilistic analysis.
 ```
 
 #### `POST /api/sensitivity-analysis`
+
 Runs sensitivity analysis to identify key variables.
 
 **Request:**
+
 ```json
 {
   "base_params": {...},
@@ -263,6 +285,7 @@ Runs sensitivity analysis to identify key variables.
 ```
 
 **Response:**
+
 ```json
 {
   "data": [
@@ -278,9 +301,11 @@ Runs sensitivity analysis to identify key variables.
 ```
 
 #### `POST /api/dilution`
+
 Calculates dilution percentage from fundraising round.
 
 **Request:**
+
 ```json
 {
   "pre_money_valuation": 10000000,
@@ -289,6 +314,7 @@ Calculates dilution percentage from fundraising round.
 ```
 
 **Response:**
+
 ```json
 {
   "dilution": 0.1667
@@ -390,7 +416,8 @@ pytest -v
 
 ### Interactive API Documentation
 
-When the backend is running, visit http://localhost:8000/docs for:
+When the backend is running, visit <http://localhost:8000/docs> for:
+
 - Interactive API exploration
 - Request/response schemas
 - Try out endpoints directly in browser
@@ -398,4 +425,4 @@ When the backend is running, visit http://localhost:8000/docs for:
 
 ### Environment Variables
 
-- `API_BASE_URL` - Base URL for the FastAPI backend (default: http://localhost:8000)
+- `API_BASE_URL` - Base URL for the FastAPI backend (default: <http://localhost:8000>)

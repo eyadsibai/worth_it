@@ -54,7 +54,7 @@ export function WelcomeModal({ open, onComplete, onSkip }: WelcomeModalProps) {
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         {/* Step Indicators */}
-        <div className="flex justify-center gap-2 mb-2">
+        <div className="mb-2 flex justify-center gap-2">
           {[1, 2, 3].map((step) => (
             <div
               key={step}
@@ -75,31 +75,30 @@ export function WelcomeModal({ open, onComplete, onSkip }: WelcomeModalProps) {
         {currentStep === 1 && (
           <>
             <DialogHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                <Sparkles className="h-8 w-8 text-primary" />
+              <div className="bg-primary/10 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                <Sparkles className="text-primary h-8 w-8" />
               </div>
               <DialogTitle className="text-2xl">Welcome to Worth It</DialogTitle>
               <DialogDescription className="text-base">
-                Make smarter career decisions by comparing job offers with
-                equity compensation
+                Make smarter career decisions by comparing job offers with equity compensation
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-3 py-4">
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-chart-3/20 text-chart-3">
+              <div className="text-muted-foreground flex items-center gap-3 text-sm">
+                <div className="bg-chart-3/20 text-chart-3 flex h-6 w-6 items-center justify-center rounded-full">
                   1
                 </div>
                 <span>Enter your current job details</span>
               </div>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-chart-3/20 text-chart-3">
+              <div className="text-muted-foreground flex items-center gap-3 text-sm">
+                <div className="bg-chart-3/20 text-chart-3 flex h-6 w-6 items-center justify-center rounded-full">
                   2
                 </div>
                 <span>Add your startup offer with equity</span>
               </div>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-chart-3/20 text-chart-3">
+              <div className="text-muted-foreground flex items-center gap-3 text-sm">
+                <div className="bg-chart-3/20 text-chart-3 flex h-6 w-6 items-center justify-center rounded-full">
                   3
                 </div>
                 <span>See instant comparison & Monte Carlo analysis</span>
@@ -122,39 +121,35 @@ export function WelcomeModal({ open, onComplete, onSkip }: WelcomeModalProps) {
         {currentStep === 2 && (
           <>
             <DialogHeader className="text-center">
-              <DialogTitle className="text-xl">
-                Are you an Employee or Founder?
-              </DialogTitle>
-              <DialogDescription>
-                This determines which tools you&apos;ll see
-              </DialogDescription>
+              <DialogTitle className="text-xl">Are you an Employee or Founder?</DialogTitle>
+              <DialogDescription>This determines which tools you&apos;ll see</DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-3 py-4">
               <Button
                 variant="outline"
-                className="h-auto flex-col items-start gap-2 p-4 text-left hover:border-primary hover:bg-primary/5"
+                className="hover:border-primary hover:bg-primary/5 h-auto flex-col items-start gap-2 p-4 text-left"
                 onClick={() => handleModeSelect("employee")}
               >
                 <div className="flex items-center gap-2">
-                  <Briefcase className="h-5 w-5 text-primary" />
+                  <Briefcase className="text-primary h-5 w-5" />
                   <span className="font-semibold">Employee</span>
                 </div>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-muted-foreground text-sm">
                   Compare job offers with RSUs or stock options
                 </span>
               </Button>
 
               <Button
                 variant="outline"
-                className="h-auto flex-col items-start gap-2 p-4 text-left hover:border-primary hover:bg-primary/5"
+                className="hover:border-primary hover:bg-primary/5 h-auto flex-col items-start gap-2 p-4 text-left"
                 onClick={() => handleModeSelect("founder")}
               >
                 <div className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-primary" />
+                  <Building2 className="text-primary h-5 w-5" />
                   <span className="font-semibold">Founder</span>
                 </div>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-muted-foreground text-sm">
                   Manage cap table and model waterfall distributions
                 </span>
               </Button>
@@ -170,24 +165,22 @@ export function WelcomeModal({ open, onComplete, onSkip }: WelcomeModalProps) {
         {currentStep === 3 && (
           <>
             <DialogHeader className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-chart-3/20">
-                <ArrowRight className="h-8 w-8 text-chart-3" />
+              <div className="bg-chart-3/20 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+                <ArrowRight className="text-chart-3 h-8 w-8" />
               </div>
               <DialogTitle className="text-xl">You&apos;re all set!</DialogTitle>
               <DialogDescription className="text-base">
-                Fill in the sidebar on the left to see your results instantly on
-                the right
+                Fill in the sidebar on the left to see your results instantly on the right
               </DialogDescription>
             </DialogHeader>
 
-            <div className="rounded-lg border border-dashed border-primary/50 bg-primary/5 p-4 text-center text-sm text-muted-foreground">
+            <div className="border-primary/50 bg-primary/5 text-muted-foreground rounded-lg border border-dashed p-4 text-center text-sm">
               <p>
-                <strong>Tip:</strong> Try loading an example scenario to see how
-                it works
+                <strong>Tip:</strong> Try loading an example scenario to see how it works
               </p>
             </div>
 
-            <Button onClick={handleComplete} className="w-full mt-4">
+            <Button onClick={handleComplete} className="mt-4 w-full">
               Got it!
             </Button>
           </>

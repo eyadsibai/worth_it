@@ -6,7 +6,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DecisionWizard } from "@/components/decision/decision-wizard";
-import type { FinancialAnalysis, DecisionRecommendation, DecisionInputs } from "@/lib/decision-framework";
+import type {
+  FinancialAnalysis,
+  DecisionRecommendation,
+  DecisionInputs,
+} from "@/lib/decision-framework";
 
 // Mock financial analysis
 const mockFinancialAnalysis: FinancialAnalysis = {
@@ -34,7 +38,9 @@ describe("DecisionWizard", () => {
 
       expect(screen.getByText("Decision Framework")).toBeInTheDocument();
       expect(screen.getByText("Financial Analysis")).toBeInTheDocument();
-      expect(screen.getByText("Based on your inputs, the financial analysis shows:")).toBeInTheDocument();
+      expect(
+        screen.getByText("Based on your inputs, the financial analysis shows:")
+      ).toBeInTheDocument();
     });
 
     it("displays financial metrics on first step", () => {
@@ -61,9 +67,9 @@ describe("DecisionWizard", () => {
       render(<DecisionWizard {...defaultProps} />);
 
       // Should have 4 step indicators (progress dots/icons)
-      const stepButtons = screen.getAllByRole("button").filter((btn) =>
-        btn.className.includes("flex flex-col items-center")
-      );
+      const stepButtons = screen
+        .getAllByRole("button")
+        .filter((btn) => btn.className.includes("flex flex-col items-center"));
       expect(stepButtons).toHaveLength(4);
     });
   });
@@ -158,8 +164,12 @@ describe("DecisionWizard", () => {
       await user.click(screen.getByText("Next"));
 
       await waitFor(() => {
-        expect(screen.getByText("Do you have dependents relying on your income?")).toBeInTheDocument();
-        expect(screen.getByText("Is income stability critical for you right now?")).toBeInTheDocument();
+        expect(
+          screen.getByText("Do you have dependents relying on your income?")
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText("Is income stability critical for you right now?")
+        ).toBeInTheDocument();
       });
     });
 

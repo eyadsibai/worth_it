@@ -87,9 +87,7 @@ export function WalkthroughProvider({ children }: { children: React.ReactNode })
           (prereqId) => !prev.progress.completed[prereqId]
         );
         if (unmetPrereqs.length > 0) {
-          console.warn(
-            `Tour "${tourId}" requires completing: ${unmetPrereqs.join(", ")}`
-          );
+          console.warn(`Tour "${tourId}" requires completing: ${unmetPrereqs.join(", ")}`);
           // Note: Can't recursively call startTour here, so just return unchanged
           // The UI should handle showing prerequisites
           return prev;
@@ -231,9 +229,7 @@ export function WalkthroughProvider({ children }: { children: React.ReactNode })
 
       // Prerequisites met
       if (tour.prerequisites) {
-        return tour.prerequisites.every(
-          (prereqId) => state.progress.completed[prereqId]
-        );
+        return tour.prerequisites.every((prereqId) => state.progress.completed[prereqId]);
       }
 
       return true;
@@ -253,11 +249,7 @@ export function WalkthroughProvider({ children }: { children: React.ReactNode })
     availableTours,
   };
 
-  return (
-    <WalkthroughContext.Provider value={value}>
-      {children}
-    </WalkthroughContext.Provider>
-  );
+  return <WalkthroughContext.Provider value={value}>{children}</WalkthroughContext.Provider>;
 }
 
 export function useWalkthrough() {

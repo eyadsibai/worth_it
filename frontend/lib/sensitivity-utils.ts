@@ -206,10 +206,7 @@ export function calculateBreakevenThresholds(
  * the current outcome, so we reconstruct the actual outcomes at the low and
  * high points, then linearly interpolate to find where outcome = 0.
  */
-function calculateThresholdValue(
-  data: SensitivityDataPoint,
-  currentOutcome: number
-): number {
+function calculateThresholdValue(data: SensitivityDataPoint, currentOutcome: number): number {
   const lowValue = data.low;
   const highValue = data.high;
 
@@ -261,7 +258,7 @@ function getUnitForVariable(variable: string): string {
     "Equity %": "%",
     "Salary Growth": "%",
     "Investment ROI": "%",
-    "Dilution": "%",
+    Dilution: "%",
   };
   return units[variable] || "";
 }

@@ -3,7 +3,11 @@
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ResponsiveTable, ResponsiveTableFooter, type Column } from "@/components/ui/responsive-table";
+import {
+  ResponsiveTable,
+  ResponsiveTableFooter,
+  type Column,
+} from "@/components/ui/responsive-table";
 import type { WaterfallDistribution, StakeholderPayout } from "@/lib/schemas";
 
 interface WaterfallTableProps {
@@ -67,12 +71,10 @@ export function WaterfallTable({ distribution }: WaterfallTableProps) {
       <Card className="terminal-card">
         <CardHeader>
           <CardTitle>Stakeholder Payouts</CardTitle>
-          <CardDescription>
-            Select an exit valuation to see detailed payouts
-          </CardDescription>
+          <CardDescription>Select an exit valuation to see detailed payouts</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+          <div className="text-muted-foreground flex h-[200px] items-center justify-center">
             No distribution selected
           </div>
         </CardContent>
@@ -91,9 +93,7 @@ export function WaterfallTable({ distribution }: WaterfallTableProps) {
       key: "investment",
       header: "Investment",
       cell: (row) =>
-        row.investment_amount !== undefined
-          ? formatCurrency(row.investment_amount)
-          : "-",
+        row.investment_amount !== undefined ? formatCurrency(row.investment_amount) : "-",
       className: "text-right tabular-nums",
     },
     {
@@ -123,10 +123,7 @@ export function WaterfallTable({ distribution }: WaterfallTableProps) {
     },
   ];
 
-  const totalInvestment = sortedPayouts.reduce(
-    (sum, p) => sum + (p.investment_amount ?? 0),
-    0
-  );
+  const totalInvestment = sortedPayouts.reduce((sum, p) => sum + (p.investment_amount ?? 0), 0);
 
   const footer = (
     <ResponsiveTableFooter
@@ -141,15 +138,13 @@ export function WaterfallTable({ distribution }: WaterfallTableProps) {
   return (
     <Card className="terminal-card">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between flex-wrap gap-2">
+        <CardTitle className="flex flex-wrap items-center justify-between gap-2">
           <span>Stakeholder Payouts</span>
           <Badge variant="outline" className="tabular-nums">
             Exit: {formatCurrency(distribution.exit_valuation)}
           </Badge>
         </CardTitle>
-        <CardDescription>
-          Detailed breakdown of proceeds for each stakeholder
-        </CardDescription>
+        <CardDescription>Detailed breakdown of proceeds for each stakeholder</CardDescription>
       </CardHeader>
       <CardContent>
         <ResponsiveTable
@@ -160,16 +155,16 @@ export function WaterfallTable({ distribution }: WaterfallTableProps) {
         />
 
         {/* Common vs Preferred Summary */}
-        <div className="mt-4 p-4 rounded-lg bg-muted/50 grid grid-cols-2 gap-4">
+        <div className="bg-muted/50 mt-4 grid grid-cols-2 gap-4 rounded-lg p-4">
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">Common Shareholders</p>
-            <p className="text-2xl tabular-nums font-semibold text-chart-1">
+            <p className="text-muted-foreground text-sm">Common Shareholders</p>
+            <p className="text-chart-1 text-2xl font-semibold tabular-nums">
               {(distribution.common_pct ?? 0).toFixed(1)}%
             </p>
           </div>
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">Preferred Shareholders</p>
-            <p className="text-2xl tabular-nums font-semibold text-chart-3">
+            <p className="text-muted-foreground text-sm">Preferred Shareholders</p>
+            <p className="text-chart-3 text-2xl font-semibold tabular-nums">
               {(distribution.preferred_pct ?? 0).toFixed(1)}%
             </p>
           </div>

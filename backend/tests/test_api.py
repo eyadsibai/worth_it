@@ -1221,9 +1221,9 @@ class TestRateLimiting:
 
         # Verify default limits are sensible
         assert Settings.RATE_LIMIT_PER_MINUTE == 60, "Default rate limit should be 60/min"
-        assert Settings.RATE_LIMIT_MONTE_CARLO_PER_MINUTE == 10, (
-            "Monte Carlo limit should be 10/min"
-        )
+        assert (
+            Settings.RATE_LIMIT_MONTE_CARLO_PER_MINUTE == 10
+        ), "Monte Carlo limit should be 10/min"
 
 
 class TestSecurityConfiguration:
@@ -1239,9 +1239,9 @@ class TestSecurityConfiguration:
             # Import Settings after clearing the env var so defaults are applied
             from worth_it.config import Settings
 
-            assert Settings.API_HOST == "127.0.0.1", (
-                "API_HOST should default to 127.0.0.1 for security"
-            )
+            assert (
+                Settings.API_HOST == "127.0.0.1"
+            ), "API_HOST should default to 127.0.0.1 for security"
         finally:
             # Restore original if it existed
             if original is not None:

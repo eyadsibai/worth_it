@@ -16,19 +16,29 @@ vi.mock("framer-motion", async () => {
     // motion.* - render as regular HTML elements
     motion: {
       span: ({ children, ...props }: React.HTMLAttributes<HTMLSpanElement>) => (
-        <span data-motion="true" {...props}>{children}</span>
+        <span data-motion="true" {...props}>
+          {children}
+        </span>
       ),
       p: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-        <p data-motion="true" {...props}>{children}</p>
+        <p data-motion="true" {...props}>
+          {children}
+        </p>
       ),
       h1: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-        <h1 data-motion="true" {...props}>{children}</h1>
+        <h1 data-motion="true" {...props}>
+          {children}
+        </h1>
       ),
       h2: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-        <h2 data-motion="true" {...props}>{children}</h2>
+        <h2 data-motion="true" {...props}>
+          {children}
+        </h2>
       ),
       h3: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-        <h3 data-motion="true" {...props}>{children}</h3>
+        <h3 data-motion="true" {...props}>
+          {children}
+        </h3>
       ),
     },
   };

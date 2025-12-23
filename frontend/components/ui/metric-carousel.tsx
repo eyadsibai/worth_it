@@ -16,11 +16,7 @@ interface MetricCarouselProps {
  *
  * Uses CSS scroll-snap for smooth, native touch scrolling.
  */
-export function MetricCarousel({
-  children,
-  className,
-  showDots = true,
-}: MetricCarouselProps) {
+export function MetricCarousel({ children, className, showDots = true }: MetricCarouselProps) {
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = React.useState(0);
   const childrenArray = React.Children.toArray(children);
@@ -75,11 +71,7 @@ export function MetricCarousel({
   if (childCount === 0) {
     return (
       <div className={className}>
-        <div
-          role="region"
-          aria-label="Metrics carousel"
-          ref={scrollContainerRef}
-        >
+        <div role="region" aria-label="Metrics carousel" ref={scrollContainerRef}>
           <div className="flex" />
         </div>
       </div>
@@ -96,9 +88,9 @@ export function MetricCarousel({
         className={cn(
           // Mobile: horizontal scroll with snap
           // scrollbar-hide class handles all vendor prefixes for hiding scrollbar
-          "flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide",
+          "scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2",
           // Desktop: grid layout
-          "lg:grid lg:grid-cols-5 lg:overflow-visible lg:pb-0 lg:gap-4"
+          "lg:grid lg:grid-cols-5 lg:gap-4 lg:overflow-visible lg:pb-0"
         )}
       >
         {childrenArray.map((child, index) => (
@@ -110,7 +102,7 @@ export function MetricCarousel({
               // so that two cards fit side-by-side including the gap. If the gap
               // value in the container changes, this width calculation must be
               // updated accordingly.
-              "flex-shrink-0 w-[calc(50%-8px)] snap-start",
+              "w-[calc(50%-8px)] flex-shrink-0 snap-start",
               // Desktop: auto-fill grid
               "lg:w-auto lg:flex-shrink"
             )}
@@ -135,8 +127,8 @@ export function MetricCarousel({
               aria-selected={index === activeIndex}
               onClick={() => scrollToIndex(index)}
               className={cn(
-                "w-2 h-2 rounded-full transition-all duration-200",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
+                "h-2 w-2 rounded-full transition-all duration-200",
+                "focus-visible:ring-accent focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
                 index === activeIndex
                   ? "bg-primary scale-110"
                   : "bg-muted-foreground/30 hover:bg-muted-foreground/50"

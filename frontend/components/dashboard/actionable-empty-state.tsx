@@ -30,36 +30,24 @@ export function ActionableEmptyState({
       : "Total Equity Grant %, Exit Valuation, and Monthly Salary";
 
   return (
-    <div className="space-y-6 max-w-md mx-auto">
-      <AlertCircle className="h-12 w-12 text-accent/40 mx-auto" />
+    <div className="mx-auto max-w-md space-y-6">
+      <AlertCircle className="text-accent/40 mx-auto h-12 w-12" />
       <div className="space-y-3">
-        <h3 className="text-lg font-medium text-foreground">
-          Complete Equity Details
-        </h3>
-        <p className="text-sm text-muted-foreground leading-relaxed font-mono">
-          Please fill in all equity fields in the Startup Offer form. Enter
-          values greater than zero for:
-          <span className="block mt-2">{requiredFields}</span>
+        <h3 className="text-foreground text-lg font-medium">Complete Equity Details</h3>
+        <p className="text-muted-foreground font-mono text-sm leading-relaxed">
+          Please fill in all equity fields in the Startup Offer form. Enter values greater than zero
+          for:
+          <span className="mt-2 block">{requiredFields}</span>
         </p>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-3 pt-2">
-        <Button
-          variant="default"
-          size="sm"
-          className="gap-2 flex-1"
-          onClick={onLoadExample}
-        >
+      <div className="flex flex-col gap-3 pt-2 sm:flex-row">
+        <Button variant="default" size="sm" className="flex-1 gap-2" onClick={onLoadExample}>
           <ClipboardList className="h-4 w-4" />
           Load Example
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2 flex-1"
-          onClick={onFocusMissingField}
-        >
+        <Button variant="outline" size="sm" className="flex-1 gap-2" onClick={onFocusMissingField}>
           <Focus className="h-4 w-4" />
           Focus Missing Field
         </Button>

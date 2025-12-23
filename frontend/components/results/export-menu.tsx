@@ -71,28 +71,23 @@ export function ExportMenu({ scenario, monteCarloStats, disabled }: ExportMenuPr
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          disabled={disabled}
-        >
+        <Button variant="outline" size="sm" className="gap-2" disabled={disabled}>
           <Download className="h-4 w-4" />
           Export
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem onClick={handleExportPDF} className="cursor-pointer">
-          <FileText className="h-4 w-4 mr-2" />
+          <FileText className="mr-2 h-4 w-4" />
           <span className="text-sm">PDF Report</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer">
-          <FileSpreadsheet className="h-4 w-4 mr-2" />
+          <FileSpreadsheet className="mr-2 h-4 w-4" />
           <span className="text-sm">CSV Data</span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleExportJSON} className="cursor-pointer">
-          <FileJson className="h-4 w-4 mr-2" />
+          <FileJson className="mr-2 h-4 w-4" />
           <span className="text-sm">JSON Backup</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

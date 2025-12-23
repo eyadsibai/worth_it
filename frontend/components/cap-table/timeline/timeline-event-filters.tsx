@@ -151,10 +151,8 @@ export function TimelineEventFilters({
   const noneActive = activeCount === 0;
 
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-xs text-muted-foreground uppercase tracking-wide mr-1">
-        Show:
-      </span>
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-muted-foreground mr-1 text-xs tracking-wide uppercase">Show:</span>
 
       {/* Filter toggles */}
       {options.map((option) => (
@@ -164,7 +162,7 @@ export function TimelineEventFilters({
           onPressedChange={() => onToggleFilter(option.key)}
           size="sm"
           className={cn(
-            "h-7 px-3 text-xs rounded-full",
+            "h-7 rounded-full px-3 text-xs",
             filters[option.key]
               ? "bg-primary/10 text-primary hover:bg-primary/20"
               : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -176,13 +174,13 @@ export function TimelineEventFilters({
       ))}
 
       {/* Quick actions */}
-      <div className="flex items-center gap-1 ml-2 pl-2 border-l">
+      <div className="ml-2 flex items-center gap-1 border-l pl-2">
         <Button
           variant="ghost"
           size="sm"
           onClick={onShowAll}
           disabled={allActive}
-          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground h-7 px-2 text-xs"
         >
           All
         </Button>
@@ -191,7 +189,7 @@ export function TimelineEventFilters({
           size="sm"
           onClick={onHideAll}
           disabled={noneActive}
-          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground h-7 px-2 text-xs"
         >
           None
         </Button>

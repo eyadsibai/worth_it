@@ -92,6 +92,7 @@ pytest test_calculations.py::test_name
 ### Important Commands
 
 ✅ **Use these:**
+
 - `pytest` - Runs tests
 - `streamlit run app.py` - Runs Streamlit app
 - `uvicorn api:app` - Runs FastAPI backend
@@ -189,11 +190,13 @@ vested_pct = np.where(
 ### When to Add Tests
 
 **Always add tests when:**
+
 - Adding a new calculation feature
 - Fixing a bug (test should fail before fix, pass after)
 - Changing calculation logic
 
 **Test should cover:**
+
 - Happy path (normal inputs)
 - Edge cases (zero values, cliff boundaries, sales after exit)
 - Different equity types (RSUs vs Options)
@@ -228,15 +231,17 @@ All 9 API endpoints:
 8. `POST /api/sensitivity-analysis` - Sensitivity analysis
 9. `POST /api/dilution` - Dilution calculations
 
-See interactive API documentation at http://localhost:8000/docs when backend is running.
+See interactive API documentation at <http://localhost:8000/docs> when backend is running.
 
 ## Common Pitfalls to Avoid
 
 ### 1. Breaking Separation of Concerns
+
 ❌ Adding calculations to `app.py`
 ✅ Keep all calculation logic in `calculations.py`
 
 ### 2. Missing Monte Carlo Parameter Passing
+
 ```python
 # ❌ WRONG (old bug)
 opportunity_cost_df = calculate_annual_opportunity_cost(
@@ -252,6 +257,7 @@ opportunity_cost_df = calculate_annual_opportunity_cost(
 ```
 
 ### 3. Sales After Exit Year
+
 Sales occurring after the exit year must be ignored:
 
 ```python
@@ -260,6 +266,7 @@ if r["year"] <= exit_year:  # ✅ Include sales AT exit year
 ```
 
 ### 4. NumPy Broadcasting
+
 Be careful with array shapes in Monte Carlo simulations:
 
 ```python
@@ -271,19 +278,23 @@ assert investable_surpluses.shape[1] == total_months
 ## Key Financial Concepts
 
 ### 1. Monthly Data Grid
+
 Creates month-by-month salary comparison between current job and startup.
 
 ### 2. Opportunity Cost
+
 Calculates future value of salary difference if invested at current job.
 
 ### 3. Equity Types
 
 **RSUs (Restricted Stock Units)**:
+
 - Direct equity percentage (e.g., 5%)
 - Subject to dilution from funding rounds
 - Can model secondary equity sales
 
 **Stock Options**:
+
 - Number of options + strike price
 - Profit = (Exit Price - Strike Price) × Vested Options
 - Exercise costs can be modeled
@@ -291,10 +302,12 @@ Calculates future value of salary difference if invested at current job.
 ### 4. Dilution & Secondary Sales
 
 **Dilution Rounds**: Model multiple funding rounds that dilute equity
+
 - Can specify dilution % directly OR calculate from valuation
 - Each round has: year, dilution %, optional new salary
 
 **Secondary Sales**: Sell vested equity during funding rounds
+
 - Percentage of vested equity at time of sale
 - Cash from sale is invested (grows with opportunity cost returns)
 - Remaining equity is reduced for final payout
@@ -302,10 +315,12 @@ Calculates future value of salary difference if invested at current job.
 ### 5. Monte Carlo Simulations
 
 **Vectorized (Fast)**:
+
 - Used when exit year is FIXED
 - All calculations done with NumPy arrays (parallelized)
 
 **Iterative (Slower)**:
+
 - Used when exit year is SIMULATED
 - Runs full calculation for each simulation
 - Necessary because exit year affects vesting, dilution timing
@@ -360,15 +375,15 @@ All changes should maintain or improve documentation:
 
 ## Environment Variables
 
-- `API_BASE_URL` - Base URL for the FastAPI backend (default: http://localhost:8000)
+- `API_BASE_URL` - Base URL for the FastAPI backend (default: <http://localhost:8000>)
 
 ## Additional Resources
 
-- **NumPy Broadcasting**: https://numpy.org/doc/stable/user/basics.broadcasting.html
-- **PERT Distribution**: https://en.wikipedia.org/wiki/PERT_distribution
-- **Streamlit Docs**: https://docs.streamlit.io
-- **FastAPI Docs**: https://fastapi.tiangolo.com
-- **Pydantic Docs**: https://docs.pydantic.dev
+- **NumPy Broadcasting**: <https://numpy.org/doc/stable/user/basics.broadcasting.html>
+- **PERT Distribution**: <https://en.wikipedia.org/wiki/PERT_distribution>
+- **Streamlit Docs**: <https://docs.streamlit.io>
+- **FastAPI Docs**: <https://fastapi.tiangolo.com>
+- **Pydantic Docs**: <https://docs.pydantic.dev>
 
 ## Questions to Ask Before Making Changes
 

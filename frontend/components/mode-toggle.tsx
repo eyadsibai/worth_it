@@ -26,7 +26,7 @@ const MODE_CONFIG = {
 export function ModeToggle({ mode, onModeChange }: ModeToggleProps) {
   return (
     <div
-      className="inline-flex p-1 rounded-xl bg-muted/50 border border-border/50"
+      className="bg-muted/50 border-border/50 inline-flex rounded-xl border p-1"
       role="tablist"
       aria-label="Application mode"
       data-tour="cap-table-nav"
@@ -43,18 +43,20 @@ export function ModeToggle({ mode, onModeChange }: ModeToggleProps) {
             aria-selected={isActive}
             onClick={() => onModeChange(modeKey)}
             className={cn(
-              "relative flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium",
+              "relative flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium",
               "transition-all duration-200 ease-out",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              "focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
               isActive
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground hover:bg-background/50"
             )}
           >
-            <Icon className={cn(
-              "h-4 w-4 transition-colors duration-200",
-              isActive ? "text-primary" : "text-muted-foreground"
-            )} />
+            <Icon
+              className={cn(
+                "h-4 w-4 transition-colors duration-200",
+                isActive ? "text-primary" : "text-muted-foreground"
+              )}
+            />
             <span className="hidden sm:inline">{config.label}</span>
             <span className="sm:hidden">{config.shortLabel}</span>
           </button>

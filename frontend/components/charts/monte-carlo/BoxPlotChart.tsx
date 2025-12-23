@@ -18,9 +18,7 @@ interface BoxPlotChartProps {
   stats: MonteCarloStats;
 }
 
-export const BoxPlotChart = memo(function BoxPlotChart({
-  stats,
-}: BoxPlotChartProps) {
+export const BoxPlotChart = memo(function BoxPlotChart({ stats }: BoxPlotChartProps) {
   const boxPlotData = useMemo(() => {
     return [
       { name: "Min", value: stats.min },
@@ -35,8 +33,8 @@ export const BoxPlotChart = memo(function BoxPlotChart({
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-2">Outcome Percentiles</h3>
-      <p className="text-sm text-muted-foreground mb-4">
+      <h3 className="mb-2 text-lg font-semibold">Outcome Percentiles</h3>
+      <p className="text-muted-foreground mb-4 text-sm">
         Visual summary of distribution showing quartiles and extremes
       </p>
       <ResponsiveContainer width="100%" height={400}>
@@ -62,16 +60,8 @@ export const BoxPlotChart = memo(function BoxPlotChart({
               borderRadius: "8px",
             }}
           />
-          <Bar
-            dataKey="value"
-            fill="var(--chart-1)"
-            radius={[0, 4, 4, 0]}
-          />
-          <ReferenceLine
-            x={0}
-            stroke="var(--muted-foreground)"
-            strokeDasharray="3 3"
-          />
+          <Bar dataKey="value" fill="var(--chart-1)" radius={[0, 4, 4, 0]} />
+          <ReferenceLine x={0} stroke="var(--muted-foreground)" strokeDasharray="3 3" />
         </BarChart>
       </ResponsiveContainer>
     </div>

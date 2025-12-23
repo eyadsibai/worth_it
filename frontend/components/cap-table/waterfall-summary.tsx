@@ -2,11 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import type {
-  WaterfallDistribution,
-  PreferenceTier,
-  StakeholderPayout,
-} from "@/lib/schemas";
+import type { WaterfallDistribution, PreferenceTier, StakeholderPayout } from "@/lib/schemas";
 import { formatCurrency, formatCurrencyCompact } from "@/lib/format-utils";
 
 interface WaterfallSummaryProps {
@@ -35,7 +31,7 @@ export function WaterfallSummary({
   // Empty/loading state
   if (!distribution) {
     return (
-      <div className="rounded-xl border bg-card p-6 text-center">
+      <div className="bg-card rounded-xl border p-6 text-center">
         <p className="text-muted-foreground">No distribution data available. Loading...</p>
       </div>
     );
@@ -43,9 +39,7 @@ export function WaterfallSummary({
 
   // Get highlighted stakeholder payout
   const highlightedPayout = highlightedStakeholderId
-    ? distribution.stakeholder_payouts.find(
-        (p) => p.stakeholder_id === highlightedStakeholderId
-      )
+    ? distribution.stakeholder_payouts.find((p) => p.stakeholder_id === highlightedStakeholderId)
     : undefined;
 
   // Check if there are preference tiers
@@ -54,15 +48,13 @@ export function WaterfallSummary({
   return (
     <div className="space-y-6">
       {/* Title and explanation */}
-      <div className="rounded-xl border bg-card p-6">
-        <h3 className="text-lg font-semibold mb-4">
-          How Exit Proceeds Are Distributed
-        </h3>
+      <div className="bg-card rounded-xl border p-6">
+        <h3 className="mb-4 text-lg font-semibold">How Exit Proceeds Are Distributed</h3>
 
-        <div className="space-y-3 text-sm text-muted-foreground">
+        <div className="text-muted-foreground space-y-3 text-sm">
           <p>
             At an exit valuation of{" "}
-            <span className="font-semibold text-foreground">
+            <span className="text-foreground font-semibold">
               {formatCurrencyCompact(exitValuation)}
             </span>
             , here&apos;s how the money flows:
@@ -71,20 +63,21 @@ export function WaterfallSummary({
           {/* Preference explanation */}
           <div data-testid="preference-explanation" className="space-y-2">
             {hasPreferences ? (
-              <p className="[&>b]:font-semibold [&>b]:text-foreground">
-                <b>Preferred investors get paid first</b> — before common shareholders see any money,
-                senior investors receive their guaranteed returns.
+              <p className="[&>b]:text-foreground [&>b]:font-semibold">
+                <b>Preferred investors get paid first</b> — before common shareholders see any
+                money, senior investors receive their guaranteed returns.
                 {preferenceTiers.some((t) => t.participating) && (
                   <>
-                    {" "}Some investors have <b>participating</b> rights, meaning they get their
+                    {" "}
+                    Some investors have <b>participating</b> rights, meaning they get their
                     guaranteed amount AND a share of the remaining proceeds.
                   </>
                 )}
               </p>
             ) : (
               <p data-testid="no-preferences-message">
-                <strong className="text-foreground">No preference tiers</strong> are configured.
-                All proceeds go directly to shareholders based on their ownership percentages.
+                <strong className="text-foreground">No preference tiers</strong> are configured. All
+                proceeds go directly to shareholders based on their ownership percentages.
               </p>
             )}
           </div>
@@ -93,99 +86,91 @@ export function WaterfallSummary({
 
       {/* Visual Flow Diagram - only show when there are preferences to explain */}
       {hasPreferences && (
-      <div
-        data-testid="waterfall-flow-diagram"
-        aria-label="Waterfall distribution flow showing how exit proceeds are distributed step by step"
-        className="rounded-xl border bg-card p-6"
-      >
-        <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-4">
-          Distribution Flow
-        </h4>
+        <div
+          data-testid="waterfall-flow-diagram"
+          aria-label="Waterfall distribution flow showing how exit proceeds are distributed step by step"
+          className="bg-card rounded-xl border p-6"
+        >
+          <h4 className="text-muted-foreground mb-4 text-sm font-semibold tracking-wide uppercase">
+            Distribution Flow
+          </h4>
 
-        <div className="space-y-2">
-          {distribution.waterfall_steps.map((step, index) => (
-            <React.Fragment key={step.step_number}>
-              {/* Flow step */}
-              <div
-                data-testid={`flow-step-${step.step_number}`}
-                className={cn(
-                  "rounded-lg border p-4",
-                  getStepColorClass(step.description)
-                )}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-foreground/10 text-xs font-semibold">
-                        {step.step_number}
-                      </span>
-                      <span className="font-medium text-sm" data-testid={`step-description-${step.step_number}`}>
-                        {step.description}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Recipients: {step.recipients.join(", ")}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-semibold tabular-nums">
-                      {formatCurrency(step.amount)}
-                    </p>
-                    {step.remaining_proceeds > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {formatCurrency(step.remaining_proceeds)} remaining
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Connector arrow */}
-              {index < distribution.waterfall_steps.length - 1 && (
+          <div className="space-y-2">
+            {distribution.waterfall_steps.map((step, index) => (
+              <React.Fragment key={step.step_number}>
+                {/* Flow step */}
                 <div
-                  data-testid="flow-connector"
-                  className="flex justify-center py-1"
+                  data-testid={`flow-step-${step.step_number}`}
+                  className={cn("rounded-lg border p-4", getStepColorClass(step.description))}
                 >
-                  <svg
-                    className="h-4 w-4 text-muted-foreground/50"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                    />
-                  </svg>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex items-center gap-2">
+                        <span className="bg-foreground/10 flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold">
+                          {step.step_number}
+                        </span>
+                        <span
+                          className="text-sm font-medium"
+                          data-testid={`step-description-${step.step_number}`}
+                        >
+                          {step.description}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground text-xs">
+                        Recipients: {step.recipients.join(", ")}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-semibold tabular-nums">{formatCurrency(step.amount)}</p>
+                      {step.remaining_proceeds > 0 && (
+                        <p className="text-muted-foreground text-xs">
+                          {formatCurrency(step.remaining_proceeds)} remaining
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              )}
-            </React.Fragment>
-          ))}
+
+                {/* Connector arrow */}
+                {index < distribution.waterfall_steps.length - 1 && (
+                  <div data-testid="flow-connector" className="flex justify-center py-1">
+                    <svg
+                      className="text-muted-foreground/50 h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                      />
+                    </svg>
+                  </div>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
         </div>
-      </div>
       )}
 
       {/* Highlighted Stakeholder Payout */}
       {highlightedPayout && (
-        <div
-          data-testid="highlighted-payout"
-          className="rounded-xl border bg-primary/5 p-6"
-        >
-          <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+        <div data-testid="highlighted-payout" className="bg-primary/5 rounded-xl border p-6">
+          <h4 className="text-muted-foreground mb-2 text-sm font-semibold tracking-wide uppercase">
             {highlightedPayout.name}&apos;s Payout
           </h4>
           <div className="flex items-baseline gap-3">
             <span className="text-3xl font-bold tabular-nums">
               {formatCurrency(highlightedPayout.payout_amount)}
             </span>
-            <span className="text-lg text-muted-foreground tabular-nums">
+            <span className="text-muted-foreground text-lg tabular-nums">
               ({highlightedPayout.payout_pct.toFixed(1)}%)
             </span>
             {highlightedPayout.roi !== undefined && (
-              <span className="text-lg font-semibold text-terminal tabular-nums">
+              <span className="text-terminal text-lg font-semibold tabular-nums">
                 {highlightedPayout.roi.toFixed(1)}x ROI
               </span>
             )}
@@ -194,11 +179,8 @@ export function WaterfallSummary({
       )}
 
       {/* Stakeholder Selector */}
-      <div
-        data-testid="stakeholder-selector"
-        className="rounded-xl border bg-card p-4"
-      >
-        <h4 className="text-sm font-semibold mb-3">View Payout For</h4>
+      <div data-testid="stakeholder-selector" className="bg-card rounded-xl border p-4">
+        <h4 className="mb-3 text-sm font-semibold">View Payout For</h4>
         <div className="flex flex-wrap gap-2">
           {distribution.stakeholder_payouts.map((payout) => (
             <button

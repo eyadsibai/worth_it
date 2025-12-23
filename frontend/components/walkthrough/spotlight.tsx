@@ -55,7 +55,12 @@ function calculateTooltipPosition(
   const centerY = targetRect.top + targetRect.height / 2 - tooltipHeight / 2;
 
   // Try positions in order of preference
-  const positions: Array<{ placement: "top" | "bottom" | "left" | "right"; top: number; left: number; valid: boolean }> = [
+  const positions: Array<{
+    placement: "top" | "bottom" | "left" | "right";
+    top: number;
+    left: number;
+    valid: boolean;
+  }> = [
     {
       placement: "bottom",
       top: targetRect.bottom + padding + arrowOffset,
@@ -84,7 +89,8 @@ function calculateTooltipPosition(
 
   // Find preferred position or first valid one
   const preferred = positions.find((p) => p.placement === preferredPosition && p.valid);
-  if (preferred) return { top: preferred.top, left: preferred.left, placement: preferred.placement };
+  if (preferred)
+    return { top: preferred.top, left: preferred.left, placement: preferred.placement };
 
   const fallback = positions.find((p) => p.valid) || positions[0];
   return { top: fallback.top, left: fallback.left, placement: fallback.placement };
@@ -192,7 +198,12 @@ export function Spotlight({
   const overlayPadding = 8;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100]" role="dialog" aria-modal="true" aria-label="Tutorial walkthrough">
+    <div
+      className="fixed inset-0 z-[100]"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Tutorial walkthrough"
+    >
       {/* Overlay with cutout */}
       <div className="absolute inset-0">
         {/* Semi-transparent overlay */}
@@ -201,7 +212,7 @@ export function Spotlight({
         {/* Cutout for target element */}
         {targetRect && (
           <div
-            className="absolute bg-transparent rounded-lg ring-4 ring-terminal/50 ring-offset-2 ring-offset-transparent transition-all duration-300"
+            className="ring-terminal/50 absolute rounded-lg bg-transparent ring-4 ring-offset-2 ring-offset-transparent transition-all duration-300"
             style={{
               top: targetRect.top - overlayPadding,
               left: targetRect.left - overlayPadding,
@@ -217,7 +228,7 @@ export function Spotlight({
       <Card
         ref={tooltipRef}
         className={cn(
-          "absolute z-[101] w-80 shadow-xl border-terminal/30 bg-card",
+          "border-terminal/30 bg-card absolute z-[101] w-80 shadow-xl",
           "transition-all duration-300",
           !tooltipPosition && "opacity-0"
         )}
@@ -228,11 +239,11 @@ export function Spotlight({
       >
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
-            <CardTitle className="text-base text-terminal">{step.title}</CardTitle>
+            <CardTitle className="text-terminal text-base">{step.title}</CardTitle>
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 -mr-2 -mt-1"
+              className="-mt-1 -mr-2 h-6 w-6"
               onClick={onSkip}
               aria-label="Close tutorial"
             >
@@ -241,26 +252,21 @@ export function Spotlight({
           </div>
         </CardHeader>
         <CardContent className="pb-4">
-          <p className="text-sm text-muted-foreground">{step.description}</p>
+          <p className="text-muted-foreground text-sm">{step.description}</p>
           {step.action && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={step.action.onClick}
-            >
+            <Button variant="outline" size="sm" className="mt-3" onClick={step.action.onClick}>
               {step.action.label}
             </Button>
           )}
         </CardContent>
-        <CardFooter className="pt-0 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">
+        <CardFooter className="flex items-center justify-between pt-0">
+          <span className="text-muted-foreground text-xs">
             {currentStep + 1} of {steps.length}
           </span>
           <div className="flex gap-2">
             {!isFirstStep && (
               <Button variant="ghost" size="sm" onClick={onPrev}>
-                <ArrowLeft className="h-4 w-4 mr-1" />
+                <ArrowLeft className="mr-1 h-4 w-4" />
                 Back
               </Button>
             )}
@@ -270,7 +276,7 @@ export function Spotlight({
               className="bg-terminal hover:bg-terminal/90"
             >
               {isLastStep ? "Finish" : "Next"}
-              {!isLastStep && <ArrowRight className="h-4 w-4 ml-1" />}
+              {!isLastStep && <ArrowRight className="ml-1 h-4 w-4" />}
             </Button>
           </div>
         </CardFooter>

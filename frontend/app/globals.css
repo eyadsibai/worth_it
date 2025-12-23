@@ -68,7 +68,7 @@
   --muted: oklch(95% 0.003 250);
   --muted-foreground: oklch(50% 0.01 250);
   /* Accent: Medium green #2D5A3D */
-  --accent: oklch(42% 0.10 155);
+  --accent: oklch(42% 0.1 155);
   --accent-foreground: oklch(98% 0 0);
   /* Amber: Lime green #9BC53D for highlights */
   --amber: oklch(72% 0.18 115);
@@ -80,13 +80,13 @@
   /* Border: Very subtle gray (almost invisible) */
   --border: oklch(92% 0.003 250);
   --input: oklch(96% 0.003 250);
-  --ring: oklch(42% 0.10 155);
+  --ring: oklch(42% 0.1 155);
   /* Fundcy multi-tone green chart palette */
-  --chart-1: oklch(32% 0.08 155);  /* Dark forest #1A3D2E */
-  --chart-2: oklch(42% 0.10 155);  /* Medium green #2D5A3D */
-  --chart-3: oklch(72% 0.18 115);  /* Lime #9BC53D */
-  --chart-4: oklch(70% 0.14 175);  /* Teal/Mint #3DD9C1 */
-  --chart-5: oklch(85% 0.08 155);  /* Light mint */
+  --chart-1: oklch(32% 0.08 155); /* Dark forest #1A3D2E */
+  --chart-2: oklch(42% 0.1 155); /* Medium green #2D5A3D */
+  --chart-3: oklch(72% 0.18 115); /* Lime #9BC53D */
+  --chart-4: oklch(70% 0.14 175); /* Teal/Mint #3DD9C1 */
+  --chart-5: oklch(85% 0.08 155); /* Light mint */
   /* Sidebar: Same as background */
   --sidebar: oklch(97.5% 0.003 250);
   --sidebar-foreground: oklch(18% 0.01 250);
@@ -95,7 +95,7 @@
   --sidebar-accent: oklch(95% 0.003 250);
   --sidebar-accent-foreground: oklch(18% 0.01 250);
   --sidebar-border: oklch(92% 0.003 250);
-  --sidebar-ring: oklch(42% 0.10 155);
+  --sidebar-ring: oklch(42% 0.1 155);
 }
 
 .dark {
@@ -130,7 +130,7 @@
   --chart-2: oklch(62% 0.14 155);
   --chart-3: oklch(72% 0.18 115);
   --chart-4: oklch(70% 0.14 175);
-  --chart-5: oklch(80% 0.10 155);
+  --chart-5: oklch(80% 0.1 155);
   /* Sidebar */
   --sidebar: oklch(16% 0.01 250);
   --sidebar-foreground: oklch(90% 0.005 250);
@@ -149,7 +149,9 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -179,7 +181,7 @@
 
   /* Sharp focus states */
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-accent;
+    @apply outline-accent outline-2 outline-offset-2;
   }
 
   /* Amber selection */
@@ -194,22 +196,30 @@
   .terminal-card {
     @apply bg-card rounded-2xl;
     @apply transition-all duration-200 ease-out;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 2px 8px rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.03),
+      0 2px 8px rgba(0, 0, 0, 0.04);
   }
 
   .terminal-card:hover {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.04),
+      0 4px 12px rgba(0, 0, 0, 0.06);
   }
 
   /* Compact terminal card - for smaller UI elements like status indicators */
   .terminal-card-sm {
     @apply bg-card rounded-2xl p-3;
     @apply transition-all duration-200 ease-out;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 2px 8px rgba(0, 0, 0, 0.04);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.03),
+      0 2px 8px rgba(0, 0, 0, 0.04);
   }
 
   .terminal-card-sm:hover {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.04),
+      0 4px 12px rgba(0, 0, 0, 0.06);
   }
 
   /* Data card - for numbers and metrics */
@@ -234,7 +244,7 @@
   }
 
   .data-label {
-    @apply text-xs uppercase tracking-wider text-muted-foreground font-medium;
+    @apply text-muted-foreground text-xs font-medium tracking-wider uppercase;
   }
 
   /* Accent text - subtle emphasis */
@@ -248,7 +258,7 @@
   }
   .status-online::before {
     content: "";
-    @apply absolute -left-3 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-terminal;
+    @apply bg-terminal absolute top-1/2 -left-3 h-1.5 w-1.5 -translate-y-1/2 rounded-full;
   }
 
   /* Subtle background texture - very faint */
@@ -258,17 +268,17 @@
 
   /* Gradient text - green spectrum */
   .gradient-text {
-    @apply bg-gradient-to-r from-primary via-accent to-terminal bg-clip-text text-transparent;
+    @apply from-primary via-accent to-terminal bg-gradient-to-r bg-clip-text text-transparent;
   }
 
   /* Success gradient for positive values */
   .gradient-gold {
-    @apply bg-gradient-to-r from-accent to-terminal bg-clip-text text-transparent;
+    @apply from-accent to-terminal bg-gradient-to-r bg-clip-text text-transparent;
   }
 
   /* Section divider - subtle green */
   .section-divider {
-    @apply h-px bg-border;
+    @apply bg-border h-px;
   }
 
   /* Choreographed entrance animations */
@@ -293,19 +303,33 @@
   }
 
   /* Stagger delays */
-  .delay-75 { animation-delay: 75ms; }
-  .delay-150 { animation-delay: 150ms; }
-  .delay-225 { animation-delay: 225ms; }
-  .delay-300 { animation-delay: 300ms; }
-  .delay-375 { animation-delay: 375ms; }
-  .delay-450 { animation-delay: 450ms; }
+  .delay-75 {
+    animation-delay: 75ms;
+  }
+  .delay-150 {
+    animation-delay: 150ms;
+  }
+  .delay-225 {
+    animation-delay: 225ms;
+  }
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+  .delay-375 {
+    animation-delay: 375ms;
+  }
+  .delay-450 {
+    animation-delay: 450ms;
+  }
 
   /* Hover states - subtle elevation */
   .hover-glow {
     @apply transition-all duration-200;
   }
   .hover-glow:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.08),
+      0 8px 24px rgba(0, 0, 0, 0.06);
   }
 
   /* Button hover effect - subtle */
@@ -324,13 +348,13 @@
 
   /* Focus ring - amber glow */
   .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    @apply focus-visible:ring-accent focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
   }
 
   /* Input field terminal style */
   .input-terminal {
-    @apply bg-secondary/50 border-border focus:border-accent focus:ring-1 focus:ring-accent/50;
-    @apply font-mono placeholder:text-muted-foreground/50;
+    @apply bg-secondary/50 border-border focus:border-accent focus:ring-accent/50 focus:ring-1;
+    @apply placeholder:text-muted-foreground/50 font-mono;
   }
 
   /* Metric display */
@@ -357,8 +381,12 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
@@ -770,7 +798,8 @@
     width: 100% !important;
   }
 
-  th, td {
+  th,
+  td {
     border: 1px solid var(--border) !important;
     padding: 8px !important;
     text-align: left !important;

@@ -16,15 +16,9 @@ import { EVENT_TYPE_LABELS } from "./types";
 /**
  * Download a file with the given content
  */
-function downloadFile(
-  content: string | Blob,
-  filename: string,
-  mimeType?: string
-) {
+function downloadFile(content: string | Blob, filename: string, mimeType?: string) {
   const blob =
-    content instanceof Blob
-      ? content
-      : new Blob([content], { type: mimeType || "text/plain" });
+    content instanceof Blob ? content : new Blob([content], { type: mimeType || "text/plain" });
 
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -108,9 +102,7 @@ export function exportToJSON(events: TimelineEvent[]): void {
 /**
  * Export timeline container as PNG image
  */
-export async function exportToPNG(
-  containerRef: RefObject<HTMLDivElement | null>
-): Promise<void> {
+export async function exportToPNG(containerRef: RefObject<HTMLDivElement | null>): Promise<void> {
   if (!containerRef.current) {
     console.error("Container ref is not available");
     return;

@@ -22,17 +22,13 @@ export function StepFounders({
   const canProceed = hasValidNames && !isOverLimit;
 
   const handleNameChange = (id: string, name: string) => {
-    const updatedFounders = data.founders.map((f) =>
-      f.id === id ? { ...f, name } : f
-    );
+    const updatedFounders = data.founders.map((f) => (f.id === id ? { ...f, name } : f));
     onDataChange({ founders: updatedFounders });
   };
 
   const handleOwnershipChange = (id: string, value: string) => {
     const ownershipPct = parseFloat(value) || 0;
-    const updatedFounders = data.founders.map((f) =>
-      f.id === id ? { ...f, ownershipPct } : f
-    );
+    const updatedFounders = data.founders.map((f) => (f.id === id ? { ...f, ownershipPct } : f));
     onDataChange({ founders: updatedFounders });
   };
 
@@ -53,14 +49,12 @@ export function StepFounders({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <Users className="h-6 w-6 text-primary" />
+      <div className="space-y-2 text-center">
+        <div className="bg-primary/10 mx-auto flex h-12 w-12 items-center justify-center rounded-full">
+          <Users className="text-primary h-6 w-6" />
         </div>
         <h2 className="text-2xl font-semibold">Who are the founders?</h2>
-        <p className="text-muted-foreground">
-          Add the founding team and their equity split
-        </p>
+        <p className="text-muted-foreground">Add the founding team and their equity split</p>
       </div>
 
       {/* Founder Entries */}
@@ -89,9 +83,7 @@ export function StepFounders({
                   />
                 </div>
                 <div className="w-28">
-                  <Label htmlFor={`founder-ownership-${founder.id}`}>
-                    Ownership
-                  </Label>
+                  <Label htmlFor={`founder-ownership-${founder.id}`}>Ownership</Label>
                   <div className="relative">
                     <Input
                       id={`founder-ownership-${founder.id}`}
@@ -103,7 +95,7 @@ export function StepFounders({
                       className="pr-8 tabular-nums"
                       aria-label={`Founder ${index + 1} ownership percentage`}
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                    <span className="text-muted-foreground absolute top-1/2 right-3 -translate-y-1/2 text-sm">
                       %
                     </span>
                   </div>
@@ -134,14 +126,14 @@ export function StepFounders({
           className="mt-4 w-full"
           disabled={data.founders.length >= 6}
         >
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="mr-2 h-4 w-4" />
           Add Founder
         </Button>
       </Card>
 
       {/* Total Summary */}
-      <Card className="p-4 bg-muted/50">
-        <div className="flex justify-between items-center">
+      <Card className="bg-muted/50 p-4">
+        <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Total</span>
           <span
             className={`text-lg font-semibold tabular-nums ${
@@ -152,19 +144,19 @@ export function StepFounders({
           </span>
         </div>
         {isOverLimit && (
-          <p className="text-xs text-destructive mt-1">
+          <p className="text-destructive mt-1 text-xs">
             Total exceeds 100%. Please adjust the ownership percentages.
           </p>
         )}
         {!isOverLimit && totalOwnership < 100 && (
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-xs">
             Remaining {100 - totalOwnership}% will be unallocated (can add later)
           </p>
         )}
       </Card>
 
       {/* Tip */}
-      <p className="text-sm text-muted-foreground text-center">
+      <p className="text-muted-foreground text-center text-sm">
         💡 Tip: Equal splits are common for co-founders at the start
       </p>
 
@@ -175,7 +167,7 @@ export function StepFounders({
         </Button>
         <Button onClick={onNext} disabled={!canProceed}>
           Next
-          <ArrowRight className="h-4 w-4 ml-2" />
+          <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>

@@ -66,21 +66,18 @@ function CustomTooltip({
   if (active && payload && payload.length) {
     const total = payload.reduce((sum, entry) => sum + entry.value, 0);
     return (
-      <div className="bg-popover border border-border rounded-lg shadow-lg p-3 min-w-[200px]">
-        <p className="font-medium border-b border-border pb-2 mb-2">Exit: {label}</p>
+      <div className="bg-popover border-border min-w-[200px] rounded-lg border p-3 shadow-lg">
+        <p className="border-border mb-2 border-b pb-2 font-medium">Exit: {label}</p>
         {payload.map((entry) => (
-          <div key={entry.name} className="flex justify-between text-sm py-0.5">
+          <div key={entry.name} className="flex justify-between py-0.5 text-sm">
             <span className="flex items-center gap-2">
-              <span
-                className="w-3 h-3 rounded-sm"
-                style={{ backgroundColor: entry.fill }}
-              />
+              <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: entry.fill }} />
               {entry.name}
             </span>
             <span className="tabular-nums">{formatCurrency(entry.value)}</span>
           </div>
         ))}
-        <div className="border-t border-border mt-2 pt-2 flex justify-between font-medium">
+        <div className="border-border mt-2 flex justify-between border-t pt-2 font-medium">
           <span>Total</span>
           <span className="tabular-nums">{formatCurrency(total)}</span>
         </div>
@@ -143,7 +140,7 @@ export function WaterfallChart({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+          <div className="text-muted-foreground flex h-[300px] items-center justify-center">
             No distribution data available
           </div>
         </CardContent>
@@ -167,20 +164,14 @@ export function WaterfallChart({
             onClick={handleChartClick}
           >
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis
-              dataKey="exit_label"
-              tick={{ fontSize: 12 }}
-              className="text-muted-foreground"
-            />
+            <XAxis dataKey="exit_label" tick={{ fontSize: 12 }} className="text-muted-foreground" />
             <YAxis
               tickFormatter={formatCurrency}
               tick={{ fontSize: 12 }}
               className="text-muted-foreground"
             />
             <Tooltip content={<CustomTooltip />} />
-            <Legend
-              formatter={(value) => <span className="text-sm">{value}</span>}
-            />
+            <Legend formatter={(value) => <span className="text-sm">{value}</span>} />
             {stakeholderNames.map((name, index) => (
               <Bar
                 key={name}

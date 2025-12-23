@@ -12,6 +12,7 @@ worth_it/
 ```
 
 **Focused documentation:**
+
 - **Backend work**: See `backend/CLAUDE.md`
 - **Frontend work**: See `frontend/CLAUDE.md`
 
@@ -25,8 +26,8 @@ cd backend && uv sync && uv run uvicorn worth_it.api:app --reload --port 8000
 cd frontend && npm install && npm run dev
 ```
 
-- Backend API Docs: http://localhost:8000/docs
-- Frontend: http://localhost:3000
+- Backend API Docs: <http://localhost:8000/docs>
+- Frontend: <http://localhost:3000>
 
 ## Core Principles
 
@@ -39,12 +40,14 @@ cd frontend && npm install && npm run dev
 **CRITICAL: All business logic belongs in the backend. The frontend is purely for presentation.**
 
 ### Backend Responsibilities (Python/FastAPI)
+
 - **All calculations** - financial, statistical, mathematical
 - **Business logic** - comparisons, winners, insights generation
 - **Data validation** - Pydantic models validate inputs
 - **Data transformations** - any logic that processes data
 
 ### Frontend Responsibilities (TypeScript/Next.js)
+
 - **UI rendering** - components, layouts, styling
 - **User interaction** - forms, clicks, navigation
 - **API calls** - fetch data from backend via `api-client.ts`
@@ -52,6 +55,7 @@ cd frontend && npm install && npm run dev
 - **Display formatting** - currency formatting, date formatting for display only
 
 ### What NOT to Put in Frontend
+
 ```typescript
 // ❌ WRONG - Business logic in frontend
 function calculateDilution(stakeholders, amount) { ... }
@@ -64,13 +68,16 @@ const { data } = await apiClient.compareScenarios(scenarios);
 ```
 
 ### Why This Matters
+
 1. **Single source of truth** - Logic in one place, not duplicated
 2. **Easier testing** - Backend logic has pure function tests
 3. **Consistency** - Same calculations regardless of client
 4. **Maintainability** - Change logic once, not in two codebases
 
 ### Adding New Features Checklist
+
 When adding a feature that involves calculations or business logic:
+
 1. ✅ Implement calculation in `backend/src/worth_it/calculations/`
 2. ✅ Add Pydantic models in `backend/src/worth_it/models.py`
 3. ✅ Create API endpoint in `backend/src/worth_it/api/routers/`
@@ -122,6 +129,7 @@ Zod schemas in `frontend/lib/schemas.ts` must match Pydantic models in `backend/
 ## Pre-Commit Checklist
 
 **Backend:**
+
 ```bash
 cd backend && uv run ruff check --fix --unsafe-fixes src/ tests/
 cd backend && uv run pytest -v
@@ -129,6 +137,7 @@ cd backend && uv run pyright src/
 ```
 
 **Frontend:**
+
 ```bash
 cd frontend && npm run type-check
 cd frontend && npm run lint
@@ -162,11 +171,13 @@ Do not consider a PR ready for review until all GitHub Actions workflows are pas
 ### Running E2E Tests
 
 Use the convenience script that handles server startup/shutdown:
+
 ```bash
 ./scripts/run-e2e-tests.sh
 ```
 
 Or run manually (requires both servers running):
+
 ```bash
 # Terminal 1: Start backend
 cd backend && uv run uvicorn worth_it.api:app --reload --port 8000
@@ -208,12 +219,14 @@ playwright/
 ### Writing E2E Tests
 
 **Form interactions use Radix UI components**:
+
 - **Sliders**: Use `[role="slider"]` with keyboard navigation (Home/ArrowRight)
 - **Tabs**: Use `[role="tab"]` instead of radio buttons for equity type selection
 - **Selects**: Use `[role="combobox"]` for dropdown menus
 - **Checkboxes**: Use `[role="checkbox"]` for toggle options
 
 **Important**: Always scope selectors to form containers to avoid matching duplicate elements:
+
 ```typescript
 // Good - scoped to specific card
 const currentJobCard = page.locator('.glass-card').filter({ hasText: 'Current Job' });
@@ -226,15 +239,18 @@ const salaryInput = page.locator('input[name="monthly_salary"]').first();
 ## Troubleshooting
 
 **Playwright tests failing?**
+
 - Ensure both backend and frontend are running
 - Check selectors if UI changed (use `[role="slider"]` for Radix sliders, not `input`)
 - Scope selectors to form containers to avoid duplicate element matches
 
 **WebSocket not connecting?**
+
 - Backend must be running on port 8000
 - Check CORS settings in `backend/src/worth_it/config.py`
 - Check browser console for connection errors
 
 For stack-specific troubleshooting, see:
+
 - `backend/CLAUDE.md` - Backend troubleshooting
 - `frontend/CLAUDE.md` - Frontend troubleshooting

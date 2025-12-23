@@ -65,7 +65,7 @@ describe("BottomNav", () => {
       const nav = screen.getByRole("navigation", { name: /mobile navigation/i });
       const buttons = within(nav).getAllByRole("button");
       expect(buttons).toHaveLength(4);
-      buttons.forEach(button => {
+      buttons.forEach((button) => {
         const svg = button.querySelector("svg");
         expect(svg).toBeInTheDocument();
       });

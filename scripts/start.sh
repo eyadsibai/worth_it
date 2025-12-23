@@ -24,19 +24,19 @@ fi
 # Install backend dependencies
 echo ""
 echo "Installing backend dependencies with uv..."
-cd "$PROJECT_ROOT/backend"
+cd "$PROJECT_ROOT/backend" || exit 1
 uv sync
 
 # Install frontend dependencies
 echo ""
 echo "Installing frontend dependencies with npm..."
-cd "$PROJECT_ROOT/frontend"
+cd "$PROJECT_ROOT/frontend" || exit 1
 npm install
 
 # Start FastAPI backend in background
 echo ""
 echo "Starting FastAPI backend on http://localhost:8000..."
-cd "$PROJECT_ROOT/backend"
+cd "$PROJECT_ROOT/backend" || exit 1
 uv run uvicorn worth_it.api:app --host 0.0.0.0 --reload --port 8000 &
 BACKEND_PID=$!
 
@@ -64,7 +64,7 @@ echo "✓ FastAPI backend is running (PID: $BACKEND_PID)"
 # Start Next.js frontend
 echo ""
 echo "Starting Next.js frontend on http://localhost:3000..."
-cd "$PROJECT_ROOT/frontend"
+cd "$PROJECT_ROOT/frontend" || exit 1
 npm run dev &
 FRONTEND_PID=$!
 

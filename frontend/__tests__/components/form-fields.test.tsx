@@ -9,7 +9,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form } from "@/components/ui/form";
-import { TextInputField, CheckboxField, NumberInputField, SliderField } from "@/components/forms/form-fields";
+import {
+  TextInputField,
+  CheckboxField,
+  NumberInputField,
+  SliderField,
+} from "@/components/forms/form-fields";
 
 // Test schema
 const TestSchema = z.object({
@@ -50,9 +55,7 @@ describe("TextInputField", () => {
   it("renders with label", () => {
     render(
       <TestFormWrapper>
-        {(form) => (
-          <TextInputField form={form} name="name" label="Full Name" />
-        )}
+        {(form) => <TextInputField form={form} name="name" label="Full Name" />}
       </TestFormWrapper>
     );
 
@@ -63,12 +66,7 @@ describe("TextInputField", () => {
     render(
       <TestFormWrapper>
         {(form) => (
-          <TextInputField
-            form={form}
-            name="name"
-            label="Full Name"
-            placeholder="Enter your name"
-          />
+          <TextInputField form={form} name="name" label="Full Name" placeholder="Enter your name" />
         )}
       </TestFormWrapper>
     );
@@ -98,9 +96,7 @@ describe("TextInputField", () => {
 
     render(
       <TestFormWrapper>
-        {(form) => (
-          <TextInputField form={form} name="name" label="Full Name" />
-        )}
+        {(form) => <TextInputField form={form} name="name" label="Full Name" />}
       </TestFormWrapper>
     );
 
@@ -113,9 +109,7 @@ describe("TextInputField", () => {
   it("supports different input types", () => {
     render(
       <TestFormWrapper>
-        {(form) => (
-          <TextInputField form={form} name="email" label="Email" type="email" />
-        )}
+        {(form) => <TextInputField form={form} name="email" label="Email" type="email" />}
       </TestFormWrapper>
     );
 
@@ -146,9 +140,7 @@ describe("TextInputField with tooltip", () => {
   it("does not render tooltip icon when tooltip prop is not provided", () => {
     render(
       <TestFormWrapper>
-        {(form) => (
-          <TextInputField form={form} name="name" label="Full Name" />
-        )}
+        {(form) => <TextInputField form={form} name="name" label="Full Name" />}
       </TestFormWrapper>
     );
 
@@ -162,9 +154,7 @@ describe("CheckboxField", () => {
   it("renders with label", () => {
     render(
       <TestFormWrapper>
-        {(form) => (
-          <CheckboxField form={form} name="agreed" label="I agree to terms" />
-        )}
+        {(form) => <CheckboxField form={form} name="agreed" label="I agree to terms" />}
       </TestFormWrapper>
     );
 
@@ -186,17 +176,13 @@ describe("CheckboxField", () => {
       </TestFormWrapper>
     );
 
-    expect(
-      screen.getByText("By checking, you accept our terms of service")
-    ).toBeInTheDocument();
+    expect(screen.getByText("By checking, you accept our terms of service")).toBeInTheDocument();
   });
 
   it("is unchecked by default when defaultValue is false", () => {
     render(
       <TestFormWrapper>
-        {(form) => (
-          <CheckboxField form={form} name="agreed" label="I agree to terms" />
-        )}
+        {(form) => <CheckboxField form={form} name="agreed" label="I agree to terms" />}
       </TestFormWrapper>
     );
 
@@ -207,13 +193,7 @@ describe("CheckboxField", () => {
   it("is checked when defaultValue is true", () => {
     render(
       <TestFormWrapper>
-        {(form) => (
-          <CheckboxField
-            form={form}
-            name="notifications"
-            label="Enable notifications"
-          />
-        )}
+        {(form) => <CheckboxField form={form} name="notifications" label="Enable notifications" />}
       </TestFormWrapper>
     );
 
@@ -226,9 +206,7 @@ describe("CheckboxField", () => {
 
     render(
       <TestFormWrapper>
-        {(form) => (
-          <CheckboxField form={form} name="agreed" label="I agree to terms" />
-        )}
+        {(form) => <CheckboxField form={form} name="agreed" label="I agree to terms" />}
       </TestFormWrapper>
     );
 
@@ -273,9 +251,7 @@ describe("NumberInputField", () => {
   it("renders with label and prefix", () => {
     render(
       <NumberTestWrapper>
-        {(form) => (
-          <NumberInputField form={form} name="amount" label="Amount" prefix="$" />
-        )}
+        {(form) => <NumberInputField form={form} name="amount" label="Amount" prefix="$" />}
       </NumberTestWrapper>
     );
 
@@ -464,13 +440,7 @@ describe("NumberInputField with hint and example props", () => {
   it("does not render hint when not provided", () => {
     render(
       <NumberTestWrapper>
-        {(form) => (
-          <NumberInputField
-            form={form}
-            name="salary"
-            label="Monthly Salary"
-          />
-        )}
+        {(form) => <NumberInputField form={form} name="salary" label="Monthly Salary" />}
       </NumberTestWrapper>
     );
 
@@ -511,15 +481,7 @@ describe("SliderField", () => {
   it("renders with label and current value display", () => {
     render(
       <SliderTestWrapper>
-        {(form) => (
-          <SliderField
-            form={form}
-            name="years"
-            label="Years"
-            min={1}
-            max={10}
-          />
-        )}
+        {(form) => <SliderField form={form} name="years" label="Years" min={1} max={10} />}
       </SliderTestWrapper>
     );
 
@@ -532,15 +494,7 @@ describe("SliderField", () => {
   it("has aria-valuetext with raw value when formatValue is not provided", () => {
     render(
       <SliderTestWrapper>
-        {(form) => (
-          <SliderField
-            form={form}
-            name="years"
-            label="Years"
-            min={1}
-            max={10}
-          />
-        )}
+        {(form) => <SliderField form={form} name="years" label="Years" min={1} max={10} />}
       </SliderTestWrapper>
     );
 

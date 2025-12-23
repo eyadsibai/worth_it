@@ -13,7 +13,13 @@ import { MonteCarloVisualizations } from "@/components/charts/monte-carlo-visual
 import { SensitivityAnalysisPanel } from "@/components/results/sensitivity-analysis-panel";
 import { ScenarioManager } from "@/components/scenarios/scenario-manager";
 import { ScenarioComparison } from "@/components/scenarios/scenario-comparison";
-import { useDebounce, useSidebarFormStatus, useScenarioCalculation, useMobileViewSafe, useIsTablet } from "@/lib/hooks";
+import {
+  useDebounce,
+  useSidebarFormStatus,
+  useScenarioCalculation,
+  useMobileViewSafe,
+  useIsTablet,
+} from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import { FormCompletionSummary } from "@/components/forms/form-completion-summary";
 import { ExampleLoader } from "@/components/forms/example-loader";
@@ -78,9 +84,7 @@ export function EmployeeDashboard() {
     if (!fieldName) return;
 
     // Find and focus the input by name attribute
-    const input = document.querySelector<HTMLInputElement>(
-      `input[name="${fieldName}"]`
-    );
+    const input = document.querySelector<HTMLInputElement>(`input[name="${fieldName}"]`);
 
     if (input) {
       input.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -126,7 +130,14 @@ export function EmployeeDashboard() {
       }, 500); // Clear after calculation completes
       return () => clearTimeout(timer);
     }
-  }, [debouncedGlobalSettings, debouncedCurrentJob, debouncedEquityDetails, mobileView, hasValidData, startupScenarioResult]);
+  }, [
+    debouncedGlobalSettings,
+    debouncedCurrentJob,
+    debouncedEquityDetails,
+    mobileView,
+    hasValidData,
+    startupScenarioResult,
+  ]);
 
   // Determine column visibility based on mobile view state
   const activeView = mobileView?.activeView ?? "inputs";
@@ -134,7 +145,7 @@ export function EmployeeDashboard() {
   const showResults = !isTablet || activeView === "results";
 
   return (
-    <div className="grid lg:grid-cols-[380px_1fr] gap-8">
+    <div className="grid gap-8 lg:grid-cols-[380px_1fr]">
       {/* Left Column - Configuration Forms */}
       <div
         className={cn(
@@ -175,18 +186,19 @@ export function EmployeeDashboard() {
                   onFocusMissingField={handleFocusMissingField}
                 />
               ) : (
-                <div className="space-y-6 max-w-md mx-auto">
+                <div className="mx-auto max-w-md space-y-6">
                   <TemplatePicker mode="employee" />
                   <div className="relative my-6">
                     <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-border" />
+                      <span className="border-border w-full border-t" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">or enter manually</span>
+                      <span className="bg-card text-muted-foreground px-2">or enter manually</span>
                     </div>
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed font-mono">
-                    Complete the configuration forms on the left to generate your financial analysis.
+                  <p className="text-muted-foreground font-mono text-sm leading-relaxed">
+                    Complete the configuration forms on the left to generate your financial
+                    analysis.
                   </p>
                 </div>
               )}
@@ -200,11 +212,11 @@ export function EmployeeDashboard() {
             <CardContent className="py-16 text-center">
               <div className="flex flex-col items-center gap-6">
                 <div className="relative">
-                  <Loader2 className="h-10 w-10 animate-spin text-accent" />
+                  <Loader2 className="text-accent h-10 w-10 animate-spin" />
                 </div>
-                <div className="space-y-2 max-w-sm">
-                  <h3 className="text-lg font-medium text-foreground">Processing</h3>
-                  <p className="text-sm text-muted-foreground font-mono">Running calculations...</p>
+                <div className="max-w-sm space-y-2">
+                  <h3 className="text-foreground text-lg font-medium">Processing</h3>
+                  <p className="text-muted-foreground font-mono text-sm">Running calculations...</p>
                 </div>
               </div>
             </CardContent>
@@ -213,100 +225,117 @@ export function EmployeeDashboard() {
 
         {/* Scenario Comparison */}
         {comparisonScenarios.length > 0 && (
-          <ScenarioComparison
-            scenarios={comparisonScenarios}
-            onClose={clearComparisonScenarios}
-          />
+          <ScenarioComparison scenarios={comparisonScenarios} onClose={clearComparisonScenarios} />
         )}
 
         {/* Scenario Manager */}
         <ScenarioManager onCompareScenarios={setComparisonScenarios} />
 
         {/* Main Results */}
-        {startupScenarioResult && debouncedGlobalSettings && debouncedCurrentJob && debouncedEquityDetails && (
-          <ScenarioResults
-            results={startupScenarioResult}
-            isLoading={isPending}
-            isFetching={isFetching}
-            globalSettings={debouncedGlobalSettings}
-            currentJob={debouncedCurrentJob}
-            equityDetails={debouncedEquityDetails}
-            monteCarloContent={hasValidData ? (
-              <div className="space-y-6">
-                <MonteCarloFormComponent
-                  baseParams={{
-                    exit_year: debouncedGlobalSettings.exit_year,
-                    current_job_monthly_salary: debouncedCurrentJob.monthly_salary,
-                    startup_monthly_salary: debouncedEquityDetails.monthly_salary,
-                    current_job_salary_growth_rate: debouncedCurrentJob.annual_salary_growth_rate / 100,
-                    annual_roi: debouncedCurrentJob.assumed_annual_roi / 100,
-                    investment_frequency: debouncedCurrentJob.investment_frequency,
-                    failure_probability: 0.6,
-                    // Issue #248: Use flat typed format for startup_params
-                    startup_params: debouncedEquityDetails.equity_type === "RSU" ? {
-                      equity_type: "RSU" as const,
-                      monthly_salary: debouncedEquityDetails.monthly_salary,
-                      total_equity_grant_pct: debouncedEquityDetails.total_equity_grant_pct,
-                      vesting_period: debouncedEquityDetails.vesting_period,
-                      cliff_period: debouncedEquityDetails.cliff_period,
-                      exit_valuation: debouncedEquityDetails.exit_valuation,
-                      simulate_dilution: debouncedEquityDetails.simulate_dilution,
-                      dilution_rounds: debouncedEquityDetails.simulate_dilution
-                        ? debouncedEquityDetails.dilution_rounds.filter((r) => r.enabled).map((r) => ({
-                            round_name: r.round_name,
-                            round_type: r.round_type,
-                            year: r.year,
-                            dilution_pct: r.dilution_pct ? r.dilution_pct / 100 : undefined,
-                            pre_money_valuation: r.pre_money_valuation,
-                            amount_raised: r.amount_raised,
-                            salary_change: r.salary_change,
-                          }))
-                        : null,
-                    } : {
-                      equity_type: "STOCK_OPTIONS" as const,
-                      monthly_salary: debouncedEquityDetails.monthly_salary,
-                      num_options: debouncedEquityDetails.num_options,
-                      strike_price: debouncedEquityDetails.strike_price,
-                      vesting_period: debouncedEquityDetails.vesting_period,
-                      cliff_period: debouncedEquityDetails.cliff_period,
-                      exit_price_per_share: debouncedEquityDetails.exit_price_per_share,
-                      exercise_strategy: debouncedEquityDetails.exercise_strategy ?? "AT_EXIT",
-                      exercise_year: debouncedEquityDetails.exercise_year ?? null,
-                    },
-                  }}
-                  onComplete={setMonteCarloResults}
-                />
+        {startupScenarioResult &&
+          debouncedGlobalSettings &&
+          debouncedCurrentJob &&
+          debouncedEquityDetails && (
+            <ScenarioResults
+              results={startupScenarioResult}
+              isLoading={isPending}
+              isFetching={isFetching}
+              globalSettings={debouncedGlobalSettings}
+              currentJob={debouncedCurrentJob}
+              equityDetails={debouncedEquityDetails}
+              monteCarloContent={
+                hasValidData ? (
+                  <div className="space-y-6">
+                    <MonteCarloFormComponent
+                      baseParams={{
+                        exit_year: debouncedGlobalSettings.exit_year,
+                        current_job_monthly_salary: debouncedCurrentJob.monthly_salary,
+                        startup_monthly_salary: debouncedEquityDetails.monthly_salary,
+                        current_job_salary_growth_rate:
+                          debouncedCurrentJob.annual_salary_growth_rate / 100,
+                        annual_roi: debouncedCurrentJob.assumed_annual_roi / 100,
+                        investment_frequency: debouncedCurrentJob.investment_frequency,
+                        failure_probability: 0.6,
+                        // Issue #248: Use flat typed format for startup_params
+                        startup_params:
+                          debouncedEquityDetails.equity_type === "RSU"
+                            ? {
+                                equity_type: "RSU" as const,
+                                monthly_salary: debouncedEquityDetails.monthly_salary,
+                                total_equity_grant_pct:
+                                  debouncedEquityDetails.total_equity_grant_pct,
+                                vesting_period: debouncedEquityDetails.vesting_period,
+                                cliff_period: debouncedEquityDetails.cliff_period,
+                                exit_valuation: debouncedEquityDetails.exit_valuation,
+                                simulate_dilution: debouncedEquityDetails.simulate_dilution,
+                                dilution_rounds: debouncedEquityDetails.simulate_dilution
+                                  ? debouncedEquityDetails.dilution_rounds
+                                      .filter((r) => r.enabled)
+                                      .map((r) => ({
+                                        round_name: r.round_name,
+                                        round_type: r.round_type,
+                                        year: r.year,
+                                        dilution_pct: r.dilution_pct
+                                          ? r.dilution_pct / 100
+                                          : undefined,
+                                        pre_money_valuation: r.pre_money_valuation,
+                                        amount_raised: r.amount_raised,
+                                        salary_change: r.salary_change,
+                                      }))
+                                  : null,
+                              }
+                            : {
+                                equity_type: "STOCK_OPTIONS" as const,
+                                monthly_salary: debouncedEquityDetails.monthly_salary,
+                                num_options: debouncedEquityDetails.num_options,
+                                strike_price: debouncedEquityDetails.strike_price,
+                                vesting_period: debouncedEquityDetails.vesting_period,
+                                cliff_period: debouncedEquityDetails.cliff_period,
+                                exit_price_per_share: debouncedEquityDetails.exit_price_per_share,
+                                exercise_strategy:
+                                  debouncedEquityDetails.exercise_strategy ?? "AT_EXIT",
+                                exercise_year: debouncedEquityDetails.exercise_year ?? null,
+                              },
+                      }}
+                      onComplete={setMonteCarloResults}
+                    />
 
-                {monteCarloResults && (
-                  <MonteCarloVisualizations
-                    netOutcomes={monteCarloResults.net_outcomes}
-                    simulatedValuations={monteCarloResults.simulated_valuations}
+                    {monteCarloResults && (
+                      <MonteCarloVisualizations
+                        netOutcomes={monteCarloResults.net_outcomes}
+                        simulatedValuations={monteCarloResults.simulated_valuations}
+                      />
+                    )}
+                  </div>
+                ) : undefined
+              }
+              sensitivityContent={
+                hasValidData ? (
+                  <SensitivityAnalysisPanel
+                    globalSettings={debouncedGlobalSettings}
+                    currentJob={debouncedCurrentJob}
+                    equityDetails={debouncedEquityDetails}
+                    currentOutcome={
+                      startupScenarioResult?.final_payout_value != null &&
+                      startupScenarioResult?.final_opportunity_cost != null
+                        ? startupScenarioResult.final_payout_value -
+                          startupScenarioResult.final_opportunity_cost
+                        : 0
+                    }
                   />
-                )}
-              </div>
-            ) : undefined}
-            sensitivityContent={hasValidData ? (
-              <SensitivityAnalysisPanel
-                globalSettings={debouncedGlobalSettings}
-                currentJob={debouncedCurrentJob}
-                equityDetails={debouncedEquityDetails}
-                currentOutcome={
-                  startupScenarioResult?.final_payout_value != null &&
-                  startupScenarioResult?.final_opportunity_cost != null
-                    ? startupScenarioResult.final_payout_value -
-                      startupScenarioResult.final_opportunity_cost
-                    : 0
-                }
-              />
-            ) : undefined}
-          />
-        )}
+                ) : undefined
+              }
+            />
+          )}
 
         {/* Error state */}
         {error && (
           <ErrorCard
             title="Calculation Failed"
-            message={error.message || "Unable to complete the calculation. Please check your inputs and try again."}
+            message={
+              error.message ||
+              "Unable to complete the calculation. Please check your inputs and try again."
+            }
             errorType={errorType}
             errorDetails={error.stack}
             onRetry={retry}

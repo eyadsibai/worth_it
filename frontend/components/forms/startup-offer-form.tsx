@@ -44,29 +44,32 @@ export function StartupOfferFormComponent({
 
   const formContent = (
     <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "rsu" | "options")}>
-      <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-lg" data-tour="equity-type-selector">
+      <TabsList
+        className="bg-muted/50 grid w-full grid-cols-2 rounded-lg p-1"
+        data-tour="equity-type-selector"
+      >
         <TabsTrigger
           value="rsu"
-          className="data-[state=active]:bg-card data-[state=active]:text-card-foreground data-[state=active]:shadow-sm transition-all"
+          className="data-[state=active]:bg-card data-[state=active]:text-card-foreground transition-all data-[state=active]:shadow-sm"
         >
           RSUs
         </TabsTrigger>
         <TabsTrigger
           value="options"
-          className="data-[state=active]:bg-card data-[state=active]:text-card-foreground data-[state=active]:shadow-sm transition-all"
+          className="data-[state=active]:bg-card data-[state=active]:text-card-foreground transition-all data-[state=active]:shadow-sm"
         >
           Stock Options
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="rsu" className="space-y-4 mt-6">
+      <TabsContent value="rsu" className="mt-6 space-y-4">
         <RSUFormComponent
           value={value?.equity_type === "RSU" ? value : null}
           onChange={onRSUChange}
         />
       </TabsContent>
 
-      <TabsContent value="options" className="space-y-4 mt-6">
+      <TabsContent value="options" className="mt-6 space-y-4">
         <StockOptionsFormComponent
           value={value?.equity_type === "STOCK_OPTIONS" ? value : null}
           onChange={onStockOptionsChange}

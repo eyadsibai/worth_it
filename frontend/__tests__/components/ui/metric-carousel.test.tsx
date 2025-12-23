@@ -24,11 +24,21 @@ global.IntersectionObserver = MockIntersectionObserver as unknown as typeof Inte
 
 describe("MetricCarousel", () => {
   const mockChildren = [
-    <div key="1" data-testid="card-1">Card 1</div>,
-    <div key="2" data-testid="card-2">Card 2</div>,
-    <div key="3" data-testid="card-3">Card 3</div>,
-    <div key="4" data-testid="card-4">Card 4</div>,
-    <div key="5" data-testid="card-5">Card 5</div>,
+    <div key="1" data-testid="card-1">
+      Card 1
+    </div>,
+    <div key="2" data-testid="card-2">
+      Card 2
+    </div>,
+    <div key="3" data-testid="card-3">
+      Card 3
+    </div>,
+    <div key="4" data-testid="card-4">
+      Card 4
+    </div>,
+    <div key="5" data-testid="card-5">
+      Card 5
+    </div>,
   ];
 
   beforeEach(() => {
@@ -60,11 +70,7 @@ describe("MetricCarousel", () => {
   });
 
   it("applies custom className", () => {
-    render(
-      <MetricCarousel className="custom-class">
-        {mockChildren}
-      </MetricCarousel>
-    );
+    render(<MetricCarousel className="custom-class">{mockChildren}</MetricCarousel>);
 
     const container = screen.getByRole("region", { name: /metrics carousel/i }).parentElement;
     expect(container).toHaveClass("custom-class");

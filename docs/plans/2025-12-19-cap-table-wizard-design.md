@@ -21,22 +21,26 @@ A step-by-step wizard that helps first-time founders set up their cap table with
 ## Wizard Steps
 
 ### Step 1: Founders (Required)
+
 - Add 1-4 founders with name + ownership percentage
 - Dynamic rows with [+ Add] button
 - Real-time total validation (must = 100% or show warning)
 - Tip: "Equal splits are common for co-founders"
 
 ### Step 2: Option Pool (Required)
+
 - Radio button choice: 10% / 15% / 20%
 - Brief explanation for each option
 - Tip: "This comes from founder equity proportionally"
 
 ### Step 3: Advisors (Optional)
+
 - Ask first: "Do you have any advisors?"
 - If yes → simplified form (name + % + standard 4-year vesting)
 - If no → skip to next step
 
 ### Step 4: First Funding (Optional)
+
 - Ask first: "Have you raised any money?"
 - If yes → funding type selector (SAFE / Note / Priced)
 - Simplified form: investor name, amount, valuation cap
@@ -44,6 +48,7 @@ A step-by-step wizard that helps first-time founders set up their cap table with
 - If no → skip to completion
 
 ### Step 5: Completion
+
 - Summary card showing what was created
 - Next steps guidance (add stakeholders, model rounds, analyze exits)
 - Primary CTA: "View Your Cap Table"
@@ -80,6 +85,7 @@ interface WizardData {
 ```
 
 On completion:
+
 1. Create `Stakeholder` entries for founders (type: 'founder')
 2. Create `Stakeholder` entries for advisors (type: 'advisor', with vesting)
 3. Set `option_pool_pct` on cap table

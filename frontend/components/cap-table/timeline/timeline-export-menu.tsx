@@ -28,10 +28,7 @@ interface TimelineExportMenuProps {
   disabled?: boolean;
 }
 
-export function TimelineExportMenu({
-  onExport,
-  disabled = false,
-}: TimelineExportMenuProps) {
+export function TimelineExportMenu({ onExport, disabled = false }: TimelineExportMenuProps) {
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async (format: TimelineExportFormat) => {
@@ -59,7 +56,7 @@ export function TimelineExportMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">
+        <DropdownMenuLabel className="text-muted-foreground text-xs">
           Export Timeline
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -67,24 +64,24 @@ export function TimelineExportMenu({
         <DropdownMenuItem
           onClick={() => handleExport("png")}
           disabled={isExporting}
-          className="gap-2 cursor-pointer"
+          className="cursor-pointer gap-2"
         >
-          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+          <ImageIcon className="text-muted-foreground h-4 w-4" />
           <div>
             <p className="font-medium">PNG Image</p>
-            <p className="text-xs text-muted-foreground">Screenshot for sharing</p>
+            <p className="text-muted-foreground text-xs">Screenshot for sharing</p>
           </div>
         </DropdownMenuItem>
 
         <DropdownMenuItem
           onClick={() => handleExport("pdf")}
           disabled={isExporting}
-          className="gap-2 cursor-pointer"
+          className="cursor-pointer gap-2"
         >
-          <FileText className="h-4 w-4 text-muted-foreground" />
+          <FileText className="text-muted-foreground h-4 w-4" />
           <div>
             <p className="font-medium">PDF Report</p>
-            <p className="text-xs text-muted-foreground">Print-ready document</p>
+            <p className="text-muted-foreground text-xs">Print-ready document</p>
           </div>
         </DropdownMenuItem>
 
@@ -93,24 +90,24 @@ export function TimelineExportMenu({
         <DropdownMenuItem
           onClick={() => handleExport("csv")}
           disabled={isExporting}
-          className="gap-2 cursor-pointer"
+          className="cursor-pointer gap-2"
         >
-          <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
+          <FileSpreadsheet className="text-muted-foreground h-4 w-4" />
           <div>
             <p className="font-medium">CSV Data</p>
-            <p className="text-xs text-muted-foreground">Open in Excel</p>
+            <p className="text-muted-foreground text-xs">Open in Excel</p>
           </div>
         </DropdownMenuItem>
 
         <DropdownMenuItem
           onClick={() => handleExport("json")}
           disabled={isExporting}
-          className="gap-2 cursor-pointer"
+          className="cursor-pointer gap-2"
         >
-          <FileJson className="h-4 w-4 text-muted-foreground" />
+          <FileJson className="text-muted-foreground h-4 w-4" />
           <div>
             <p className="font-medium">JSON Data</p>
-            <p className="text-xs text-muted-foreground">For developers</p>
+            <p className="text-muted-foreground text-xs">For developers</p>
           </div>
         </DropdownMenuItem>
       </DropdownMenuContent>

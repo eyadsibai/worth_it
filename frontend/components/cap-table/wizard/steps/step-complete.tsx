@@ -27,18 +27,16 @@ export function StepComplete({ data, onComplete }: StepCompleteProps) {
     <div className="space-y-6">
       {/* Header */}
       <motion.div
-        className="text-center space-y-2"
+        className="space-y-2 text-center"
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.3 }}
       >
-        <div className="mx-auto w-16 h-16 rounded-full bg-terminal/20 flex items-center justify-center">
-          <CheckCircle2 className="h-8 w-8 text-terminal" />
+        <div className="bg-terminal/20 mx-auto flex h-16 w-16 items-center justify-center rounded-full">
+          <CheckCircle2 className="text-terminal h-8 w-8" />
         </div>
         <h2 className="text-2xl font-semibold">Your cap table is ready!</h2>
-        <p className="text-muted-foreground">
-          Here is a summary of what has been set up
-        </p>
+        <p className="text-muted-foreground">Here is a summary of what has been set up</p>
       </motion.div>
 
       {/* Summary Card */}
@@ -47,18 +45,18 @@ export function StepComplete({ data, onComplete }: StepCompleteProps) {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3, delay: 0.1 }}
       >
-        <Card className="p-6 space-y-4">
+        <Card className="space-y-4 p-6">
           {/* Founders */}
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-chart-1/20 flex items-center justify-center flex-shrink-0">
-              <Users className="h-4 w-4 text-chart-1" />
+            <div className="bg-chart-1/20 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full">
+              <Users className="text-chart-1 h-4 w-4" />
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium">Founders</h3>
                 <Badge variant="secondary">{validFounders.length}</Badge>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 {validFounders.map((f) => f.name).join(", ")} ({totalFounderOwnership}% total)
               </p>
             </div>
@@ -66,32 +64,30 @@ export function StepComplete({ data, onComplete }: StepCompleteProps) {
 
           {/* Option Pool */}
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-chart-2/20 flex items-center justify-center flex-shrink-0">
-              <PieChart className="h-4 w-4 text-chart-2" />
+            <div className="bg-chart-2/20 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full">
+              <PieChart className="text-chart-2 h-4 w-4" />
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium">Option Pool</h3>
                 <Badge variant="secondary">{data.optionPoolPct}%</Badge>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Reserved for future employee grants
-              </p>
+              <p className="text-muted-foreground text-sm">Reserved for future employee grants</p>
             </div>
           </div>
 
           {/* Advisors */}
           {validAdvisors.length > 0 && (
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-chart-3/20 flex items-center justify-center flex-shrink-0">
-                <Target className="h-4 w-4 text-chart-3" />
+              <div className="bg-chart-3/20 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full">
+                <Target className="text-chart-3 h-4 w-4" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium">Advisors</h3>
                   <Badge variant="secondary">{validAdvisors.length}</Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   {validAdvisors.map((a) => a.name).join(", ")} ({totalAdvisorOwnership}% total)
                 </p>
               </div>
@@ -101,8 +97,8 @@ export function StepComplete({ data, onComplete }: StepCompleteProps) {
           {/* Funding */}
           {validFunding.length > 0 && (
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-chart-4/20 flex items-center justify-center flex-shrink-0">
-                <Landmark className="h-4 w-4 text-chart-4" />
+              <div className="bg-chart-4/20 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full">
+                <Landmark className="text-chart-4 h-4 w-4" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
@@ -110,7 +106,7 @@ export function StepComplete({ data, onComplete }: StepCompleteProps) {
                   <h3 className="font-medium">Funding</h3>
                   <Badge variant="secondary">{formatCurrency(totalFundingAmount)}</Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   {validFunding.map((f) => `${f.investorName} (${f.type})`).join(", ")}
                 </p>
               </div>
@@ -125,9 +121,9 @@ export function StepComplete({ data, onComplete }: StepCompleteProps) {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3, delay: 0.2 }}
       >
-        <Card className="p-4 bg-muted/50">
-          <h3 className="font-medium mb-2">What you can do next:</h3>
-          <ul className="text-sm text-muted-foreground space-y-1">
+        <Card className="bg-muted/50 p-4">
+          <h3 className="mb-2 font-medium">What you can do next:</h3>
+          <ul className="text-muted-foreground space-y-1 text-sm">
             <li>• Add more stakeholders (employees, investors)</li>
             <li>• Model additional funding rounds</li>
             <li>• Analyze exit scenarios in the Waterfall tab</li>
@@ -145,7 +141,7 @@ export function StepComplete({ data, onComplete }: StepCompleteProps) {
       >
         <Button onClick={onComplete} size="lg" className="w-full">
           View Your Cap Table
-          <ArrowRight className="h-4 w-4 ml-2" />
+          <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </motion.div>
     </div>

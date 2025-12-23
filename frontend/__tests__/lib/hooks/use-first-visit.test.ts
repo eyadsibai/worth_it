@@ -55,10 +55,7 @@ describe("useFirstVisit", () => {
     });
 
     expect(result.current.isFirstVisit).toBe(false);
-    expect(localStorageMock.setItem).toHaveBeenCalledWith(
-      "worth_it_onboarded",
-      "true"
-    );
+    expect(localStorageMock.setItem).toHaveBeenCalledWith("worth_it_onboarded", "true");
   });
 
   it("resetOnboarding clears localStorage and updates state", () => {
@@ -73,8 +70,6 @@ describe("useFirstVisit", () => {
     });
 
     expect(result.current.isFirstVisit).toBe(true);
-    expect(localStorageMock.removeItem).toHaveBeenCalledWith(
-      "worth_it_onboarded"
-    );
+    expect(localStorageMock.removeItem).toHaveBeenCalledWith("worth_it_onboarded");
   });
 });

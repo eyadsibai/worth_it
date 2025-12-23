@@ -35,11 +35,13 @@ class ResizeObserverMock {
 global.ResizeObserver = ResizeObserverMock;
 
 // Test data - 100 simulated outcomes
-const mockNetOutcomes = Array.from({ length: 100 }, (_, i) =>
-  -50000 + (i * 3000) + Math.random() * 10000
+const mockNetOutcomes = Array.from(
+  { length: 100 },
+  (_, i) => -50000 + i * 3000 + Math.random() * 10000
 );
-const mockSimulatedValuations = Array.from({ length: 100 }, () =>
-  50000000 + Math.random() * 100000000
+const mockSimulatedValuations = Array.from(
+  { length: 100 },
+  () => 50000000 + Math.random() * 100000000
 );
 
 describe("MonteCarloVisualizations - Simplified View", () => {
@@ -184,10 +186,7 @@ describe("MonteCarloVisualizations - Simplified View", () => {
 
       await user.click(screen.getByRole("button", { name: /see detailed analysis/i }));
 
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        "monte-carlo-expanded",
-        "true"
-      );
+      expect(localStorageMock.setItem).toHaveBeenCalledWith("monte-carlo-expanded", "true");
     });
 
     it("saves collapsed preference to localStorage when toggling back", async () => {
@@ -205,10 +204,7 @@ describe("MonteCarloVisualizations - Simplified View", () => {
       // Then collapse
       await user.click(screen.getByRole("button", { name: /hide detailed analysis/i }));
 
-      expect(localStorageMock.setItem).toHaveBeenLastCalledWith(
-        "monte-carlo-expanded",
-        "false"
-      );
+      expect(localStorageMock.setItem).toHaveBeenLastCalledWith("monte-carlo-expanded", "false");
     });
 
     it("restores expanded state from localStorage on mount", () => {
@@ -318,10 +314,7 @@ describe("MonteCarloVisualizations - Edge Cases (Issue #254)", () => {
   describe("Empty Data Handling", () => {
     it("shows empty state when netOutcomes is empty", () => {
       render(
-        <MonteCarloVisualizations
-          netOutcomes={[]}
-          simulatedValuations={mockSimulatedValuations}
-        />
+        <MonteCarloVisualizations netOutcomes={[]} simulatedValuations={mockSimulatedValuations} />
       );
 
       expect(screen.getByText(/no simulation results/i)).toBeInTheDocument();
@@ -329,37 +322,24 @@ describe("MonteCarloVisualizations - Edge Cases (Issue #254)", () => {
     });
 
     it("shows empty state when simulatedValuations is empty", () => {
-      render(
-        <MonteCarloVisualizations
-          netOutcomes={mockNetOutcomes}
-          simulatedValuations={[]}
-        />
-      );
+      render(<MonteCarloVisualizations netOutcomes={mockNetOutcomes} simulatedValuations={[]} />);
 
       expect(screen.getByText(/no simulation results/i)).toBeInTheDocument();
     });
 
     it("shows empty state when both arrays are empty", () => {
-      render(
-        <MonteCarloVisualizations
-          netOutcomes={[]}
-          simulatedValuations={[]}
-        />
-      );
+      render(<MonteCarloVisualizations netOutcomes={[]} simulatedValuations={[]} />);
 
       expect(screen.getByText(/no simulation results/i)).toBeInTheDocument();
       expect(screen.getByText(/no simulation data available/i)).toBeInTheDocument();
     });
 
     it("does not show expand button in empty state", () => {
-      render(
-        <MonteCarloVisualizations
-          netOutcomes={[]}
-          simulatedValuations={[]}
-        />
-      );
+      render(<MonteCarloVisualizations netOutcomes={[]} simulatedValuations={[]} />);
 
-      expect(screen.queryByRole("button", { name: /see detailed analysis/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /see detailed analysis/i })
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -369,10 +349,7 @@ describe("MonteCarloVisualizations - Edge Cases (Issue #254)", () => {
       const singleValuation = [100000000];
 
       render(
-        <MonteCarloVisualizations
-          netOutcomes={singleValue}
-          simulatedValuations={singleValuation}
-        />
+        <MonteCarloVisualizations netOutcomes={singleValue} simulatedValuations={singleValuation} />
       );
 
       // Should render without NaN or Infinity errors
@@ -385,10 +362,7 @@ describe("MonteCarloVisualizations - Edge Cases (Issue #254)", () => {
       const singleValuation = [100000000];
 
       render(
-        <MonteCarloVisualizations
-          netOutcomes={singleValue}
-          simulatedValuations={singleValuation}
-        />
+        <MonteCarloVisualizations netOutcomes={singleValue} simulatedValuations={singleValuation} />
       );
 
       // Should show 100% success rate for positive value
@@ -419,10 +393,7 @@ describe("MonteCarloVisualizations - Edge Cases (Issue #254)", () => {
       const twoValuations = [50000000, 100000000];
 
       render(
-        <MonteCarloVisualizations
-          netOutcomes={twoValues}
-          simulatedValuations={twoValuations}
-        />
+        <MonteCarloVisualizations netOutcomes={twoValues} simulatedValuations={twoValuations} />
       );
 
       expect(screen.getByText(/monte carlo results/i)).toBeInTheDocument();
@@ -434,10 +405,7 @@ describe("MonteCarloVisualizations - Edge Cases (Issue #254)", () => {
       const mockValuations = Array.from({ length: 50 }, () => 50000000);
 
       render(
-        <MonteCarloVisualizations
-          netOutcomes={allNegative}
-          simulatedValuations={mockValuations}
-        />
+        <MonteCarloVisualizations netOutcomes={allNegative} simulatedValuations={mockValuations} />
       );
 
       // Should show 0% success rate
@@ -451,10 +419,7 @@ describe("MonteCarloVisualizations - Edge Cases (Issue #254)", () => {
       const mockValuations = Array.from({ length: 50 }, () => 50000000);
 
       render(
-        <MonteCarloVisualizations
-          netOutcomes={allPositive}
-          simulatedValuations={mockValuations}
-        />
+        <MonteCarloVisualizations netOutcomes={allPositive} simulatedValuations={mockValuations} />
       );
 
       // Should show 100% success rate

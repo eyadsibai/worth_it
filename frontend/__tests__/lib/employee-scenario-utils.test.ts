@@ -46,7 +46,15 @@ const mockScenarios: ScenarioData[] = [
   createScenario({
     name: "Startup Beta",
     timestamp: "2025-01-15T10:00:00Z",
-    equity: { type: "STOCK_OPTIONS", monthlySalary: 7000, vestingPeriod: 48, cliffPeriod: 12, numOptions: 10000, strikePrice: 1, exitPricePerShare: 10 },
+    equity: {
+      type: "STOCK_OPTIONS",
+      monthlySalary: 7000,
+      vestingPeriod: 48,
+      cliffPeriod: 12,
+      numOptions: 10000,
+      strikePrice: 1,
+      exitPricePerShare: 10,
+    },
     results: { finalPayoutValue: 90000, finalOpportunityCost: 120000, netOutcome: -30000 },
   }),
   createScenario({
@@ -58,7 +66,15 @@ const mockScenarios: ScenarioData[] = [
   createScenario({
     name: "Options Delta",
     timestamp: "2025-01-20T10:00:00Z",
-    equity: { type: "STOCK_OPTIONS", monthlySalary: 6000, vestingPeriod: 48, cliffPeriod: 12, numOptions: 5000, strikePrice: 2, exitPricePerShare: 15 },
+    equity: {
+      type: "STOCK_OPTIONS",
+      monthlySalary: 6000,
+      vestingPeriod: 48,
+      cliffPeriod: 12,
+      numOptions: 5000,
+      strikePrice: 2,
+      exitPricePerShare: 15,
+    },
     results: { finalPayoutValue: 65000, finalOpportunityCost: 60000, netOutcome: 5000 },
   }),
 ];

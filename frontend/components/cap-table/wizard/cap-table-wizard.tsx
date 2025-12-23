@@ -4,21 +4,17 @@ import * as React from "react";
 import { Card } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
 import { WizardProgress } from "./wizard-progress";
-import {
-  StepFounders,
-  StepOptionPool,
-  StepAdvisors,
-  StepFunding,
-  StepComplete,
-} from "./steps";
-import {
-  DEFAULT_WIZARD_DATA,
-  ADVISOR_VESTING,
-  type WizardData,
-  type WizardStep,
-} from "./types";
+import { StepFounders, StepOptionPool, StepAdvisors, StepFunding, StepComplete } from "./steps";
+import { DEFAULT_WIZARD_DATA, ADVISOR_VESTING, type WizardData, type WizardStep } from "./types";
 import { generateId } from "@/lib/utils";
-import type { CapTable, Stakeholder, FundingInstrument, SAFE, ConvertibleNote, PricedRound } from "@/lib/schemas";
+import type {
+  CapTable,
+  Stakeholder,
+  FundingInstrument,
+  SAFE,
+  ConvertibleNote,
+  PricedRound,
+} from "@/lib/schemas";
 
 interface CapTableWizardProps {
   onComplete: (capTable: CapTable, instruments: FundingInstrument[]) => void;
@@ -136,9 +132,7 @@ export function CapTableWizard({ onComplete, onSkip }: CapTableWizardProps) {
 
     // Create funding instruments
     const instruments: FundingInstrument[] = [];
-    const validFunding = data.funding.filter(
-      (f) => f.investorName.trim() !== "" && f.amount > 0
-    );
+    const validFunding = data.funding.filter((f) => f.investorName.trim() !== "" && f.amount > 0);
 
     for (const funding of validFunding) {
       const id = generateId();
@@ -206,7 +200,7 @@ export function CapTableWizard({ onComplete, onSkip }: CapTableWizardProps) {
   };
 
   return (
-    <Card className="max-w-2xl mx-auto p-8">
+    <Card className="mx-auto max-w-2xl p-8">
       {/* Progress */}
       <div className="mb-8">
         <WizardProgress
@@ -225,21 +219,15 @@ export function CapTableWizard({ onComplete, onSkip }: CapTableWizardProps) {
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.2 }}
         >
-          {currentStep === "founders" && (
-            <StepFounders {...stepProps} />
-          )}
-          {currentStep === "option-pool" && (
-            <StepOptionPool {...stepProps} />
-          )}
+          {currentStep === "founders" && <StepFounders {...stepProps} />}
+          {currentStep === "option-pool" && <StepOptionPool {...stepProps} />}
           {(currentStep === "advisors-ask" || currentStep === "advisors-form") && (
             <StepAdvisors {...stepProps} />
           )}
           {(currentStep === "funding-ask" || currentStep === "funding-form") && (
             <StepFunding {...stepProps} />
           )}
-          {currentStep === "complete" && (
-            <StepComplete data={data} onComplete={handleComplete} />
-          )}
+          {currentStep === "complete" && <StepComplete data={data} onComplete={handleComplete} />}
         </motion.div>
       </AnimatePresence>
     </Card>

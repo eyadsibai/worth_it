@@ -325,9 +325,9 @@ class TestSensitivityAnalysisIntegration:
         assert len(data) >= 2
         # Each variable should have numeric impact values
         for row in data:
-            assert isinstance(row["Impact"], (int, float))
-            assert isinstance(row["Low"], (int, float))
-            assert isinstance(row["High"], (int, float))
+            assert isinstance(row["Impact"], int | float)
+            assert isinstance(row["Low"], int | float)
+            assert isinstance(row["High"], int | float)
 
 
 class TestWebSocketMonteCarloIntegration:

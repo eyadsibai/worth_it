@@ -1,9 +1,4 @@
-import type {
-  CapTable,
-  Stakeholder,
-  FundingInstrument,
-  PreferenceTier,
-} from "@/lib/schemas";
+import type { CapTable, Stakeholder, FundingInstrument, PreferenceTier } from "@/lib/schemas";
 import { generateId } from "@/lib/utils";
 
 export interface FounderTemplate {

@@ -31,8 +31,8 @@ export const ScatterPlotChart = memo(function ScatterPlotChart({
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-2">Valuation vs Outcome</h3>
-      <p className="text-sm text-muted-foreground mb-4">
+      <h3 className="mb-2 text-lg font-semibold">Valuation vs Outcome</h3>
+      <p className="text-muted-foreground mb-4 text-sm">
         Relationship between simulated valuations and net outcomes
       </p>
       <ResponsiveContainer width="100%" height={400}>
@@ -73,16 +73,8 @@ export const ScatterPlotChart = memo(function ScatterPlotChart({
               borderRadius: "8px",
             }}
           />
-          <Scatter
-            data={scatterData}
-            fill="var(--chart-1)"
-            fillOpacity={0.6}
-          />
-          <ReferenceLine
-            y={0}
-            stroke="var(--muted-foreground)"
-            strokeDasharray="3 3"
-          />
+          <Scatter data={scatterData} fill="var(--chart-1)" fillOpacity={0.6} />
+          <ReferenceLine y={0} stroke="var(--muted-foreground)" strokeDasharray="3 3" />
         </ScatterChart>
       </ResponsiveContainer>
     </div>

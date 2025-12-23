@@ -72,12 +72,18 @@ export function DraftRecoveryDialog({
 
   if (data.equityDetails) {
     if ("equity_type" in data.equityDetails) {
-      if (data.equityDetails.equity_type === "RSU" && "total_equity_grant_pct" in data.equityDetails) {
+      if (
+        data.equityDetails.equity_type === "RSU" &&
+        "total_equity_grant_pct" in data.equityDetails
+      ) {
         const pct = data.equityDetails.total_equity_grant_pct;
         if (pct !== undefined) {
           summaryItems.push(`Equity: ${pct}%`);
         }
-      } else if (data.equityDetails.equity_type === "STOCK_OPTIONS" && "num_options" in data.equityDetails) {
+      } else if (
+        data.equityDetails.equity_type === "STOCK_OPTIONS" &&
+        "num_options" in data.equityDetails
+      ) {
         const numOptions = data.equityDetails.num_options;
         if (numOptions !== undefined) {
           summaryItems.push(`${numOptions.toLocaleString()} options`);
@@ -90,18 +96,16 @@ export function DraftRecoveryDialog({
     <AlertDialog open={open}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>
-            Resume where you left off?
-          </AlertDialogTitle>
+          <AlertDialogTitle>Resume where you left off?</AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-3">
-              <p className="text-muted-foreground">
-                Found unsaved work from {relativeTime}.
-              </p>
+              <p className="text-muted-foreground">Found unsaved work from {relativeTime}.</p>
               {summaryItems.length > 0 && (
-                <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1 tabular-nums">
+                <div className="bg-muted/50 space-y-1 rounded-lg p-3 text-sm tabular-nums">
                   {summaryItems.map((item, index) => (
-                    <p key={index} className="text-foreground">{item}</p>
+                    <p key={index} className="text-foreground">
+                      {item}
+                    </p>
                   ))}
                 </div>
               )}
@@ -109,12 +113,8 @@ export function DraftRecoveryDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={onDiscard}>
-            Discard
-          </AlertDialogCancel>
-          <AlertDialogAction onClick={onRestore}>
-            Restore Draft
-          </AlertDialogAction>
+          <AlertDialogCancel onClick={onDiscard}>Discard</AlertDialogCancel>
+          <AlertDialogAction onClick={onRestore}>Restore Draft</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

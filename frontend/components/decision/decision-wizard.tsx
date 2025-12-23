@@ -65,9 +65,9 @@ function OptionButton({ selected, onClick, children, className }: OptionButtonPr
       type="button"
       onClick={onClick}
       className={cn(
-        "flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all text-left w-full",
+        "flex w-full items-center gap-2 rounded-xl border-2 px-4 py-3 text-left transition-all",
         "hover:border-primary/50 hover:bg-primary/5",
-        "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+        "focus:ring-ring focus:ring-2 focus:ring-offset-2 focus:outline-none",
         selected
           ? "border-primary bg-primary/10 text-foreground"
           : "border-border bg-card text-muted-foreground",
@@ -76,11 +76,11 @@ function OptionButton({ selected, onClick, children, className }: OptionButtonPr
     >
       <div
         className={cn(
-          "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0",
+          "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2",
           selected ? "border-primary bg-primary" : "border-muted-foreground"
         )}
       >
-        {selected && <Check className="w-3 h-3 text-primary-foreground" />}
+        {selected && <Check className="text-primary-foreground h-3 w-3" />}
       </div>
       <span className="text-sm font-medium">{children}</span>
     </button>
@@ -99,8 +99,8 @@ function ToggleButton({ selected, onClick, label }: ToggleButtonProps) {
       type="button"
       onClick={onClick}
       className={cn(
-        "px-4 py-2 rounded-lg border transition-all text-sm font-medium",
-        "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+        "rounded-lg border px-4 py-2 text-sm font-medium transition-all",
+        "focus:ring-ring focus:ring-2 focus:ring-offset-2 focus:outline-none",
         selected
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-card text-muted-foreground hover:border-primary/50"
@@ -122,30 +122,37 @@ interface FinancialStepProps {
 function FinancialStep({ financial }: FinancialStepProps) {
   const formatCurrency = (value: number) => {
     const absValue = Math.abs(value);
-    const formatted = absValue >= 1000
-      ? `$${(absValue / 1000).toFixed(0)}K`
-      : `$${absValue.toFixed(0)}`;
+    const formatted =
+      absValue >= 1000 ? `$${(absValue / 1000).toFixed(0)}K` : `$${absValue.toFixed(0)}`;
     return value >= 0 ? formatted : `-${formatted}`;
   };
 
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <p className="text-sm text-muted-foreground mb-2">Based on your inputs, the financial analysis shows:</p>
+        <p className="text-muted-foreground mb-2 text-sm">
+          Based on your inputs, the financial analysis shows:
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="p-4 rounded-xl bg-muted/50">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Expected Net Benefit</p>
-          <p className={cn(
-            "text-2xl font-semibold tabular-nums",
-            financial.netBenefit >= 0 ? "text-terminal" : "text-destructive"
-          )}>
+        <div className="bg-muted/50 rounded-xl p-4">
+          <p className="text-muted-foreground mb-1 text-xs tracking-wide uppercase">
+            Expected Net Benefit
+          </p>
+          <p
+            className={cn(
+              "text-2xl font-semibold tabular-nums",
+              financial.netBenefit >= 0 ? "text-terminal" : "text-destructive"
+            )}
+          >
             {formatCurrency(financial.netBenefit)}
           </p>
         </div>
-        <div className="p-4 rounded-xl bg-muted/50">
-          <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Success Probability</p>
+        <div className="bg-muted/50 rounded-xl p-4">
+          <p className="text-muted-foreground mb-1 text-xs tracking-wide uppercase">
+            Success Probability
+          </p>
           <p className="text-2xl font-semibold tabular-nums">
             {(financial.positiveOutcomeProbability * 100).toFixed(0)}%
           </p>
@@ -156,7 +163,7 @@ function FinancialStep({ financial }: FinancialStepProps) {
         <Badge
           variant={financial.isWorthIt ? "default" : "destructive"}
           className={cn(
-            "text-sm px-4 py-1.5",
+            "px-4 py-1.5 text-sm",
             financial.isWorthIt && "bg-terminal hover:bg-terminal/90"
           )}
         >
@@ -164,7 +171,7 @@ function FinancialStep({ financial }: FinancialStepProps) {
         </Badge>
       </div>
 
-      <p className="text-xs text-muted-foreground text-center">
+      <p className="text-muted-foreground text-center text-xs">
         But finances aren&apos;t everything. Let&apos;s explore other factors that matter.
       </p>
     </div>
@@ -199,7 +206,9 @@ function RiskStep({ risk, onChange }: RiskStepProps) {
       </div>
 
       <div className="space-y-3">
-        <label className="text-sm font-medium">Do you have dependents relying on your income?</label>
+        <label className="text-sm font-medium">
+          Do you have dependents relying on your income?
+        </label>
         <div className="flex gap-2">
           <ToggleButton
             selected={risk.hasDependents}
@@ -215,7 +224,9 @@ function RiskStep({ risk, onChange }: RiskStepProps) {
       </div>
 
       <div className="space-y-3">
-        <label className="text-sm font-medium">Is income stability critical for you right now?</label>
+        <label className="text-sm font-medium">
+          Is income stability critical for you right now?
+        </label>
         <div className="flex gap-2">
           <ToggleButton
             selected={risk.needsIncomeStability}
@@ -301,7 +312,10 @@ function PersonalStep({ personal, onChange }: PersonalStepProps) {
         <label className="text-sm font-medium">What&apos;s your risk tolerance?</label>
         <div className="grid grid-cols-1 gap-2">
           {[
-            { value: "conservative" as RiskToleranceLevel, label: "Conservative - I prefer stability" },
+            {
+              value: "conservative" as RiskToleranceLevel,
+              label: "Conservative - I prefer stability",
+            },
             { value: "moderate" as RiskToleranceLevel, label: "Moderate - Balanced approach" },
             { value: "aggressive" as RiskToleranceLevel, label: "Aggressive - I embrace risk" },
           ].map((option) => (
@@ -318,7 +332,7 @@ function PersonalStep({ personal, onChange }: PersonalStepProps) {
 
       <div className="space-y-3">
         <label className="text-sm font-medium">How flexible is your life situation?</label>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-muted-foreground text-xs">
           Consider: location flexibility, family obligations, financial commitments
         </p>
         <div className="flex gap-2">
@@ -431,11 +445,11 @@ export function DecisionWizard({
   const StepIcon = stepConfig.icon;
 
   return (
-    <Card className={cn("w-full max-w-2xl mx-auto", className)}>
+    <Card className={cn("mx-auto w-full max-w-2xl", className)}>
       <CardHeader className="pb-4">
-        <div className="flex items-center justify-between mb-4">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+        <div className="mb-4 flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+            <Sparkles className="text-primary h-5 w-5" />
             Decision Framework
           </CardTitle>
           {onSkip && (
@@ -447,7 +461,7 @@ export function DecisionWizard({
 
         <Progress value={progress} className="h-2" />
 
-        <div className="flex justify-between mt-4">
+        <div className="mt-4 flex justify-between">
           {STEPS.map((step, idx) => {
             const config = STEP_CONFIG[step];
             const Icon = config.icon;
@@ -461,13 +475,17 @@ export function DecisionWizard({
                 className={cn(
                   "flex flex-col items-center gap-1 transition-colors",
                   idx <= currentIndex ? "cursor-pointer" : "cursor-not-allowed",
-                  isCurrent ? "text-primary" : isCompleted ? "text-terminal" : "text-muted-foreground"
+                  isCurrent
+                    ? "text-primary"
+                    : isCompleted
+                      ? "text-terminal"
+                      : "text-muted-foreground"
                 )}
                 disabled={idx > currentIndex}
               >
                 <div
                   className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center border-2",
+                    "flex h-8 w-8 items-center justify-center rounded-full border-2",
                     isCurrent
                       ? "border-primary bg-primary/10"
                       : isCompleted
@@ -475,13 +493,9 @@ export function DecisionWizard({
                         : "border-muted"
                   )}
                 >
-                  {isCompleted ? (
-                    <Check className="w-4 h-4" />
-                  ) : (
-                    <Icon className="w-4 h-4" />
-                  )}
+                  {isCompleted ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
                 </div>
-                <span className="text-[10px] hidden sm:block">{config.title.split(" ")[0]}</span>
+                <span className="hidden text-[10px] sm:block">{config.title.split(" ")[0]}</span>
               </button>
             );
           })}
@@ -489,9 +503,9 @@ export function DecisionWizard({
       </CardHeader>
 
       <CardContent className="space-y-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <StepIcon className="h-5 w-5 text-primary" />
+        <div className="mb-4 flex items-center gap-3">
+          <div className="bg-primary/10 rounded-lg p-2">
+            <StepIcon className="text-primary h-5 w-5" />
           </div>
           <div>
             <h3 className="font-medium">{stepConfig.title}</h3>
@@ -500,9 +514,7 @@ export function DecisionWizard({
         </div>
 
         {currentStep === "financial" && <FinancialStep financial={financialAnalysis} />}
-        {currentStep === "risk" && (
-          <RiskStep risk={riskAssessment} onChange={setRiskAssessment} />
-        )}
+        {currentStep === "risk" && <RiskStep risk={riskAssessment} onChange={setRiskAssessment} />}
         {currentStep === "career" && (
           <CareerStep career={careerFactors} onChange={setCareerFactors} />
         )}
@@ -517,19 +529,19 @@ export function DecisionWizard({
             disabled={isFirstStep}
             className={cn(isFirstStep && "invisible")}
           >
-            <ChevronLeft className="h-4 w-4 mr-1" />
+            <ChevronLeft className="mr-1 h-4 w-4" />
             Back
           </Button>
           <Button onClick={handleNext}>
             {isLastStep ? (
               <>
-                <Sparkles className="h-4 w-4 mr-1" />
+                <Sparkles className="mr-1 h-4 w-4" />
                 Generate Recommendation
               </>
             ) : (
               <>
                 Next
-                <ChevronRight className="h-4 w-4 ml-1" />
+                <ChevronRight className="ml-1 h-4 w-4" />
               </>
             )}
           </Button>

@@ -65,10 +65,7 @@ interface MonteCarloFormComponentProps {
   onComplete?: (results: { net_outcomes: number[]; simulated_valuations: number[] }) => void;
 }
 
-export function MonteCarloFormComponent({
-  baseParams,
-  onComplete,
-}: MonteCarloFormComponentProps) {
+export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFormComponentProps) {
   const form = useForm<MonteCarloForm>({
     resolver: zodResolver(MonteCarloFormSchema),
     defaultValues: {
@@ -133,8 +130,8 @@ export function MonteCarloFormComponent({
     // ROI - convert from normal to min/max range
     if (data.roi_enabled) {
       sim_param_configs.annual_roi = {
-        min: Math.max(0, data.roi_mean / 100 - 2 * data.roi_std / 100),
-        max: data.roi_mean / 100 + 2 * data.roi_std / 100,
+        min: Math.max(0, data.roi_mean / 100 - (2 * data.roi_std) / 100),
+        max: data.roi_mean / 100 + (2 * data.roi_std) / 100,
       };
     }
 
@@ -165,9 +162,7 @@ export function MonteCarloFormComponent({
     <Card data-tour="monte-carlo-section">
       <CardHeader>
         <CardTitle>Monte Carlo Simulation</CardTitle>
-        <CardDescription>
-          Run probabilistic analysis with thousands of scenarios
-        </CardDescription>
+        <CardDescription>Run probabilistic analysis with thousands of scenarios</CardDescription>
       </CardHeader>
       <CardContent data-tour="monte-carlo-parameters">
         <Form {...form}>
@@ -185,10 +180,7 @@ export function MonteCarloFormComponent({
             />
 
             {/* Exit Valuation - Always enabled */}
-            <InformationBox
-              title="Exit Valuation Distribution (Normal)"
-              className="space-y-4"
-            >
+            <InformationBox title="Exit Valuation Distribution (Normal)" className="space-y-4">
               <NumberInputField
                 form={form}
                 name="exit_valuation_mean"
@@ -397,7 +389,7 @@ export function MonteCarloFormComponent({
                   <span className="text-muted-foreground">Processing...</span>
                 </div>
                 <Progress value={undefined} className="h-2" />
-                <p className="text-xs text-muted-foreground text-center">
+                <p className="text-muted-foreground text-center text-xs">
                   This may take a moment for large numbers of simulations
                 </p>
               </div>
@@ -414,7 +406,7 @@ export function MonteCarloFormComponent({
 
             {/* Error Display */}
             {monteCarloMutation.isError && (
-              <div className="p-4 border border-destructive rounded-lg bg-destructive/10 text-destructive text-sm">
+              <div className="border-destructive bg-destructive/10 text-destructive rounded-lg border p-4 text-sm">
                 <p className="font-medium">Simulation Error</p>
                 <p>{monteCarloMutation.error?.message || "An error occurred during simulation"}</p>
               </div>

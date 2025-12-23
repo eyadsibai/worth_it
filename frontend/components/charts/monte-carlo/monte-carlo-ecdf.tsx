@@ -23,11 +23,14 @@ export function MonteCarloEcdf({ data }: MonteCarloEcdfProps) {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-2">Cumulative Distribution</h3>
-      <p className="text-sm text-muted-foreground mb-4">
+      <h3 className="mb-2 text-lg font-semibold">Cumulative Distribution</h3>
+      <p className="text-muted-foreground mb-4 text-sm">
         Probability that outcome is less than or equal to a given value
       </p>
-      <div role="img" aria-label="Cumulative distribution function line chart showing probability of outcomes">
+      <div
+        role="img"
+        aria-label="Cumulative distribution function line chart showing probability of outcomes"
+      >
         <ResponsiveContainer width="100%" height={400}>
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
@@ -44,7 +47,12 @@ export function MonteCarloEcdf({ data }: MonteCarloEcdfProps) {
               className="text-xs"
               tick={{ fill: colors.foreground }}
               stroke={colors.muted}
-              label={{ value: "Cumulative Probability (%)", angle: -90, position: "insideLeft", fill: colors.foreground }}
+              label={{
+                value: "Cumulative Probability (%)",
+                angle: -90,
+                position: "insideLeft",
+                fill: colors.foreground,
+              }}
               domain={[0, 100]}
             />
             <Tooltip {...tooltipStyles} />

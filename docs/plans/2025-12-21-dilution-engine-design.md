@@ -13,6 +13,7 @@ Extract the dilution calculation logic from `startup_scenario.py` into a dedicat
 ### Fluent Pipeline Pattern
 
 We're adopting immutable fluent builders for calculations because:
+
 - **Readable**: Each step is explicit and self-documenting
 - **Testable**: Intermediate states can be inspected
 - **Composable**: Steps can be reordered or extended

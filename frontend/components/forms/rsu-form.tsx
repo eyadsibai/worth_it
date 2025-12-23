@@ -3,11 +3,23 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormDescription,
+} from "@/components/ui/form";
 import { NumberInputField, SliderField } from "./form-fields";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { DilutionRoundFormComponent } from "./dilution-round-form";
 import { CompletedRoundsSection } from "./completed-rounds-section";
 import { CompanyStageSelector } from "./company-stage-selector";
@@ -110,9 +122,7 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
 
     // Find the max year among upcoming rounds
     const maxYear = Math.max(
-      ...currentRounds
-        .filter((r) => r.status === "upcoming" || !r.status)
-        .map((r) => r.year),
+      ...currentRounds.filter((r) => r.status === "upcoming" || !r.status).map((r) => r.year),
       0
     );
 
@@ -160,7 +170,7 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
           hint={FIELD_HINTS.total_equity_grant_pct}
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <SliderField
             form={form}
             name="vesting_period"
@@ -204,7 +214,7 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
           control={form.control as any}
           name="simulate_dilution"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+            <FormItem className="flex flex-row items-start space-y-0 space-x-3 rounded-md border p-4">
               <FormControl>
                 <Checkbox checked={field.value} onCheckedChange={field.onChange} />
               </FormControl>
@@ -244,7 +254,7 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
                     <Rocket className="h-4 w-4" />
                     <span>Future Funding Rounds</span>
                     {upcomingRounds.length > 0 && (
-                      <span className="text-xs text-muted-foreground ml-2">
+                      <span className="text-muted-foreground ml-2 text-xs">
                         ({upcomingRounds.filter((r) => r.enabled).length} enabled)
                       </span>
                     )}
@@ -252,13 +262,13 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-4 p-4">
-                    <p className="text-sm text-muted-foreground">
-                      Configure future funding rounds that will dilute your equity. Enable the rounds
-                      you expect to happen and adjust their parameters.
+                    <p className="text-muted-foreground text-sm">
+                      Configure future funding rounds that will dilute your equity. Enable the
+                      rounds you expect to happen and adjust their parameters.
                     </p>
 
                     {upcomingRounds.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
+                      <div className="text-muted-foreground py-8 text-center">
                         <p>No future rounds configured.</p>
                         <p className="text-sm">Add a round to model future dilution.</p>
                       </div>
@@ -288,7 +298,7 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
                       onClick={handleAddRound}
                       className="w-full"
                     >
-                      <Plus className="h-4 w-4 mr-2" />
+                      <Plus className="mr-2 h-4 w-4" />
                       Add Funding Round
                     </Button>
                   </div>

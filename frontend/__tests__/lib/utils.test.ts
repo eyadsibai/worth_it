@@ -66,12 +66,7 @@ describe("cn (classnames utility)", () => {
   });
 
   it("handles complex class combinations", () => {
-    const result = cn(
-      "base-class",
-      { "conditional-class": true },
-      ["array-class"],
-      "final-class"
-    );
+    const result = cn("base-class", { "conditional-class": true }, ["array-class"], "final-class");
     expect(result).toContain("base-class");
     expect(result).toContain("conditional-class");
     expect(result).toContain("array-class");

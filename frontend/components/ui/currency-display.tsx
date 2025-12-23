@@ -34,11 +34,7 @@ export function CurrencyDisplay({
   const useCompact = responsive && !isLargeScreen;
 
   if (useCompact) {
-    return (
-      <span className={cn("tabular-nums", className)}>
-        {formatCurrencyCompact(value)}
-      </span>
-    );
+    return <span className={cn("tabular-nums", className)}>{formatCurrencyCompact(value)}</span>;
   }
 
   const { main, decimal } = formatCurrencyWithDecimals(value);

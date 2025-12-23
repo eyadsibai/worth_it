@@ -79,11 +79,7 @@ export function ResponsiveTable<T>({
   }, []);
 
   if (data.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        {emptyMessage}
-      </div>
-    );
+    return <div className="text-muted-foreground py-8 text-center">{emptyMessage}</div>;
   }
 
   // During SSR or before mount, render desktop view (most common/default)
@@ -99,25 +95,16 @@ export function ResponsiveTable<T>({
       <ul className={cn("space-y-3", className)} role="list">
         {data.map((row, index) => (
           <li key={getRowKey(row, index)} role="listitem">
-            <Card
-              className={cn(
-                "border bg-card",
-                rowClassName?.(row, index)
-              )}
-            >
+            <Card className={cn("bg-card border", rowClassName?.(row, index))}>
               <CardContent className="p-4">
                 {/* Primary field - prominent display */}
-                <div className="font-medium text-sm mb-3">
-                  {primaryColumn.cell(row, index)}
-                </div>
+                <div className="mb-3 text-sm font-medium">{primaryColumn.cell(row, index)}</div>
 
                 {/* Other fields as label-value pairs */}
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                   {otherColumns.map((col) => (
                     <div key={col.key}>
-                      <div className="text-xs text-muted-foreground mb-0.5">
-                        {col.header}
-                      </div>
+                      <div className="text-muted-foreground mb-0.5 text-xs">{col.header}</div>
                       <div className={cn("tabular-nums", col.className)}>
                         {col.cell(row, index)}
                       </div>
@@ -132,10 +119,8 @@ export function ResponsiveTable<T>({
         {/* Footer on mobile */}
         {footer && (
           <li role="listitem">
-            <Card className="border-2 bg-muted/30">
-              <CardContent className="p-4">
-                {footer}
-              </CardContent>
+            <Card className="bg-muted/30 border-2">
+              <CardContent className="p-4">{footer}</CardContent>
             </Card>
           </li>
         )}
@@ -158,10 +143,7 @@ export function ResponsiveTable<T>({
         </TableHeader>
         <TableBody>
           {data.map((row, index) => (
-            <TableRow
-              key={getRowKey(row, index)}
-              className={rowClassName?.(row, index)}
-            >
+            <TableRow key={getRowKey(row, index)} className={rowClassName?.(row, index)}>
               {columns.map((col) => (
                 <TableCell key={col.key} className={col.className}>
                   {col.cell(row, index)}
@@ -174,10 +156,8 @@ export function ResponsiveTable<T>({
 
       {/* Footer with consistent styling across breakpoints */}
       {footer && (
-        <Card className="mt-4 border-2 bg-muted/30">
-          <CardContent className="p-4">
-            {footer}
-          </CardContent>
+        <Card className="bg-muted/30 mt-4 border-2">
+          <CardContent className="p-4">{footer}</CardContent>
         </Card>
       )}
     </div>
@@ -202,12 +182,8 @@ export function ResponsiveTableFooter({ items }: TableFooterProps) {
     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm font-medium">
       {items.map((item) => (
         <div key={item.label}>
-          <div className="text-xs text-muted-foreground mb-0.5">
-            {item.label}
-          </div>
-          <div className={cn("tabular-nums", item.className)}>
-            {item.value}
-          </div>
+          <div className="text-muted-foreground mb-0.5 text-xs">{item.label}</div>
+          <div className={cn("tabular-nums", item.className)}>{item.value}</div>
         </div>
       ))}
     </div>

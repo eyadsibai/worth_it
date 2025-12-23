@@ -48,11 +48,7 @@ const mockBreakevenThresholds: BreakevenThreshold[] = [
 describe("SensitivityAnalysis", () => {
   it("renders the tornado chart section", () => {
     render(
-      <SensitivityAnalysis
-        data={mockSensitivityData}
-        breakeven={[]}
-        currentOutcome={500000}
-      />
+      <SensitivityAnalysis data={mockSensitivityData} breakeven={[]} currentOutcome={500000} />
     );
 
     // Should have headings for sensitivity analysis sections
@@ -60,13 +56,7 @@ describe("SensitivityAnalysis", () => {
   });
 
   it("shows empty state when no data", () => {
-    render(
-      <SensitivityAnalysis
-        data={[]}
-        breakeven={[]}
-        currentOutcome={0}
-      />
-    );
+    render(<SensitivityAnalysis data={[]} breakeven={[]} currentOutcome={0} />);
 
     expect(screen.getByText(/no sensitivity data/i)).toBeInTheDocument();
   });
@@ -88,11 +78,7 @@ describe("SensitivityAnalysis", () => {
 
   it("shows insight about most impactful variable", () => {
     render(
-      <SensitivityAnalysis
-        data={mockSensitivityData}
-        breakeven={[]}
-        currentOutcome={500000}
-      />
+      <SensitivityAnalysis data={mockSensitivityData} breakeven={[]} currentOutcome={500000} />
     );
 
     // Should show the "Most Impactful Variable" alert title
@@ -103,11 +89,7 @@ describe("SensitivityAnalysis", () => {
 
   it("displays current outcome context", () => {
     render(
-      <SensitivityAnalysis
-        data={mockSensitivityData}
-        breakeven={[]}
-        currentOutcome={500000}
-      />
+      <SensitivityAnalysis data={mockSensitivityData} breakeven={[]} currentOutcome={500000} />
     );
 
     // Should show current baseline outcome
@@ -118,11 +100,7 @@ describe("SensitivityAnalysis", () => {
 describe("SensitivityAnalysis - Accessibility", () => {
   it("has accessible chart section", () => {
     render(
-      <SensitivityAnalysis
-        data={mockSensitivityData}
-        breakeven={[]}
-        currentOutcome={500000}
-      />
+      <SensitivityAnalysis data={mockSensitivityData} breakeven={[]} currentOutcome={500000} />
     );
 
     // Should have chart with accessible role

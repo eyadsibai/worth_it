@@ -42,13 +42,21 @@ describe("Header", () => {
 
   describe("logo and branding", () => {
     it("renders Worth It logo", () => {
-      render(<WalkthroughProvider><Header /></WalkthroughProvider>);
+      render(
+        <WalkthroughProvider>
+          <Header />
+        </WalkthroughProvider>
+      );
 
       expect(screen.getByText("Worth It")).toBeInTheDocument();
     });
 
     it("logo links to home page", () => {
-      render(<WalkthroughProvider><Header /></WalkthroughProvider>);
+      render(
+        <WalkthroughProvider>
+          <Header />
+        </WalkthroughProvider>
+      );
 
       const logoLink = screen.getByRole("link", { name: /worth it/i });
       expect(logoLink).toHaveAttribute("href", "/");
@@ -57,7 +65,11 @@ describe("Header", () => {
 
   describe("navigation", () => {
     it("renders desktop navigation links", () => {
-      render(<WalkthroughProvider><Header /></WalkthroughProvider>);
+      render(
+        <WalkthroughProvider>
+          <Header />
+        </WalkthroughProvider>
+      );
 
       expect(screen.getByRole("link", { name: "Analysis" })).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "About" })).toBeInTheDocument();
@@ -66,7 +78,11 @@ describe("Header", () => {
 
   describe("search button", () => {
     it("renders mobile search button with md:hidden class", () => {
-      render(<WalkthroughProvider><Header /></WalkthroughProvider>);
+      render(
+        <WalkthroughProvider>
+          <Header />
+        </WalkthroughProvider>
+      );
 
       const mobileSearchButton = screen.getByRole("button", {
         name: /open command palette/i,
@@ -78,7 +94,11 @@ describe("Header", () => {
 
     it("calls setOpen(true) when mobile search button clicked", async () => {
       const user = userEvent.setup();
-      render(<WalkthroughProvider><Header /></WalkthroughProvider>);
+      render(
+        <WalkthroughProvider>
+          <Header />
+        </WalkthroughProvider>
+      );
 
       const mobileSearchButton = screen.getByRole("button", {
         name: /open command palette/i,

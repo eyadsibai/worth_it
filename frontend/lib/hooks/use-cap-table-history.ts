@@ -64,16 +64,13 @@ export function useCapTableHistory({
   const canRedo = useHistoryStore((state) => state.future.length > 0);
   const undoLabel = useHistoryStore((state) => state.presentLabel);
   const redoLabel = useHistoryStore((state) =>
-    state.future.length > 0 ? state.future[0]?.label ?? null : null
+    state.future.length > 0 ? (state.future[0]?.label ?? null) : null
   );
 
   // Initialize history with current state (only once)
   useEffect(() => {
     if (!initializedRef.current && capTable.stakeholders.length > 0) {
-      historyStore.pushState(
-        { capTable, instruments, preferenceTiers },
-        "Initial state"
-      );
+      historyStore.pushState({ capTable, instruments, preferenceTiers }, "Initial state");
       initializedRef.current = true;
     }
   }, [capTable, instruments, preferenceTiers, historyStore]);

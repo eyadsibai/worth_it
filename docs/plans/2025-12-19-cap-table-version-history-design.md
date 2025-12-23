@@ -13,12 +13,14 @@ Add version history functionality to track cap table changes over time, allowing
 ### 1. Auto-Save Triggers (Significant Changes Only)
 
 Snapshots are created automatically when:
+
 - Stakeholder added or removed
 - Funding round added
 - Instruments converted (SAFE/Note → equity)
 - Option pool size changed
 
 NOT triggered by:
+
 - Minor edits (name changes, small ownership adjustments)
 - UI interactions (expand/collapse, tab switches)
 
@@ -35,6 +37,7 @@ NOT triggered by:
 ### 3. Version Comparison: Simple Diff View
 
 When viewing a version, show:
+
 - Added stakeholders (green highlight)
 - Removed stakeholders (red highlight)
 - Changed ownership percentages (yellow highlight with before/after)
@@ -86,21 +89,25 @@ frontend/components/cap-table/history/
 ## Implementation Plan
 
 ### Phase 1: Core Infrastructure
+
 1. Create types and version store
 2. Implement localStorage persistence
 3. Add snapshot creation logic
 
 ### Phase 2: UI Components
+
 4. Build slide-out panel
 5. Create version list with timestamps
 6. Add view/restore functionality
 
 ### Phase 3: Diff View
+
 7. Implement diff calculation logic
 8. Build diff visualization component
 9. Add summary generation
 
 ### Phase 4: Integration
+
 10. Add History button to cap table header
 11. Hook up auto-save triggers in cap-table-store
 12. Write E2E tests

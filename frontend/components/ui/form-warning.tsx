@@ -22,11 +22,11 @@ export function FormWarning({ children, className }: FormWarningProps) {
       role="alert"
       aria-live="polite"
       className={cn(
-        "flex items-start gap-1.5 text-sm text-amber-600 dark:text-amber-500 animate-in fade-in duration-200",
+        "animate-in fade-in flex items-start gap-1.5 text-sm text-amber-600 duration-200 dark:text-amber-500",
         className
       )}
     >
-      <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
+      <Lightbulb className="mt-0.5 h-4 w-4 flex-shrink-0" />
       <span>{children}</span>
     </p>
   );

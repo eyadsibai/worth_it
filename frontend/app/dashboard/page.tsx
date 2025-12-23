@@ -74,7 +74,9 @@ export default function DashboardPage() {
               monthly_salary: scenario.currentJob.monthlySalary,
               annual_salary_growth_rate: scenario.currentJob.annualGrowthRate,
               assumed_annual_roi: scenario.currentJob.assumedROI,
-              investment_frequency: scenario.currentJob.investmentFrequency as "Monthly" | "Annually",
+              investment_frequency: scenario.currentJob.investmentFrequency as
+                | "Monthly"
+                | "Annually",
             });
           }
           // Note: equity form data would need full conversion from ScenarioData format
@@ -118,11 +120,11 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
-      <div className="container max-w-6xl mx-auto p-6 space-y-8">
+      <div className="container mx-auto max-w-6xl space-y-8 p-6">
         {/* Welcome Header */}
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Sparkles className="h-7 w-7 text-terminal" />
+          <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
+            <Sparkles className="text-terminal h-7 w-7" />
             {getGreeting()}!
           </h1>
           <p className="text-muted-foreground">
@@ -134,12 +136,12 @@ export default function DashboardPage() {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-terminal" />
+            <Loader2 className="text-terminal h-8 w-8 animate-spin" />
           </div>
         ) : (
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="grid gap-6 lg:grid-cols-3">
             {/* Left Column - Summary & Recent */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="space-y-6 lg:col-span-2">
               <SummaryCard stats={stats} />
               <RecentScenarios
                 scenarios={recentScenarios}
@@ -160,11 +162,9 @@ export default function DashboardPage() {
               />
 
               {/* Tips Card */}
-              <div className="p-4 rounded-lg border bg-terminal/5 border-terminal/20">
-                <p className="text-sm font-medium text-terminal mb-2">
-                  Pro Tips
-                </p>
-                <ul className="text-xs text-muted-foreground space-y-1">
+              <div className="bg-terminal/5 border-terminal/20 rounded-lg border p-4">
+                <p className="text-terminal mb-2 text-sm font-medium">Pro Tips</p>
+                <ul className="text-muted-foreground space-y-1 text-xs">
                   <li>• Save scenarios to track multiple opportunities</li>
                   <li>• Use Monte Carlo for uncertainty analysis</li>
                   <li>• Compare scenarios side-by-side</li>

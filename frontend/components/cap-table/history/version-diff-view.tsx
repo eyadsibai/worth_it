@@ -45,36 +45,26 @@ function ChangeRow({
         "flex items-center gap-3 rounded-lg px-3 py-2 text-sm",
         type === "added" && "bg-terminal/10 text-terminal",
         type === "removed" && "bg-destructive/10 text-destructive",
-        type === "modified" && "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
+        type === "modified" &&
+          "bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400"
       )}
     >
       <span className="flex-shrink-0">{icon}</span>
       <span className="font-medium">{label}</span>
-      {detail && (
-        <span className="ml-auto text-xs opacity-75">{detail}</span>
-      )}
+      {detail && <span className="ml-auto text-xs opacity-75">{detail}</span>}
     </div>
   );
 }
 
 export function VersionDiffView({ diff }: VersionDiffViewProps) {
-  const {
-    stakeholderChanges,
-    fundingChanges,
-    optionPoolChange,
-    summary,
-  } = diff;
+  const { stakeholderChanges, fundingChanges, optionPoolChange, summary } = diff;
 
   const hasNoChanges =
-    stakeholderChanges.length === 0 &&
-    fundingChanges.length === 0 &&
-    !optionPoolChange;
+    stakeholderChanges.length === 0 && fundingChanges.length === 0 && !optionPoolChange;
 
   if (hasNoChanges) {
     return (
-      <div className="text-center text-sm text-muted-foreground py-6">
-        No differences detected
-      </div>
+      <div className="text-muted-foreground py-6 text-center text-sm">No differences detected</div>
     );
   }
 
@@ -82,9 +72,7 @@ export function VersionDiffView({ diff }: VersionDiffViewProps) {
     <div className="space-y-4">
       {/* Summary */}
       <div className="bg-muted/50 rounded-lg px-4 py-3">
-        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
-          Summary
-        </p>
+        <p className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">Summary</p>
         <div className="flex flex-wrap gap-3 text-sm">
           {summary.stakeholdersAdded > 0 && (
             <span className="text-terminal">
@@ -98,23 +86,18 @@ export function VersionDiffView({ diff }: VersionDiffViewProps) {
           )}
           {summary.stakeholdersModified > 0 && (
             <span className="text-amber-600 dark:text-amber-400">
-              ~{summary.stakeholdersModified} ownership change{summary.stakeholdersModified > 1 ? "s" : ""}
+              ~{summary.stakeholdersModified} ownership change
+              {summary.stakeholdersModified > 1 ? "s" : ""}
             </span>
           )}
           {summary.fundingAdded > 0 && (
-            <span className="text-terminal">
-              +{summary.fundingAdded} funding
-            </span>
+            <span className="text-terminal">+{summary.fundingAdded} funding</span>
           )}
           {summary.fundingRemoved > 0 && (
-            <span className="text-destructive">
-              -{summary.fundingRemoved} funding
-            </span>
+            <span className="text-destructive">-{summary.fundingRemoved} funding</span>
           )}
           {optionPoolChange && (
-            <span className="text-amber-600 dark:text-amber-400">
-              option pool changed
-            </span>
+            <span className="text-amber-600 dark:text-amber-400">option pool changed</span>
           )}
         </div>
       </div>
@@ -122,7 +105,7 @@ export function VersionDiffView({ diff }: VersionDiffViewProps) {
       {/* Stakeholder changes */}
       {stakeholderChanges.length > 0 && (
         <div>
-          <h4 className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
+          <h4 className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">
             Stakeholders
           </h4>
           <div className="space-y-2">
@@ -136,9 +119,7 @@ export function VersionDiffView({ diff }: VersionDiffViewProps) {
       {/* Funding changes */}
       {fundingChanges.length > 0 && (
         <div>
-          <h4 className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
-            Funding
-          </h4>
+          <h4 className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">Funding</h4>
           <div className="space-y-2">
             {fundingChanges.map((change, idx) => (
               <FundingChangeRow key={idx} change={change} />
@@ -150,7 +131,7 @@ export function VersionDiffView({ diff }: VersionDiffViewProps) {
       {/* Option pool change */}
       {optionPoolChange && (
         <div>
-          <h4 className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
+          <h4 className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">
             Option Pool
           </h4>
           <ChangeRow
@@ -207,13 +188,7 @@ function FundingChangeRow({ change }: { change: FundingDiff }) {
   return (
     <ChangeRow
       type={type === "added" ? "added" : "removed"}
-      icon={
-        type === "added" ? (
-          <Plus className="h-4 w-4" />
-        ) : (
-          <Minus className="h-4 w-4" />
-        )
-      }
+      icon={type === "added" ? <Plus className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
       label={formatInstrument(instrument)}
     />
   );

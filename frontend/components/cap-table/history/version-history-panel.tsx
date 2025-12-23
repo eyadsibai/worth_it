@@ -25,10 +25,7 @@ interface VersionHistoryPanelProps {
   onRestore: (snapshot: CapTableSnapshot) => void;
 }
 
-export function VersionHistoryPanel({
-  currentSnapshot,
-  onRestore,
-}: VersionHistoryPanelProps) {
+export function VersionHistoryPanel({ currentSnapshot, onRestore }: VersionHistoryPanelProps) {
   const {
     versions,
     isHistoryPanelOpen,
@@ -64,7 +61,7 @@ export function VersionHistoryPanel({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/20 z-40"
+            className="fixed inset-0 z-40 bg-black/20"
             onClick={closeHistoryPanel}
           />
 
@@ -74,12 +71,12 @@ export function VersionHistoryPanel({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-card border-l shadow-xl z-50 flex flex-col"
+            className="bg-card fixed top-0 right-0 bottom-0 z-50 flex w-full max-w-md flex-col border-l shadow-xl"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b">
+            <div className="flex items-center justify-between border-b px-6 py-4">
               <div className="flex items-center gap-3">
-                <History className="h-5 w-5 text-primary" />
+                <History className="text-primary h-5 w-5" />
                 <h2 className="text-lg font-semibold">Version History</h2>
               </div>
               <div className="flex items-center gap-2">
@@ -91,7 +88,7 @@ export function VersionHistoryPanel({
                         size="sm"
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
-                        <Trash2 className="h-4 w-4 mr-1" />
+                        <Trash2 className="mr-1 h-4 w-4" />
                         Clear All
                       </Button>
                     </AlertDialogTrigger>
@@ -99,8 +96,8 @@ export function VersionHistoryPanel({
                       <AlertDialogHeader>
                         <AlertDialogTitle>Clear all versions?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will permanently delete all {versions.length} saved versions.
-                          This action cannot be undone.
+                          This will permanently delete all {versions.length} saved versions. This
+                          action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -127,24 +124,24 @@ export function VersionHistoryPanel({
             </div>
 
             {/* Content */}
-            <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex min-h-0 flex-1 flex-col">
               {versions.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-                  <History className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                  <h3 className="text-lg font-medium text-muted-foreground mb-2">
+                <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+                  <History className="text-muted-foreground/50 mb-4 h-12 w-12" />
+                  <h3 className="text-muted-foreground mb-2 text-lg font-medium">
                     No versions yet
                   </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Versions are automatically saved when you make significant changes
-                    like adding stakeholders or funding rounds.
+                  <p className="text-muted-foreground text-sm">
+                    Versions are automatically saved when you make significant changes like adding
+                    stakeholders or funding rounds.
                   </p>
                 </div>
               ) : (
-                <div className="flex-1 flex min-h-0">
+                <div className="flex min-h-0 flex-1">
                   {/* Version list */}
                   <ScrollArea className="flex-1 border-r">
-                    <div className="p-4 space-y-2">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">
+                    <div className="space-y-2 p-4">
+                      <p className="text-muted-foreground mb-3 text-xs tracking-wide uppercase">
                         {versions.length} version{versions.length !== 1 ? "s" : ""} saved
                       </p>
                       {versions.map((version) => (
@@ -153,9 +150,7 @@ export function VersionHistoryPanel({
                           version={version}
                           isSelected={version.id === selectedVersionId}
                           onSelect={() =>
-                            selectVersion(
-                              version.id === selectedVersionId ? null : version.id
-                            )
+                            selectVersion(version.id === selectedVersionId ? null : version.id)
                           }
                           onRestore={() => handleRestore(version.id)}
                           onDelete={() => handleDelete(version.id)}
@@ -165,19 +160,17 @@ export function VersionHistoryPanel({
                   </ScrollArea>
 
                   {/* Diff view */}
-                  <div className="w-1/2 flex flex-col">
+                  <div className="flex w-1/2 flex-col">
                     {selectedVersionId && diff ? (
                       <ScrollArea className="flex-1">
                         <div className="p-4">
-                          <h3 className="text-sm font-medium mb-3">
-                            Changes from this version
-                          </h3>
+                          <h3 className="mb-3 text-sm font-medium">Changes from this version</h3>
                           <VersionDiffView diff={diff} />
                         </div>
                       </ScrollArea>
                     ) : (
-                      <div className="flex-1 flex items-center justify-center text-center px-6">
-                        <p className="text-sm text-muted-foreground">
+                      <div className="flex flex-1 items-center justify-center px-6 text-center">
+                        <p className="text-muted-foreground text-sm">
                           Select a version to see what changed
                         </p>
                       </div>

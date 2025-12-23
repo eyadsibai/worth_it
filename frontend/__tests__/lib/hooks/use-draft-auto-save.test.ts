@@ -4,7 +4,12 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useDraftAutoSave, getDraft, clearDraft, type DraftData } from "@/lib/hooks/use-draft-auto-save";
+import {
+  useDraftAutoSave,
+  getDraft,
+  clearDraft,
+  type DraftData,
+} from "@/lib/hooks/use-draft-auto-save";
 
 describe("useDraftAutoSave", () => {
   const STORAGE_KEY = "worth-it-draft-employee";
@@ -93,10 +98,9 @@ describe("useDraftAutoSave", () => {
         equityDetails: null,
       };
 
-      const { rerender } = renderHook(
-        ({ data }) => useDraftAutoSave(data, { intervalMs: 5000 }),
-        { initialProps: { data: formData } }
-      );
+      const { rerender } = renderHook(({ data }) => useDraftAutoSave(data, { intervalMs: 5000 }), {
+        initialProps: { data: formData },
+      });
 
       act(() => {
         vi.advanceTimersByTime(5000);
@@ -203,7 +207,10 @@ describe("clearDraft", () => {
   });
 
   it("removes draft from localStorage", () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ data: {}, savedAt: new Date().toISOString() }));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ data: {}, savedAt: new Date().toISOString() })
+    );
 
     clearDraft();
 

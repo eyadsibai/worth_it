@@ -22,10 +22,7 @@ describe("useBeforeUnload", () => {
   it("adds beforeunload listener when hasUnsavedChanges is true", () => {
     renderHook(() => useBeforeUnload(true));
 
-    expect(addEventListenerSpy).toHaveBeenCalledWith(
-      "beforeunload",
-      expect.any(Function)
-    );
+    expect(addEventListenerSpy).toHaveBeenCalledWith("beforeunload", expect.any(Function));
   });
 
   it("does not add listener when hasUnsavedChanges is false", () => {
@@ -39,10 +36,7 @@ describe("useBeforeUnload", () => {
 
     unmount();
 
-    expect(removeEventListenerSpy).toHaveBeenCalledWith(
-      "beforeunload",
-      expect.any(Function)
-    );
+    expect(removeEventListenerSpy).toHaveBeenCalledWith("beforeunload", expect.any(Function));
   });
 
   it("prevents default and sets returnValue when triggered", () => {
@@ -68,33 +62,25 @@ describe("useBeforeUnload", () => {
   });
 
   it("updates listener when hasUnsavedChanges changes from false to true", () => {
-    const { rerender } = renderHook(
-      ({ hasChanges }) => useBeforeUnload(hasChanges),
-      { initialProps: { hasChanges: false } }
-    );
+    const { rerender } = renderHook(({ hasChanges }) => useBeforeUnload(hasChanges), {
+      initialProps: { hasChanges: false },
+    });
 
     expect(addEventListenerSpy).not.toHaveBeenCalled();
 
     rerender({ hasChanges: true });
 
-    expect(addEventListenerSpy).toHaveBeenCalledWith(
-      "beforeunload",
-      expect.any(Function)
-    );
+    expect(addEventListenerSpy).toHaveBeenCalledWith("beforeunload", expect.any(Function));
   });
 
   it("removes listener when hasUnsavedChanges changes from true to false", () => {
-    const { rerender } = renderHook(
-      ({ hasChanges }) => useBeforeUnload(hasChanges),
-      { initialProps: { hasChanges: true } }
-    );
+    const { rerender } = renderHook(({ hasChanges }) => useBeforeUnload(hasChanges), {
+      initialProps: { hasChanges: true },
+    });
 
     rerender({ hasChanges: false });
 
-    expect(removeEventListenerSpy).toHaveBeenCalledWith(
-      "beforeunload",
-      expect.any(Function)
-    );
+    expect(removeEventListenerSpy).toHaveBeenCalledWith("beforeunload", expect.any(Function));
   });
 
   it("allows custom message (though browsers may ignore it)", () => {

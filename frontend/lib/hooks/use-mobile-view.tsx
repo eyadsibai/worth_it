@@ -36,10 +36,7 @@ interface MobileViewProviderProps {
  * Provider for mobile view state.
  * Wraps content that needs access to mobile view toggling.
  */
-export function MobileViewProvider({
-  children,
-  defaultView = "inputs",
-}: MobileViewProviderProps) {
+export function MobileViewProvider({ children, defaultView = "inputs" }: MobileViewProviderProps) {
   const [activeView, setActiveView] = React.useState<MobileView>(defaultView);
   const [isCalculating, setIsCalculating] = React.useState(false);
   const [hasOutdatedResults, setHasOutdatedResults] = React.useState(false);
@@ -56,11 +53,7 @@ export function MobileViewProvider({
     [activeView, isCalculating, hasOutdatedResults]
   );
 
-  return (
-    <MobileViewContext.Provider value={value}>
-      {children}
-    </MobileViewContext.Provider>
-  );
+  return <MobileViewContext.Provider value={value}>{children}</MobileViewContext.Provider>;
 }
 
 /**

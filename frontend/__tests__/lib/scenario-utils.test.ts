@@ -115,12 +115,7 @@ describe("scenario-utils", () => {
     it("creates a scenario without description", async () => {
       const { createFounderScenario } = await import("@/lib/scenario-utils");
 
-      const scenario = createFounderScenario(
-        "No Description",
-        mockCapTable,
-        [],
-        []
-      );
+      const scenario = createFounderScenario("No Description", mockCapTable, [], []);
 
       expect(scenario.description).toBeUndefined();
     });
@@ -128,8 +123,9 @@ describe("scenario-utils", () => {
 
   describe("saveFounderScenario", () => {
     it("saves a new scenario to localStorage", async () => {
-      const { createFounderScenario, saveFounderScenario, loadFounderScenarios } =
-        await import("@/lib/scenario-utils");
+      const { createFounderScenario, saveFounderScenario, loadFounderScenarios } = await import(
+        "@/lib/scenario-utils"
+      );
 
       const scenario = createFounderScenario(
         "Test",
@@ -147,8 +143,9 @@ describe("scenario-utils", () => {
     });
 
     it("updates existing scenario when ID matches", async () => {
-      const { createFounderScenario, saveFounderScenario, loadFounderScenarios } =
-        await import("@/lib/scenario-utils");
+      const { createFounderScenario, saveFounderScenario, loadFounderScenarios } = await import(
+        "@/lib/scenario-utils"
+      );
 
       const scenario = createFounderScenario(
         "Original",
@@ -187,8 +184,24 @@ describe("scenario-utils", () => {
       localStorageMock.setItem(
         "worth_it_founder_scenarios",
         JSON.stringify([
-          { id: "old", name: "Old", capTable: mockCapTable, instruments: [], preferenceTiers: [], createdAt: oldDate, updatedAt: oldDate },
-          { id: "new", name: "New", capTable: mockCapTable, instruments: [], preferenceTiers: [], createdAt: newDate, updatedAt: newDate },
+          {
+            id: "old",
+            name: "Old",
+            capTable: mockCapTable,
+            instruments: [],
+            preferenceTiers: [],
+            createdAt: oldDate,
+            updatedAt: oldDate,
+          },
+          {
+            id: "new",
+            name: "New",
+            capTable: mockCapTable,
+            instruments: [],
+            preferenceTiers: [],
+            createdAt: newDate,
+            updatedAt: newDate,
+          },
         ])
       );
 
@@ -200,8 +213,9 @@ describe("scenario-utils", () => {
 
   describe("loadFounderScenarioById", () => {
     it("returns scenario when ID exists", async () => {
-      const { createFounderScenario, saveFounderScenario, loadFounderScenarioById } =
-        await import("@/lib/scenario-utils");
+      const { createFounderScenario, saveFounderScenario, loadFounderScenarioById } = await import(
+        "@/lib/scenario-utils"
+      );
 
       const scenario = createFounderScenario(
         "Find Me",
@@ -226,8 +240,12 @@ describe("scenario-utils", () => {
 
   describe("deleteFounderScenario", () => {
     it("removes scenario from localStorage", async () => {
-      const { createFounderScenario, saveFounderScenario, deleteFounderScenario, loadFounderScenarios } =
-        await import("@/lib/scenario-utils");
+      const {
+        createFounderScenario,
+        saveFounderScenario,
+        deleteFounderScenario,
+        loadFounderScenarios,
+      } = await import("@/lib/scenario-utils");
 
       const scenario = createFounderScenario(
         "Delete Me",
@@ -253,8 +271,12 @@ describe("scenario-utils", () => {
 
   describe("clearAllFounderScenarios", () => {
     it("removes all scenarios from localStorage", async () => {
-      const { createFounderScenario, saveFounderScenario, clearAllFounderScenarios, loadFounderScenarios } =
-        await import("@/lib/scenario-utils");
+      const {
+        createFounderScenario,
+        saveFounderScenario,
+        clearAllFounderScenarios,
+        loadFounderScenarios,
+      } = await import("@/lib/scenario-utils");
 
       saveFounderScenario(createFounderScenario("S1", mockCapTable, [], []));
       saveFounderScenario(createFounderScenario("S2", mockCapTable, [], []));
@@ -269,8 +291,7 @@ describe("scenario-utils", () => {
 
   describe("getScenarioMetrics", () => {
     it("calculates correct metrics for a scenario", async () => {
-      const { createFounderScenario, getScenarioMetrics } =
-        await import("@/lib/scenario-utils");
+      const { createFounderScenario, getScenarioMetrics } = await import("@/lib/scenario-utils");
 
       const scenario = createFounderScenario(
         "Metrics Test",
@@ -295,8 +316,7 @@ describe("scenario-utils", () => {
     });
 
     it("handles empty cap table", async () => {
-      const { createFounderScenario, getScenarioMetrics } =
-        await import("@/lib/scenario-utils");
+      const { createFounderScenario, getScenarioMetrics } = await import("@/lib/scenario-utils");
 
       const emptyCapTable: CapTable = {
         stakeholders: [],

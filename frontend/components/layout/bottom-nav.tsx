@@ -31,11 +31,9 @@ function NavItem({
       data-active={isActive ? "true" : undefined}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "relative flex flex-col items-center justify-center gap-1 px-3 py-2 min-w-[64px] rounded-lg transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        isActive
-          ? "text-primary"
-          : "text-muted-foreground hover:text-foreground"
+        "relative flex min-w-[64px] flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 transition-colors",
+        "focus-visible:ring-accent focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
+        isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
       )}
     >
       <div className="relative">
@@ -43,7 +41,7 @@ function NavItem({
         {showBadge && (
           <span
             className={cn(
-              "absolute -top-1 -right-1 h-2 w-2 rounded-full bg-accent",
+              "bg-accent absolute -top-1 -right-1 h-2 w-2 rounded-full",
               badgePulsing && "animate-pulse"
             )}
             aria-label={badgePulsing ? "Calculating" : "Results updated"}
@@ -67,10 +65,7 @@ interface BottomNavProps {
  * Uses MobileViewContext to toggle between Inputs and Results views.
  * Shows a badge on Results when calculations are running or results are outdated.
  */
-export function BottomNav({
-  onSaveClick,
-  onMoreClick,
-}: BottomNavProps) {
+export function BottomNav({ onSaveClick, onMoreClick }: BottomNavProps) {
   const mobileView = useMobileViewSafe();
 
   // Fallback handlers for when context is not available
@@ -104,7 +99,7 @@ export function BottomNav({
       data-testid="bottom-nav"
       data-bottom-nav
       aria-label="Mobile navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/50 pb-safe md:hidden no-print"
+      className="bg-card border-border/50 pb-safe no-print fixed right-0 bottom-0 left-0 z-50 border-t md:hidden"
     >
       <div className="flex justify-around py-2">
         <NavItem
@@ -121,16 +116,8 @@ export function BottomNav({
           showBadge={showResultsBadge}
           badgePulsing={badgePulsing}
         />
-        <NavItem
-          icon={Save}
-          label="Save"
-          onClick={onSaveClick}
-        />
-        <NavItem
-          icon={MoreHorizontal}
-          label="More"
-          onClick={onMoreClick}
-        />
+        <NavItem icon={Save} label="Save" onClick={onSaveClick} />
+        <NavItem icon={MoreHorizontal} label="More" onClick={onMoreClick} />
       </div>
     </nav>
   );

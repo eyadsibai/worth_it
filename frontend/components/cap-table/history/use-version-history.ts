@@ -15,20 +15,13 @@ import type {
   StakeholderDiff,
   FundingDiff,
 } from "./types";
-import {
-  VERSION_HISTORY_STORAGE_KEY,
-  DEFAULT_MAX_VERSIONS,
-  VERSION_TRIGGER_LABELS,
-} from "./types";
+import { VERSION_HISTORY_STORAGE_KEY, DEFAULT_MAX_VERSIONS, VERSION_TRIGGER_LABELS } from "./types";
 import type { Stakeholder, FundingInstrument } from "@/lib/schemas";
 
 /**
  * Create a human-readable description for a version based on trigger type and entity name.
  */
-export function createVersionDescription(
-  triggerType: VersionTrigger,
-  entityName?: string
-): string {
+export function createVersionDescription(triggerType: VersionTrigger, entityName?: string): string {
   const baseLabel = VERSION_TRIGGER_LABELS[triggerType];
 
   if (entityName) {
@@ -49,18 +42,10 @@ export function calculateVersionDiff(
   const fundingChanges: FundingDiff[] = [];
 
   // Create maps for efficient lookup
-  const previousStakeholders = new Map(
-    previous.stakeholders.map((s) => [s.id, s])
-  );
-  const currentStakeholders = new Map(
-    current.stakeholders.map((s) => [s.id, s])
-  );
-  const previousFunding = new Map(
-    previous.fundingInstruments.map((f) => [f.id, f])
-  );
-  const currentFunding = new Map(
-    current.fundingInstruments.map((f) => [f.id, f])
-  );
+  const previousStakeholders = new Map(previous.stakeholders.map((s) => [s.id, s]));
+  const currentStakeholders = new Map(current.stakeholders.map((s) => [s.id, s]));
+  const previousFunding = new Map(previous.fundingInstruments.map((f) => [f.id, f]));
+  const currentFunding = new Map(current.fundingInstruments.map((f) => [f.id, f]));
 
   // Find added and modified stakeholders
   for (const [id, stakeholder] of currentStakeholders) {
@@ -123,12 +108,9 @@ export function calculateVersionDiff(
 
   // Calculate summary
   const summary = {
-    stakeholdersAdded: stakeholderChanges.filter((c) => c.type === "added")
-      .length,
-    stakeholdersRemoved: stakeholderChanges.filter((c) => c.type === "removed")
-      .length,
-    stakeholdersModified: stakeholderChanges.filter((c) => c.type === "modified")
-      .length,
+    stakeholdersAdded: stakeholderChanges.filter((c) => c.type === "added").length,
+    stakeholdersRemoved: stakeholderChanges.filter((c) => c.type === "removed").length,
+    stakeholdersModified: stakeholderChanges.filter((c) => c.type === "modified").length,
     fundingAdded: fundingChanges.filter((c) => c.type === "added").length,
     fundingRemoved: fundingChanges.filter((c) => c.type === "removed").length,
   };
@@ -153,11 +135,7 @@ export const useVersionHistory = create<VersionHistoryStore>((set, get) => ({
   comparisonVersionId: null,
 
   // Actions
-  addVersion: (
-    snapshot: CapTableSnapshot,
-    triggerType: VersionTrigger,
-    entityName?: string
-  ) => {
+  addVersion: (snapshot: CapTableSnapshot, triggerType: VersionTrigger, entityName?: string) => {
     const newVersion: CapTableVersion = {
       id: crypto.randomUUID(),
       timestamp: Date.now(),
@@ -190,12 +168,9 @@ export const useVersionHistory = create<VersionHistoryStore>((set, get) => ({
   deleteVersion: (versionId: string) => {
     set((state) => {
       const newVersions = state.versions.filter((v) => v.id !== versionId);
-      const newSelectedId =
-        state.selectedVersionId === versionId ? null : state.selectedVersionId;
+      const newSelectedId = state.selectedVersionId === versionId ? null : state.selectedVersionId;
       const newComparisonId =
-        state.comparisonVersionId === versionId
-          ? null
-          : state.comparisonVersionId;
+        state.comparisonVersionId === versionId ? null : state.comparisonVersionId;
 
       return {
         versions: newVersions,
@@ -222,10 +197,8 @@ export const useVersionHistory = create<VersionHistoryStore>((set, get) => ({
   // UI state
   openHistoryPanel: () => set({ isHistoryPanelOpen: true }),
   closeHistoryPanel: () => set({ isHistoryPanelOpen: false }),
-  selectVersion: (versionId: string | null) =>
-    set({ selectedVersionId: versionId }),
-  setComparisonVersion: (versionId: string | null) =>
-    set({ comparisonVersionId: versionId }),
+  selectVersion: (versionId: string | null) => set({ selectedVersionId: versionId }),
+  setComparisonVersion: (versionId: string | null) => set({ comparisonVersionId: versionId }),
 
   // Persistence
   loadVersionsFromStorage: () => {
@@ -258,11 +231,8 @@ export const useVersionHistory = create<VersionHistoryStore>((set, get) => ({
 /**
  * Hook to get the diff between selected version and comparison version (or current state)
  */
-export function useVersionDiff(
-  currentSnapshot?: CapTableSnapshot
-): VersionDiff | null {
-  const { versions, selectedVersionId, comparisonVersionId } =
-    useVersionHistory();
+export function useVersionDiff(currentSnapshot?: CapTableSnapshot): VersionDiff | null {
+  const { versions, selectedVersionId, comparisonVersionId } = useVersionHistory();
 
   if (!selectedVersionId) return null;
 

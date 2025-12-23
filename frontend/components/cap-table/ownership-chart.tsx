@@ -30,18 +30,20 @@ interface ChartData {
 }
 
 // Custom tooltip component - defined outside to avoid recreation on each render
-function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: ChartData }> }) {
+function CustomTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: ChartData }>;
+}) {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-popover border rounded-lg shadow-lg p-3">
+      <div className="bg-popover rounded-lg border p-3 shadow-lg">
         <p className="font-medium">{data.name}</p>
-        <p className="text-sm text-muted-foreground">
-          {data.value.toFixed(2)}% ownership
-        </p>
-        <p className="text-xs text-muted-foreground capitalize">
-          {data.type.replace("_", " ")}
-        </p>
+        <p className="text-muted-foreground text-sm">{data.value.toFixed(2)}% ownership</p>
+        <p className="text-muted-foreground text-xs capitalize">{data.type.replace("_", " ")}</p>
       </div>
     );
   }
@@ -85,14 +87,15 @@ export function OwnershipChart({ stakeholders, optionPoolPct }: OwnershipChartPr
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Ownership Distribution</span>
-          <span className="text-sm font-normal text-muted-foreground">
+          <span className="text-muted-foreground text-sm font-normal">
             {totalAllocated.toFixed(1)}% allocated
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {chartData.length === 0 || (chartData.length === 1 && chartData[0].type === "unallocated") ? (
-          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+        {chartData.length === 0 ||
+        (chartData.length === 1 && chartData[0].type === "unallocated") ? (
+          <div className="text-muted-foreground flex h-[300px] items-center justify-center">
             Add stakeholders to see ownership distribution
           </div>
         ) : (
@@ -116,17 +119,15 @@ export function OwnershipChart({ stakeholders, optionPoolPct }: OwnershipChartPr
                       entry.type === "unallocated"
                         ? "hsl(var(--muted))"
                         : entry.type === "option_pool"
-                        ? "hsl(var(--accent))"
-                        : COLORS[index % COLORS.length]
+                          ? "hsl(var(--accent))"
+                          : COLORS[index % COLORS.length]
                     }
                     opacity={entry.type === "unallocated" ? 0.3 : 1}
                   />
                 ))}
               </Pie>
               <Tooltip content={<CustomTooltip />} />
-              <Legend
-                formatter={(value) => <span className="text-sm">{value}</span>}
-              />
+              <Legend formatter={(value) => <span className="text-sm">{value}</span>} />
             </PieChart>
           </ResponsiveContainer>
         )}

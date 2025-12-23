@@ -1,8 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
-import { useVersionHistory, createVersionDescription, calculateVersionDiff } from "@/components/cap-table/history/use-version-history";
+import {
+  useVersionHistory,
+  createVersionDescription,
+  calculateVersionDiff,
+} from "@/components/cap-table/history/use-version-history";
 import type { CapTableSnapshot, CapTableVersion } from "@/components/cap-table/history/types";
-import { VERSION_HISTORY_STORAGE_KEY, DEFAULT_MAX_VERSIONS } from "@/components/cap-table/history/types";
+import {
+  VERSION_HISTORY_STORAGE_KEY,
+  DEFAULT_MAX_VERSIONS,
+} from "@/components/cap-table/history/types";
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -115,11 +122,7 @@ describe("useVersionHistory", () => {
       // Add more versions than the max
       act(() => {
         for (let i = 0; i < DEFAULT_MAX_VERSIONS + 5; i++) {
-          result.current.addVersion(
-            createMockSnapshot(),
-            "stakeholder_added",
-            `Stakeholder ${i}`
-          );
+          result.current.addVersion(createMockSnapshot(), "stakeholder_added", `Stakeholder ${i}`);
         }
       });
 
@@ -175,8 +178,8 @@ describe("useVersionHistory", () => {
         result.current.addVersion(createMockSnapshot(), "stakeholder_added", "Second");
       });
 
-      const firstVersionId = result.current.versions.find(
-        (v) => v.description.includes("First")
+      const firstVersionId = result.current.versions.find((v) =>
+        v.description.includes("First")
       )?.id;
 
       act(() => {
@@ -330,9 +333,7 @@ describe("useVersionHistory", () => {
 
 describe("createVersionDescription", () => {
   it("should create description with entity name", () => {
-    expect(createVersionDescription("stakeholder_added", "Alice")).toBe(
-      "Added stakeholder: Alice"
-    );
+    expect(createVersionDescription("stakeholder_added", "Alice")).toBe("Added stakeholder: Alice");
     expect(createVersionDescription("funding_added", "SAFE from Acme")).toBe(
       "Added funding: SAFE from Acme"
     );

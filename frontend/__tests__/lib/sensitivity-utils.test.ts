@@ -124,7 +124,7 @@ describe("buildSensitivityRequest", () => {
     const equity = createStockOptionsEquity({
       num_options: 50000,
       strike_price: 1.0,
-      exit_price_per_share: 10.0
+      exit_price_per_share: 10.0,
     });
 
     const request = buildSensitivityRequest(globalSettings, currentJob, equity);
@@ -199,9 +199,7 @@ describe("transformSensitivityResponse", () => {
 
   it("calculates deltas relative to currentNetOutcome", () => {
     const apiResponse = {
-      data: [
-        { Variable: "Exit Valuation", Low: -100000, High: 500000, Impact: 600000 },
-      ],
+      data: [{ Variable: "Exit Valuation", Low: -100000, High: 500000, Impact: 600000 }],
     };
 
     const result = transformSensitivityResponse(apiResponse, currentNetOutcome);
@@ -214,13 +212,20 @@ describe("transformSensitivityResponse", () => {
 describe("calculateBreakevenThresholds", () => {
   it("calculates minimum valuation for breakeven", () => {
     const sensitivityData: SensitivityDataPoint[] = [
-      { variable: "Exit Valuation", low: -50000, high: 500000, impact: 550000, lowDelta: -250000, highDelta: 300000 },
+      {
+        variable: "Exit Valuation",
+        low: -50000,
+        high: 500000,
+        impact: 550000,
+        lowDelta: -250000,
+        highDelta: 300000,
+      },
     ];
     const currentNetOutcome = 100000;
 
     const thresholds = calculateBreakevenThresholds(sensitivityData, currentNetOutcome);
 
-    const valuationThreshold = thresholds.find(t => t.variable === "Exit Valuation");
+    const valuationThreshold = thresholds.find((t) => t.variable === "Exit Valuation");
     expect(valuationThreshold).toBeDefined();
     expect(valuationThreshold?.direction).toBe("minimum");
   });
@@ -233,14 +238,28 @@ describe("calculateBreakevenThresholds", () => {
 
   it("identifies variables that can make outcome negative", () => {
     const sensitivityData: SensitivityDataPoint[] = [
-      { variable: "Exit Valuation", low: -200000, high: 500000, impact: 700000, lowDelta: -300000, highDelta: 400000 },
-      { variable: "Salary Growth", low: 50000, high: 150000, impact: 100000, lowDelta: -50000, highDelta: 50000 },
+      {
+        variable: "Exit Valuation",
+        low: -200000,
+        high: 500000,
+        impact: 700000,
+        lowDelta: -300000,
+        highDelta: 400000,
+      },
+      {
+        variable: "Salary Growth",
+        low: 50000,
+        high: 150000,
+        impact: 100000,
+        lowDelta: -50000,
+        highDelta: 50000,
+      },
     ];
     const currentNetOutcome = 100000;
 
     const thresholds = calculateBreakevenThresholds(sensitivityData, currentNetOutcome);
 
     // Exit Valuation can make outcome negative (low = -200000)
-    expect(thresholds.some(t => t.variable === "Exit Valuation")).toBe(true);
+    expect(thresholds.some((t) => t.variable === "Exit Valuation")).toBe(true);
   });
 });

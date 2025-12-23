@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [1.0.0] - 2025-11-09
 
 ### Added
+
 - **Environment Configuration System** ([config.py](config.py))
   - Centralized configuration management
   - Support for development/production/testing environments
@@ -35,6 +36,7 @@ All notable changes to this project will be documented in this file.
   - This CHANGELOG.md file
 
 ### Changed
+
 - **DevContainer Configuration** ([.devcontainer/devcontainer.json](.devcontainer/devcontainer.json))
   - Fixed references from `comparison_v3.py` to `app.py`
   - Updated to use `uv` package manager
@@ -79,6 +81,7 @@ All notable changes to this project will be documented in this file.
   - Added `.mypy_cache/`
 
 ### Fixed
+
 - DevContainer configuration pointing to deleted files
 - Inconsistent dependency management (pip vs uv)
 - Documentation referencing non-existent files
@@ -87,6 +90,7 @@ All notable changes to this project will be documented in this file.
 - No automated CI/CD pipeline
 
 ### Test Results
+
 - ✅ 20 unit tests (test_calculations.py) - All passing
 - ✅ 11 API tests (test_api.py) - All passing
 - ✅ 4 integration tests (test_integration.py) - All passing
@@ -94,6 +98,7 @@ All notable changes to this project will be documented in this file.
 - 📊 Code coverage: 51.23% (core modules at 76-86%)
 
 ### Development Tools
+
 - Python 3.10+ support
 - uv package manager for fast dependency management
 - Pre-commit hooks for code quality
@@ -106,6 +111,7 @@ All notable changes to this project will be documented in this file.
 ## Pre-1.0.0 (Historical)
 
 ### Features
+
 - Pure Python calculation engine ([calculations.py](calculations.py))
 - FastAPI REST API backend ([api.py](api.py))
 - Streamlit web frontend ([app.py](app.py))

@@ -4,7 +4,14 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { motion, HighlightOnChange } from "@/lib/motion";
 import type { Stakeholder } from "@/lib/schemas";
 
@@ -72,7 +79,7 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
         <div className="space-y-2">
           <Label htmlFor="exit-valuation">Exit Valuation</Label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+            <span className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2">
               SAR
             </span>
             <Input
@@ -89,13 +96,13 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
               }}
             />
           </div>
-          <div className="flex gap-2 mt-2">
+          <div className="mt-2 flex gap-2">
             {[10000000, 50000000, 100000000, 500000000].map((val) => (
               <motion.button
                 key={val}
                 type="button"
                 onClick={() => setExitValuation(val)}
-                className={`px-3 py-1 text-xs rounded-md border ${
+                className={`rounded-md border px-3 py-1 text-xs ${
                   exitValuation === val
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-muted"
@@ -111,7 +118,7 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
         </div>
 
         {payouts.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-muted-foreground py-8 text-center">
             Add stakeholders to see exit payouts
           </div>
         ) : (
@@ -128,7 +135,7 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
               {payouts.map((row) => (
                 <TableRow key={row.name}>
                   <TableCell className="font-medium">{row.name}</TableCell>
-                  <TableCell className="capitalize text-muted-foreground">
+                  <TableCell className="text-muted-foreground capitalize">
                     {row.type.replace("_", " ")}
                   </TableCell>
                   <TableCell className="text-right">{row.ownershipPct.toFixed(2)}%</TableCell>
@@ -143,7 +150,7 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
                 <TableCell>Total</TableCell>
                 <TableCell />
                 <TableCell className="text-right">{totalAllocatedPct.toFixed(2)}%</TableCell>
-                <TableCell className="text-right tabular-nums text-terminal">
+                <TableCell className="text-terminal text-right tabular-nums">
                   <HighlightOnChange value={totalPayout}>
                     {formatCurrency(totalPayout)}
                   </HighlightOnChange>

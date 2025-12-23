@@ -16,12 +16,7 @@ import type {
   OwnershipCategory,
   TimelineFilterState,
 } from "./types";
-import type {
-  Stakeholder,
-  RSUForm,
-  StockOptionsForm,
-  GlobalSettingsForm,
-} from "@/lib/schemas";
+import type { Stakeholder, RSUForm, StockOptionsForm, GlobalSettingsForm } from "@/lib/schemas";
 
 // ============================================================================
 // Founder Mode: Transform Version History to Timeline Events
@@ -96,9 +91,7 @@ function createOwnershipSnapshot(
 /**
  * Transform version history into timeline events (founder mode)
  */
-export function transformVersionsToEvents(
-  versions: CapTableVersion[]
-): TimelineEvent[] {
+export function transformVersionsToEvents(versions: CapTableVersion[]): TimelineEvent[] {
   if (versions.length === 0) return [];
 
   // Versions are stored newest first, reverse for chronological order
@@ -116,9 +109,7 @@ export function transformVersionsToEvents(
 
     // For funding rounds, try to extract amount from description
     if (eventType === "funding_round") {
-      const amountMatch = version.description.match(
-        /\$?([\d,]+(?:\.\d+)?)\s*(?:M|K)?/i
-      );
+      const amountMatch = version.description.match(/\$?([\d,]+(?:\.\d+)?)\s*(?:M|K)?/i);
       if (amountMatch) {
         const numStr = amountMatch[1].replace(/,/g, "");
         metadata.amount = parseFloat(numStr);
@@ -180,9 +171,7 @@ function getEventTitle(type: TimelineEventType, description: string): string {
 /**
  * Check if equity form is stock options (vs RSU)
  */
-function isStockOptions(
-  form: RSUForm | StockOptionsForm
-): form is StockOptionsForm {
+function isStockOptions(form: RSUForm | StockOptionsForm): form is StockOptionsForm {
   return "strike_price" in form;
 }
 
@@ -202,9 +191,7 @@ export function deriveEmployeeTimelineEvents(
   const vestingMonths = (equityDetails.vesting_period ?? 4) * 12;
   const cliffMonths = (equityDetails.cliff_period ?? 1) * 12;
   // Get shares/options count based on equity type
-  const totalShares = isStockOptions(equityDetails)
-    ? equityDetails.num_options
-    : 0; // RSUs use percentage, not share count
+  const totalShares = isStockOptions(equityDetails) ? equityDetails.num_options : 0; // RSUs use percentage, not share count
 
   // Helper to create vesting snapshot at a given percentage
   const createVestingSnapshot = (vestedPct: number): OwnershipDataPoint[] => [
@@ -313,9 +300,7 @@ export function deriveEmployeeTimelineEvents(
 /**
  * Transform timeline events into chart data points for Recharts AreaChart
  */
-export function transformEventsToChartData(
-  events: TimelineEvent[]
-): TimelineChartDataPoint[] {
+export function transformEventsToChartData(events: TimelineEvent[]): TimelineChartDataPoint[] {
   if (events.length === 0) return [];
 
   return events.map((event) => {
@@ -410,25 +395,13 @@ export function useFounderTimelineData({
   versions,
   filters,
 }: UseFounderTimelineDataOptions): UseFounderTimelineDataReturn {
-  const events = useMemo(
-    () => transformVersionsToEvents(versions),
-    [versions]
-  );
+  const events = useMemo(() => transformVersionsToEvents(versions), [versions]);
 
-  const filteredEvents = useMemo(
-    () => filterEvents(events, filters),
-    [events, filters]
-  );
+  const filteredEvents = useMemo(() => filterEvents(events, filters), [events, filters]);
 
-  const chartData = useMemo(
-    () => transformEventsToChartData(filteredEvents),
-    [filteredEvents]
-  );
+  const chartData = useMemo(() => transformEventsToChartData(filteredEvents), [filteredEvents]);
 
-  const stakeholderNames = useMemo(
-    () => getStakeholderNames(filteredEvents),
-    [filteredEvents]
-  );
+  const stakeholderNames = useMemo(() => getStakeholderNames(filteredEvents), [filteredEvents]);
 
   return {
     events,
@@ -468,20 +441,11 @@ export function useEmployeeTimelineData({
     return deriveEmployeeTimelineEvents(equityDetails, globalSettings);
   }, [equityDetails, globalSettings]);
 
-  const filteredEvents = useMemo(
-    () => filterEvents(events, filters),
-    [events, filters]
-  );
+  const filteredEvents = useMemo(() => filterEvents(events, filters), [events, filters]);
 
-  const chartData = useMemo(
-    () => transformEventsToChartData(filteredEvents),
-    [filteredEvents]
-  );
+  const chartData = useMemo(() => transformEventsToChartData(filteredEvents), [filteredEvents]);
 
-  const stakeholderNames = useMemo(
-    () => getStakeholderNames(filteredEvents),
-    [filteredEvents]
-  );
+  const stakeholderNames = useMemo(() => getStakeholderNames(filteredEvents), [filteredEvents]);
 
   return {
     events,

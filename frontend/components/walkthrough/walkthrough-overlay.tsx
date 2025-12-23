@@ -4,15 +4,8 @@ import { useWalkthrough } from "@/lib/walkthrough";
 import { Spotlight } from "./spotlight";
 
 export function WalkthroughOverlay() {
-  const {
-    activeTour,
-    currentStep,
-    isRunning,
-    nextStep,
-    prevStep,
-    skipTour,
-    completeTour,
-  } = useWalkthrough();
+  const { activeTour, currentStep, isRunning, nextStep, prevStep, skipTour, completeTour } =
+    useWalkthrough();
 
   if (!activeTour || !isRunning) return null;
 

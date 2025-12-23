@@ -14,26 +14,26 @@ import { useTheme } from "next-themes";
  */
 const CHART_COLORS = {
   light: {
-    chart1: "oklch(32% 0.08 155)",    // Dark forest #1A3D2E
-    chart2: "oklch(42% 0.10 155)",    // Medium green #2D5A3D
-    chart3: "oklch(72% 0.18 115)",    // Lime #9BC53D
-    chart4: "oklch(70% 0.14 175)",    // Teal/Mint #3DD9C1
-    chart5: "oklch(85% 0.08 155)",    // Light mint
+    chart1: "oklch(32% 0.08 155)", // Dark forest #1A3D2E
+    chart2: "oklch(42% 0.10 155)", // Medium green #2D5A3D
+    chart3: "oklch(72% 0.18 115)", // Lime #9BC53D
+    chart4: "oklch(70% 0.14 175)", // Teal/Mint #3DD9C1
+    chart5: "oklch(85% 0.08 155)", // Light mint
     destructive: "oklch(55% 0.22 25)", // Red for negative values
-    muted: "oklch(50% 0.01 250)",     // Muted foreground
-    grid: "oklch(92% 0.003 250)",     // Border/grid
-    background: "oklch(100% 0 0)",    // Card background
+    muted: "oklch(50% 0.01 250)", // Muted foreground
+    grid: "oklch(92% 0.003 250)", // Border/grid
+    background: "oklch(100% 0 0)", // Card background
     foreground: "oklch(18% 0.01 250)", // Text
   },
   dark: {
-    chart1: "oklch(55% 0.12 155)",    // Brighter green for visibility
-    chart2: "oklch(62% 0.14 155)",    // Medium green
-    chart3: "oklch(72% 0.18 115)",    // Lime
-    chart4: "oklch(70% 0.14 175)",    // Teal/Mint
-    chart5: "oklch(80% 0.10 155)",    // Light mint
+    chart1: "oklch(55% 0.12 155)", // Brighter green for visibility
+    chart2: "oklch(62% 0.14 155)", // Medium green
+    chart3: "oklch(72% 0.18 115)", // Lime
+    chart4: "oklch(70% 0.14 175)", // Teal/Mint
+    chart5: "oklch(80% 0.10 155)", // Light mint
     destructive: "oklch(60% 0.20 25)", // Slightly brighter red for dark mode
-    muted: "oklch(60% 0.01 250)",     // Muted foreground
-    grid: "oklch(25% 0.01 250)",      // Border/grid
+    muted: "oklch(60% 0.01 250)", // Muted foreground
+    grid: "oklch(25% 0.01 250)", // Border/grid
     background: "oklch(18% 0.01 250)", // Card background
     foreground: "oklch(92% 0.005 250)", // Text
   },

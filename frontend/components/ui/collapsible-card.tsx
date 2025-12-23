@@ -73,13 +73,11 @@ export function CollapsibleCard({
 
   const headerContent = (
     <div className="space-y-1.5">
-      <div className="text-lg font-semibold flex items-center gap-2">
+      <div className="flex items-center gap-2 text-lg font-semibold">
         {icon ?? <div className={cn("h-2 w-2 rounded-full", dotColorMap[accentColor])} />}
         {title}
       </div>
-      {description && (
-        <div className="text-sm text-muted-foreground">{description}</div>
-      )}
+      {description && <div className="text-muted-foreground text-sm">{description}</div>}
     </div>
   );
 
@@ -87,43 +85,33 @@ export function CollapsibleCard({
   if (!collapsible) {
     return (
       <div className={cardClassName} data-tour={dataTour}>
-        <div className="px-6 pt-6 pb-4">
-          {headerContent}
-        </div>
-        <div className="px-6 pb-6">
-          {children}
-        </div>
+        <div className="px-6 pt-6 pb-4">{headerContent}</div>
+        <div className="px-6 pb-6">{children}</div>
       </div>
     );
   }
 
   // Collapsible card (default)
   return (
-    <Collapsible
-      defaultOpen={defaultOpen}
-      open={open}
-      onOpenChange={onOpenChange}
-    >
+    <Collapsible defaultOpen={defaultOpen} open={open} onOpenChange={onOpenChange}>
       <div className={cardClassName} data-tour={dataTour}>
         {/* Clickable Header */}
         <CollapsibleTrigger asChild>
           <button
             type="button"
-            className="group w-full px-6 pt-6 pb-4 text-left flex items-center justify-between hover:bg-muted/30 transition-colors rounded-t-2xl"
+            className="group hover:bg-muted/30 flex w-full items-center justify-between rounded-t-2xl px-6 pt-6 pb-4 text-left transition-colors"
           >
             {headerContent}
             <ChevronDown
-              className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-data-[state=closed]:rotate-[-90deg]"
+              className="text-muted-foreground h-5 w-5 transition-transform duration-200 group-data-[state=closed]:rotate-[-90deg]"
               aria-hidden="true"
             />
           </button>
         </CollapsibleTrigger>
 
         {/* Collapsible Content */}
-        <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down">
-          <div className="px-6 pb-6">
-            {children}
-          </div>
+        <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
+          <div className="px-6 pb-6">{children}</div>
         </CollapsibleContent>
       </div>
     </Collapsible>

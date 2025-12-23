@@ -82,7 +82,15 @@ export function QuickAdjustPanel({
         startupSalary !== optionsDetails.monthly_salary
       );
     }
-  }, [isRSU, equityDetails, exitValuation, equityPct, exitPricePerShare, numOptions, startupSalary]);
+  }, [
+    isRSU,
+    equityDetails,
+    exitValuation,
+    equityPct,
+    exitPricePerShare,
+    numOptions,
+    startupSalary,
+  ]);
 
   /**
    * Calculate adjusted net benefit based on simple scaling.
@@ -145,7 +153,7 @@ export function QuickAdjustPanel({
       const originalValue = Math.max(0, (originalPrice - strikePrice) * originalOptions);
       const newValue = Math.max(0, (exitPricePerShare - strikePrice) * numOptions);
 
-      const payoutRatio = originalValue > 0 ? newValue / originalValue : (newValue > 0 ? 1 : 0);
+      const payoutRatio = originalValue > 0 ? newValue / originalValue : newValue > 0 ? 1 : 0;
       const payout = baseResults.final_payout_value * payoutRatio;
 
       const opportunityCost = calculateAdjustedOpportunityCost(
@@ -161,7 +169,17 @@ export function QuickAdjustPanel({
         adjustedOpportunityCost: opportunityCost,
       };
     }
-  }, [hasChanges, isRSU, equityDetails, baseResults, exitValuation, equityPct, exitPricePerShare, numOptions, startupSalary]);
+  }, [
+    hasChanges,
+    isRSU,
+    equityDetails,
+    baseResults,
+    exitValuation,
+    equityPct,
+    exitPricePerShare,
+    numOptions,
+    startupSalary,
+  ]);
 
   // Reset all values to original
   const handleReset = () => {
@@ -204,14 +222,12 @@ export function QuickAdjustPanel({
 
   return (
     <Card className={cn("terminal-card", className)}>
-      <CardHeader className="pb-2 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+      <CardHeader className="cursor-pointer pb-2" onClick={() => setIsExpanded(!isExpanded)}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <SlidersHorizontal className="h-4 w-4 text-accent" />
+            <SlidersHorizontal className="text-accent h-4 w-4" />
             <CardTitle className="text-sm font-semibold">Quick Adjustments</CardTitle>
-            {hasChanges && (
-              <span className="text-xs text-accent">(modified)</span>
-            )}
+            {hasChanges && <span className="text-accent text-xs">(modified)</span>}
           </div>
           <Button
             variant="ghost"
@@ -219,11 +235,7 @@ export function QuickAdjustPanel({
             className="h-8 w-8 p-0"
             aria-label={isExpanded ? "Collapse panel" : "Expand panel"}
           >
-            {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
+            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
         </div>
       </CardHeader>
@@ -231,12 +243,14 @@ export function QuickAdjustPanel({
       {isExpanded && (
         <CardContent className="space-y-6 pt-2">
           {/* Net Benefit Display */}
-          <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border">
-            <span className="text-sm text-muted-foreground">Net Benefit</span>
-            <span className={cn(
-              "text-lg font-semibold tabular-nums",
-              isPositive ? "text-terminal" : "text-destructive"
-            )}>
+          <div className="bg-secondary/30 border-border flex items-center justify-between rounded-lg border p-3">
+            <span className="text-muted-foreground text-sm">Net Benefit</span>
+            <span
+              className={cn(
+                "text-lg font-semibold tabular-nums",
+                isPositive ? "text-terminal" : "text-destructive"
+              )}
+            >
               <AnimatedCurrencyDisplay value={adjustedNetBenefit} />
             </span>
           </div>
@@ -248,8 +262,10 @@ export function QuickAdjustPanel({
                 {/* Exit Valuation Slider (RSU) */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="exit-valuation-slider" className="text-sm font-medium">Exit Valuation</Label>
-                    <span className="text-sm tabular-nums text-accent">
+                    <Label htmlFor="exit-valuation-slider" className="text-sm font-medium">
+                      Exit Valuation
+                    </Label>
+                    <span className="text-accent text-sm tabular-nums">
                       {formatCurrencyCompact(exitValuation)}
                     </span>
                   </div>
@@ -263,7 +279,7 @@ export function QuickAdjustPanel({
                     step={1_000_000}
                     className="cursor-pointer"
                   />
-                  <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="text-muted-foreground flex justify-between text-xs">
                     <span>$1M</span>
                     <span>$1B</span>
                   </div>
@@ -272,8 +288,10 @@ export function QuickAdjustPanel({
                 {/* Equity Percentage Slider (RSU) */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="equity-pct-slider" className="text-sm font-medium">Equity %</Label>
-                    <span className="text-sm tabular-nums text-accent">
+                    <Label htmlFor="equity-pct-slider" className="text-sm font-medium">
+                      Equity %
+                    </Label>
+                    <span className="text-accent text-sm tabular-nums">
                       {equityPct.toFixed(2)}%
                     </span>
                   </div>
@@ -287,7 +305,7 @@ export function QuickAdjustPanel({
                     step={0.01}
                     className="cursor-pointer"
                   />
-                  <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="text-muted-foreground flex justify-between text-xs">
                     <span>0.01%</span>
                     <span>10%</span>
                   </div>
@@ -298,8 +316,10 @@ export function QuickAdjustPanel({
                 {/* Exit Price Per Share Slider (Stock Options) */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="exit-price-slider" className="text-sm font-medium">Exit Price/Share</Label>
-                    <span className="text-sm tabular-nums text-accent">
+                    <Label htmlFor="exit-price-slider" className="text-sm font-medium">
+                      Exit Price/Share
+                    </Label>
+                    <span className="text-accent text-sm tabular-nums">
                       ${exitPricePerShare.toFixed(2)}
                     </span>
                   </div>
@@ -313,7 +333,7 @@ export function QuickAdjustPanel({
                     step={0.01}
                     className="cursor-pointer"
                   />
-                  <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="text-muted-foreground flex justify-between text-xs">
                     <span>$0.01</span>
                     <span>$100</span>
                   </div>
@@ -322,8 +342,10 @@ export function QuickAdjustPanel({
                 {/* Number of Options Slider (Stock Options) */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="num-options-slider" className="text-sm font-medium">Options</Label>
-                    <span className="text-sm tabular-nums text-accent">
+                    <Label htmlFor="num-options-slider" className="text-sm font-medium">
+                      Options
+                    </Label>
+                    <span className="text-accent text-sm tabular-nums">
                       {numOptions.toLocaleString()}
                     </span>
                   </div>
@@ -337,7 +359,7 @@ export function QuickAdjustPanel({
                     step={1000}
                     className="cursor-pointer"
                   />
-                  <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="text-muted-foreground flex justify-between text-xs">
                     <span>1K</span>
                     <span>500K</span>
                   </div>
@@ -348,8 +370,10 @@ export function QuickAdjustPanel({
             {/* Startup Salary Slider (both types) */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="salary-slider" className="text-sm font-medium">Startup Salary</Label>
-                <span className="text-sm tabular-nums text-accent">
+                <Label htmlFor="salary-slider" className="text-sm font-medium">
+                  Startup Salary
+                </Label>
+                <span className="text-accent text-sm tabular-nums">
                   {formatCurrency(startupSalary)}/mo
                 </span>
               </div>
@@ -363,7 +387,7 @@ export function QuickAdjustPanel({
                 step={500}
                 className="cursor-pointer"
               />
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div className="text-muted-foreground flex justify-between text-xs">
                 <span>$0</span>
                 <span>$30K</span>
               </div>

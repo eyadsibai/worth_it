@@ -111,11 +111,7 @@ export class APIError extends Error {
  * @param backendPort - Optional port override for localhost development (e.g., 8000)
  * @returns The WebSocket URL with appropriate protocol
  */
-export function getWebSocketURL(
-  protocol: string,
-  host: string,
-  backendPort?: number
-): string {
+export function getWebSocketURL(protocol: string, host: string, backendPort?: number): string {
   // Environment variable takes precedence
   if (process.env.NEXT_PUBLIC_WS_URL) {
     return process.env.NEXT_PUBLIC_WS_URL;
@@ -265,10 +261,7 @@ class APIClient {
 
   // Monte Carlo (REST)
   async runMonteCarlo(request: MonteCarloRequest): Promise<MonteCarloResponse> {
-    const { data } = await this.client.post<MonteCarloResponse>(
-      "/api/monte-carlo",
-      request
-    );
+    const { data } = await this.client.post<MonteCarloResponse>("/api/monte-carlo", request);
     return data;
   }
 
@@ -308,20 +301,13 @@ class APIClient {
   }
 
   // Waterfall Analysis (Exit Proceeds Distribution)
-  async calculateWaterfall(
-    request: WaterfallRequest
-  ): Promise<WaterfallResponse> {
-    const { data } = await this.client.post<WaterfallResponse>(
-      "/api/waterfall",
-      request
-    );
+  async calculateWaterfall(request: WaterfallRequest): Promise<WaterfallResponse> {
+    const { data } = await this.client.post<WaterfallResponse>("/api/waterfall", request);
     return data;
   }
 
   // Dilution Preview (Funding Round Impact)
-  async getDilutionPreview(
-    request: DilutionPreviewRequest
-  ): Promise<DilutionPreviewResponse> {
+  async getDilutionPreview(request: DilutionPreviewRequest): Promise<DilutionPreviewResponse> {
     const { data } = await this.client.post<DilutionPreviewResponse>(
       "/api/dilution/preview",
       request
@@ -347,9 +333,7 @@ class APIClient {
   // ============================================================================
 
   // Revenue Multiple Valuation
-  async calculateRevenueMultiple(
-    request: RevenueMultipleRequest
-  ): Promise<ValuationResult> {
+  async calculateRevenueMultiple(request: RevenueMultipleRequest): Promise<ValuationResult> {
     const { data } = await this.client.post<ValuationResult>(
       "/api/valuation/revenue-multiple",
       request
@@ -359,26 +343,18 @@ class APIClient {
 
   // DCF (Discounted Cash Flow) Valuation
   async calculateDCF(request: DCFRequest): Promise<ValuationResult> {
-    const { data } = await this.client.post<ValuationResult>(
-      "/api/valuation/dcf",
-      request
-    );
+    const { data } = await this.client.post<ValuationResult>("/api/valuation/dcf", request);
     return data;
   }
 
   // VC Method Valuation
   async calculateVCMethod(request: VCMethodRequest): Promise<ValuationResult> {
-    const { data } = await this.client.post<ValuationResult>(
-      "/api/valuation/vc-method",
-      request
-    );
+    const { data } = await this.client.post<ValuationResult>("/api/valuation/vc-method", request);
     return data;
   }
 
   // Compare Multiple Valuation Methods
-  async compareValuations(
-    request: ValuationCompareRequest
-  ): Promise<ValuationCompareResponse> {
+  async compareValuations(request: ValuationCompareRequest): Promise<ValuationCompareResponse> {
     const { data } = await this.client.post<ValuationCompareResponse>(
       "/api/valuation/compare",
       request
@@ -411,24 +387,21 @@ export function useHealthCheck() {
 // Monthly Data Grid
 export function useCreateMonthlyDataGrid() {
   return useMutation({
-    mutationFn: (request: MonthlyDataGridRequest) =>
-      apiClient.createMonthlyDataGrid(request),
+    mutationFn: (request: MonthlyDataGridRequest) => apiClient.createMonthlyDataGrid(request),
   });
 }
 
 // Opportunity Cost
 export function useCalculateOpportunityCost() {
   return useMutation({
-    mutationFn: (request: OpportunityCostRequest) =>
-      apiClient.calculateOpportunityCost(request),
+    mutationFn: (request: OpportunityCostRequest) => apiClient.calculateOpportunityCost(request),
   });
 }
 
 // Startup Scenario
 export function useCalculateStartupScenario() {
   return useMutation({
-    mutationFn: (request: StartupScenarioRequest) =>
-      apiClient.calculateStartupScenario(request),
+    mutationFn: (request: StartupScenarioRequest) => apiClient.calculateStartupScenario(request),
   });
 }
 
@@ -456,48 +429,42 @@ export function useRunMonteCarlo() {
 // Sensitivity Analysis
 export function useRunSensitivityAnalysis() {
   return useMutation({
-    mutationFn: (request: SensitivityAnalysisRequest) =>
-      apiClient.runSensitivityAnalysis(request),
+    mutationFn: (request: SensitivityAnalysisRequest) => apiClient.runSensitivityAnalysis(request),
   });
 }
 
 // Dilution Calculation
 export function useCalculateDilution() {
   return useMutation({
-    mutationFn: (request: DilutionFromValuationRequest) =>
-      apiClient.calculateDilution(request),
+    mutationFn: (request: DilutionFromValuationRequest) => apiClient.calculateDilution(request),
   });
 }
 
 // Cap Table Conversion (SAFE/Convertible Note → Equity)
 export function useConvertInstruments() {
   return useMutation({
-    mutationFn: (request: CapTableConversionRequest) =>
-      apiClient.convertInstruments(request),
+    mutationFn: (request: CapTableConversionRequest) => apiClient.convertInstruments(request),
   });
 }
 
 // Waterfall Analysis (Exit Proceeds Distribution)
 export function useCalculateWaterfall() {
   return useMutation({
-    mutationFn: (request: WaterfallRequest) =>
-      apiClient.calculateWaterfall(request),
+    mutationFn: (request: WaterfallRequest) => apiClient.calculateWaterfall(request),
   });
 }
 
 // Dilution Preview (Funding Round Impact)
 export function useGetDilutionPreview() {
   return useMutation({
-    mutationFn: (request: DilutionPreviewRequest) =>
-      apiClient.getDilutionPreview(request),
+    mutationFn: (request: DilutionPreviewRequest) => apiClient.getDilutionPreview(request),
   });
 }
 
 // Scenario Comparison
 export function useCompareScenarios() {
   return useMutation({
-    mutationFn: (request: ScenarioComparisonRequest) =>
-      apiClient.compareScenarios(request),
+    mutationFn: (request: ScenarioComparisonRequest) => apiClient.compareScenarios(request),
   });
 }
 
@@ -508,8 +475,7 @@ export function useCompareScenarios() {
 // Revenue Multiple Valuation
 export function useCalculateRevenueMultiple() {
   return useMutation({
-    mutationFn: (request: RevenueMultipleRequest) =>
-      apiClient.calculateRevenueMultiple(request),
+    mutationFn: (request: RevenueMultipleRequest) => apiClient.calculateRevenueMultiple(request),
   });
 }
 
@@ -523,16 +489,14 @@ export function useCalculateDCF() {
 // VC Method Valuation
 export function useCalculateVCMethod() {
   return useMutation({
-    mutationFn: (request: VCMethodRequest) =>
-      apiClient.calculateVCMethod(request),
+    mutationFn: (request: VCMethodRequest) => apiClient.calculateVCMethod(request),
   });
 }
 
 // Compare Multiple Valuation Methods
 export function useCompareValuations() {
   return useMutation({
-    mutationFn: (request: ValuationCompareRequest) =>
-      apiClient.compareValuations(request),
+    mutationFn: (request: ValuationCompareRequest) => apiClient.compareValuations(request),
   });
 }
 

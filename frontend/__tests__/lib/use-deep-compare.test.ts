@@ -13,10 +13,9 @@ import { useDeepCompareMemo, useDeepCompareEffect } from "@/lib/use-deep-compare
 describe("useDeepCompareMemo", () => {
   it("returns the same reference when values are deeply equal", () => {
     const initialValue = { a: 1, b: { c: 2 } };
-    const { result, rerender } = renderHook(
-      ({ value }) => useDeepCompareMemo(value),
-      { initialProps: { value: initialValue } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDeepCompareMemo(value), {
+      initialProps: { value: initialValue },
+    });
 
     const firstRef = result.current;
 
@@ -29,10 +28,9 @@ describe("useDeepCompareMemo", () => {
 
   it("returns a new reference when values change", () => {
     const initialValue = { a: 1, b: { c: 2 } };
-    const { result, rerender } = renderHook(
-      ({ value }) => useDeepCompareMemo(value),
-      { initialProps: { value: initialValue } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDeepCompareMemo(value), {
+      initialProps: { value: initialValue },
+    });
 
     const firstRef = result.current;
 
@@ -45,10 +43,9 @@ describe("useDeepCompareMemo", () => {
   });
 
   it("handles primitive values", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDeepCompareMemo(value),
-      { initialProps: { value: 42 } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDeepCompareMemo(value), {
+      initialProps: { value: 42 },
+    });
 
     expect(result.current).toBe(42);
 
@@ -62,10 +59,9 @@ describe("useDeepCompareMemo", () => {
   });
 
   it("handles null and undefined", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDeepCompareMemo(value),
-      { initialProps: { value: null as unknown } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDeepCompareMemo(value), {
+      initialProps: { value: null as unknown },
+    });
 
     expect(result.current).toBe(null);
 
@@ -78,10 +74,9 @@ describe("useDeepCompareMemo", () => {
 
   it("handles arrays", () => {
     const initialValue = [1, 2, { a: 3 }];
-    const { result, rerender } = renderHook(
-      ({ value }) => useDeepCompareMemo(value),
-      { initialProps: { value: initialValue } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDeepCompareMemo(value), {
+      initialProps: { value: initialValue },
+    });
 
     const firstRef = result.current;
 
@@ -95,10 +90,9 @@ describe("useDeepCompareMemo", () => {
   });
 
   it("handles empty objects", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDeepCompareMemo(value),
-      { initialProps: { value: {} } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDeepCompareMemo(value), {
+      initialProps: { value: {} },
+    });
 
     const firstRef = result.current;
 
@@ -110,10 +104,9 @@ describe("useDeepCompareMemo", () => {
   });
 
   it("detects key count differences", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDeepCompareMemo(value),
-      { initialProps: { value: { a: 1, b: 2 } as Record<string, number> } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDeepCompareMemo(value), {
+      initialProps: { value: { a: 1, b: 2 } as Record<string, number> },
+    });
 
     const firstRef = result.current;
 
@@ -123,10 +116,9 @@ describe("useDeepCompareMemo", () => {
   });
 
   it("detects different key names", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDeepCompareMemo(value),
-      { initialProps: { value: { a: 1 } as Record<string, number> } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDeepCompareMemo(value), {
+      initialProps: { value: { a: 1 } as Record<string, number> },
+    });
 
     const firstRef = result.current;
 
@@ -151,10 +143,9 @@ describe("useDeepCompareEffect", () => {
 
   it("does not re-run effect when dependencies are deeply equal", () => {
     const effect = vi.fn();
-    const { rerender } = renderHook(
-      ({ deps }) => useDeepCompareEffect(effect, deps),
-      { initialProps: { deps: [{ a: 1, b: { c: 2 } }] } }
-    );
+    const { rerender } = renderHook(({ deps }) => useDeepCompareEffect(effect, deps), {
+      initialProps: { deps: [{ a: 1, b: { c: 2 } }] },
+    });
 
     expect(effect).toHaveBeenCalledTimes(1);
 
@@ -167,10 +158,9 @@ describe("useDeepCompareEffect", () => {
 
   it("re-runs effect when dependencies change", () => {
     const effect = vi.fn();
-    const { rerender } = renderHook(
-      ({ deps }) => useDeepCompareEffect(effect, deps),
-      { initialProps: { deps: [{ a: 1 }] } }
-    );
+    const { rerender } = renderHook(({ deps }) => useDeepCompareEffect(effect, deps), {
+      initialProps: { deps: [{ a: 1 }] },
+    });
 
     expect(effect).toHaveBeenCalledTimes(1);
 
@@ -185,10 +175,9 @@ describe("useDeepCompareEffect", () => {
     const cleanup = vi.fn();
     const effect = vi.fn(() => cleanup);
 
-    const { rerender } = renderHook(
-      ({ deps }) => useDeepCompareEffect(effect, deps),
-      { initialProps: { deps: [{ value: 1 }] } }
-    );
+    const { rerender } = renderHook(({ deps }) => useDeepCompareEffect(effect, deps), {
+      initialProps: { deps: [{ value: 1 }] },
+    });
 
     expect(effect).toHaveBeenCalledTimes(1);
     expect(cleanup).not.toHaveBeenCalled();
@@ -204,9 +193,7 @@ describe("useDeepCompareEffect", () => {
     const cleanup = vi.fn();
     const effect = vi.fn(() => cleanup);
 
-    const { unmount } = renderHook(() =>
-      useDeepCompareEffect(effect, [{ a: 1 }])
-    );
+    const { unmount } = renderHook(() => useDeepCompareEffect(effect, [{ a: 1 }]));
 
     expect(cleanup).not.toHaveBeenCalled();
 
@@ -217,10 +204,9 @@ describe("useDeepCompareEffect", () => {
 
   it("handles multiple dependencies", () => {
     const effect = vi.fn();
-    const { rerender } = renderHook(
-      ({ deps }) => useDeepCompareEffect(effect, deps),
-      { initialProps: { deps: [{ a: 1 }, { b: 2 }, "string"] } }
-    );
+    const { rerender } = renderHook(({ deps }) => useDeepCompareEffect(effect, deps), {
+      initialProps: { deps: [{ a: 1 }, { b: 2 }, "string"] },
+    });
 
     expect(effect).toHaveBeenCalledTimes(1);
 
@@ -235,10 +221,9 @@ describe("useDeepCompareEffect", () => {
 
   it("handles undefined deps (runs on every render)", () => {
     const effect = vi.fn();
-    const { rerender } = renderHook(
-      ({ deps }) => useDeepCompareEffect(effect, deps),
-      { initialProps: { deps: undefined as React.DependencyList | undefined } }
-    );
+    const { rerender } = renderHook(({ deps }) => useDeepCompareEffect(effect, deps), {
+      initialProps: { deps: undefined as React.DependencyList | undefined },
+    });
 
     expect(effect).toHaveBeenCalledTimes(1);
 
@@ -251,10 +236,9 @@ describe("useDeepCompareEffect", () => {
 
   it("handles empty dependency array", () => {
     const effect = vi.fn();
-    const { rerender } = renderHook(
-      ({ deps }) => useDeepCompareEffect(effect, deps),
-      { initialProps: { deps: [] as React.DependencyList } }
-    );
+    const { rerender } = renderHook(({ deps }) => useDeepCompareEffect(effect, deps), {
+      initialProps: { deps: [] as React.DependencyList },
+    });
 
     expect(effect).toHaveBeenCalledTimes(1);
 
@@ -269,10 +253,9 @@ describe("useDeepCompareEffect", () => {
 
 describe("Deep equality edge cases", () => {
   it("handles comparing different types", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDeepCompareMemo(value),
-      { initialProps: { value: { a: 1 } as unknown } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDeepCompareMemo(value), {
+      initialProps: { value: { a: 1 } as unknown },
+    });
 
     const firstRef = result.current;
 
@@ -283,10 +266,9 @@ describe("Deep equality edge cases", () => {
   });
 
   it("handles comparing object with null", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDeepCompareMemo(value),
-      { initialProps: { value: { a: 1 } as unknown } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDeepCompareMemo(value), {
+      initialProps: { value: { a: 1 } as unknown },
+    });
 
     const firstRef = result.current;
 
@@ -308,10 +290,9 @@ describe("Deep equality edge cases", () => {
       },
     };
 
-    const { result, rerender } = renderHook(
-      ({ value }) => useDeepCompareMemo(value),
-      { initialProps: { value: deepObject } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDeepCompareMemo(value), {
+      initialProps: { value: deepObject },
+    });
 
     const firstRef = result.current;
 
@@ -349,10 +330,9 @@ describe("Deep equality edge cases", () => {
   });
 
   it("handles arrays with nested objects", () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDeepCompareMemo(value),
-      { initialProps: { value: [{ items: [1, 2, 3] }, { items: [4, 5, 6] }] } }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDeepCompareMemo(value), {
+      initialProps: { value: [{ items: [1, 2, 3] }, { items: [4, 5, 6] }] },
+    });
 
     const firstRef = result.current;
 

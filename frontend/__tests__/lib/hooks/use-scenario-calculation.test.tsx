@@ -45,9 +45,7 @@ function createTestQueryClient() {
 function createWrapper() {
   const queryClient = createTestQueryClient();
   return function TestWrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -87,12 +85,14 @@ const validStockOptionsEquity: StockOptionsForm = {
 };
 
 // Helper to create default query mock state
-function createQueryMock(overrides: Partial<{
-  data: unknown;
-  isPending: boolean;
-  isFetching: boolean;
-  error: Error | null;
-}> = {}) {
+function createQueryMock(
+  overrides: Partial<{
+    data: unknown;
+    isPending: boolean;
+    isFetching: boolean;
+    error: Error | null;
+  }> = {}
+) {
   return {
     data: undefined,
     isPending: false,
@@ -185,10 +185,12 @@ describe("useScenarioCalculation", () => {
 
   describe("loading states", () => {
     it("returns isPending=true when monthlyDataQuery is pending without data", () => {
-      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
-        isPending: true,
-        data: undefined,
-      }));
+      mockUseMonthlyDataGridQuery.mockReturnValue(
+        createQueryMock({
+          isPending: true,
+          data: undefined,
+        })
+      );
 
       const { result } = renderHook(
         () =>
@@ -206,11 +208,13 @@ describe("useScenarioCalculation", () => {
     });
 
     it("returns isFetching=true when monthlyDataQuery is fetching with stale data", () => {
-      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
-        isPending: false,
-        isFetching: true,
-        data: { data: [] },
-      }));
+      mockUseMonthlyDataGridQuery.mockReturnValue(
+        createQueryMock({
+          isPending: false,
+          isFetching: true,
+          data: { data: [] },
+        })
+      );
 
       const { result } = renderHook(
         () =>
@@ -228,13 +232,17 @@ describe("useScenarioCalculation", () => {
     });
 
     it("returns isPending=true when opportunityCostQuery is pending without data", () => {
-      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
-        data: { data: [] },
-      }));
-      mockUseOpportunityCostQuery.mockReturnValue(createQueryMock({
-        isPending: true,
-        data: undefined,
-      }));
+      mockUseMonthlyDataGridQuery.mockReturnValue(
+        createQueryMock({
+          data: { data: [] },
+        })
+      );
+      mockUseOpportunityCostQuery.mockReturnValue(
+        createQueryMock({
+          isPending: true,
+          data: undefined,
+        })
+      );
 
       const { result } = renderHook(
         () =>
@@ -267,13 +275,17 @@ describe("useScenarioCalculation", () => {
     });
 
     it("returns isFetching=true when any query is fetching with stale data", () => {
-      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
-        data: { data: [] },
-      }));
-      mockUseOpportunityCostQuery.mockReturnValue(createQueryMock({
-        data: { data: [] },
-        isFetching: true,
-      }));
+      mockUseMonthlyDataGridQuery.mockReturnValue(
+        createQueryMock({
+          data: { data: [] },
+        })
+      );
+      mockUseOpportunityCostQuery.mockReturnValue(
+        createQueryMock({
+          data: { data: [] },
+          isFetching: true,
+        })
+      );
 
       const { result } = renderHook(
         () =>
@@ -293,9 +305,11 @@ describe("useScenarioCalculation", () => {
   describe("error handling", () => {
     it("returns error from monthlyDataQuery", () => {
       const testError = new Error("Monthly data error");
-      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
-        error: testError,
-      }));
+      mockUseMonthlyDataGridQuery.mockReturnValue(
+        createQueryMock({
+          error: testError,
+        })
+      );
 
       const { result } = renderHook(
         () =>
@@ -314,12 +328,16 @@ describe("useScenarioCalculation", () => {
       const monthlyError = new Error("Monthly error");
       const opportunityError = new Error("Opportunity error");
 
-      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
-        error: monthlyError,
-      }));
-      mockUseOpportunityCostQuery.mockReturnValue(createQueryMock({
-        error: opportunityError,
-      }));
+      mockUseMonthlyDataGridQuery.mockReturnValue(
+        createQueryMock({
+          error: monthlyError,
+        })
+      );
+      mockUseOpportunityCostQuery.mockReturnValue(
+        createQueryMock({
+          error: opportunityError,
+        })
+      );
 
       const { result } = renderHook(
         () =>
@@ -336,9 +354,11 @@ describe("useScenarioCalculation", () => {
 
     it("categorizes network errors correctly", () => {
       const networkError = new Error("Network connection failed");
-      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
-        error: networkError,
-      }));
+      mockUseMonthlyDataGridQuery.mockReturnValue(
+        createQueryMock({
+          error: networkError,
+        })
+      );
 
       const { result } = renderHook(
         () =>
@@ -355,9 +375,11 @@ describe("useScenarioCalculation", () => {
 
     it("categorizes validation errors correctly", () => {
       const validationError = new Error("Invalid input data");
-      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
-        error: validationError,
-      }));
+      mockUseMonthlyDataGridQuery.mockReturnValue(
+        createQueryMock({
+          error: validationError,
+        })
+      );
 
       const { result } = renderHook(
         () =>
@@ -374,9 +396,11 @@ describe("useScenarioCalculation", () => {
 
     it("categorizes fetch errors as network", () => {
       const fetchError = new Error("Failed to fetch");
-      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
-        error: fetchError,
-      }));
+      mockUseMonthlyDataGridQuery.mockReturnValue(
+        createQueryMock({
+          error: fetchError,
+        })
+      );
 
       const { result } = renderHook(
         () =>
@@ -393,9 +417,11 @@ describe("useScenarioCalculation", () => {
 
     it("returns generic errorType for unknown errors", () => {
       const unknownError = new Error("Something went wrong");
-      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
-        error: unknownError,
-      }));
+      mockUseMonthlyDataGridQuery.mockReturnValue(
+        createQueryMock({
+          error: unknownError,
+        })
+      );
 
       const { result } = renderHook(
         () =>
@@ -440,9 +466,11 @@ describe("useScenarioCalculation", () => {
         breakeven_label: "Test",
       };
 
-      mockUseStartupScenarioQuery.mockReturnValue(createQueryMock({
-        data: mockResult,
-      }));
+      mockUseStartupScenarioQuery.mockReturnValue(
+        createQueryMock({
+          data: mockResult,
+        })
+      );
 
       const { result } = renderHook(
         () =>
@@ -461,12 +489,16 @@ describe("useScenarioCalculation", () => {
       const mockMonthlyData = { data: [{ month: 1, salary: 10000 }] };
       const mockOpportunityCost = { data: [{ year: 1, cost: 50000 }] };
 
-      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
-        data: mockMonthlyData,
-      }));
-      mockUseOpportunityCostQuery.mockReturnValue(createQueryMock({
-        data: mockOpportunityCost,
-      }));
+      mockUseMonthlyDataGridQuery.mockReturnValue(
+        createQueryMock({
+          data: mockMonthlyData,
+        })
+      );
+      mockUseOpportunityCostQuery.mockReturnValue(
+        createQueryMock({
+          data: mockOpportunityCost,
+        })
+      );
 
       const { result } = renderHook(
         () =>
@@ -503,11 +535,13 @@ describe("useScenarioCalculation", () => {
     it("maintains previous data while refetching (isFetching=true, data present)", () => {
       const staleData = { data: [{ month: 1, salary: 10000 }] };
 
-      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
-        data: staleData,
-        isFetching: true,
-        isPending: false,
-      }));
+      mockUseMonthlyDataGridQuery.mockReturnValue(
+        createQueryMock({
+          data: staleData,
+          isFetching: true,
+          isPending: false,
+        })
+      );
 
       const { result } = renderHook(
         () =>
@@ -527,10 +561,12 @@ describe("useScenarioCalculation", () => {
 
     it("distinguishes between first load (isPending) and refetch (isFetching)", () => {
       // First load scenario - no data, isPending
-      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
-        isPending: true,
-        data: undefined,
-      }));
+      mockUseMonthlyDataGridQuery.mockReturnValue(
+        createQueryMock({
+          isPending: true,
+          data: undefined,
+        })
+      );
 
       const { result: firstLoadResult } = renderHook(
         () =>
@@ -546,11 +582,13 @@ describe("useScenarioCalculation", () => {
       expect(firstLoadResult.current.isFetching).toBe(false);
 
       // Refetch scenario - has data, isFetching
-      mockUseMonthlyDataGridQuery.mockReturnValue(createQueryMock({
-        isPending: false,
-        isFetching: true,
-        data: { data: [] },
-      }));
+      mockUseMonthlyDataGridQuery.mockReturnValue(
+        createQueryMock({
+          isPending: false,
+          isFetching: true,
+          data: { data: [] },
+        })
+      );
 
       const { result: refetchResult } = renderHook(
         () =>

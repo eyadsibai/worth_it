@@ -63,7 +63,7 @@ export function DistributionSection<T extends FieldValues>({
     <Collapsible open={isEnabled as boolean}>
       <div
         className={cn(
-          "space-y-4 p-4 border border-border rounded-lg",
+          "border-border space-y-4 rounded-lg border p-4",
           "bg-muted/50 dark:bg-muted/30",
           className
         )}
@@ -74,15 +74,12 @@ export function DistributionSection<T extends FieldValues>({
           render={({ field }) => (
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-medium text-sm">
+                <h4 className="text-sm font-medium">
                   {title} ({distributionType})
                 </h4>
-                <p className="text-xs text-muted-foreground">{description}</p>
+                <p className="text-muted-foreground text-xs">{description}</p>
               </div>
-              <Switch
-                checked={field.value as boolean}
-                onCheckedChange={field.onChange}
-              />
+              <Switch checked={field.value as boolean} onCheckedChange={field.onChange} />
             </div>
           )}
         />

@@ -282,7 +282,7 @@ class TestCalculateDilutionPreview:
             # Verify types
             assert isinstance(item["name"], str)
             assert isinstance(item["type"], str)
-            assert isinstance(item["before_pct"], (int, float))
-            assert isinstance(item["after_pct"], (int, float))
-            assert isinstance(item["dilution_pct"], (int, float))
+            assert isinstance(item["before_pct"], int | float)
+            assert isinstance(item["after_pct"], int | float)
+            assert isinstance(item["dilution_pct"], int | float)
             assert isinstance(item["is_new"], bool)

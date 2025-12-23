@@ -53,6 +53,7 @@ npx playwright install chromium
 ### Start the Servers
 
 **Terminal 1 - Backend:**
+
 ```bash
 cd backend
 # Ensure Python 3.13+ is installed
@@ -60,6 +61,7 @@ python3 -m uvicorn worth_it.api:app --host 0.0.0.0 --port 8000
 ```
 
 **Terminal 2 - Frontend:**
+
 ```bash
 cd frontend
 npm install
@@ -67,6 +69,7 @@ npm run dev
 ```
 
 **Terminal 3 - Run Tests:**
+
 ```bash
 # Wait for both servers to be ready, then run tests
 npm run test:e2e
@@ -85,6 +88,7 @@ npm run test:e2e:ui
 ```
 
 This opens the Playwright UI where you can:
+
 - See all tests
 - Run individual tests
 - Watch tests in real-time
@@ -128,18 +132,21 @@ npx playwright test -g "RSU"
 ## Test Coverage
 
 ### 1. API Health Tests (`01-api-health.spec.ts`)
+
 - ✅ Page loads successfully
 - ✅ API connection status
 - ✅ API version display
 - ✅ Health endpoint returns 200
 
 ### 2. Form Interaction Tests (`02-form-interactions.spec.ts`)
+
 - ✅ Global settings form (exit year)
 - ✅ Current job form (salary, growth rate, ROI, investment frequency)
 - ✅ Numeric input validation
 - ✅ Decimal value support for percentages
 
 ### 3. RSU Form Tests (`03-rsu-form.spec.ts`)
+
 - ✅ RSU equity type selection
 - ✅ RSU-specific fields visibility
 - ✅ Equity grant percentage input
@@ -149,6 +156,7 @@ npx playwright test -g "RSU"
 - ✅ Vesting and cliff period settings
 
 ### 4. Stock Options Form Tests (`04-stock-options-form.spec.ts`)
+
 - ✅ Stock Options equity type selection
 - ✅ Stock Options-specific fields visibility
 - ✅ Number of options input
@@ -157,6 +165,7 @@ npx playwright test -g "RSU"
 - ✅ Switching between RSU and Stock Options
 
 ### 5. RSU Scenario Flow Tests (`05-rsu-scenario-flow.spec.ts`)
+
 - ✅ Complete RSU scenario execution
 - ✅ Final payout display
 - ✅ Opportunity cost calculation
@@ -166,6 +175,7 @@ npx playwright test -g "RSU"
 - ✅ Screenshot capture
 
 ### 6. Stock Options Scenario Flow Tests (`06-stock-options-scenario-flow.spec.ts`)
+
 - ✅ Complete Stock Options scenario execution
 - ✅ Options profit calculation
 - ✅ Exercise cost impact
@@ -174,6 +184,7 @@ npx playwright test -g "RSU"
 - ✅ Screenshot capture
 
 ### 7. Monte Carlo Tests (`07-monte-carlo.spec.ts`)
+
 - ✅ Monte Carlo form accessibility
 - ✅ Parameter configuration (simulations, valuations)
 - ✅ Simulation execution
@@ -182,6 +193,7 @@ npx playwright test -g "RSU"
 - ✅ Both RSU and Stock Options support
 
 ### 8. UI/UX Features Tests (`08-ui-features.spec.ts`)
+
 - ✅ Theme toggle functionality
 - ✅ Dark/light mode switching
 - ✅ Application title and description
@@ -256,33 +268,41 @@ Tests can be integrated into GitHub Actions:
 ## Debugging Tips
 
 ### 1. Use UI Mode for Development
+
 ```bash
 npm run test:e2e:ui
 ```
+
 Best for writing and debugging tests interactively.
 
 ### 2. Use Debug Mode for Failing Tests
+
 ```bash
 npm run test:e2e:debug
 ```
+
 Opens Playwright Inspector for step-by-step execution.
 
 ### 3. Take Screenshots
+
 ```typescript
 await page.screenshot({ path: 'debug.png', fullPage: true });
 ```
 
 ### 4. Use Trace Viewer
+
 ```bash
 npx playwright show-trace trace.zip
 ```
 
 ### 5. Slow Down Execution
+
 ```typescript
 await page.waitForTimeout(1000); // Add delays to observe
 ```
 
 ### 6. Console Logs
+
 ```typescript
 page.on('console', msg => console.log(msg.text()));
 ```
@@ -291,7 +311,7 @@ page.on('console', msg => console.log(msg.text()));
 
 Tests are configured in `playwright.config.ts` at the repository root:
 
-- **Base URL**: http://localhost:3000
+- **Base URL**: <http://localhost:3000>
 - **Test Timeout**: Default 30 seconds
 - **Retries**: 2 on CI, 0 locally
 - **Workers**: 1 on CI, undefined locally (parallel)
@@ -351,22 +371,26 @@ await expect(page.getByRole('button', { name: 'Submit' })).toBeEnabled();
 ## Troubleshooting
 
 ### Backend/Frontend Not Starting
+
 - Ensure dependencies are installed
 - Check that ports 8000 and 3000 are available
 - Verify backend can start: `cd backend && uvicorn worth_it.api:app`
 - Verify frontend can start: `cd frontend && npm run dev`
 
 ### Tests Timing Out
+
 - Increase timeout in test or config
 - Check network requests in browser DevTools
 - Ensure API is responding
 
 ### Element Not Found
+
 - Use Playwright Inspector to verify selectors
 - Check if element is in shadow DOM
 - Verify element is visible (not hidden by CSS)
 
 ### Flaky Tests
+
 - Add proper waits (`waitForSelector`, `waitForTimeout`)
 - Use retry logic
 - Avoid hardcoded sleeps (use waitFor conditions instead)

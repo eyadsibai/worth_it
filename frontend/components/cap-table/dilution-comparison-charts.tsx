@@ -1,13 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import type { DilutionData } from "@/lib/schemas";
 
 // Color mapping for stakeholder types
@@ -41,7 +35,7 @@ function CustomTooltip({
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-popover border rounded-lg shadow-lg p-2 text-sm">
+      <div className="bg-popover rounded-lg border p-2 text-sm shadow-lg">
         <p className="font-medium">{data.name}</p>
         <p className="text-muted-foreground">{data.value.toFixed(1)}%</p>
       </div>
@@ -50,21 +44,11 @@ function CustomTooltip({
   return null;
 }
 
-function MiniPieChart({
-  data,
-  label,
-}: {
-  data: ChartDataItem[];
-  label: string;
-}) {
+function MiniPieChart({ data, label }: { data: ChartDataItem[]; label: string }) {
   return (
     <div className="flex flex-col items-center">
-      <p className="text-sm font-medium text-muted-foreground mb-2">{label}</p>
-      <div
-        role="img"
-        aria-label={`${label} ownership distribution pie chart`}
-        className="w-full"
-      >
+      <p className="text-muted-foreground mb-2 text-sm font-medium">{label}</p>
+      <div role="img" aria-label={`${label} ownership distribution pie chart`} className="w-full">
         <ResponsiveContainer width="100%" height={160}>
           <PieChart>
             <Pie
@@ -91,9 +75,7 @@ function MiniPieChart({
   );
 }
 
-export function DilutionComparisonCharts({
-  data,
-}: DilutionComparisonChartsProps) {
+export function DilutionComparisonCharts({ data }: DilutionComparisonChartsProps) {
   // Prepare before data (excluding new investor)
   const beforeData: ChartDataItem[] = React.useMemo(
     () =>
@@ -119,7 +101,7 @@ export function DilutionComparisonCharts({
   );
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <MiniPieChart data={beforeData} label="Before" />
       <MiniPieChart data={afterData} label="After" />
     </div>

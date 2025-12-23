@@ -2,11 +2,7 @@
 
 import * as React from "react";
 import { Info } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 interface InfoTooltipProps {
@@ -46,21 +42,18 @@ export function InfoTooltip({
           className={cn(
             "inline-flex items-center justify-center rounded-full",
             "text-muted-foreground hover:text-foreground",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-            "transition-colors ml-1 -mt-0.5 align-middle"
+            "focus-visible:ring-ring focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
+            "-mt-0.5 ml-1 align-middle transition-colors"
           )}
           aria-label="More information"
         >
           <Info
             size={iconSize}
-            className={cn("opacity-70 hover:opacity-100 transition-opacity", iconClassName)}
+            className={cn("opacity-70 transition-opacity hover:opacity-100", iconClassName)}
           />
         </button>
       </TooltipTrigger>
-      <TooltipContent
-        side={side}
-        className="max-w-xs text-sm leading-relaxed"
-      >
+      <TooltipContent side={side} className="max-w-xs text-sm leading-relaxed">
         {content}
       </TooltipContent>
     </Tooltip>
@@ -89,7 +82,7 @@ export function LabelWithTooltip({
     <label
       htmlFor={htmlFor}
       className={cn(
-        "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+        "text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
         "flex items-center gap-1",
         className
       )}

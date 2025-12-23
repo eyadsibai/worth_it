@@ -64,7 +64,7 @@ export function InformationBox({
   return (
     <div
       className={cn(
-        "border border-border rounded-lg",
+        "border-border rounded-lg border",
         spacing === "compact" ? "p-3" : "p-4",
         variantClassMap[variant],
         className
@@ -74,7 +74,7 @@ export function InformationBox({
       {(title || description) && (
         <div className={cn("space-y-1", children ? "mb-4" : "")}>
           {title && (
-            <h4 className="font-semibold text-sm flex items-center gap-2">
+            <h4 className="flex items-center gap-2 text-sm font-semibold">
               {accentColor && (
                 <div className={cn("h-1.5 w-1.5 rounded-full", accentColorMap[accentColor])} />
               )}
@@ -82,9 +82,7 @@ export function InformationBox({
             </h4>
           )}
           {description && (
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {description}
-            </p>
+            <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
           )}
         </div>
       )}

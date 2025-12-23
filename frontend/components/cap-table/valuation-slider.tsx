@@ -111,7 +111,7 @@ export function ValuationSlider({
         {/* Main Value Display */}
         <div className="text-center">
           <div className="flex items-center justify-center gap-2">
-            <DollarSign className="h-6 w-6 text-muted-foreground" />
+            <DollarSign className="text-muted-foreground h-6 w-6" />
             <div className="relative">
               <Input
                 type="text"
@@ -119,14 +119,14 @@ export function ValuationSlider({
                 onChange={handleInputChange}
                 onBlur={handleInputBlur}
                 onKeyDown={handleInputKeyDown}
-                className="text-4xl tabular-nums font-bold w-32 text-center border-none shadow-none focus-visible:ring-0 p-0"
+                className="w-32 border-none p-0 text-center text-4xl font-bold tabular-nums shadow-none focus-visible:ring-0"
               />
-              <span className="absolute right-0 top-1/2 -translate-y-1/2 text-lg text-muted-foreground">
+              <span className="text-muted-foreground absolute top-1/2 right-0 -translate-y-1/2 text-lg">
                 M
               </span>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-1 text-sm">
             {formatCurrency(value)} exit valuation
           </p>
         </div>
@@ -141,7 +141,7 @@ export function ValuationSlider({
             step={step}
             className="w-full"
           />
-          <div className="flex justify-between text-xs text-muted-foreground">
+          <div className="text-muted-foreground flex justify-between text-xs">
             <span>{formatCurrency(min)}</span>
             <span>{formatCurrency(max)}</span>
           </div>
@@ -149,7 +149,7 @@ export function ValuationSlider({
 
         {/* Quick Select Buttons */}
         <div className="space-y-2">
-          <Label className="text-sm text-muted-foreground">Quick Select</Label>
+          <Label className="text-muted-foreground text-sm">Quick Select</Label>
           <div className="flex flex-wrap gap-2">
             {quickSelects.map((qs) => (
               <Button
@@ -167,13 +167,13 @@ export function ValuationSlider({
 
         {/* Breakeven Points */}
         {relevantBreakevens.length > 0 && (
-          <div className="space-y-2 pt-2 border-t border-border">
-            <Label className="text-sm text-muted-foreground">Breakeven Points</Label>
+          <div className="border-border space-y-2 border-t pt-2">
+            <Label className="text-muted-foreground text-sm">Breakeven Points</Label>
             <div className="space-y-1">
               {relevantBreakevens.map(([name, breakeven]) => (
                 <div
                   key={name}
-                  className={`flex justify-between text-sm p-2 rounded ${
+                  className={`flex justify-between rounded p-2 text-sm ${
                     value >= breakeven
                       ? "bg-green-500/10 text-green-500"
                       : "bg-muted/50 text-muted-foreground"
@@ -184,7 +184,7 @@ export function ValuationSlider({
                     variant="ghost"
                     size="sm"
                     onClick={() => onChange(breakeven)}
-                    className="h-auto py-0 px-2 tabular-nums text-xs"
+                    className="h-auto px-2 py-0 text-xs tabular-nums"
                   >
                     {formatCurrency(breakeven)}
                   </Button>

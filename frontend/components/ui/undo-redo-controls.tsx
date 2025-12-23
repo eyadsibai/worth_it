@@ -3,11 +3,7 @@
 import * as React from "react";
 import { Undo2, Redo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 interface UndoRedoControlsProps {
@@ -51,19 +47,15 @@ export function UndoRedoControls({
             onClick={onUndo}
             disabled={!canUndo}
             className="gap-1.5"
-            aria-label={
-              undoLabel ? `Undo: ${undoLabel}` : "Undo"
-            }
+            aria-label={undoLabel ? `Undo: ${undoLabel}` : "Undo"}
           >
             <Undo2 className="h-4 w-4" />
             {size !== "icon" && <span className="hidden sm:inline">Undo</span>}
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          <p className="text-sm">
-            {undoLabel ? `Undo: ${undoLabel}` : "Undo"}
-          </p>
-          <p className="text-xs text-muted-foreground">{modifierKey}Z</p>
+          <p className="text-sm">{undoLabel ? `Undo: ${undoLabel}` : "Undo"}</p>
+          <p className="text-muted-foreground text-xs">{modifierKey}Z</p>
         </TooltipContent>
       </Tooltip>
 
@@ -75,21 +67,15 @@ export function UndoRedoControls({
             onClick={onRedo}
             disabled={!canRedo}
             className="gap-1.5"
-            aria-label={
-              redoLabel ? `Redo: ${redoLabel}` : "Redo"
-            }
+            aria-label={redoLabel ? `Redo: ${redoLabel}` : "Redo"}
           >
             <Redo2 className="h-4 w-4" />
             {size !== "icon" && <span className="hidden sm:inline">Redo</span>}
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          <p className="text-sm">
-            {redoLabel ? `Redo: ${redoLabel}` : "Redo"}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {modifierKey}Shift+Z
-          </p>
+          <p className="text-sm">{redoLabel ? `Redo: ${redoLabel}` : "Redo"}</p>
+          <p className="text-muted-foreground text-xs">{modifierKey}Shift+Z</p>
         </TooltipContent>
       </Tooltip>
     </div>

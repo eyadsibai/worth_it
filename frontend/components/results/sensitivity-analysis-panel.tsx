@@ -67,18 +67,14 @@ export function SensitivityAnalysisPanel({
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Run sensitivity analysis to see how changes in exit valuation, salary growth,
-              investment ROI, and dilution affect your net outcome. The tornado chart shows
-              which factors matter most for your decision.
+              investment ROI, and dilution affect your net outcome. The tornado chart shows which
+              factors matter most for your decision.
             </p>
 
             <div className="flex gap-2">
-              <Button
-                onClick={runAnalysis}
-                disabled={isRunning}
-                className="flex-1"
-              >
+              <Button onClick={runAnalysis} disabled={isRunning} className="flex-1">
                 {isRunning ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -100,7 +96,7 @@ export function SensitivityAnalysisPanel({
 
             {/* Error Display */}
             {sensitivityMutation.isError && (
-              <div className="p-4 border border-destructive rounded-lg bg-destructive/10 text-destructive text-sm">
+              <div className="border-destructive bg-destructive/10 text-destructive rounded-lg border p-4 text-sm">
                 <p className="font-medium">Analysis Error</p>
                 <p>
                   {sensitivityMutation.error?.message ||

@@ -9,6 +9,7 @@ Modern financial analysis tool for evaluating startup job offers with real-time 
 ## 🚀 Quick Start
 
 **Backend:**
+
 ```bash
 cd backend
 uv sync
@@ -16,6 +17,7 @@ uv run uvicorn worth_it.api:app --reload --port 8000
 ```
 
 **Frontend:**
+
 ```bash
 cd frontend
 npm install
@@ -23,8 +25,9 @@ npm run dev
 ```
 
 Visit:
-- **Frontend**: http://localhost:3000
-- **API Docs**: http://localhost:8000/docs
+
+- **Frontend**: <http://localhost:3000>
+- **API Docs**: <http://localhost:8000/docs>
 
 ## 📁 Monorepo Structure
 
@@ -93,6 +96,7 @@ worth_it/
 ## ✨ Features
 
 ### Employee Mode
+
 - **Real-time Calculations**: Instant scenario analysis as you type
 - **Monte Carlo Simulations**: WebSocket-powered probabilistic modeling with live progress
 - **7 Interactive Visualizations**: Histogram, ECDF, Box Plot, Scatter, PDF, Stats, Summary
@@ -101,12 +105,14 @@ worth_it/
 - **What-If Analysis**: Quick adjustment panel for sensitivity testing
 
 ### Founder Mode
+
 - **Cap Table Management**: Track ownership across multiple funding rounds
 - **Waterfall Analysis**: Model exit distributions with liquidation preferences
 - **Dilution Modeling**: Visualize equity dilution across 6+ funding rounds
 - **Preference Stack Editor**: Configure participation caps and preferences
 
 ### Core Features
+
 - **Onboarding Flow**: Guided welcome modal for first-time users
 - **Command Palette**: Quick actions via Cmd+K (or Ctrl+K)
 - **Auto-Save & Recovery**: Draft forms saved automatically with recovery dialog
@@ -124,6 +130,7 @@ worth_it/
 ## 🧪 Testing
 
 **Backend (148 tests):**
+
 ```bash
 cd backend
 uv run pytest                          # Run all tests
@@ -131,6 +138,7 @@ uv run pytest --cov=src --cov-report   # With coverage
 ```
 
 **Frontend (688 tests):**
+
 ```bash
 cd frontend
 npm run test:unit     # Run all unit tests
@@ -139,6 +147,7 @@ npm run lint          # ESLint
 ```
 
 **E2E Tests (17 test suites):**
+
 ```bash
 ./scripts/run-e2e-tests.sh    # Convenience script (recommended)
 
@@ -153,12 +162,14 @@ See [playwright/README.md](playwright/README.md) for detailed E2E testing docume
 ## 🛠️ Tech Stack
 
 **Backend:**
+
 - FastAPI + Pydantic + WebSocket
 - NumPy, Pandas, SciPy for calculations
 - pytest with 148 tests
 - uv for dependency management
 
 **Frontend:**
+
 - Next.js 16 + TypeScript + Turbopack
 - shadcn/ui (Radix UI + Tailwind CSS)
 - React Hook Form + Zod + TanStack Query
@@ -166,6 +177,7 @@ See [playwright/README.md](playwright/README.md) for detailed E2E testing docume
 - Vitest with 688 tests
 
 **E2E Testing:**
+
 - Playwright for automated browser testing
 - 17 test suites covering full user flows
 - Automated CI/CD integration

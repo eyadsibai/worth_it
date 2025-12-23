@@ -43,8 +43,7 @@ export const capTableTour: Tour = {
     {
       target: '[data-tour="export-cap-table"]',
       title: "Export Your Cap Table",
-      description:
-        "Export your cap table to CSV for further analysis or to share with advisors.",
+      description: "Export your cap table to CSV for further analysis or to share with advisors.",
       position: "bottom",
     },
   ],

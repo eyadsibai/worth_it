@@ -69,10 +69,7 @@ export function exportAsJSON(data: unknown, filename: string): void {
  * Export results data as CSV
  * Exports actual StartupScenarioResponse fields matching the API schema
  */
-export function exportResultsAsCSV(
-  results: StartupScenarioResponse,
-  filename: string
-): void {
+export function exportResultsAsCSV(results: StartupScenarioResponse, filename: string): void {
   const rows: string[] = [];
 
   // Header
@@ -247,7 +244,9 @@ function generateCopyName(originalName: string, existingScenarios: ScenarioData[
     if (scenario.name === `${baseName} (Copy)`) {
       existingCopyNumbers.push(1);
     } else {
-      const scenarioMatch = scenario.name.match(new RegExp(`^${escapeRegex(baseName)}\\s*\\(Copy\\s+(\\d+)\\)$`));
+      const scenarioMatch = scenario.name.match(
+        new RegExp(`^${escapeRegex(baseName)}\\s*\\(Copy\\s+(\\d+)\\)$`)
+      );
       if (scenarioMatch) {
         existingCopyNumbers.push(parseInt(scenarioMatch[1], 10));
       }
@@ -312,7 +311,7 @@ export function duplicateScenario(timestamp: string): ScenarioData | null {
  * - Escapes internal double quotes by doubling them
  */
 function escapeCSV(value: string): string {
-  if (value.includes('"') || value.includes(',') || value.includes('\n') || value.includes('\r')) {
+  if (value.includes('"') || value.includes(",") || value.includes("\n") || value.includes("\r")) {
     const escaped = value.replace(/"/g, '""');
     return `"${escaped}"`;
   }
@@ -327,9 +326,9 @@ function escapeCSV(value: string): string {
 function sanitizeFilename(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")  // Replace non-alphanumeric sequences with hyphen
-    .replace(/-+/g, "-")            // Collapse consecutive hyphens
-    .replace(/^-|-$/g, "");         // Trim leading/trailing hyphens
+    .replace(/[^a-z0-9-]+/g, "-") // Replace non-alphanumeric sequences with hyphen
+    .replace(/-+/g, "-") // Collapse consecutive hyphens
+    .replace(/^-|-$/g, ""); // Trim leading/trailing hyphens
 }
 
 /**
@@ -492,7 +491,10 @@ export function exportScenarioAsPDF(
 
   // Add equity-specific details (use 2 decimal places for equity percentage, consistent with CSV)
   if (scenario.equity.type === "RSU") {
-    inputData.push(["Equity Percentage", `${((scenario.equity.equityPct || 0) * 100).toFixed(2)}%`]);
+    inputData.push([
+      "Equity Percentage",
+      `${((scenario.equity.equityPct || 0) * 100).toFixed(2)}%`,
+    ]);
     inputData.push(["Exit Valuation", `$${formatNumber(scenario.equity.exitValuation || 0)}`]);
   } else {
     inputData.push(["Number of Options", formatNumber(scenario.equity.numOptions || 0)]);
@@ -644,17 +646,23 @@ export function exportScenarioComparisonPDF(
   // Build comparison table data
   const comparisonHeaders = ["Metric", ...scenarios.map((s) => s.name)];
   const comparisonTableRows = [
-    ["Equity Type", ...scenarios.map((s) => s.equity.type === "RSU" ? "RSU" : "Options")],
+    ["Equity Type", ...scenarios.map((s) => (s.equity.type === "RSU" ? "RSU" : "Options"))],
     ["Exit Year", ...scenarios.map((s) => `Year ${s.globalSettings.exitYear}`)],
     ["Current Salary", ...scenarios.map((s) => `$${formatNumber(s.currentJob.monthlySalary)}/mo`)],
     ["Startup Salary", ...scenarios.map((s) => `$${formatNumber(s.equity.monthlySalary)}/mo`)],
     ["Final Payout", ...scenarios.map((s) => `$${formatNumber(s.results.finalPayoutValue)}`)],
-    ["Opportunity Cost", ...scenarios.map((s) => `$${formatNumber(s.results.finalOpportunityCost)}`)],
-    ["Net Outcome", ...scenarios.map((s) => {
-      const isWinner = winner && s.name === winner.winnerName && !winner.isTie;
-      return `$${formatNumber(s.results.netOutcome)}${isWinner ? " ★" : ""}`;
-    })],
-    ["Verdict", ...scenarios.map((s) => s.results.netOutcome >= 0 ? "WORTH IT" : "NOT WORTH IT")],
+    [
+      "Opportunity Cost",
+      ...scenarios.map((s) => `$${formatNumber(s.results.finalOpportunityCost)}`),
+    ],
+    [
+      "Net Outcome",
+      ...scenarios.map((s) => {
+        const isWinner = winner && s.name === winner.winnerName && !winner.isTie;
+        return `$${formatNumber(s.results.netOutcome)}${isWinner ? " ★" : ""}`;
+      }),
+    ],
+    ["Verdict", ...scenarios.map((s) => (s.results.netOutcome >= 0 ? "WORTH IT" : "NOT WORTH IT"))],
   ];
 
   autoTable(doc, {
@@ -713,10 +721,7 @@ export function exportScenarioComparisonPDF(
     doc.setFontSize(14);
     doc.text("Key Insights", 14, finalY);
 
-    const insightData = insights.map((insight) => [
-      insight.title,
-      insight.description,
-    ]);
+    const insightData = insights.map((insight) => [insight.title, insight.description]);
 
     autoTable(doc, {
       startY: finalY + 5,
@@ -753,7 +758,6 @@ export function exportScenarioComparisonPDF(
   doc.save(pdfFilename);
 }
 
-
 // ============================================================================
 // Cap Table Export Functions
 // ============================================================================
@@ -765,7 +769,9 @@ export function exportCapTableAsCSV(capTable: CapTable, filename: string): void 
   const rows: string[] = [];
 
   // Header
-  rows.push("Name,Type,Share Class,Shares,Ownership %,Vesting Period (months),Cliff Period (months),Vested Shares");
+  rows.push(
+    "Name,Type,Share Class,Shares,Ownership %,Vesting Period (months),Cliff Period (months),Vested Shares"
+  );
 
   // Add stakeholders
   capTable.stakeholders.forEach((stakeholder) => {
@@ -794,7 +800,10 @@ export function exportCapTableAsCSV(capTable: CapTable, filename: string): void 
 /**
  * Export funding history as CSV
  */
-export function exportFundingHistoryAsCSV(instruments: FundingInstrument[], filename: string): void {
+export function exportFundingHistoryAsCSV(
+  instruments: FundingInstrument[],
+  filename: string
+): void {
   const rows: string[] = [];
 
   // Header
@@ -805,18 +814,24 @@ export function exportFundingHistoryAsCSV(instruments: FundingInstrument[], file
     const date = instrument.date || "N/A";
 
     if (instrument.type === "SAFE") {
-      const capInfo = instrument.valuation_cap ? `Cap: $${instrument.valuation_cap.toLocaleString()}` : "";
+      const capInfo = instrument.valuation_cap
+        ? `Cap: $${instrument.valuation_cap.toLocaleString()}`
+        : "";
       const discountInfo = instrument.discount_pct ? `Discount: ${instrument.discount_pct}%` : "";
       const details = [capInfo, discountInfo].filter(Boolean).join(", ");
       rows.push(
         `SAFE,${escapeCSV(instrument.investor_name)},${instrument.investment_amount},${date},${instrument.status},${escapeCSV(details)}`
       );
     } else if (instrument.type === "CONVERTIBLE_NOTE") {
-      const capInfo = instrument.valuation_cap ? `Cap: $${instrument.valuation_cap.toLocaleString()}` : "";
+      const capInfo = instrument.valuation_cap
+        ? `Cap: $${instrument.valuation_cap.toLocaleString()}`
+        : "";
       const discountInfo = instrument.discount_pct ? `Discount: ${instrument.discount_pct}%` : "";
       const interestInfo = `Interest: ${instrument.interest_rate}% (${instrument.interest_type})`;
       const maturityInfo = `Maturity: ${instrument.maturity_months} months`;
-      const details = [capInfo, discountInfo, interestInfo, maturityInfo].filter(Boolean).join(", ");
+      const details = [capInfo, discountInfo, interestInfo, maturityInfo]
+        .filter(Boolean)
+        .join(", ");
       rows.push(
         `Convertible Note,${escapeCSV(instrument.investor_name)},${instrument.principal_amount},${date},${instrument.status},${escapeCSV(details)}`
       );

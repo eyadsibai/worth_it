@@ -22,11 +22,7 @@ import {
   TrendingUp,
   Clock,
 } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import type {
   TimelineEvent,
@@ -65,14 +61,7 @@ interface EventDotProps {
   onHover: (timestamp: number | null) => void;
 }
 
-function EventDot({
-  event,
-  position,
-  isSelected,
-  isHovered,
-  onSelect,
-  onHover,
-}: EventDotProps) {
+function EventDot({ event, position, isSelected, isHovered, onSelect, onHover }: EventDotProps) {
   const Icon = EVENT_ICONS[event.type];
 
   return (
@@ -80,13 +69,13 @@ function EventDot({
       <PopoverTrigger asChild>
         <motion.button
           className={cn(
-            "absolute top-1/2 -translate-y-1/2 -translate-x-1/2",
-            "w-10 h-10 rounded-full flex items-center justify-center",
-            "transition-all duration-200 cursor-pointer",
-            "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+            "absolute top-1/2 -translate-x-1/2 -translate-y-1/2",
+            "flex h-10 w-10 items-center justify-center rounded-full",
+            "cursor-pointer transition-all duration-200",
+            "focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:outline-none",
             isSelected || isHovered
               ? "bg-primary text-primary-foreground scale-110 shadow-lg"
-              : "bg-card text-muted-foreground border-2 border-border hover:border-primary hover:text-primary"
+              : "bg-card text-muted-foreground border-border hover:border-primary hover:text-primary border-2"
           )}
           style={{ left: `${position}%` }}
           onMouseEnter={() => onHover(event.timestamp)}
@@ -96,15 +85,10 @@ function EventDot({
           whileTap={{ scale: 0.95 }}
           aria-label={`${event.title} - ${format(new Date(event.timestamp), "MMM d, yyyy")}`}
         >
-          <Icon className="w-4 h-4" />
+          <Icon className="h-4 w-4" />
         </motion.button>
       </PopoverTrigger>
-      <PopoverContent
-        className="w-72 p-0"
-        side="top"
-        align="center"
-        sideOffset={8}
-      >
+      <PopoverContent className="w-72 p-0" side="top" align="center" sideOffset={8}>
         <EventDetailCard event={event} />
       </PopoverContent>
     </Popover>
@@ -123,12 +107,12 @@ function EventDetailCard({ event }: EventDetailCardProps) {
   const Icon = EVENT_ICONS[event.type];
 
   return (
-    <div className="bg-[hsl(220,15%,15%)] text-white rounded-xl overflow-hidden">
+    <div className="overflow-hidden rounded-xl bg-[hsl(220,15%,15%)] text-white">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-white/10">
+      <div className="border-b border-white/10 px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-            <Icon className="w-4 h-4 text-primary" />
+          <div className="bg-primary/20 flex h-8 w-8 items-center justify-center rounded-full">
+            <Icon className="text-primary h-4 w-4" />
           </div>
           <div>
             <p className="font-medium">{event.title}</p>
@@ -145,7 +129,7 @@ function EventDetailCard({ event }: EventDetailCardProps) {
 
         {/* Metadata */}
         {event.metadata && Object.keys(event.metadata).length > 0 && (
-          <div className="mt-3 pt-3 border-t border-white/10 space-y-1.5">
+          <div className="mt-3 space-y-1.5 border-t border-white/10 pt-3">
             {event.metadata.amount && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Amount</span>
@@ -168,9 +152,7 @@ function EventDetailCard({ event }: EventDetailCardProps) {
                 <span
                   className={cn(
                     "font-medium tabular-nums",
-                    event.metadata.percentageChange > 0
-                      ? "text-terminal"
-                      : "text-destructive"
+                    event.metadata.percentageChange > 0 ? "text-terminal" : "text-destructive"
                   )}
                 >
                   {event.metadata.percentageChange > 0 ? "+" : ""}
@@ -181,7 +163,7 @@ function EventDetailCard({ event }: EventDetailCardProps) {
             {event.metadata.vestedPercentage !== undefined && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Vested</span>
-                <span className="font-medium tabular-nums text-terminal">
+                <span className="text-terminal font-medium tabular-nums">
                   {event.metadata.vestedPercentage.toFixed(0)}%
                 </span>
               </div>
@@ -191,25 +173,19 @@ function EventDetailCard({ event }: EventDetailCardProps) {
 
         {/* Ownership snapshot preview */}
         {event.ownershipSnapshot.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-white/10">
-            <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">
+          <div className="mt-3 border-t border-white/10 pt-3">
+            <p className="mb-2 text-xs tracking-wide text-gray-400 uppercase">
               Ownership at this point
             </p>
             <div className="space-y-1">
               {event.ownershipSnapshot.slice(0, 4).map((owner) => (
                 <div key={owner.stakeholderId} className="flex justify-between text-sm">
-                  <span className="text-gray-300 truncate max-w-[140px]">
-                    {owner.name}
-                  </span>
-                  <span className="font-medium tabular-nums">
-                    {owner.percentage.toFixed(1)}%
-                  </span>
+                  <span className="max-w-[140px] truncate text-gray-300">{owner.name}</span>
+                  <span className="font-medium tabular-nums">{owner.percentage.toFixed(1)}%</span>
                 </div>
               ))}
               {event.ownershipSnapshot.length > 4 && (
-                <p className="text-xs text-gray-500">
-                  +{event.ownershipSnapshot.length - 4} more
-                </p>
+                <p className="text-xs text-gray-500">+{event.ownershipSnapshot.length - 4} more</p>
               )}
             </div>
           </div>
@@ -240,12 +216,8 @@ function EventLabel({ event, position, isSelected, isHovered }: EventLabelProps)
       )}
       style={{ left: `${position}%` }}
     >
-      <p className="text-xs font-medium whitespace-nowrap max-w-[80px] truncate">
-        {event.title}
-      </p>
-      <p className="text-[10px]">
-        {format(new Date(event.timestamp), "MMM yyyy")}
-      </p>
+      <p className="max-w-[80px] truncate text-xs font-medium whitespace-nowrap">{event.title}</p>
+      <p className="text-[10px]">{format(new Date(event.timestamp), "MMM yyyy")}</p>
     </div>
   );
 }
@@ -287,8 +259,7 @@ export function EventTimeline({
       position:
         timeRange === 0
           ? 50
-          : paddingPct +
-            ((event.timestamp - minTime) / timeRange) * (100 - 2 * paddingPct),
+          : paddingPct + ((event.timestamp - minTime) / timeRange) * (100 - 2 * paddingPct),
     }));
   }, [events]);
 
@@ -305,7 +276,7 @@ export function EventTimeline({
 
   if (events.length === 0) {
     return (
-      <div className="h-[120px] flex items-center justify-center text-muted-foreground">
+      <div className="text-muted-foreground flex h-[120px] items-center justify-center">
         <p>No events to display</p>
       </div>
     );
@@ -316,7 +287,7 @@ export function EventTimeline({
       {/* Timeline line */}
       <div className="relative h-12">
         {/* Background line */}
-        <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-border -translate-y-1/2" />
+        <div className="bg-border absolute top-1/2 right-0 left-0 h-0.5 -translate-y-1/2" />
 
         {/* Highlighted segment for selected/hovered */}
         <AnimatePresence>
@@ -325,13 +296,11 @@ export function EventTimeline({
               initial={{ scaleX: 0 }}
               animate={{ scaleX: 1 }}
               exit={{ scaleX: 0 }}
-              className="absolute top-1/2 left-0 h-1 bg-primary -translate-y-1/2 origin-left"
+              className="bg-primary absolute top-1/2 left-0 h-1 origin-left -translate-y-1/2"
               style={{
                 width: `${
                   eventPositions.find(
-                    (ep) =>
-                      ep.event.timestamp ===
-                      (selectedTimestamp || hoveredTimestamp)
+                    (ep) => ep.event.timestamp === (selectedTimestamp || hoveredTimestamp)
                   )?.position ?? 0
                 }%`,
               }}

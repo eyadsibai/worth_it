@@ -35,10 +35,7 @@ export const HistogramChart = memo(function HistogramChart({
     }));
 
     netOutcomes.forEach((value) => {
-      const binIndex = Math.min(
-        Math.floor((value - min) / binWidth),
-        bins - 1
-      );
+      const binIndex = Math.min(Math.floor((value - min) / binWidth), bins - 1);
       histogram[binIndex].count++;
     });
 
@@ -47,8 +44,8 @@ export const HistogramChart = memo(function HistogramChart({
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-2">Distribution of Net Outcomes</h3>
-      <p className="text-sm text-muted-foreground mb-4">
+      <h3 className="mb-2 text-lg font-semibold">Distribution of Net Outcomes</h3>
+      <p className="text-muted-foreground mb-4 text-sm">
         Frequency distribution showing how often different outcomes occur
       </p>
       <ResponsiveContainer width="100%" height={400}>
@@ -78,19 +75,11 @@ export const HistogramChart = memo(function HistogramChart({
             {histogramData.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={
-                  entry.bin >= 0
-                    ? "var(--chart-1)"
-                    : "var(--destructive)"
-                }
+                fill={entry.bin >= 0 ? "var(--chart-1)" : "var(--destructive)"}
               />
             ))}
           </Bar>
-          <ReferenceLine
-            x={0}
-            stroke="var(--muted-foreground)"
-            strokeDasharray="3 3"
-          />
+          <ReferenceLine x={0} stroke="var(--muted-foreground)" strokeDasharray="3 3" />
         </BarChart>
       </ResponsiveContainer>
     </div>

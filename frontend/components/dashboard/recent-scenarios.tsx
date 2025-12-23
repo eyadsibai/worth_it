@@ -80,21 +80,21 @@ export function RecentScenarios({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Clock className="h-5 w-5 text-terminal" />
+            <Clock className="text-terminal h-5 w-5" />
             Recent Scenarios
           </CardTitle>
           {scenarios.length > maxItems && onViewAll && (
             <Button variant="ghost" size="sm" onClick={onViewAll} className="text-xs">
               View All
-              <ChevronRight className="h-3 w-3 ml-1" />
+              <ChevronRight className="ml-1 h-3 w-3" />
             </Button>
           )}
         </div>
       </CardHeader>
       <CardContent>
         {displayedScenarios.length === 0 ? (
-          <div className="py-8 text-center text-muted-foreground">
-            <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <div className="text-muted-foreground py-8 text-center">
+            <Clock className="mx-auto mb-2 h-8 w-8 opacity-50" />
             <p>No recent scenarios</p>
             <p className="text-sm">Your saved work will appear here.</p>
           </div>
@@ -104,26 +104,28 @@ export function RecentScenarios({
               <button
                 key={`${scenario.type}-${scenario.id}`}
                 onClick={() => onLoadScenario(scenario.id, scenario.type)}
-                className="w-full flex items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors text-left group"
+                className="bg-card hover:bg-accent/50 group flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors"
               >
                 {/* Icon */}
-                <div className={cn(
-                  "p-2 rounded-lg",
-                  scenario.type === "employee" ? "bg-chart-2/20" : "bg-chart-3/20"
-                )}>
+                <div
+                  className={cn(
+                    "rounded-lg p-2",
+                    scenario.type === "employee" ? "bg-chart-2/20" : "bg-chart-3/20"
+                  )}
+                >
                   {scenario.type === "employee" ? (
-                    <Briefcase className="h-4 w-4 text-chart-2" />
+                    <Briefcase className="text-chart-2 h-4 w-4" />
                   ) : (
-                    <Building2 className="h-4 w-4 text-chart-3" />
+                    <Building2 className="text-chart-3 h-4 w-4" />
                   )}
                 </div>
 
                 {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate group-hover:text-terminal transition-colors">
+                <div className="min-w-0 flex-1">
+                  <p className="group-hover:text-terminal truncate font-medium transition-colors">
                     {scenario.name}
                   </p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="text-muted-foreground flex items-center gap-2 text-xs">
                     <span>
                       {formatRelativeTime(
                         scenario.type === "employee" ? scenario.timestamp : scenario.updatedAt
@@ -133,47 +135,50 @@ export function RecentScenarios({
                       <Badge
                         variant="outline"
                         className={cn(
-                          "text-xs px-1.5 py-0",
+                          "px-1.5 py-0 text-xs",
                           scenario.isWorthIt
                             ? "border-terminal/30 text-terminal"
                             : "border-muted-foreground/30 text-muted-foreground"
                         )}
                       >
                         {scenario.isWorthIt ? (
-                          <TrendingUp className="h-3 w-3 mr-1" />
+                          <TrendingUp className="mr-1 h-3 w-3" />
                         ) : (
-                          <TrendingDown className="h-3 w-3 mr-1" />
+                          <TrendingDown className="mr-1 h-3 w-3" />
                         )}
                         {scenario.isWorthIt ? "Worth it" : "Not worth it"}
                       </Badge>
                     )}
                     {scenario.type === "founder" && (
                       <span className="text-xs">
-                        {scenario.stakeholderCount} stakeholder{scenario.stakeholderCount !== 1 ? "s" : ""}
+                        {scenario.stakeholderCount} stakeholder
+                        {scenario.stakeholderCount !== 1 ? "s" : ""}
                       </span>
                     )}
                   </div>
                 </div>
 
                 {/* Value */}
-                <div className="text-right shrink-0">
+                <div className="shrink-0 text-right">
                   {scenario.type === "employee" ? (
-                    <span className={cn(
-                      "text-sm font-semibold tabular-nums",
-                      scenario.netBenefit >= 0 ? "text-terminal" : "text-destructive"
-                    )}>
+                    <span
+                      className={cn(
+                        "text-sm font-semibold tabular-nums",
+                        scenario.netBenefit >= 0 ? "text-terminal" : "text-destructive"
+                      )}
+                    >
                       {scenario.netBenefit >= 0 ? "+" : ""}
                       {formatCurrency(scenario.netBenefit)}
                     </span>
                   ) : (
-                    <span className="text-sm font-semibold tabular-nums text-terminal">
+                    <span className="text-terminal text-sm font-semibold tabular-nums">
                       {formatCurrency(scenario.totalFunding)}
                     </span>
                   )}
                 </div>
 
                 {/* Arrow */}
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-terminal transition-colors shrink-0" />
+                <ChevronRight className="text-muted-foreground group-hover:text-terminal h-4 w-4 shrink-0 transition-colors" />
               </button>
             ))}
           </div>

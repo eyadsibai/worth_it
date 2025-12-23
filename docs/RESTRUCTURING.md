@@ -31,6 +31,7 @@ worth_it/
 ```
 
 **Issues:**
+
 - ❌ No clear separation of concerns
 - ❌ Hard to navigate
 - ❌ Tests mixed with source code
@@ -86,6 +87,7 @@ worth_it/
 ```
 
 **Benefits:**
+
 - ✅ Clear separation of concerns
 - ✅ Easy to navigate
 - ✅ Standard Python package layout (src-layout)
@@ -99,36 +101,44 @@ worth_it/
 ## Directory Descriptions
 
 ### `src/worth_it/`
+
 **Purpose**: Core application code
 **Contents**: All Python modules that make up the application
 **Why**:
+
 - Installable as a package
 - Clear separation from tests and docs
 - Prevents import errors
 - Standard Python best practice
 
 ### `tests/`
+
 **Purpose**: Comprehensive test suite
 **Contents**: Unit, API, and integration tests
 **Why**:
+
 - Isolated from source code
 - Easy to run all tests: `pytest tests/`
 - Follows pytest conventions
 - Clear test organization
 
 ### `docs/`
+
 **Purpose**: All documentation
 **Contents**: README, API docs, changelogs, guides
 **Why**:
+
 - Central location for documentation
 - Easy to find and maintain
 - Can be published to ReadTheDocs
 - Professional documentation structure
 
 ### `scripts/`
+
 **Purpose**: Utility scripts and tools
 **Contents**: Startup scripts, examples, utilities
 **Why**:
+
 - Keeps root clean
 - Easy to find utilities
 - Separate from core code
@@ -141,6 +151,7 @@ worth_it/
 ### 1. Package Structure
 
 **Before:**
+
 ```python
 # Imports didn't work as a package
 import calculations
@@ -148,6 +159,7 @@ from api import app
 ```
 
 **After:**
+
 ```python
 # Clean package imports
 from worth_it import calculations
@@ -158,11 +170,13 @@ from worth_it.calculations import EquityType
 ### 2. Installation
 
 **Before:**
+
 - Not installable as a package
 - Had to run from root directory
 - Manual PYTHONPATH management
 
 **After:**
+
 ```bash
 # Install in development mode
 uv sync
@@ -174,6 +188,7 @@ python -c "from worth_it import calculations"
 ### 3. Running Commands
 
 **Before:**
+
 ```bash
 # Had to be in root directory
 ./start.sh
@@ -183,6 +198,7 @@ pytest test_calculations.py
 ```
 
 **After:**
+
 ```bash
 # Can run from anywhere
 ./scripts/start.sh
@@ -194,6 +210,7 @@ uv run pytest tests/
 ### 4. Configuration Files
 
 **Updated:**
+
 - `pyproject.toml` - Added package configuration, src layout
 - `CLAUDE.md` - Updated all paths
 - `README.md` - New structure documentation
@@ -207,6 +224,7 @@ uv run pytest tests/
 ### For Developers
 
 **Imports Changed:**
+
 ```python
 # Old (flat imports)
 import calculations
@@ -220,6 +238,7 @@ from worth_it.models import HealthCheckResponse
 ```
 
 **Running Commands:**
+
 ```bash
 # Old
 pytest test_calculations.py
@@ -238,6 +257,7 @@ pytest tests/test_calculations.py
 ### For Deployment
 
 **API Server:**
+
 ```bash
 # Old
 uvicorn api:app
@@ -247,6 +267,7 @@ uvicorn worth_it.api:app
 ```
 
 **Frontend:**
+
 ```bash
 # Old
 streamlit run app.py
@@ -274,6 +295,7 @@ tests/test_integration.py .... [100%]
 ```
 
 **Coverage:**
+
 - ✅ 35/35 tests passing
 - ✅ Coverage: 51.23%
 - ✅ Core modules: 76-86% coverage
@@ -283,6 +305,7 @@ tests/test_integration.py .... [100%]
 ## Benefits Summary
 
 ### Developer Experience
+
 - 🚀 Faster navigation
 - 🔍 Better IDE support
 - 📦 Installable package
@@ -290,6 +313,7 @@ tests/test_integration.py .... [100%]
 - 📚 Organized docs
 
 ### Code Quality
+
 - 🏗️ Standard structure
 - 🔒 Better encapsulation
 - 📝 Clear responsibilities
@@ -297,6 +321,7 @@ tests/test_integration.py .... [100%]
 - 📦 Reusable package
 
 ### Maintainability
+
 - 📖 Clear organization
 - 🎯 Easy to find code
 - 🔧 Scalable structure

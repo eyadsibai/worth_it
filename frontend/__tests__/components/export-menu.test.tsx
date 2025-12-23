@@ -68,23 +68,13 @@ describe("ExportMenu", () => {
   });
 
   it("renders export button", () => {
-    render(
-      <ExportMenu
-        capTable={mockCapTable}
-        instruments={mockInstruments}
-      />
-    );
+    render(<ExportMenu capTable={mockCapTable} instruments={mockInstruments} />);
 
     expect(screen.getByRole("button", { name: /export/i })).toBeInTheDocument();
   });
 
   it("export button has correct aria attributes for dropdown", () => {
-    render(
-      <ExportMenu
-        capTable={mockCapTable}
-        instruments={mockInstruments}
-      />
-    );
+    render(<ExportMenu capTable={mockCapTable} instruments={mockInstruments} />);
 
     const button = screen.getByRole("button", { name: /export/i });
     expect(button).toHaveAttribute("aria-haspopup", "menu");
@@ -94,12 +84,7 @@ describe("ExportMenu", () => {
   it("opens dropdown menu when clicked", async () => {
     const user = userEvent.setup();
 
-    render(
-      <ExportMenu
-        capTable={mockCapTable}
-        instruments={mockInstruments}
-      />
-    );
+    render(<ExportMenu capTable={mockCapTable} instruments={mockInstruments} />);
 
     const button = screen.getByRole("button", { name: /export/i });
     await user.click(button);
@@ -111,12 +96,7 @@ describe("ExportMenu", () => {
   it("calls exportCapTableAsCSV when Cap Table CSV menu item is clicked", async () => {
     const user = userEvent.setup();
 
-    render(
-      <ExportMenu
-        capTable={mockCapTable}
-        instruments={mockInstruments}
-      />
-    );
+    render(<ExportMenu capTable={mockCapTable} instruments={mockInstruments} />);
 
     // Open menu
     await user.click(screen.getByRole("button", { name: /export/i }));
@@ -134,12 +114,7 @@ describe("ExportMenu", () => {
   it("calls exportFundingHistoryAsCSV when Funding History CSV menu item is clicked", async () => {
     const user = userEvent.setup();
 
-    render(
-      <ExportMenu
-        capTable={mockCapTable}
-        instruments={mockInstruments}
-      />
-    );
+    render(<ExportMenu capTable={mockCapTable} instruments={mockInstruments} />);
 
     // Open menu
     await user.click(screen.getByRole("button", { name: /export/i }));
@@ -158,11 +133,7 @@ describe("ExportMenu", () => {
     const user = userEvent.setup();
 
     render(
-      <ExportMenu
-        capTable={mockCapTable}
-        instruments={mockInstruments}
-        waterfall={mockWaterfall}
-      />
+      <ExportMenu capTable={mockCapTable} instruments={mockInstruments} waterfall={mockWaterfall} />
     );
 
     // Open menu
@@ -200,12 +171,7 @@ describe("ExportMenu", () => {
   it("does not show exit scenarios option when valuations are not provided", async () => {
     const user = userEvent.setup();
 
-    render(
-      <ExportMenu
-        capTable={mockCapTable}
-        instruments={mockInstruments}
-      />
-    );
+    render(<ExportMenu capTable={mockCapTable} instruments={mockInstruments} />);
 
     // Open menu
     await user.click(screen.getByRole("button", { name: /export/i }));
@@ -242,13 +208,7 @@ describe("ExportMenu", () => {
   });
 
   it("is disabled when disabled prop is true", () => {
-    render(
-      <ExportMenu
-        capTable={mockCapTable}
-        instruments={mockInstruments}
-        disabled
-      />
-    );
+    render(<ExportMenu capTable={mockCapTable} instruments={mockInstruments} disabled />);
 
     expect(screen.getByRole("button", { name: /export/i })).toBeDisabled();
   });

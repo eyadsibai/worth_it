@@ -8,12 +8,12 @@ import Link from "next/link";
 export default function AboutPage() {
   return (
     <AppShell>
-      <div className="container max-w-4xl py-8 space-y-8">
+      <div className="container max-w-4xl space-y-8 py-8">
         {/* Hero Section */}
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center h-12 w-12 rounded-md bg-accent/10 border border-accent/30">
-              <Terminal className="h-6 w-6 text-accent" />
+            <div className="bg-accent/10 border-accent/30 flex h-12 w-12 items-center justify-center rounded-md border">
+              <Terminal className="text-accent h-6 w-6" />
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight">
@@ -22,7 +22,7 @@ export default function AboutPage() {
               <p className="text-muted-foreground">Job Offer Financial Analyzer</p>
             </div>
           </div>
-          <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl">
+          <p className="text-muted-foreground max-w-2xl text-lg leading-relaxed">
             Make data-driven decisions about job offers with comprehensive financial modeling.
             Compare startup equity packages against traditional employment opportunities.
           </p>
@@ -30,53 +30,53 @@ export default function AboutPage() {
 
         {/* Features Grid */}
         <div className="grid gap-6 md:grid-cols-2">
-          <Card className="terminal-card border-l-4 border-l-chart-1/50">
+          <Card className="terminal-card border-l-chart-1/50 border-l-4">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-chart-1" />
+              <CardTitle className="flex items-center gap-2 text-base">
+                <TrendingUp className="text-chart-1 h-4 w-4" />
                 Opportunity Cost Analysis
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Calculate the true cost of taking a lower-paying startup role by modeling
-              your foregone salary, potential investment returns, and career growth.
+            <CardContent className="text-muted-foreground text-sm">
+              Calculate the true cost of taking a lower-paying startup role by modeling your
+              foregone salary, potential investment returns, and career growth.
             </CardContent>
           </Card>
 
-          <Card className="terminal-card border-l-4 border-l-chart-2/50">
+          <Card className="terminal-card border-l-chart-2/50 border-l-4">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Calculator className="h-4 w-4 text-chart-2" />
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Calculator className="text-chart-2 h-4 w-4" />
                 Equity Valuation
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Model RSUs and Stock Options with realistic dilution scenarios,
-              vesting schedules, and exit valuations to understand your equity potential.
+            <CardContent className="text-muted-foreground text-sm">
+              Model RSUs and Stock Options with realistic dilution scenarios, vesting schedules, and
+              exit valuations to understand your equity potential.
             </CardContent>
           </Card>
 
-          <Card className="terminal-card border-l-4 border-l-chart-3/50">
+          <Card className="terminal-card border-l-chart-3/50 border-l-4">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-chart-3" />
+              <CardTitle className="flex items-center gap-2 text-base">
+                <BarChart3 className="text-chart-3 h-4 w-4" />
                 Monte Carlo Simulation
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              Run probabilistic simulations with variable exit valuations,
-              startup failure rates, and salary growth to understand the range of outcomes.
+            <CardContent className="text-muted-foreground text-sm">
+              Run probabilistic simulations with variable exit valuations, startup failure rates,
+              and salary growth to understand the range of outcomes.
             </CardContent>
           </Card>
 
-          <Card className="terminal-card border-l-4 border-l-chart-4/50">
+          <Card className="terminal-card border-l-chart-4/50 border-l-4">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <GitBranch className="h-4 w-4 text-chart-4" />
+              <CardTitle className="flex items-center gap-2 text-base">
+                <GitBranch className="text-chart-4 h-4 w-4" />
                 Cap Table Management
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
+            <CardContent className="text-muted-foreground text-sm">
               For founders: model cap tables with SAFE notes, convertible notes, and priced rounds.
               Run waterfall analysis to understand exit proceeds distribution.
             </CardContent>
@@ -90,33 +90,33 @@ export default function AboutPage() {
               <span className="text-accent font-mono">$</span> How It Works
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 text-sm text-muted-foreground">
-            <ol className="list-decimal list-inside space-y-3">
+          <CardContent className="text-muted-foreground space-y-4 text-sm">
+            <ol className="list-inside list-decimal space-y-3">
               <li>
-                <span className="font-medium text-foreground">Enter your current job details</span>
-                {" "}- salary, expected growth rate, and investment returns
+                <span className="text-foreground font-medium">Enter your current job details</span>{" "}
+                - salary, expected growth rate, and investment returns
               </li>
               <li>
-                <span className="font-medium text-foreground">Configure your startup offer</span>
-                {" "}- salary, equity type (RSUs or Stock Options), and vesting schedule
+                <span className="text-foreground font-medium">Configure your startup offer</span> -
+                salary, equity type (RSUs or Stock Options), and vesting schedule
               </li>
               <li>
-                <span className="font-medium text-foreground">Set exit expectations</span>
-                {" "}- target valuation, exit timeline, and dilution scenarios
+                <span className="text-foreground font-medium">Set exit expectations</span> - target
+                valuation, exit timeline, and dilution scenarios
               </li>
               <li>
-                <span className="font-medium text-foreground">Analyze the results</span>
-                {" "}- view breakeven points, IRR, NPV, and run Monte Carlo simulations
+                <span className="text-foreground font-medium">Analyze the results</span> - view
+                breakeven points, IRR, NPV, and run Monte Carlo simulations
               </li>
             </ol>
           </CardContent>
         </Card>
 
         {/* Get Started */}
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-accent text-accent-foreground font-medium text-sm hover:bg-accent/90 transition-colors"
+            className="bg-accent text-accent-foreground hover:bg-accent/90 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors"
           >
             <Terminal className="h-4 w-4" />
             Start Analyzing
@@ -125,7 +125,7 @@ export default function AboutPage() {
             href="https://github.com/eyadsibai/worth_it"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-border text-foreground font-medium text-sm hover:bg-secondary transition-colors"
+            className="border-border text-foreground hover:bg-secondary inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors"
           >
             <ExternalLink className="h-4 w-4" />
             View on GitHub
@@ -133,7 +133,7 @@ export default function AboutPage() {
         </div>
 
         {/* Footer */}
-        <div className="pt-4 border-t border-border text-sm text-muted-foreground font-mono">
+        <div className="border-border text-muted-foreground border-t pt-4 font-mono text-sm">
           <p>Built with Next.js, FastAPI, and real financial modeling algorithms.</p>
         </div>
       </div>

@@ -36,7 +36,7 @@ export function ValidationIndicator({
       <span
         aria-label="Field has error"
         className={cn(
-          "inline-flex items-center justify-center text-destructive animate-in fade-in duration-200",
+          "text-destructive animate-in fade-in inline-flex items-center justify-center duration-200",
           className
         )}
       >
@@ -50,7 +50,7 @@ export function ValidationIndicator({
       <span
         aria-label="Field has warning"
         className={cn(
-          "inline-flex items-center justify-center text-amber-500 animate-in fade-in duration-200",
+          "animate-in fade-in inline-flex items-center justify-center text-amber-500 duration-200",
           className
         )}
       >
@@ -64,7 +64,7 @@ export function ValidationIndicator({
       <span
         aria-label="Field is valid"
         className={cn(
-          "inline-flex items-center justify-center text-chart-3 animate-in fade-in duration-200",
+          "text-chart-3 animate-in fade-in inline-flex items-center justify-center duration-200",
           className
         )}
       >

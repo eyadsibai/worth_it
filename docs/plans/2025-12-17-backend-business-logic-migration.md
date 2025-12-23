@@ -7,6 +7,7 @@
 ## Summary
 
 Migrate dilution calculations and scenario comparison logic from frontend to backend to:
+
 - Establish single source of truth for all financial calculations
 - Eliminate code duplication between frontend and backend
 - Enable consistent behavior across all clients
@@ -21,6 +22,7 @@ POST /api/dilution/preview
 ```
 
 **Request:**
+
 ```json
 {
   "stakeholders": [
@@ -34,6 +36,7 @@ POST /api/dilution/preview
 ```
 
 **Response:**
+
 ```json
 {
   "dilution_results": [
@@ -51,6 +54,7 @@ POST /api/scenarios/compare
 ```
 
 **Request:**
+
 ```json
 {
   "scenarios": [
@@ -61,6 +65,7 @@ POST /api/scenarios/compare
 ```
 
 **Response:**
+
 ```json
 {
   "winner": {"winner_name": "Startup Offer", "winner_index": 1, "net_outcome_advantage": 150000, "is_tie": false},
@@ -95,12 +100,14 @@ backend/src/worth_it/
 ## Frontend Migration
 
 ### Files to Delete
+
 - `lib/dilution-utils.ts`
 - `lib/comparison-utils.ts`
 - `__tests__/lib/dilution-utils.test.ts`
 - `__tests__/lib/comparison-utils.test.ts`
 
 ### Files to Update
+
 - `lib/api-client.ts` - Add new API methods
 - `components/cap-table/dilution-preview.tsx` - Call API
 - `components/cap-table/dilution-table.tsx` - Call API

@@ -56,11 +56,11 @@ export function VersionListItem({
   return (
     <div
       className={cn(
-        "group relative rounded-xl p-4 transition-all cursor-pointer",
-        "border hover:border-primary/20",
+        "group relative cursor-pointer rounded-xl p-4 transition-all",
+        "hover:border-primary/20 border",
         isSelected
           ? "bg-primary/5 border-primary/30"
-          : "bg-card border-transparent hover:bg-muted/50"
+          : "bg-card hover:bg-muted/50 border-transparent"
       )}
       onClick={onSelect}
       role="button"
@@ -73,7 +73,7 @@ export function VersionListItem({
       }}
     >
       {/* Time indicator */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+      <div className="text-muted-foreground mb-2 flex items-center gap-2 text-xs">
         <Clock className="h-3.5 w-3.5" />
         <span title={formatFullDateTime(version.timestamp)}>
           {formatRelativeTime(version.timestamp)}
@@ -81,14 +81,12 @@ export function VersionListItem({
       </div>
 
       {/* Description */}
-      <p className="text-sm font-medium text-foreground line-clamp-2">
-        {version.description}
-      </p>
+      <p className="text-foreground line-clamp-2 text-sm font-medium">{version.description}</p>
 
       {/* Action buttons - visible on hover or when selected */}
       <div
         className={cn(
-          "absolute right-2 top-2 flex gap-1 transition-opacity",
+          "absolute top-2 right-2 flex gap-1 transition-opacity",
           isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
         )}
       >
@@ -108,7 +106,7 @@ export function VersionListItem({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 w-7"
           onClick={(e) => {
             e.stopPropagation();
             onDelete();

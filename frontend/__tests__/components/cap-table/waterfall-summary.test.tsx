@@ -11,11 +11,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { WaterfallSummary } from "@/components/cap-table/waterfall-summary";
-import type {
-  WaterfallDistribution,
-  PreferenceTier,
-  StakeholderPayout,
-} from "@/lib/schemas";
+import type { WaterfallDistribution, PreferenceTier, StakeholderPayout } from "@/lib/schemas";
 
 // Test data
 const mockPreferenceTiers: PreferenceTier[] = [
@@ -298,13 +294,15 @@ describe("WaterfallSummary", () => {
     it("shows message when no preference tiers configured", () => {
       const simpleDistribution: WaterfallDistribution = {
         ...mockDistribution,
-        waterfall_steps: [{
-          step_number: 1,
-          description: "All proceeds distributed pro-rata",
-          amount: 50000000,
-          recipients: ["All stakeholders"],
-          remaining_proceeds: 0,
-        }],
+        waterfall_steps: [
+          {
+            step_number: 1,
+            description: "All proceeds distributed pro-rata",
+            amount: 50000000,
+            recipients: ["All stakeholders"],
+            remaining_proceeds: 0,
+          },
+        ],
       };
 
       render(

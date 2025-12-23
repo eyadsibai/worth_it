@@ -13,7 +13,7 @@ export function MonteCarloSummary({ stats, simulationCount }: MonteCarloSummaryP
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-2">Risk Assessment</h3>
+        <h3 className="mb-2 text-lg font-semibold">Risk Assessment</h3>
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="pb-3">
@@ -21,7 +21,7 @@ export function MonteCarloSummary({ stats, simulationCount }: MonteCarloSummaryP
               <CardTitle className="text-2xl">{formatCurrency(stats.mean)}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 Average outcome across all simulations
               </p>
             </CardContent>
@@ -30,14 +30,12 @@ export function MonteCarloSummary({ stats, simulationCount }: MonteCarloSummaryP
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Success Probability</CardDescription>
-              <CardTitle className="text-2xl text-primary">
+              <CardTitle className="text-primary text-2xl">
                 {stats.positiveRate.toFixed(1)}%
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">
-                Chance of positive net outcome
-              </p>
+              <p className="text-muted-foreground text-xs">Chance of positive net outcome</p>
             </CardContent>
           </Card>
 
@@ -47,16 +45,14 @@ export function MonteCarloSummary({ stats, simulationCount }: MonteCarloSummaryP
               <CardTitle className="text-2xl">{formatCurrency(stats.std)}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">
-                Variability of outcomes
-              </p>
+              <p className="text-muted-foreground text-xs">Variability of outcomes</p>
             </CardContent>
           </Card>
         </div>
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold mb-2">Key Insights</h3>
+        <h3 className="mb-2 text-lg font-semibold">Key Insights</h3>
         <div className="space-y-2 text-sm">
           <p>
             <strong>Best Case (90th percentile):</strong> {formatCurrency(stats.p90)}
@@ -74,19 +70,19 @@ export function MonteCarloSummary({ stats, simulationCount }: MonteCarloSummaryP
       </div>
 
       <div>
-        <h3 className="text-lg font-semibold mb-2">Interpretation</h3>
-        <div className="space-y-2 text-sm text-muted-foreground">
+        <h3 className="mb-2 text-lg font-semibold">Interpretation</h3>
+        <div className="text-muted-foreground space-y-2 text-sm">
           <p>
-            The Monte Carlo simulation ran {simulationCount.toLocaleString()} scenarios to account for
-            uncertainty in exit valuations and salary growth rates.
+            The Monte Carlo simulation ran {simulationCount.toLocaleString()} scenarios to account
+            for uncertainty in exit valuations and salary growth rates.
           </p>
           {stats.positiveRate >= 70 ? (
             <p className="text-primary font-medium">
-              With {stats.positiveRate.toFixed(1)}% probability of success, this opportunity
-              shows strong potential for positive returns.
+              With {stats.positiveRate.toFixed(1)}% probability of success, this opportunity shows
+              strong potential for positive returns.
             </p>
           ) : stats.positiveRate >= 50 ? (
-            <p className="text-yellow-600 dark:text-yellow-500 font-medium">
+            <p className="font-medium text-yellow-600 dark:text-yellow-500">
               With {stats.positiveRate.toFixed(1)}% success probability, this is a moderate-risk
               opportunity. Consider your risk tolerance.
             </p>

@@ -8,16 +8,18 @@ uv sync
 uv run uvicorn worth_it.api:app --reload --port 8000
 ```
 
-Visit http://localhost:8000/docs for API documentation.
+Visit <http://localhost:8000/docs> for API documentation.
 
 ## Dependencies
 
 Install with uv:
+
 ```bash
 uv sync
 ```
 
 **Dependency Management:**
+
 - **Main dependencies**: Defined in `[project.dependencies]` in `pyproject.toml`
 - **Dev dependencies**: Defined in `[dependency-groups].dev` (uv-specific pattern, preferred over `[project.optional-dependencies]`)
 - **Install with dev dependencies**: `uv sync --group dev`
@@ -29,6 +31,7 @@ The `[dependency-groups]` pattern is a uv-specific feature that provides a clean
 **IMPORTANT**: Always run tests and linting before committing.
 
 **Test-Driven Development (TDD)**: Use TDD for all new features:
+
 1. **Red**: Write a failing test first that describes the expected behavior
 2. **Green**: Write the minimum code to make the test pass
 3. **Refactor**: Clean up the code while keeping tests green
@@ -104,6 +107,7 @@ backend/
 ### 3-Tier Design (Backend Layers)
 
 **Layer 1: API (FastAPI)**
+
 - 9 REST endpoints for calculations
 - 1 WebSocket endpoint for Monte Carlo simulations
 - Pydantic models for request/response validation
@@ -111,6 +115,7 @@ backend/
 - Thin endpoint handlers that delegate to services
 
 **Layer 2: Service Layer**
+
 - `StartupService`: Orchestrates startup scenario calculations, IRR, NPV
 - `CapTableService`: Handles cap table conversions, waterfall analysis, dilution
 - `ResponseMapper`: Transforms internal data structures to API response formats
@@ -118,6 +123,7 @@ backend/
 - Handles EquityType enum conversion and column name mapping
 
 **Layer 3: Core Logic (Pure Python)**
+
 - Framework-agnostic financial calculations
 - Modular package in `calculations/` with domain-specific modules
 - Can be used standalone without web frameworks
@@ -134,6 +140,7 @@ backend/
 ## Configuration
 
 Environment variables (`.env` in backend/):
+
 ```bash
 API_HOST=0.0.0.0
 API_PORT=8000
@@ -145,11 +152,13 @@ LOG_LEVEL=INFO
 ## Troubleshooting
 
 **Backend not starting?**
+
 - Check Python version: `python --version` (requires 3.13+)
 - Reinstall dependencies: `uv sync`
 - Check port 8000 is free: `lsof -i :8000`
 
 **WebSocket issues?**
+
 - Check CORS settings in `src/worth_it/config.py`
 - Ensure frontend is connecting to correct port
 
@@ -184,6 +193,7 @@ LOG_LEVEL=INFO
 ## Fluent Pipeline Pattern
 
 The backend uses an **immutable fluent pipeline pattern** for complex calculations. This pattern:
+
 - **Readable**: Each step is explicit and self-documenting
 - **Testable**: Intermediate states can be inspected
 - **Composable**: Steps can be reordered or extended
@@ -229,7 +239,7 @@ result = calculate_dilution_schedule(
 
 ## Resources
 
-- **API Docs**: http://localhost:8000/docs (when running)
-- **FastAPI**: https://fastapi.tiangolo.com/
-- **Pydantic**: https://docs.pydantic.dev/
-- **uv**: https://docs.astral.sh/uv/
+- **API Docs**: <http://localhost:8000/docs> (when running)
+- **FastAPI**: <https://fastapi.tiangolo.com/>
+- **Pydantic**: <https://docs.pydantic.dev/>
+- **uv**: <https://docs.astral.sh/uv/>

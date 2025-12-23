@@ -94,8 +94,5 @@ export function useFieldWarnings(
   value: number | undefined | null,
   context?: WarningContext
 ): string | null {
-  return useMemo(
-    () => getFieldWarning(fieldName, value, context),
-    [fieldName, value, context]
-  );
+  return useMemo(() => getFieldWarning(fieldName, value, context), [fieldName, value, context]);
 }

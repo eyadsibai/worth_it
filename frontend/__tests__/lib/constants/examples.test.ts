@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  EXAMPLE_SCENARIOS,
-  getExampleById,
-} from "@/lib/constants/examples";
+import { EXAMPLE_SCENARIOS, getExampleById } from "@/lib/constants/examples";
 import {
   GlobalSettingsFormSchema,
   CurrentJobFormSchema,
@@ -44,9 +41,7 @@ describe("EXAMPLE_SCENARIOS", () => {
 
         it("has valid equityDetails", () => {
           const equitySchema =
-            scenario.equityDetails.equity_type === "RSU"
-              ? RSUFormSchema
-              : StockOptionsFormSchema;
+            scenario.equityDetails.equity_type === "RSU" ? RSUFormSchema : StockOptionsFormSchema;
           const result = equitySchema.safeParse(scenario.equityDetails);
           expect(result.success).toBe(true);
         });

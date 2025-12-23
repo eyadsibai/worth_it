@@ -94,18 +94,14 @@ const mockScenario2: FounderScenario = {
 
 describe("ScenarioComparison", () => {
   it("renders scenario names as headers", () => {
-    render(
-      <ScenarioComparison scenarios={[mockScenario1, mockScenario2]} />
-    );
+    render(<ScenarioComparison scenarios={[mockScenario1, mockScenario2]} />);
 
     expect(screen.getByText("Pre-Seed")).toBeInTheDocument();
     expect(screen.getByText("Post Series A")).toBeInTheDocument();
   });
 
   it("shows founder ownership for each scenario", () => {
-    render(
-      <ScenarioComparison scenarios={[mockScenario1, mockScenario2]} />
-    );
+    render(<ScenarioComparison scenarios={[mockScenario1, mockScenario2]} />);
 
     // Label should exist
     expect(screen.getByText(/founder ownership/i)).toBeInTheDocument();
@@ -115,33 +111,25 @@ describe("ScenarioComparison", () => {
   });
 
   it("shows total funding raised for each scenario", () => {
-    render(
-      <ScenarioComparison scenarios={[mockScenario1, mockScenario2]} />
-    );
+    render(<ScenarioComparison scenarios={[mockScenario1, mockScenario2]} />);
 
     expect(screen.getByText(/total.*raised/i)).toBeInTheDocument();
   });
 
   it("shows number of stakeholders for each scenario", () => {
-    render(
-      <ScenarioComparison scenarios={[mockScenario1, mockScenario2]} />
-    );
+    render(<ScenarioComparison scenarios={[mockScenario1, mockScenario2]} />);
 
     expect(screen.getByText(/stakeholders/i)).toBeInTheDocument();
   });
 
   it("shows empty state when no scenarios provided", () => {
-    render(
-      <ScenarioComparison scenarios={[]} />
-    );
+    render(<ScenarioComparison scenarios={[]} />);
 
     expect(screen.getByText(/select.*scenario/i)).toBeInTheDocument();
   });
 
   it("shows single scenario message when only one provided", () => {
-    render(
-      <ScenarioComparison scenarios={[mockScenario1]} />
-    );
+    render(<ScenarioComparison scenarios={[mockScenario1]} />);
 
     expect(screen.getByText(/add.*scenario.*compare/i)).toBeInTheDocument();
   });
@@ -151,10 +139,7 @@ describe("ScenarioComparison", () => {
     const onRemove = vi.fn();
 
     render(
-      <ScenarioComparison
-        scenarios={[mockScenario1, mockScenario2]}
-        onRemoveScenario={onRemove}
-      />
+      <ScenarioComparison scenarios={[mockScenario1, mockScenario2]} onRemoveScenario={onRemove} />
     );
 
     const removeButtons = screen.getAllByRole("button", { name: /remove/i });
@@ -164,9 +149,7 @@ describe("ScenarioComparison", () => {
   });
 
   it("highlights better metrics in green", () => {
-    render(
-      <ScenarioComparison scenarios={[mockScenario1, mockScenario2]} />
-    );
+    render(<ScenarioComparison scenarios={[mockScenario1, mockScenario2]} />);
 
     // The higher founder ownership (40.0%) should be highlighted with green
     const founderOwnership = screen.getByText(/40\.0%/);

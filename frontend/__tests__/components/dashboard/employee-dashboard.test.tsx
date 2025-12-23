@@ -38,15 +38,11 @@ vi.mock("@/components/forms/global-settings-form", () => ({
 }));
 
 vi.mock("@/components/forms/current-job-form", () => ({
-  CurrentJobFormComponent: () => (
-    <div data-testid="current-job-form">Current Job Form</div>
-  ),
+  CurrentJobFormComponent: () => <div data-testid="current-job-form">Current Job Form</div>,
 }));
 
 vi.mock("@/components/forms/startup-offer-form", () => ({
-  StartupOfferFormComponent: () => (
-    <div data-testid="startup-offer-form">Startup Offer Form</div>
-  ),
+  StartupOfferFormComponent: () => <div data-testid="startup-offer-form">Startup Offer Form</div>,
 }));
 
 vi.mock("@/components/forms/form-completion-summary", () => ({
@@ -83,7 +79,9 @@ vi.mock("@/components/forms/monte-carlo-form", () => ({
 }));
 
 vi.mock("@/components/charts/monte-carlo-visualizations", () => ({
-  MonteCarloVisualizations: () => <div data-testid="monte-carlo-vis">Monte Carlo Visualizations</div>,
+  MonteCarloVisualizations: () => (
+    <div data-testid="monte-carlo-vis">Monte Carlo Visualizations</div>
+  ),
 }));
 
 vi.mock("@/components/templates/template-picker", () => ({
@@ -106,9 +104,7 @@ function createWrapper() {
     },
   });
   return function TestWrapper({ children }: { children: React.ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
 }
 
@@ -212,7 +208,8 @@ describe("EmployeeDashboard", () => {
 
     // The hook was called with form data
     expect(mockUseScenarioCalculation).toHaveBeenCalled();
-    const lastCall = mockUseScenarioCalculation.mock.calls[mockUseScenarioCalculation.mock.calls.length - 1][0];
+    const lastCall =
+      mockUseScenarioCalculation.mock.calls[mockUseScenarioCalculation.mock.calls.length - 1][0];
     expect(lastCall).toHaveProperty("globalSettings");
     expect(lastCall).toHaveProperty("currentJob");
     expect(lastCall).toHaveProperty("equityDetails");

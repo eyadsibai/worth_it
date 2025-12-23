@@ -47,10 +47,7 @@ const ERROR_SUGGESTIONS: Record<ErrorType, string[]> = {
     "Try adjusting your input parameters",
     "Some values may be outside the expected range",
   ],
-  generic: [
-    "Server is temporarily unavailable",
-    "Network connection was interrupted",
-  ],
+  generic: ["Server is temporarily unavailable", "Network connection was interrupted"],
 };
 
 export function ErrorCard({
@@ -93,33 +90,30 @@ export function ErrorCard({
   return (
     <Card
       data-slot="card"
-      className={cn(
-        "terminal-card border-destructive/30 animate-scale-in",
-        className
-      )}
+      className={cn("terminal-card border-destructive/30 animate-scale-in", className)}
     >
       <CardContent className="py-8">
-        <div role="alert" className="flex flex-col items-center gap-4 max-w-md mx-auto text-center">
+        <div role="alert" className="mx-auto flex max-w-md flex-col items-center gap-4 text-center">
           {/* Error Icon */}
-          <AlertTriangle className="h-10 w-10 text-destructive" aria-hidden="true" />
+          <AlertTriangle className="text-destructive h-10 w-10" aria-hidden="true" />
 
           {/* Title */}
-          <h3 className="text-lg font-medium text-foreground">{title}</h3>
+          <h3 className="text-foreground text-lg font-medium">{title}</h3>
 
           {/* Message */}
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {message}
-          </p>
+          <p className="text-muted-foreground text-sm leading-relaxed">{message}</p>
 
           {/* Suggestions */}
-          <div className="w-full text-left space-y-2 mt-2">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">
+          <div className="mt-2 w-full space-y-2 text-left">
+            <p className="text-muted-foreground text-xs tracking-wide uppercase">
               This usually happens when:
             </p>
-            <ul className="text-sm text-muted-foreground space-y-1.5">
+            <ul className="text-muted-foreground space-y-1.5 text-sm">
               {displaySuggestions.map((suggestion, index) => (
                 <li key={index} className="flex items-start gap-2">
-                  <span className="text-destructive/60 mt-1" aria-hidden="true">•</span>
+                  <span className="text-destructive/60 mt-1" aria-hidden="true">
+                    •
+                  </span>
                   <span>{suggestion}</span>
                 </li>
               ))}
@@ -133,18 +127,18 @@ export function ErrorCard({
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowDetails(!showDetails)}
-                className="text-xs text-muted-foreground"
+                className="text-muted-foreground text-xs"
                 aria-expanded={showDetails}
                 aria-controls="error-details"
               >
                 {showDetails ? (
                   <>
-                    <ChevronUp className="h-3 w-3 mr-1" />
+                    <ChevronUp className="mr-1 h-3 w-3" />
                     Hide Details
                   </>
                 ) : (
                   <>
-                    <ChevronDown className="h-3 w-3 mr-1" />
+                    <ChevronDown className="mr-1 h-3 w-3" />
                     Show Details
                   </>
                 )}
@@ -152,7 +146,7 @@ export function ErrorCard({
               {showDetails && (
                 <pre
                   id="error-details"
-                  className="mt-2 p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground overflow-auto max-h-40 text-left font-mono"
+                  className="bg-muted/50 text-muted-foreground mt-2 max-h-40 overflow-auto rounded-lg p-3 text-left font-mono text-xs"
                 >
                   {errorDetails}
                 </pre>
@@ -161,13 +155,9 @@ export function ErrorCard({
           )}
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-3 mt-4">
+          <div className="mt-4 flex items-center gap-3">
             {onRetry && (
-              <Button
-                onClick={onRetry}
-                disabled={isRetrying}
-                className="gap-2"
-              >
+              <Button onClick={onRetry} disabled={isRetrying} className="gap-2">
                 <RefreshCw className={cn("h-4 w-4", isRetrying && "animate-spin")} />
                 {getRetryButtonLabel()}
               </Button>

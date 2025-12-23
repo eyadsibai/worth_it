@@ -18,10 +18,7 @@ interface PDFChartProps {
   bins?: number;
 }
 
-export const PDFChart = memo(function PDFChart({
-  netOutcomes,
-  bins = 30,
-}: PDFChartProps) {
+export const PDFChart = memo(function PDFChart({ netOutcomes, bins = 30 }: PDFChartProps) {
   const histogramData = useMemo(() => {
     const min = Math.min(...netOutcomes);
     const max = Math.max(...netOutcomes);
@@ -34,10 +31,7 @@ export const PDFChart = memo(function PDFChart({
     }));
 
     netOutcomes.forEach((value) => {
-      const binIndex = Math.min(
-        Math.floor((value - min) / binWidth),
-        bins - 1
-      );
+      const binIndex = Math.min(Math.floor((value - min) / binWidth), bins - 1);
       histogram[binIndex].count++;
     });
 
@@ -46,8 +40,8 @@ export const PDFChart = memo(function PDFChart({
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-2">Probability Density Function</h3>
-      <p className="text-sm text-muted-foreground mb-4">
+      <h3 className="mb-2 text-lg font-semibold">Probability Density Function</h3>
+      <p className="text-muted-foreground mb-4 text-sm">
         Smooth approximation of the probability distribution
       </p>
       <ResponsiveContainer width="100%" height={400}>
@@ -82,11 +76,7 @@ export const PDFChart = memo(function PDFChart({
             fill="var(--chart-1)"
             fillOpacity={0.2}
           />
-          <ReferenceLine
-            x={0}
-            stroke="var(--muted-foreground)"
-            strokeDasharray="3 3"
-          />
+          <ReferenceLine x={0} stroke="var(--muted-foreground)" strokeDasharray="3 3" />
         </LineChart>
       </ResponsiveContainer>
     </div>

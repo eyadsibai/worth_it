@@ -75,7 +75,9 @@ export function CapTableManager({
   onPreferenceTiersChange,
   hideSidebarContent = false,
 }: CapTableManagerProps) {
-  const [activeSection, setActiveSection] = React.useState<"cap-table" | "funding" | "waterfall">("cap-table");
+  const [activeSection, setActiveSection] = React.useState<"cap-table" | "funding" | "waterfall">(
+    "cap-table"
+  );
   const [wizardSkipped, setWizardSkipped] = React.useState(() => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem(WIZARD_SKIPPED_KEY) === "true";
@@ -95,12 +97,15 @@ export function CapTableManager({
 
   // Memoize the current snapshot to avoid recreating on every render.
   // This is passed to VersionHistoryPanel for diff computation.
-  const currentSnapshot = React.useMemo((): CapTableSnapshot => ({
-    stakeholders: capTable.stakeholders,
-    fundingInstruments: instruments,
-    optionPoolPct: capTable.option_pool_pct,
-    totalShares: capTable.total_shares,
-  }), [capTable.stakeholders, instruments, capTable.option_pool_pct, capTable.total_shares]);
+  const currentSnapshot = React.useMemo(
+    (): CapTableSnapshot => ({
+      stakeholders: capTable.stakeholders,
+      fundingInstruments: instruments,
+      optionPoolPct: capTable.option_pool_pct,
+      totalShares: capTable.total_shares,
+    }),
+    [capTable.stakeholders, instruments, capTable.option_pool_pct, capTable.total_shares]
+  );
 
   // Show wizard if cap table is empty and wizard hasn't been skipped
   const shouldShowWizard = showWizard || (capTable.stakeholders.length === 0 && !wizardSkipped);
@@ -172,8 +177,7 @@ export function CapTableManager({
         (i): i is SAFE => i.type === "SAFE" && i.status === "outstanding"
       );
       const outstandingNotes = instruments.filter(
-        (i): i is ConvertibleNote =>
-          i.type === "CONVERTIBLE_NOTE" && i.status === "outstanding"
+        (i): i is ConvertibleNote => i.type === "CONVERTIBLE_NOTE" && i.status === "outstanding"
       );
 
       const convertibleInstruments = [...outstandingSAFEs, ...outstandingNotes];
@@ -305,7 +309,10 @@ export function CapTableManager({
   const handleRemoveInstrument = (id: string) => {
     const instrument = instruments.find((i) => i.id === id);
     const instrumentName = instrument && "name" in instrument ? instrument.name : "instrument";
-    setInstruments(instruments.filter((i) => i.id !== id), `Remove ${instrumentName}`);
+    setInstruments(
+      instruments.filter((i) => i.id !== id),
+      `Remove ${instrumentName}`
+    );
   };
 
   const handleLoadScenario = (scenario: FounderScenario) => {
@@ -320,8 +327,7 @@ export function CapTableManager({
   };
 
   const totalOwnership =
-    capTable.stakeholders.reduce((sum, s) => sum + s.ownership_pct, 0) +
-    capTable.option_pool_pct;
+    capTable.stakeholders.reduce((sum, s) => sum + s.ownership_pct, 0) + capTable.option_pool_pct;
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -340,33 +346,31 @@ export function CapTableManager({
 
   // Show wizard if conditions are met
   if (shouldShowWizard) {
-    return (
-      <CapTableWizard
-        onComplete={handleWizardComplete}
-        onSkip={handleWizardSkip}
-      />
-    );
+    return <CapTableWizard onComplete={handleWizardComplete} onSkip={handleWizardSkip} />;
   }
 
   return (
     <div className="space-y-6">
       {/* Section Tabs */}
-      <Tabs value={activeSection} onValueChange={(v) => setActiveSection(v as typeof activeSection)}>
-        <div className="flex items-center justify-between gap-4 mb-4">
-          <TabsList className="grid w-full grid-cols-3 max-w-lg">
-          <TabsTrigger value="cap-table" className="flex items-center gap-2">
-            <PieChart className="h-4 w-4" />
-            Cap Table
-          </TabsTrigger>
-          <TabsTrigger value="funding" className="flex items-center gap-2">
-            <Landmark className="h-4 w-4" />
-            Funding
-          </TabsTrigger>
-          <TabsTrigger value="waterfall" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Waterfall
-          </TabsTrigger>
-        </TabsList>
+      <Tabs
+        value={activeSection}
+        onValueChange={(v) => setActiveSection(v as typeof activeSection)}
+      >
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
+            <TabsTrigger value="cap-table" className="flex items-center gap-2">
+              <PieChart className="h-4 w-4" />
+              Cap Table
+            </TabsTrigger>
+            <TabsTrigger value="funding" className="flex items-center gap-2">
+              <Landmark className="h-4 w-4" />
+              Funding
+            </TabsTrigger>
+            <TabsTrigger value="waterfall" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Waterfall
+            </TabsTrigger>
+          </TabsList>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -374,7 +378,7 @@ export function CapTableManager({
               onClick={handleRunWizard}
               className="hidden sm:flex"
             >
-              <Wand2 className="h-4 w-4 mr-2" />
+              <Wand2 className="mr-2 h-4 w-4" />
               Wizard
             </Button>
             <UndoRedoControls
@@ -386,17 +390,14 @@ export function CapTableManager({
               redoLabel={redoLabel}
             />
             <HistoryTriggerButton />
-            <ExportMenu
-              capTable={capTable}
-              instruments={instruments}
-            />
+            <ExportMenu capTable={capTable} instruments={instruments} />
           </div>
         </div>
 
-        <TabsContent value="cap-table" className="space-y-6 mt-6">
+        <TabsContent value="cap-table" className="mt-6 space-y-6">
           {/* Stakeholder Form and Option Pool - hidden when shown in sidebar */}
           {!hideSidebarContent && (
-            <div className="grid lg:grid-cols-2 gap-6">
+            <div className="grid gap-6 lg:grid-cols-2">
               {/* Add Stakeholder Form */}
               <Card className="terminal-card">
                 <CardHeader>
@@ -417,9 +418,7 @@ export function CapTableManager({
               <Card className="terminal-card">
                 <CardHeader>
                   <CardTitle>Option Pool</CardTitle>
-                  <CardDescription>
-                    Reserve equity for future employee grants
-                  </CardDescription>
+                  <CardDescription>Reserve equity for future employee grants</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -434,14 +433,14 @@ export function CapTableManager({
                       max={30}
                       step={1}
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       Typical range: 10-20% for early-stage startups
                     </p>
                   </div>
 
                   {/* Allocation Summary */}
                   <motion.div
-                    className="p-4 rounded-lg bg-muted/50 space-y-2"
+                    className="bg-muted/50 space-y-2 rounded-lg p-4"
                     whileHover={{ scale: 1.01 }}
                     transition={{ duration: 0.2 }}
                   >
@@ -460,7 +459,7 @@ export function CapTableManager({
                         <AnimatedPercentage value={capTable.option_pool_pct} decimals={0} />
                       </span>
                     </div>
-                    <div className="border-t border-border pt-2 flex justify-between font-medium">
+                    <div className="border-border flex justify-between border-t pt-2 font-medium">
                       <span>Total Allocated</span>
                       <span
                         className={`tabular-nums ${
@@ -472,7 +471,7 @@ export function CapTableManager({
                     </div>
                     {totalOwnership > 100 && (
                       <motion.p
-                        className="text-xs text-destructive"
+                        className="text-destructive text-xs"
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
                       >
@@ -497,14 +496,14 @@ export function CapTableManager({
                     {capTable.stakeholders.map((stakeholder) => (
                       <MotionListItem key={stakeholder.id}>
                         <motion.div
-                          className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50"
+                          className="bg-card hover:bg-accent/50 flex items-center justify-between rounded-lg border p-3"
                           whileHover={{ x: 4, borderColor: "hsl(var(--terminal) / 0.5)" }}
                           transition={{ duration: 0.15 }}
                         >
                           <div className="flex items-center gap-3">
                             <div>
                               <p className="font-medium">{stakeholder.name}</p>
-                              <div className="flex items-center gap-2 mt-1">
+                              <div className="mt-1 flex items-center gap-2">
                                 <Badge variant="outline" className={getTypeColor(stakeholder.type)}>
                                   {stakeholder.type}
                                 </Badge>
@@ -520,7 +519,7 @@ export function CapTableManager({
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
-                            <span className="text-lg tabular-nums font-semibold">
+                            <span className="text-lg font-semibold tabular-nums">
                               <AnimatedPercentage value={stakeholder.ownership_pct} />
                             </span>
                             <ConfirmationDialog
@@ -551,7 +550,7 @@ export function CapTableManager({
           )}
 
           {/* Visualizations */}
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="grid gap-6 lg:grid-cols-2">
             <OwnershipChart
               stakeholders={capTable.stakeholders}
               optionPoolPct={capTable.option_pool_pct}
@@ -595,10 +594,7 @@ export function CapTableManager({
       </Tabs>
 
       {/* Version History Panel */}
-      <VersionHistoryPanel
-        currentSnapshot={currentSnapshot}
-        onRestore={handleRestoreVersion}
-      />
+      <VersionHistoryPanel currentSnapshot={currentSnapshot} onRestore={handleRestoreVersion} />
     </div>
   );
 }

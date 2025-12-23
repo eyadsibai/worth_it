@@ -51,38 +51,20 @@ describe("ResponsiveTable", () => {
 
   describe("Desktop (Table) Mode", () => {
     it("renders as a table on desktop", () => {
-      render(
-        <ResponsiveTable
-          data={testData}
-          columns={testColumns}
-          getRowKey={(row) => row.id}
-        />
-      );
+      render(<ResponsiveTable data={testData} columns={testColumns} getRowKey={(row) => row.id} />);
 
       expect(screen.getByRole("table")).toBeInTheDocument();
     });
 
     it("renders column headers", () => {
-      render(
-        <ResponsiveTable
-          data={testData}
-          columns={testColumns}
-          getRowKey={(row) => row.id}
-        />
-      );
+      render(<ResponsiveTable data={testData} columns={testColumns} getRowKey={(row) => row.id} />);
 
       expect(screen.getByRole("columnheader", { name: "Name" })).toBeInTheDocument();
       expect(screen.getByRole("columnheader", { name: "Value" })).toBeInTheDocument();
     });
 
     it("renders all data rows", () => {
-      render(
-        <ResponsiveTable
-          data={testData}
-          columns={testColumns}
-          getRowKey={(row) => row.id}
-        />
-      );
+      render(<ResponsiveTable data={testData} columns={testColumns} getRowKey={(row) => row.id} />);
 
       expect(screen.getByText("Item One")).toBeInTheDocument();
       expect(screen.getByText("Item Two")).toBeInTheDocument();
@@ -93,13 +75,7 @@ describe("ResponsiveTable", () => {
     });
 
     it("applies column className to cells", () => {
-      render(
-        <ResponsiveTable
-          data={testData}
-          columns={testColumns}
-          getRowKey={(row) => row.id}
-        />
-      );
+      render(<ResponsiveTable data={testData} columns={testColumns} getRowKey={(row) => row.id} />);
 
       const cell = screen.getByText("$100").closest("td");
       expect(cell).toHaveClass("text-right");
@@ -129,13 +105,7 @@ describe("ResponsiveTable", () => {
     });
 
     it("renders as cards on mobile", () => {
-      render(
-        <ResponsiveTable
-          data={testData}
-          columns={testColumns}
-          getRowKey={(row) => row.id}
-        />
-      );
+      render(<ResponsiveTable data={testData} columns={testColumns} getRowKey={(row) => row.id} />);
 
       // Should render as a list, not a table
       expect(screen.queryByRole("table")).not.toBeInTheDocument();
@@ -143,39 +113,21 @@ describe("ResponsiveTable", () => {
     });
 
     it("renders list items with proper roles", () => {
-      render(
-        <ResponsiveTable
-          data={testData}
-          columns={testColumns}
-          getRowKey={(row) => row.id}
-        />
-      );
+      render(<ResponsiveTable data={testData} columns={testColumns} getRowKey={(row) => row.id} />);
 
       const listItems = screen.getAllByRole("listitem");
       expect(listItems).toHaveLength(3);
     });
 
     it("displays primary column prominently", () => {
-      render(
-        <ResponsiveTable
-          data={testData}
-          columns={testColumns}
-          getRowKey={(row) => row.id}
-        />
-      );
+      render(<ResponsiveTable data={testData} columns={testColumns} getRowKey={(row) => row.id} />);
 
       // Primary column content should still be visible
       expect(screen.getByText("Item One")).toBeInTheDocument();
     });
 
     it("shows column headers as labels on mobile cards", () => {
-      render(
-        <ResponsiveTable
-          data={testData}
-          columns={testColumns}
-          getRowKey={(row) => row.id}
-        />
-      );
+      render(<ResponsiveTable data={testData} columns={testColumns} getRowKey={(row) => row.id} />);
 
       // Value header should appear as label in card
       const valueLabels = screen.getAllByText("Value");
@@ -195,11 +147,7 @@ describe("ResponsiveTable", () => {
       ];
 
       render(
-        <ResponsiveTable
-          data={testData}
-          columns={columnsWithHidden}
-          getRowKey={(row) => row.id}
-        />
+        <ResponsiveTable data={testData} columns={columnsWithHidden} getRowKey={(row) => row.id} />
       );
 
       // ID column header should not appear on mobile
@@ -209,13 +157,7 @@ describe("ResponsiveTable", () => {
 
   describe("Empty State", () => {
     it("shows default empty message when no data", () => {
-      render(
-        <ResponsiveTable
-          data={[]}
-          columns={testColumns}
-          getRowKey={(row) => row.id}
-        />
-      );
+      render(<ResponsiveTable data={[]} columns={testColumns} getRowKey={(row) => row.id} />);
 
       expect(screen.getByText("No data available")).toBeInTheDocument();
     });
@@ -315,9 +257,7 @@ describe("ResponsiveTableFooter", () => {
   it("applies custom className to value elements", () => {
     render(
       <ResponsiveTableFooter
-        items={[
-          { label: "Positive", value: "+$500", className: "text-green-500" },
-        ]}
+        items={[{ label: "Positive", value: "+$500", className: "text-green-500" }]}
       />
     );
 

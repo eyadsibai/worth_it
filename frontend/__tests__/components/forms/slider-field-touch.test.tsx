@@ -40,9 +40,7 @@ describe("SliderField touch-friendly enhancements", () => {
     it("renders decrement and increment stepper buttons", () => {
       render(
         <SliderTestWrapper>
-          {(form) => (
-            <SliderField form={form} name="years" label="Years" min={1} max={10} />
-          )}
+          {(form) => <SliderField form={form} name="years" label="Years" min={1} max={10} />}
         </SliderTestWrapper>
       );
       expect(screen.getByRole("button", { name: /decrease years/i })).toBeInTheDocument();

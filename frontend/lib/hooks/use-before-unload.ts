@@ -14,10 +14,7 @@ import * as React from "react";
  * useBeforeUnload(isDirty);
  * ```
  */
-export function useBeforeUnload(
-  hasUnsavedChanges: boolean,
-  _message?: string
-): void {
+export function useBeforeUnload(hasUnsavedChanges: boolean, _message?: string): void {
   React.useEffect(() => {
     if (!hasUnsavedChanges) {
       return;

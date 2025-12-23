@@ -13,16 +13,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useVersionHistory } from "../history/use-version-history";
 import { OwnershipAreaChart } from "./ownership-area-chart";
 import { EventTimeline } from "./event-timeline";
-import {
-  TimelineEventFilters,
-  useTimelineFilters,
-} from "./timeline-event-filters";
+import { TimelineEventFilters, useTimelineFilters } from "./timeline-event-filters";
 import { TimelineExportMenu } from "./timeline-export-menu";
 import { useTimelineExport } from "./use-timeline-export";
-import {
-  useFounderTimelineData,
-  useEmployeeTimelineData,
-} from "./use-timeline-data";
+import { useFounderTimelineData, useEmployeeTimelineData } from "./use-timeline-data";
 import type {
   TimelineInteractionState,
   TimelineInteractionHandlers,
@@ -93,9 +87,9 @@ export function FounderTimeline({ className }: FounderTimelineProps) {
   return (
     <Card className={className}>
       <CardHeader className="pb-4">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
+            <TrendingUp className="text-primary h-5 w-5" />
             <CardTitle>Equity Timeline</CardTitle>
           </div>
           <div className="flex items-center gap-3">
@@ -106,19 +100,14 @@ export function FounderTimeline({ className }: FounderTimelineProps) {
               onShowAll={showAll}
               onHideAll={hideAll}
             />
-            <TimelineExportMenu
-              onExport={handleExport}
-              disabled={filteredEvents.length === 0}
-            />
+            <TimelineExportMenu onExport={handleExport} disabled={filteredEvents.length === 0} />
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6" ref={containerRef}>
         {/* Ownership Area Chart */}
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">
-            Ownership Over Time
-          </h3>
+          <h3 className="text-muted-foreground mb-3 text-sm font-medium">Ownership Over Time</h3>
           <OwnershipAreaChart
             chartData={chartData}
             stakeholderNames={stakeholderNames}
@@ -130,9 +119,7 @@ export function FounderTimeline({ className }: FounderTimelineProps) {
 
         {/* Horizontal Event Timeline */}
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">
-            Timeline
-          </h3>
+          <h3 className="text-muted-foreground mb-3 text-sm font-medium">Timeline</h3>
           <div className="bg-muted/30 rounded-xl">
             <EventTimeline
               events={filteredEvents}
@@ -219,9 +206,9 @@ export function EmployeeTimeline({
   return (
     <Card className={className}>
       <CardHeader className="pb-4">
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-primary" />
+            <TrendingUp className="text-primary h-5 w-5" />
             <CardTitle>Vesting Timeline</CardTitle>
           </div>
           <div className="flex items-center gap-3">
@@ -232,19 +219,14 @@ export function EmployeeTimeline({
               onShowAll={showAll}
               onHideAll={hideAll}
             />
-            <TimelineExportMenu
-              onExport={handleExport}
-              disabled={filteredEvents.length === 0}
-            />
+            <TimelineExportMenu onExport={handleExport} disabled={filteredEvents.length === 0} />
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6" ref={containerRef}>
         {/* Vesting Progress Chart */}
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">
-            Vesting Progress
-          </h3>
+          <h3 className="text-muted-foreground mb-3 text-sm font-medium">Vesting Progress</h3>
           <OwnershipAreaChart
             chartData={chartData}
             stakeholderNames={stakeholderNames}
@@ -256,9 +238,7 @@ export function EmployeeTimeline({
 
         {/* Horizontal Event Timeline */}
         <div>
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">
-            Key Dates
-          </h3>
+          <h3 className="text-muted-foreground mb-3 text-sm font-medium">Key Dates</h3>
           <div className="bg-muted/30 rounded-xl">
             <EventTimeline
               events={filteredEvents}

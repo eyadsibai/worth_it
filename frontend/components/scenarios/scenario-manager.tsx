@@ -13,10 +13,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash2, Calendar, TrendingUp, TrendingDown, Copy, Pencil, StickyNote, Search, Filter, ArrowUpDown } from "lucide-react";
+import {
+  Trash2,
+  Calendar,
+  TrendingUp,
+  TrendingDown,
+  Copy,
+  Pencil,
+  StickyNote,
+  Search,
+  Filter,
+  ArrowUpDown,
+} from "lucide-react";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { toast } from "sonner";
-import { getSavedScenarios, deleteScenario, clearAllScenarios, duplicateScenario, updateScenarioNotes, type ScenarioData } from "@/lib/export-utils";
+import {
+  getSavedScenarios,
+  deleteScenario,
+  clearAllScenarios,
+  duplicateScenario,
+  updateScenarioNotes,
+  type ScenarioData,
+} from "@/lib/export-utils";
 import { formatCurrency } from "@/lib/format-utils";
 import {
   searchScenarios,
@@ -77,7 +95,9 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
         return updated;
       });
       toast.success("Scenario deleted", {
-        description: scenarioName ? `"${scenarioName}" has been removed.` : "The scenario has been removed.",
+        description: scenarioName
+          ? `"${scenarioName}" has been removed.`
+          : "The scenario has been removed.",
       });
     } catch {
       toast.error("Failed to delete scenario", { description: "Please try again." });
@@ -147,7 +167,9 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
       if (success) {
         setScenarios(getSavedScenarios());
         toast.success("Notes updated", {
-          description: scenario?.name ? `Notes for "${scenario.name}" have been updated.` : "Notes have been updated.",
+          description: scenario?.name
+            ? `Notes for "${scenario.name}" have been updated.`
+            : "Notes have been updated.",
         });
       } else {
         toast.error("Failed to update notes", { description: "Scenario not found." });
@@ -169,15 +191,13 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
     return (
       <Card className="terminal-card">
         <CardHeader>
-          <CardTitle className="text-lg font-semibold">
-            Saved Scenarios
-          </CardTitle>
-          <CardDescription className="text-sm text-muted-foreground">
+          <CardTitle className="text-lg font-semibold">Saved Scenarios</CardTitle>
+          <CardDescription className="text-muted-foreground text-sm">
             No saved scenarios yet
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground text-sm">
+          <div className="text-muted-foreground py-8 text-center text-sm">
             Save a scenario from the results to compare different offers
           </div>
         </CardContent>
@@ -191,10 +211,8 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
         <CardHeader className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-lg font-semibold">
-                Saved Scenarios
-              </CardTitle>
-              <CardDescription className="text-sm text-muted-foreground mt-1">
+              <CardTitle className="text-lg font-semibold">Saved Scenarios</CardTitle>
+              <CardDescription className="text-muted-foreground mt-1 text-sm">
                 {filteredScenarios.length === scenarios.length
                   ? `${scenarios.length} scenario${scenarios.length !== 1 ? "s" : ""} saved`
                   : `${filteredScenarios.length} of ${scenarios.length} scenario${scenarios.length !== 1 ? "s" : ""}`}
@@ -202,19 +220,11 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
             </div>
             <div className="flex gap-2">
               {selectedScenarios.size > 0 && (
-                <Button
-                  onClick={handleCompare}
-                  variant="outline"
-                  size="sm"
-                >
+                <Button onClick={handleCompare} variant="outline" size="sm">
                   Compare ({selectedScenarios.size})
                 </Button>
               )}
-              <Button
-                onClick={() => setShowClearConfirm(true)}
-                variant="destructive"
-                size="sm"
-              >
+              <Button onClick={() => setShowClearConfirm(true)} variant="destructive" size="sm">
                 Clear All
               </Button>
             </div>
@@ -224,7 +234,7 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
           <div className="space-y-3">
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
               <Input
                 placeholder="Search scenarios..."
                 value={searchQuery}
@@ -240,13 +250,19 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                 onValueChange={(value) => setFilterOption(value as FilterOption)}
               >
                 <SelectTrigger className="w-[130px] text-xs">
-                  <Filter className="h-3.5 w-3.5 mr-1.5" />
+                  <Filter className="mr-1.5 h-3.5 w-3.5" />
                   <SelectValue placeholder="Filter" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all" className="text-xs">All Types</SelectItem>
-                  <SelectItem value="RSU" className="text-xs">RSU</SelectItem>
-                  <SelectItem value="STOCK_OPTIONS" className="text-xs">Options</SelectItem>
+                  <SelectItem value="all" className="text-xs">
+                    All Types
+                  </SelectItem>
+                  <SelectItem value="RSU" className="text-xs">
+                    RSU
+                  </SelectItem>
+                  <SelectItem value="STOCK_OPTIONS" className="text-xs">
+                    Options
+                  </SelectItem>
                 </SelectContent>
               </Select>
 
@@ -255,16 +271,28 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                 onValueChange={(value) => setSortOption(value as SortOption)}
               >
                 <SelectTrigger className="w-[140px] text-xs">
-                  <ArrowUpDown className="h-3.5 w-3.5 mr-1.5" />
+                  <ArrowUpDown className="mr-1.5 h-3.5 w-3.5" />
                   <SelectValue placeholder="Sort" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="newest" className="text-xs">Newest First</SelectItem>
-                  <SelectItem value="oldest" className="text-xs">Oldest First</SelectItem>
-                  <SelectItem value="name-asc" className="text-xs">Name A-Z</SelectItem>
-                  <SelectItem value="name-desc" className="text-xs">Name Z-A</SelectItem>
-                  <SelectItem value="outcome-best" className="text-xs">Best Outcome</SelectItem>
-                  <SelectItem value="outcome-worst" className="text-xs">Worst Outcome</SelectItem>
+                  <SelectItem value="newest" className="text-xs">
+                    Newest First
+                  </SelectItem>
+                  <SelectItem value="oldest" className="text-xs">
+                    Oldest First
+                  </SelectItem>
+                  <SelectItem value="name-asc" className="text-xs">
+                    Name A-Z
+                  </SelectItem>
+                  <SelectItem value="name-desc" className="text-xs">
+                    Name Z-A
+                  </SelectItem>
+                  <SelectItem value="outcome-best" className="text-xs">
+                    Best Outcome
+                  </SelectItem>
+                  <SelectItem value="outcome-worst" className="text-xs">
+                    Worst Outcome
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -274,7 +302,7 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
           <ScrollArea className="h-[400px] pr-4">
             <div className="space-y-3">
               {filteredScenarios.length === 0 && scenarios.length > 0 ? (
-                <div className="text-center py-8 text-muted-foreground text-sm">
+                <div className="text-muted-foreground py-8 text-center text-sm">
                   No scenarios match your search or filter
                 </div>
               ) : null}
@@ -285,17 +313,17 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                 return (
                   <div
                     key={scenario.timestamp}
-                    className={`rounded-lg border p-4 transition-all cursor-pointer ${
+                    className={`cursor-pointer rounded-lg border p-4 transition-all ${
                       isSelected
                         ? "border-accent bg-accent/5"
                         : "border-border hover:border-accent/50 hover:bg-accent/5"
                     }`}
                     onClick={() => handleToggleSelect(scenario.timestamp)}
                   >
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="mb-3 flex items-start justify-between">
                       <div className="flex-1">
-                        <h4 className="font-semibold text-sm mb-1">{scenario.name}</h4>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
+                        <h4 className="mb-1 text-sm font-semibold">{scenario.name}</h4>
+                        <div className="text-muted-foreground flex items-center gap-2 text-xs tabular-nums">
                           <Calendar className="h-3 w-3" />
                           {new Date(scenario.timestamp).toLocaleString()}
                         </div>
@@ -348,9 +376,9 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
 
                     {/* Notes display */}
                     {scenario.notes && (
-                      <div className="flex items-start gap-2 mb-3 p-2 rounded-md bg-muted/50">
-                        <StickyNote className="h-3 w-3 mt-0.5 text-muted-foreground flex-shrink-0" />
-                        <p className="text-xs text-muted-foreground italic line-clamp-2">
+                      <div className="bg-muted/50 mb-3 flex items-start gap-2 rounded-md p-2">
+                        <StickyNote className="text-muted-foreground mt-0.5 h-3 w-3 flex-shrink-0" />
+                        <p className="text-muted-foreground line-clamp-2 text-xs italic">
                           {scenario.notes}
                         </p>
                       </div>
@@ -358,29 +386,43 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
 
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div>
-                        <div className="text-xs uppercase tracking-wide text-muted-foreground mb-0.5">Equity Type</div>
+                        <div className="text-muted-foreground mb-0.5 text-xs tracking-wide uppercase">
+                          Equity Type
+                        </div>
                         <Badge variant="outline" className="text-xs">
                           {scenario.equity.type === "RSU" ? "RSU" : "Options"}
                         </Badge>
                       </div>
                       <div>
-                        <div className="text-xs uppercase tracking-wide text-muted-foreground mb-0.5">Exit Year</div>
-                        <div className="font-medium tabular-nums">Year {scenario.globalSettings.exitYear}</div>
+                        <div className="text-muted-foreground mb-0.5 text-xs tracking-wide uppercase">
+                          Exit Year
+                        </div>
+                        <div className="font-medium tabular-nums">
+                          Year {scenario.globalSettings.exitYear}
+                        </div>
                       </div>
                       <div className="col-span-2">
-                        <div className="text-xs uppercase tracking-wide text-muted-foreground mb-0.5">Net Outcome</div>
+                        <div className="text-muted-foreground mb-0.5 text-xs tracking-wide uppercase">
+                          Net Outcome
+                        </div>
                         <div className="flex items-center gap-2">
                           {isPositive ? (
-                            <TrendingUp className="h-4 w-4 text-terminal" />
+                            <TrendingUp className="text-terminal h-4 w-4" />
                           ) : (
-                            <TrendingDown className="h-4 w-4 text-destructive" />
+                            <TrendingDown className="text-destructive h-4 w-4" />
                           )}
-                          <span className={`tabular-nums font-semibold ${isPositive ? "text-terminal" : "text-destructive"}`}>
+                          <span
+                            className={`font-semibold tabular-nums ${isPositive ? "text-terminal" : "text-destructive"}`}
+                          >
                             {formatCurrency(scenario.results.netOutcome)}
                           </span>
                           <Badge
                             variant={isPositive ? "default" : "destructive"}
-                            className={isPositive ? "bg-terminal/15 text-terminal hover:bg-terminal/20 border border-terminal/30 text-xs" : "text-xs"}
+                            className={
+                              isPositive
+                                ? "bg-terminal/15 text-terminal hover:bg-terminal/20 border-terminal/30 border text-xs"
+                                : "text-xs"
+                            }
                           >
                             {isPositive ? "WORTH IT" : "NOT WORTH IT"}
                           </Badge>
@@ -396,7 +438,7 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                         }}
                         variant="outline"
                         size="sm"
-                        className="w-full mt-3 text-xs"
+                        className="mt-3 w-full text-xs"
                       >
                         Load Scenario
                       </Button>
@@ -414,21 +456,15 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
           <DialogHeader>
             <DialogTitle>Clear All Scenarios?</DialogTitle>
             <DialogDescription>
-              This will permanently delete all {scenarios.length} saved scenario{scenarios.length !== 1 ? "s" : ""}.
-              This action cannot be undone.
+              This will permanently delete all {scenarios.length} saved scenario
+              {scenarios.length !== 1 ? "s" : ""}. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              onClick={() => setShowClearConfirm(false)}
-              variant="outline"
-            >
+            <Button onClick={() => setShowClearConfirm(false)} variant="outline">
               Cancel
             </Button>
-            <Button
-              onClick={handleClearAll}
-              variant="destructive"
-            >
+            <Button onClick={handleClearAll} variant="destructive">
               Clear All
             </Button>
           </DialogFooter>
@@ -436,13 +472,14 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
       </Dialog>
 
       {/* Edit Notes Dialog */}
-      <Dialog open={editingNotesTimestamp !== null} onOpenChange={(open) => !open && handleCloseEditNotes()}>
+      <Dialog
+        open={editingNotesTimestamp !== null}
+        onOpenChange={(open) => !open && handleCloseEditNotes()}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Notes</DialogTitle>
-            <DialogDescription>
-              Add or update notes for this scenario.
-            </DialogDescription>
+            <DialogDescription>Add or update notes for this scenario.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -453,24 +490,19 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                 id="edit-notes"
                 placeholder="Add any notes or comments about this scenario..."
                 value={editingNotesValue}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEditingNotesValue(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setEditingNotesValue(e.target.value)
+                }
                 className="min-h-[100px] resize-none"
                 rows={4}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button
-              onClick={handleCloseEditNotes}
-              variant="outline"
-            >
+            <Button onClick={handleCloseEditNotes} variant="outline">
               Cancel
             </Button>
-            <Button
-              onClick={handleSaveNotes}
-            >
-              Save Notes
-            </Button>
+            <Button onClick={handleSaveNotes}>Save Notes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

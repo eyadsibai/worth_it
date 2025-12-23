@@ -34,7 +34,9 @@ describe("SummaryCard", () => {
   it("displays empty state when no scenarios", () => {
     render(<SummaryCard stats={emptyStats} />);
     expect(screen.getByText("No scenarios saved yet.")).toBeInTheDocument();
-    expect(screen.getByText("Create your first analysis to see insights here.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Create your first analysis to see insights here.")
+    ).toBeInTheDocument();
   });
 
   it("displays scenario counts", () => {
@@ -84,9 +86,7 @@ describe("SummaryCard", () => {
   });
 
   it("applies custom className", () => {
-    const { container } = render(
-      <SummaryCard stats={emptyStats} className="custom-class" />
-    );
+    const { container } = render(<SummaryCard stats={emptyStats} className="custom-class" />);
     expect(container.firstChild).toHaveClass("custom-class");
   });
 

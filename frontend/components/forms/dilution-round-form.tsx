@@ -10,11 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trash2, Settings } from "lucide-react";
 import { NumberInputField, SelectField } from "./form-fields";
 import type { DilutionRoundForm } from "@/lib/schemas";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface DilutionRoundFormComponentProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,7 +40,9 @@ export function DilutionRoundFormComponent({
   };
 
   return (
-    <Card className={`transition-all ${isEnabled ? 'border-primary/20 bg-primary/5' : 'border-border'}`}>
+    <Card
+      className={`transition-all ${isEnabled ? "border-primary/20 bg-primary/5" : "border-border"}`}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -58,7 +56,11 @@ export function DilutionRoundFormComponent({
                 <CardTitle className="text-sm font-medium">{roundName}</CardTitle>
               </Label>
             </div>
-            {isEnabled && <Badge variant="secondary" className="text-xs">Enabled</Badge>}
+            {isEnabled && (
+              <Badge variant="secondary" className="text-xs">
+                Enabled
+              </Badge>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -77,7 +79,7 @@ export function DilutionRoundFormComponent({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                className="text-destructive hover:text-destructive h-8 w-8 p-0"
                 onClick={onRemove}
               >
                 <Trash2 className="h-4 w-4" />

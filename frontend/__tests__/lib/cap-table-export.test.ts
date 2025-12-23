@@ -3,7 +3,14 @@
  * Following TDD - tests written first
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { CapTable, FundingInstrument, SAFE, ConvertibleNote, PricedRound, WaterfallDistribution } from "@/lib/schemas";
+import type {
+  CapTable,
+  FundingInstrument,
+  SAFE,
+  ConvertibleNote,
+  PricedRound,
+  WaterfallDistribution,
+} from "@/lib/schemas";
 
 // Mock DOM APIs
 const mockLink = {
@@ -273,17 +280,13 @@ describe("cap table export functions", () => {
     it("handles cap table without waterfall", async () => {
       const { exportCapTableAsPDF } = await import("@/lib/export-utils");
 
-      expect(() =>
-        exportCapTableAsPDF(mockCapTable, [mockSAFE], undefined)
-      ).not.toThrow();
+      expect(() => exportCapTableAsPDF(mockCapTable, [mockSAFE], undefined)).not.toThrow();
     });
 
     it("handles empty instruments", async () => {
       const { exportCapTableAsPDF } = await import("@/lib/export-utils");
 
-      expect(() =>
-        exportCapTableAsPDF(mockCapTable, [], undefined)
-      ).not.toThrow();
+      expect(() => exportCapTableAsPDF(mockCapTable, [], undefined)).not.toThrow();
     });
   });
 });

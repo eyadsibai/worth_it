@@ -5,11 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Info } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatCurrency } from "@/lib/format-utils";
 import type { FrontendValuationResult } from "@/lib/schemas";
 
@@ -46,27 +42,20 @@ export function ValuationResult({ result }: ValuationResultProps) {
     <Card className="border-0 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_2px_8px_rgba(0,0,0,0.04)]">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardTitle className="text-muted-foreground text-sm font-medium">
             {methodLabels[result.method] || result.method}
           </CardTitle>
-          <Badge
-            variant="outline"
-            className={`text-xs ${confidenceColors[confidenceLevel]}`}
-          >
+          <Badge variant="outline" className={`text-xs ${confidenceColors[confidenceLevel]}`}>
             {confidencePercent}% confidence
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-            Valuation
-          </p>
+          <p className="text-muted-foreground mb-1 text-xs tracking-wide uppercase">Valuation</p>
           <p className="text-3xl font-semibold tabular-nums">
             {wholePart}
-            {decimalPart && (
-              <span className="text-muted-foreground">.{decimalPart}</span>
-            )}
+            {decimalPart && <span className="text-muted-foreground">.{decimalPart}</span>}
           </p>
         </div>
 
@@ -81,16 +70,16 @@ export function ValuationResult({ result }: ValuationResultProps) {
         </div>
 
         {result.notes && (
-          <div className="flex items-start gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
-            <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <div className="text-muted-foreground bg-muted/50 flex items-start gap-2 rounded-lg p-3 text-sm">
+            <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <span>{result.notes}</span>
           </div>
         )}
 
         {Object.keys(result.inputs).length > 0 && (
-          <div className="pt-2 border-t border-border">
-            <div className="flex items-center gap-1 mb-2">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          <div className="border-border border-t pt-2">
+            <div className="mb-2 flex items-center gap-1">
+              <p className="text-muted-foreground text-xs tracking-wide uppercase">
                 Calculation Inputs
               </p>
               <Tooltip>
@@ -99,26 +88,26 @@ export function ValuationResult({ result }: ValuationResultProps) {
                     <Info className="h-3 w-3" />
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>
-                  Key inputs used in the calculation
-                </TooltipContent>
+                <TooltipContent>Key inputs used in the calculation</TooltipContent>
               </Tooltip>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              {Object.entries(result.inputs).slice(0, 6).map(([key, value]) => (
-                <div key={key} className="flex justify-between">
-                  <span className="text-muted-foreground capitalize">
-                    {key.replace(/_/g, " ")}
-                  </span>
-                  <span className="font-medium tabular-nums">
-                    {typeof value === "number"
-                      ? value >= 1000
-                        ? formatCurrency(value)
-                        : value.toLocaleString()
-                      : String(value)}
-                  </span>
-                </div>
-              ))}
+              {Object.entries(result.inputs)
+                .slice(0, 6)
+                .map(([key, value]) => (
+                  <div key={key} className="flex justify-between">
+                    <span className="text-muted-foreground capitalize">
+                      {key.replace(/_/g, " ")}
+                    </span>
+                    <span className="font-medium tabular-nums">
+                      {typeof value === "number"
+                        ? value >= 1000
+                          ? formatCurrency(value)
+                          : value.toLocaleString()
+                        : String(value)}
+                    </span>
+                  </div>
+                ))}
             </div>
           </div>
         )}

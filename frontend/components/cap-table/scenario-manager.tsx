@@ -94,9 +94,7 @@ export function ScenarioManager({
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">Saved Scenarios</CardTitle>
-        <CardDescription>
-          Save, load, and compare different funding scenarios
-        </CardDescription>
+        <CardDescription>Save, load, and compare different funding scenarios</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Save Section */}
@@ -114,11 +112,7 @@ export function ScenarioManager({
                 className="flex-1"
                 autoFocus
               />
-              <Button
-                size="sm"
-                onClick={handleSaveConfirm}
-                disabled={!scenarioName.trim()}
-              >
+              <Button size="sm" onClick={handleSaveConfirm} disabled={!scenarioName.trim()}>
                 Save Scenario
               </Button>
               <Button size="sm" variant="outline" onClick={handleSaveCancel}>
@@ -132,12 +126,7 @@ export function ScenarioManager({
                 Save Current
               </Button>
               <label>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleImport}
-                  className="hidden"
-                />
+                <input type="file" accept=".json" onChange={handleImport} className="hidden" />
                 <Button size="sm" variant="outline" asChild>
                   <span>
                     <Upload className="mr-2 h-4 w-4" />
@@ -151,7 +140,7 @@ export function ScenarioManager({
 
         {/* Scenarios List */}
         {scenarios.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
+          <p className="text-muted-foreground py-4 text-center text-sm">
             No saved scenarios yet. Save your current cap table to get started.
           </p>
         ) : (
@@ -159,11 +148,11 @@ export function ScenarioManager({
             {scenarios.map((scenario) => (
               <div
                 key={scenario.id}
-                className="flex items-center justify-between p-3 border rounded-lg bg-muted/30"
+                className="bg-muted/30 flex items-center justify-between rounded-lg border p-3"
               >
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{scenario.name}</p>
-                  <p className="text-xs text-muted-foreground">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{scenario.name}</p>
+                  <p className="text-muted-foreground text-xs">
                     Updated {new Date(scenario.updatedAt).toLocaleDateString()}
                   </p>
                 </div>

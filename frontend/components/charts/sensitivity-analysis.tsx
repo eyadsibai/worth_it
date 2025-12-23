@@ -33,12 +33,10 @@ export function SensitivityAnalysis({
       <Card>
         <CardHeader>
           <CardTitle>{title}</CardTitle>
-          <CardDescription>
-            Analyze how different variables affect your outcome
-          </CardDescription>
+          <CardDescription>Analyze how different variables affect your outcome</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-48 text-muted-foreground">
+          <div className="text-muted-foreground flex h-48 items-center justify-center">
             No sensitivity data available
           </div>
         </CardContent>
@@ -56,15 +54,13 @@ export function SensitivityAnalysis({
           <TrendingUp className="h-5 w-5" />
           {title}
         </CardTitle>
-        <CardDescription>
-          How each variable affects your net outcome
-        </CardDescription>
+        <CardDescription>How each variable affects your net outcome</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Baseline context */}
-        <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+        <div className="bg-muted/50 flex items-center justify-between rounded-lg p-4">
           <div>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            <p className="text-muted-foreground text-xs tracking-wide uppercase">
               Baseline Outcome
             </p>
             <p className="text-2xl font-semibold tabular-nums">
@@ -72,12 +68,10 @@ export function SensitivityAnalysis({
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            <p className="text-muted-foreground text-xs tracking-wide uppercase">
               Variables Analyzed
             </p>
-            <p className="text-2xl font-semibold tabular-nums">
-              {data.length}
-            </p>
+            <p className="text-2xl font-semibold tabular-nums">{data.length}</p>
           </div>
         </div>
 
@@ -86,8 +80,8 @@ export function SensitivityAnalysis({
           <Info className="h-4 w-4" />
           <AlertTitle>Most Impactful Variable</AlertTitle>
           <AlertDescription>
-            <span className="font-medium">{mostImpactful.variable}</span> has the largest
-            impact on your outcome, with a potential swing of{" "}
+            <span className="font-medium">{mostImpactful.variable}</span> has the largest impact on
+            your outcome, with a potential swing of{" "}
             <span className="font-medium tabular-nums">
               {formatCurrencyCompact(mostImpactful.impact)}
             </span>{" "}
@@ -98,8 +92,8 @@ export function SensitivityAnalysis({
         {/* Breakeven warnings */}
         {breakeven.length > 0 && (
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-warning" />
+            <h4 className="flex items-center gap-2 text-sm font-semibold">
+              <AlertTriangle className="text-warning h-4 w-4" />
               Breakeven Thresholds
             </h4>
             {breakeven.map((threshold, idx) => (
@@ -123,12 +117,8 @@ export function SensitivityAnalysis({
 
         {/* Tornado chart */}
         <div>
-          <h4 className="text-sm font-semibold mb-4">Impact Analysis</h4>
-          <TornadoChart
-            data={data}
-            height={Math.max(200, data.length * 50)}
-            showImpactLabels
-          />
+          <h4 className="mb-4 text-sm font-semibold">Impact Analysis</h4>
+          <TornadoChart data={data} height={Math.max(200, data.length * 50)} showImpactLabels />
         </div>
 
         {/* Impact summary table */}
@@ -136,30 +126,38 @@ export function SensitivityAnalysis({
           <h4 className="text-sm font-semibold" id="sensitivity-table-heading">
             Variable Impact Summary
           </h4>
-          <div className="border rounded-lg overflow-hidden">
+          <div className="overflow-hidden rounded-lg border">
             <table className="w-full text-sm" aria-labelledby="sensitivity-table-heading">
               <caption className="sr-only">
                 Sensitivity analysis showing how each variable impacts the net outcome
               </caption>
               <thead className="bg-muted/50">
                 <tr>
-                  <th scope="col" className="text-left p-3 font-medium">Variable</th>
-                  <th scope="col" className="text-right p-3 font-medium">Low Scenario</th>
-                  <th scope="col" className="text-right p-3 font-medium">High Scenario</th>
-                  <th scope="col" className="text-right p-3 font-medium">Range</th>
+                  <th scope="col" className="p-3 text-left font-medium">
+                    Variable
+                  </th>
+                  <th scope="col" className="p-3 text-right font-medium">
+                    Low Scenario
+                  </th>
+                  <th scope="col" className="p-3 text-right font-medium">
+                    High Scenario
+                  </th>
+                  <th scope="col" className="p-3 text-right font-medium">
+                    Range
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {data.map((item, idx) => (
-                  <tr key={idx} className="border-t border-border">
+                  <tr key={idx} className="border-border border-t">
                     <td className="p-3">{item.variable}</td>
-                    <td className="p-3 text-right tabular-nums text-destructive">
+                    <td className="text-destructive p-3 text-right tabular-nums">
                       {formatCurrencyCompact(item.low)}
                     </td>
-                    <td className="p-3 text-right tabular-nums text-green-600">
+                    <td className="p-3 text-right text-green-600 tabular-nums">
                       {formatCurrencyCompact(item.high)}
                     </td>
-                    <td className="p-3 text-right tabular-nums font-medium">
+                    <td className="p-3 text-right font-medium tabular-nums">
                       {formatCurrencyCompact(item.impact)}
                     </td>
                   </tr>

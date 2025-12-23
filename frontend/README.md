@@ -21,7 +21,7 @@ npm run type-check
 npm run lint
 ```
 
-Visit http://localhost:3000 once running.
+Visit <http://localhost:3000> once running.
 
 ## Tech Stack
 
@@ -60,6 +60,7 @@ frontend/
 ## Environment Variables
 
 Create `.env.local`:
+
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```

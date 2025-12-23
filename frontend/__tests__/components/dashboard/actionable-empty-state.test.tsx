@@ -22,24 +22,18 @@ describe("ActionableEmptyState", () => {
   it("renders Load Example button", () => {
     render(<ActionableEmptyState {...defaultProps} />);
 
-    expect(
-      screen.getByRole("button", { name: /load example/i })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /load example/i })).toBeInTheDocument();
   });
 
   it("renders Focus Missing Field button", () => {
     render(<ActionableEmptyState {...defaultProps} />);
 
-    expect(
-      screen.getByRole("button", { name: /focus missing field/i })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /focus missing field/i })).toBeInTheDocument();
   });
 
   it("calls onLoadExample when Load Example button is clicked", () => {
     const onLoadExample = vi.fn();
-    render(
-      <ActionableEmptyState {...defaultProps} onLoadExample={onLoadExample} />
-    );
+    render(<ActionableEmptyState {...defaultProps} onLoadExample={onLoadExample} />);
 
     fireEvent.click(screen.getByRole("button", { name: /load example/i }));
 
@@ -48,16 +42,9 @@ describe("ActionableEmptyState", () => {
 
   it("calls onFocusMissingField when Focus Missing Field button is clicked", () => {
     const onFocusMissingField = vi.fn();
-    render(
-      <ActionableEmptyState
-        {...defaultProps}
-        onFocusMissingField={onFocusMissingField}
-      />
-    );
+    render(<ActionableEmptyState {...defaultProps} onFocusMissingField={onFocusMissingField} />);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: /focus missing field/i })
-    );
+    fireEvent.click(screen.getByRole("button", { name: /focus missing field/i }));
 
     expect(onFocusMissingField).toHaveBeenCalledTimes(1);
   });
@@ -71,14 +58,10 @@ describe("ActionableEmptyState", () => {
   });
 
   it("displays correct missing fields for Stock Options type", () => {
-    render(
-      <ActionableEmptyState {...defaultProps} equityType="STOCK_OPTIONS" />
-    );
+    render(<ActionableEmptyState {...defaultProps} equityType="STOCK_OPTIONS" />);
 
     expect(
-      screen.getByText(
-        /number of options.*strike price.*exit price per share.*monthly salary/i
-      )
+      screen.getByText(/number of options.*strike price.*exit price per share.*monthly salary/i)
     ).toBeInTheDocument();
   });
 

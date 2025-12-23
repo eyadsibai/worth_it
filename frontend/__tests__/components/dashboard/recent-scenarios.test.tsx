@@ -38,88 +38,49 @@ describe("RecentScenarios", () => {
   });
 
   it("renders title", () => {
-    render(
-      <RecentScenarios
-        scenarios={mockScenarios}
-        onLoadScenario={mockOnLoadScenario}
-      />
-    );
+    render(<RecentScenarios scenarios={mockScenarios} onLoadScenario={mockOnLoadScenario} />);
     expect(screen.getByText("Recent Scenarios")).toBeInTheDocument();
   });
 
   it("displays empty state when no scenarios", () => {
-    render(
-      <RecentScenarios
-        scenarios={[]}
-        onLoadScenario={mockOnLoadScenario}
-      />
-    );
+    render(<RecentScenarios scenarios={[]} onLoadScenario={mockOnLoadScenario} />);
     expect(screen.getByText("No recent scenarios")).toBeInTheDocument();
     expect(screen.getByText("Your saved work will appear here.")).toBeInTheDocument();
   });
 
   it("renders scenario names", () => {
-    render(
-      <RecentScenarios
-        scenarios={mockScenarios}
-        onLoadScenario={mockOnLoadScenario}
-      />
-    );
+    render(<RecentScenarios scenarios={mockScenarios} onLoadScenario={mockOnLoadScenario} />);
     expect(screen.getByText("Startup Alpha")).toBeInTheDocument();
     expect(screen.getByText("My Startup")).toBeInTheDocument();
     expect(screen.getByText("BigCorp Offer")).toBeInTheDocument();
   });
 
   it("shows worth it badge for positive employee scenarios", () => {
-    render(
-      <RecentScenarios
-        scenarios={mockScenarios}
-        onLoadScenario={mockOnLoadScenario}
-      />
-    );
+    render(<RecentScenarios scenarios={mockScenarios} onLoadScenario={mockOnLoadScenario} />);
     expect(screen.getByText("Worth it")).toBeInTheDocument();
     expect(screen.getByText("Not worth it")).toBeInTheDocument();
   });
 
   it("displays net benefit for employee scenarios", () => {
-    render(
-      <RecentScenarios
-        scenarios={mockScenarios}
-        onLoadScenario={mockOnLoadScenario}
-      />
-    );
+    render(<RecentScenarios scenarios={mockScenarios} onLoadScenario={mockOnLoadScenario} />);
     expect(screen.getByText("+$50,000")).toBeInTheDocument();
     expect(screen.getByText("-$25,000")).toBeInTheDocument();
   });
 
   it("displays stakeholder count for founder scenarios", () => {
-    render(
-      <RecentScenarios
-        scenarios={mockScenarios}
-        onLoadScenario={mockOnLoadScenario}
-      />
-    );
+    render(<RecentScenarios scenarios={mockScenarios} onLoadScenario={mockOnLoadScenario} />);
     expect(screen.getByText("5 stakeholders")).toBeInTheDocument();
   });
 
   it("calls onLoadScenario when clicking a scenario", () => {
-    render(
-      <RecentScenarios
-        scenarios={mockScenarios}
-        onLoadScenario={mockOnLoadScenario}
-      />
-    );
+    render(<RecentScenarios scenarios={mockScenarios} onLoadScenario={mockOnLoadScenario} />);
     fireEvent.click(screen.getByText("Startup Alpha"));
     expect(mockOnLoadScenario).toHaveBeenCalledWith("emp-1", "employee");
   });
 
   it("respects maxItems prop", () => {
     render(
-      <RecentScenarios
-        scenarios={mockScenarios}
-        onLoadScenario={mockOnLoadScenario}
-        maxItems={2}
-      />
+      <RecentScenarios scenarios={mockScenarios} onLoadScenario={mockOnLoadScenario} maxItems={2} />
     );
     expect(screen.getByText("Startup Alpha")).toBeInTheDocument();
     expect(screen.getByText("My Startup")).toBeInTheDocument();

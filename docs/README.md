@@ -60,43 +60,49 @@ See [BACKEND.md](BACKEND.md) for detailed backend architecture documentation.
 ### Option 1: Using the Startup Script (Recommended)
 
 **Linux/Mac:**
+
 ```bash
 ./start.sh
 ```
 
 **Windows:**
+
 ```bash
 start.bat
 ```
 
 This will:
+
 1. Create a virtual environment (if needed)
 2. Install all dependencies
-3. Start the FastAPI backend on http://localhost:8000
-4. Start the Streamlit frontend on http://localhost:8501
-5. Open the API documentation at http://localhost:8000/docs
+3. Start the FastAPI backend on <http://localhost:8000>
+4. Start the Streamlit frontend on <http://localhost:8501>
+5. Open the API documentation at <http://localhost:8000/docs>
 
 ### Option 2: Manual Setup
 
 1. **Install dependencies:**
+
 ```bash
 pip install numpy pandas scipy numpy-financial streamlit plotly pytest pydantic fastapi uvicorn httpx requests
 ```
 
 2. **Start the FastAPI backend:**
+
 ```bash
 uvicorn api:app --host 0.0.0.0 --port 8000
 ```
 
 3. **In a new terminal, start the Streamlit frontend:**
+
 ```bash
 streamlit run app.py
 ```
 
 4. **Access the application:**
-   - Streamlit UI: http://localhost:8501
-   - FastAPI Backend: http://localhost:8000
-   - API Documentation: http://localhost:8000/docs
+   - Streamlit UI: <http://localhost:8501>
+   - FastAPI Backend: <http://localhost:8000>
+   - API Documentation: <http://localhost:8000/docs>
 
 ## 🔌 API Endpoints
 
@@ -112,7 +118,7 @@ The FastAPI backend provides the following endpoints:
 - `POST /api/sensitivity-analysis` - Run sensitivity analysis
 - `POST /api/dilution` - Calculate dilution from valuation
 
-See the interactive API documentation at http://localhost:8000/docs for details.
+See the interactive API documentation at <http://localhost:8000/docs> for details.
 
 ## 🧑‍💻 Using the Backend Independently
 
@@ -198,7 +204,7 @@ See [example_backend_usage.py](example_backend_usage.py) for a complete working 
 
 - [BACKEND.md](BACKEND.md) - Backend architecture and API reference
 - [example_backend_usage.py](example_backend_usage.py) - Example of using calculations module directly
-- API Documentation - Available at http://localhost:8000/docs when backend is running
+- API Documentation - Available at <http://localhost:8000/docs> when backend is running
 
 ## 🧪 Testing
 
@@ -216,6 +222,7 @@ pytest -v
 ```
 
 All 31 tests cover:
+
 - Core financial calculations
 - RSU and stock option scenarios
 - Dilution modeling
@@ -245,7 +252,7 @@ All 31 tests cover:
 
 ## 🌐 Environment Variables
 
-- `API_BASE_URL` - Base URL for the FastAPI backend (default: http://localhost:8000)
+- `API_BASE_URL` - Base URL for the FastAPI backend (default: <http://localhost:8000>)
 
 ## 📝 License
 
@@ -253,4 +260,4 @@ See repository for license information.
 
 ## 👨‍💻 Author
 
-Made with ❤️ by Eyad Sibai (https://linkedin.com/in/eyadsibai)
+Made with ❤️ by Eyad Sibai (<https://linkedin.com/in/eyadsibai>)

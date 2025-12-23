@@ -7,7 +7,13 @@ import { FounderDashboard, EmployeeDashboard } from "@/components/dashboard";
 import { WelcomeModal } from "@/components/onboarding/welcome-modal";
 import { AnimatedText, AnimatePresence, motion } from "@/lib/motion";
 import { useAppStore } from "@/lib/store";
-import { useDraftAutoSave, getDraft, clearDraft, useBeforeUnload, useReducedMotion } from "@/lib/hooks";
+import {
+  useDraftAutoSave,
+  getDraft,
+  clearDraft,
+  useBeforeUnload,
+  useReducedMotion,
+} from "@/lib/hooks";
 import { useFirstVisit } from "@/lib/hooks/use-first-visit";
 import { toast } from "sonner";
 import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
@@ -62,9 +68,9 @@ export default function Home() {
   );
 
   // Warn before leaving with unsaved changes
-  const hasUnsavedChanges = appMode === "employee" && (
-    globalSettings !== null || currentJob !== null || equityDetails !== null
-  );
+  const hasUnsavedChanges =
+    appMode === "employee" &&
+    (globalSettings !== null || currentJob !== null || equityDetails !== null);
   useBeforeUnload(hasUnsavedChanges);
 
   // Automatically restore saved draft on mount with error handling
@@ -100,13 +106,12 @@ export default function Home() {
     }
   }, [appMode, setGlobalSettings, setCurrentJob, setEquityDetails]);
 
-
   return (
     <AppShell>
-      <div className="container py-8 space-y-8">
+      <div className="container space-y-8 py-8">
         {/* Hero Section - Stable container, only text animates */}
         <div className="space-y-4">
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-foreground">
+          <h1 className="text-foreground text-3xl font-semibold tracking-tight md:text-4xl">
             <AnimatedText
               text={appMode === "employee" ? "Offer" : "Cap Table"}
               as="span"
@@ -119,12 +124,13 @@ export default function Home() {
             />
           </h1>
           <AnimatedText
-            text={appMode === "employee"
-              ? "Compare startup offers to your current job with equity modeling, dilution scenarios, and Monte Carlo simulations"
-              : "Simulate funding rounds, model ownership dilution, and understand your exit scenarios with waterfall analysis"
+            text={
+              appMode === "employee"
+                ? "Compare startup offers to your current job with equity modeling, dilution scenarios, and Monte Carlo simulations"
+                : "Simulate funding rounds, model ownership dilution, and understand your exit scenarios with waterfall analysis"
             }
             as="p"
-            className="text-base text-muted-foreground max-w-2xl leading-relaxed"
+            className="text-muted-foreground max-w-2xl text-base leading-relaxed"
           />
           <div>
             <ModeToggle mode={appMode} onModeChange={setAppMode} />
@@ -140,7 +146,9 @@ export default function Home() {
               initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.98 }}
-              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
+              transition={
+                prefersReducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }
+              }
             >
               <FounderDashboard />
             </motion.div>
@@ -150,7 +158,9 @@ export default function Home() {
               initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.98 }}
-              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
+              transition={
+                prefersReducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }
+              }
             >
               <EmployeeDashboard />
             </motion.div>

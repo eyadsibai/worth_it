@@ -37,7 +37,7 @@ export function TornadoChart({
   // Empty state
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-48 text-muted-foreground">
+      <div className="text-muted-foreground flex h-48 items-center justify-center">
         No sensitivity data available
       </div>
     );
@@ -64,14 +64,8 @@ export function TornadoChart({
 
   return (
     <div className="space-y-2">
-      {title && (
-        <h4 className="text-sm font-semibold text-foreground">{title}</h4>
-      )}
-      <div
-        role="img"
-        aria-label={accessibilityLabel}
-        style={{ height: height }}
-      >
+      {title && <h4 className="text-foreground text-sm font-semibold">{title}</h4>}
+      <div role="img" aria-label={accessibilityLabel} style={{ height: height }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={chartData}
@@ -104,22 +98,14 @@ export function TornadoChart({
                 The actual variable value direction depends on the variable type. */}
             <Bar dataKey="low" stackId="stack" radius={[4, 0, 0, 4]}>
               {chartData.map((entry, index) => (
-                <Cell
-                  key={`low-${index}`}
-                  fill={colors.destructive}
-                  opacity={0.8}
-                />
+                <Cell key={`low-${index}`} fill={colors.destructive} opacity={0.8} />
               ))}
             </Bar>
 
             {/* High (positive impact) bars - shown in green/chart3 color */}
             <Bar dataKey="high" stackId="stack" radius={[0, 4, 4, 0]}>
               {chartData.map((entry, index) => (
-                <Cell
-                  key={`high-${index}`}
-                  fill={colors.chart3}
-                  opacity={0.8}
-                />
+                <Cell key={`high-${index}`} fill={colors.chart3} opacity={0.8} />
               ))}
             </Bar>
           </BarChart>
@@ -128,11 +114,11 @@ export function TornadoChart({
 
       {/* Impact labels below chart */}
       {showImpactLabels && (
-        <div className="space-y-1 mt-3">
+        <div className="mt-3 space-y-1">
           {data.map((item, idx) => (
             <div
               key={idx}
-              className="flex items-center justify-between text-xs text-muted-foreground"
+              className="text-muted-foreground flex items-center justify-between text-xs"
             >
               <span>{item.variable}</span>
               <span className="font-medium tabular-nums">
@@ -144,17 +130,17 @@ export function TornadoChart({
       )}
 
       {/* Legend */}
-      <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground mt-2">
+      <div className="text-muted-foreground mt-2 flex items-center justify-center gap-6 text-xs">
         <div className="flex items-center gap-1.5">
           <div
-            className="w-3 h-3 rounded"
+            className="h-3 w-3 rounded"
             style={{ backgroundColor: colors.destructive, opacity: 0.8 }}
           />
           <span>Worse Outcome</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div
-            className="w-3 h-3 rounded"
+            className="h-3 w-3 rounded"
             style={{ backgroundColor: colors.chart3, opacity: 0.8 }}
           />
           <span>Better Outcome</span>
@@ -190,8 +176,8 @@ function TornadoTooltip({
   const data = payload[0].payload;
 
   return (
-    <div className={`${CHART_TOOLTIP_STYLES} px-3 py-2 rounded-xl shadow-lg text-sm`}>
-      <p className="font-medium mb-1">{data.name}</p>
+    <div className={`${CHART_TOOLTIP_STYLES} rounded-xl px-3 py-2 text-sm shadow-lg`}>
+      <p className="mb-1 font-medium">{data.name}</p>
       <div className="space-y-0.5 text-xs">
         <p>
           <span className="text-gray-400">Low scenario: </span>
@@ -202,11 +188,9 @@ function TornadoTooltip({
           <span className="tabular-nums">{formatCurrencyCompact(data.highValue)}</span>
         </p>
         {showImpactLabels && (
-          <p className="mt-1 pt-1 border-t border-border">
+          <p className="border-border mt-1 border-t pt-1">
             <span className="text-gray-400">Total impact: </span>
-            <span className="font-medium tabular-nums">
-              {formatCurrencyCompact(data.impact)}
-            </span>
+            <span className="font-medium tabular-nums">{formatCurrencyCompact(data.impact)}</span>
           </p>
         )}
       </div>

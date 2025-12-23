@@ -48,21 +48,16 @@ function FundcyTooltip({ active, payload, label }: TooltipProps) {
   const sortedPayload = [...payload].sort((a, b) => b.value - a.value);
 
   return (
-    <div className="bg-[hsl(220,15%,15%)] text-white px-4 py-3 rounded-xl shadow-lg min-w-[180px]">
-      <p className="text-xs text-gray-400 mb-2">{label}</p>
+    <div className="min-w-[180px] rounded-xl bg-[hsl(220,15%,15%)] px-4 py-3 text-white shadow-lg">
+      <p className="mb-2 text-xs text-gray-400">{label}</p>
       <div className="space-y-1.5">
         {sortedPayload.map((entry) => (
           <div key={entry.name} className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div
-                className="w-2.5 h-2.5 rounded-full"
-                style={{ backgroundColor: entry.color }}
-              />
+              <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
               <span className="text-sm">{entry.name}</span>
             </div>
-            <span className="text-sm font-medium tabular-nums">
-              {entry.value.toFixed(1)}%
-            </span>
+            <span className="text-sm font-medium tabular-nums">{entry.value.toFixed(1)}%</span>
           </div>
         ))}
       </div>
@@ -135,7 +130,7 @@ export function OwnershipAreaChart({
 
   if (chartData.length === 0) {
     return (
-      <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+      <div className="text-muted-foreground flex h-[300px] items-center justify-center">
         <p>No timeline data available. Add stakeholders or funding to see your equity evolution.</p>
       </div>
     );
@@ -153,33 +148,14 @@ export function OwnershipAreaChart({
         >
           <defs>
             {stakeholderNames.map((name, index) => (
-              <linearGradient
-                key={name}
-                id={`gradient-${index}`}
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
-                <stop
-                  offset="5%"
-                  stopColor={stakeholderColors[name]}
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor={stakeholderColors[name]}
-                  stopOpacity={0.2}
-                />
+              <linearGradient key={name} id={`gradient-${index}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={stakeholderColors[name]} stopOpacity={0.8} />
+                <stop offset="95%" stopColor={stakeholderColors[name]} stopOpacity={0.2} />
               </linearGradient>
             ))}
           </defs>
 
-          <CartesianGrid
-            strokeDasharray="3 3"
-            vertical={false}
-            stroke="hsl(var(--border))"
-          />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
 
           <XAxis
             dataKey="date"
@@ -216,10 +192,7 @@ export function OwnershipAreaChart({
           {/* Vertical reference line for hovered/selected timestamp */}
           {(hoveredTimestamp || selectedTimestamp) && (
             <ReferenceLine
-              x={format(
-                new Date(hoveredTimestamp || selectedTimestamp!),
-                "MMM yyyy"
-              )}
+              x={format(new Date(hoveredTimestamp || selectedTimestamp!), "MMM yyyy")}
               stroke="hsl(var(--primary))"
               strokeDasharray="3 3"
               strokeWidth={2}

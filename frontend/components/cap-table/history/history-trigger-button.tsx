@@ -22,7 +22,7 @@ export function HistoryTriggerButton({ className }: HistoryTriggerButtonProps) {
       <History className="h-4 w-4" />
       <span>History</span>
       {versions.length > 0 && (
-        <span className="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-primary/10 text-primary">
+        <span className="bg-primary/10 text-primary ml-1 rounded-full px-1.5 py-0.5 text-xs">
           {versions.length}
         </span>
       )}

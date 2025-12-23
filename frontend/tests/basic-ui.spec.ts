@@ -1,23 +1,23 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('Basic UI Tests', () => {
-  test('should load the application', async ({ page }) => {
+test.describe("Basic UI Tests", () => {
+  test("should load the application", async ({ page }) => {
     // Navigate to the app
-    const response = await page.goto('/');
+    const response = await page.goto("/");
 
     // Check that page loads successfully
     expect(response?.status()).toBeLessThan(400);
 
     // Wait for page to be ready
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState("networkidle");
 
     // Check that main content is visible
-    const mainContent = page.locator('main, #root, #__next, .container').first();
+    const mainContent = page.locator("main, #root, #__next, .container").first();
     await expect(mainContent).toBeVisible();
   });
 
-  test('should have a title', async ({ page }) => {
-    await page.goto('/');
+  test("should have a title", async ({ page }) => {
+    await page.goto("/");
 
     // Check page title
     const title = await page.title();
@@ -25,21 +25,21 @@ test.describe('Basic UI Tests', () => {
     expect(title.length).toBeGreaterThan(0);
   });
 
-  test('should render form elements', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+  test("should render form elements", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
     // Check for input elements
-    const inputs = page.locator('input, select, textarea');
+    const inputs = page.locator("input, select, textarea");
     const inputCount = await inputs.count();
 
     // Should have at least some form inputs
     expect(inputCount).toBeGreaterThan(0);
   });
 
-  test('should have interactive buttons', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+  test("should have interactive buttons", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
     // Check for buttons
     const buttons = page.locator('button, [role="button"]');
@@ -54,14 +54,14 @@ test.describe('Basic UI Tests', () => {
     expect(isEnabled).toBeTruthy();
   });
 
-  test('should be responsive', async ({ page }) => {
-    await page.goto('/');
+  test("should be responsive", async ({ page }) => {
+    await page.goto("/");
 
     // Test desktop view
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.waitForTimeout(500);
 
-    const desktopContent = page.locator('main, #root, #__next').first();
+    const desktopContent = page.locator("main, #root, #__next").first();
     await expect(desktopContent).toBeVisible();
 
     // Test tablet view
@@ -75,16 +75,16 @@ test.describe('Basic UI Tests', () => {
     await expect(desktopContent).toBeVisible();
   });
 
-  test('should handle user input', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+  test("should handle user input", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
     // Find first text input
     const textInput = page.locator('input[type="text"], input[type="number"]').first();
 
     if (await textInput.isVisible()) {
       // Type into input
-      await textInput.fill('test value');
+      await textInput.fill("test value");
 
       // Check value was entered
       const value = await textInput.inputValue();
@@ -92,38 +92,38 @@ test.describe('Basic UI Tests', () => {
     }
   });
 
-  test('should not have console errors', async ({ page }) => {
+  test("should not have console errors", async ({ page }) => {
     const errors: string[] = [];
 
     // Listen for console errors
-    page.on('console', (msg) => {
-      if (msg.type() === 'error') {
+    page.on("console", (msg) => {
+      if (msg.type() === "error") {
         errors.push(msg.text());
       }
     });
 
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
     // Should not have any console errors
     expect(errors).toHaveLength(0);
   });
 
-  test('should have proper meta tags', async ({ page }) => {
-    await page.goto('/');
+  test("should have proper meta tags", async ({ page }) => {
+    await page.goto("/");
 
     // Check for viewport meta tag
-    const viewport = await page.locator('meta[name="viewport"]').getAttribute('content');
-    expect(viewport).toContain('width=device-width');
+    const viewport = await page.locator('meta[name="viewport"]').getAttribute("content");
+    expect(viewport).toContain("width=device-width");
 
     // Check for description meta tag (optional but good practice)
     const description = await page.locator('meta[name="description"]').count();
     expect(description).toBeGreaterThanOrEqual(0);
   });
 
-  test('should navigate without errors', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+  test("should navigate without errors", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
     // Check that navigation doesn't cause errors
     const links = page.locator('a[href^="/"]');
@@ -132,11 +132,11 @@ test.describe('Basic UI Tests', () => {
     if (linkCount > 0) {
       // Click first internal link
       const firstLink = links.first();
-      const href = await firstLink.getAttribute('href');
+      const href = await firstLink.getAttribute("href");
 
-      if (href && href !== '/' && href !== '#') {
+      if (href && href !== "/" && href !== "#") {
         await firstLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState("networkidle");
 
         // Should navigate successfully
         const url = page.url();
@@ -145,17 +145,17 @@ test.describe('Basic UI Tests', () => {
     }
   });
 
-  test('should display text content', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+  test("should display text content", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
 
     // Check for any text content
-    const bodyText = await page.locator('body').textContent();
+    const bodyText = await page.locator("body").textContent();
     expect(bodyText).toBeTruthy();
     expect(bodyText?.length).toBeGreaterThan(10);
 
     // Check for headings
-    const headings = page.locator('h1, h2, h3, h4, h5, h6');
+    const headings = page.locator("h1, h2, h3, h4, h5, h6");
     const headingCount = await headings.count();
     expect(headingCount).toBeGreaterThan(0);
   });

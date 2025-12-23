@@ -7,13 +7,7 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { NumberInputField, SliderField, TextInputField } from "@/components/forms/form-fields";
 import { ConvertibleNoteFormSchema, type ConvertibleNoteFormData } from "@/lib/schemas";
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormDescription,
-} from "@/components/ui/form";
+import { FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
 import { InformationBox } from "@/components/ui/information-box";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -58,9 +52,10 @@ export function ConvertibleNoteForm({
 
   const years = months / 12;
   const annualRate = rate / 100;
-  const accruedInterest = interestType === "compound"
-    ? principal * (Math.pow(1 + annualRate, years) - 1)
-    : principal * annualRate * years;
+  const accruedInterest =
+    interestType === "compound"
+      ? principal * (Math.pow(1 + annualRate, years) - 1)
+      : principal * annualRate * years;
   const totalAtMaturity = principal + accruedInterest;
 
   return (
@@ -126,11 +121,15 @@ export function ConvertibleNoteForm({
                 >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="simple" id="simple" />
-                    <Label htmlFor="simple" className="cursor-pointer">Simple</Label>
+                    <Label htmlFor="simple" className="cursor-pointer">
+                      Simple
+                    </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="compound" id="compound" />
-                    <Label htmlFor="compound" className="cursor-pointer">Compound</Label>
+                    <Label htmlFor="compound" className="cursor-pointer">
+                      Compound
+                    </Label>
                   </div>
                 </RadioGroup>
               </FormControl>
@@ -147,11 +146,15 @@ export function ConvertibleNoteForm({
           <InformationBox className="p-3 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Accrued Interest at Maturity:</span>
-              <span className="tabular-nums">${accruedInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+              <span className="tabular-nums">
+                ${accruedInterest.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </span>
             </div>
-            <div className="flex justify-between mt-1">
+            <div className="mt-1 flex justify-between">
               <span className="text-muted-foreground">Total at Maturity:</span>
-              <span className="tabular-nums font-medium">${totalAtMaturity.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+              <span className="font-medium tabular-nums">
+                ${totalAtMaturity.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </span>
             </div>
           </InformationBox>
         )}

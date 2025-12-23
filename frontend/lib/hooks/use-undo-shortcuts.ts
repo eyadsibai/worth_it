@@ -15,22 +15,14 @@ interface UseUndoShortcutsOptions {
   enabled?: boolean;
 }
 
-export function useUndoShortcuts({
-  onUndo,
-  onRedo,
-  enabled = true,
-}: UseUndoShortcutsOptions) {
+export function useUndoShortcuts({ onUndo, onRedo, enabled = true }: UseUndoShortcutsOptions) {
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (!enabled) return;
 
       // Check if user is typing in an input field
       const target = event.target as HTMLElement;
-      if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable
-      ) {
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
         // Let browser handle native undo/redo in text fields
         return;
       }
@@ -45,10 +37,7 @@ export function useUndoShortcuts({
 
       // Redo: Cmd/Ctrl+Shift+Z or Cmd/Ctrl+Y
       // Note: With Shift pressed, event.key returns uppercase "Z"
-      if (
-        (event.key.toLowerCase() === "z" && event.shiftKey) ||
-        event.key === "y"
-      ) {
+      if ((event.key.toLowerCase() === "z" && event.shiftKey) || event.key === "y") {
         event.preventDefault();
         onRedo();
         return;

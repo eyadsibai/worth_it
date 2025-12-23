@@ -251,9 +251,7 @@ describe("useCapTableHistory", () => {
 
       expect(mockOnCapTableChange).toHaveBeenCalledWith(newState.capTable);
       expect(mockOnInstrumentsChange).toHaveBeenCalledWith(newState.instruments);
-      expect(mockOnPreferenceTiersChange).toHaveBeenCalledWith(
-        newState.preferenceTiers
-      );
+      expect(mockOnPreferenceTiersChange).toHaveBeenCalledWith(newState.preferenceTiers);
     });
   });
 

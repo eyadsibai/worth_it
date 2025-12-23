@@ -4,9 +4,7 @@ import { DilutionSummaryCard } from "@/components/forms/dilution-summary-card";
 import type { DilutionRoundForm } from "@/lib/schemas";
 
 describe("DilutionSummaryCard", () => {
-  const createRound = (
-    overrides: Partial<DilutionRoundForm>
-  ): DilutionRoundForm => ({
+  const createRound = (overrides: Partial<DilutionRoundForm>): DilutionRoundForm => ({
     round_name: "Test Round",
     round_type: "PRICED_ROUND",
     year: 1,
@@ -45,9 +43,7 @@ describe("DilutionSummaryCard", () => {
         createRound({ status: "completed", year: -1, dilution_pct: 20 }),
       ];
 
-      render(
-        <DilutionSummaryCard completedRounds={completedRounds} upcomingRounds={[]} />
-      );
+      render(<DilutionSummaryCard completedRounds={completedRounds} upcomingRounds={[]} />);
 
       // Historical dilution: 1 - (0.85 * 0.80) = 1 - 0.68 = 0.32 = 32%
       // Note: formatPct removes trailing .0, so 32.0% becomes 32%
@@ -60,9 +56,7 @@ describe("DilutionSummaryCard", () => {
         createRound({ status: "completed", year: -1, dilution_pct: 20, enabled: false }),
       ];
 
-      render(
-        <DilutionSummaryCard completedRounds={completedRounds} upcomingRounds={[]} />
-      );
+      render(<DilutionSummaryCard completedRounds={completedRounds} upcomingRounds={[]} />);
 
       // Only 15% dilution counts (enabled round)
       expect(screen.getByTestId("historical-dilution")).toHaveTextContent("15%");
@@ -76,9 +70,7 @@ describe("DilutionSummaryCard", () => {
         createRound({ status: "upcoming", year: 3, dilution_pct: 15, enabled: true }),
       ];
 
-      render(
-        <DilutionSummaryCard completedRounds={[]} upcomingRounds={upcomingRounds} />
-      );
+      render(<DilutionSummaryCard completedRounds={[]} upcomingRounds={upcomingRounds} />);
 
       // Projected dilution: 1 - (0.82 * 0.85) = 1 - 0.697 = 0.303 = 30.3%
       expect(screen.getByTestId("projected-dilution")).toHaveTextContent("30.3%");
@@ -90,9 +82,7 @@ describe("DilutionSummaryCard", () => {
         createRound({ status: "upcoming", year: 3, dilution_pct: 15, enabled: false }),
       ];
 
-      render(
-        <DilutionSummaryCard completedRounds={[]} upcomingRounds={upcomingRounds} />
-      );
+      render(<DilutionSummaryCard completedRounds={[]} upcomingRounds={upcomingRounds} />);
 
       // Only 18% dilution counts (enabled round)
       expect(screen.getByTestId("projected-dilution")).toHaveTextContent("18%");
@@ -116,18 +106,13 @@ describe("DilutionSummaryCard", () => {
 
   describe("total dilution calculation", () => {
     it("calculates total dilution from both completed and upcoming rounds", () => {
-      const completedRounds = [
-        createRound({ status: "completed", year: -1, dilution_pct: 20 }),
-      ];
+      const completedRounds = [createRound({ status: "completed", year: -1, dilution_pct: 20 })];
       const upcomingRounds = [
         createRound({ status: "upcoming", year: 2, dilution_pct: 15, enabled: true }),
       ];
 
       render(
-        <DilutionSummaryCard
-          completedRounds={completedRounds}
-          upcomingRounds={upcomingRounds}
-        />
+        <DilutionSummaryCard completedRounds={completedRounds} upcomingRounds={upcomingRounds} />
       );
 
       // Total: 1 - (0.80 * 0.85) = 1 - 0.68 = 0.32 = 32%
@@ -137,18 +122,13 @@ describe("DilutionSummaryCard", () => {
 
   describe("equity remaining display", () => {
     it("displays the correct equity remaining percentage", () => {
-      const completedRounds = [
-        createRound({ status: "completed", year: -1, dilution_pct: 20 }),
-      ];
+      const completedRounds = [createRound({ status: "completed", year: -1, dilution_pct: 20 })];
       const upcomingRounds = [
         createRound({ status: "upcoming", year: 2, dilution_pct: 15, enabled: true }),
       ];
 
       render(
-        <DilutionSummaryCard
-          completedRounds={completedRounds}
-          upcomingRounds={upcomingRounds}
-        />
+        <DilutionSummaryCard completedRounds={completedRounds} upcomingRounds={upcomingRounds} />
       );
 
       // Equity remaining: 0.80 * 0.85 = 0.68 = 68%
@@ -158,13 +138,9 @@ describe("DilutionSummaryCard", () => {
 
   describe("visual progress bar", () => {
     it("renders the equity remaining progress bar", () => {
-      const completedRounds = [
-        createRound({ status: "completed", year: -1, dilution_pct: 30 }),
-      ];
+      const completedRounds = [createRound({ status: "completed", year: -1, dilution_pct: 30 })];
 
-      render(
-        <DilutionSummaryCard completedRounds={completedRounds} upcomingRounds={[]} />
-      );
+      render(<DilutionSummaryCard completedRounds={completedRounds} upcomingRounds={[]} />);
 
       const progressBar = screen.getByTestId("dilution-progress-bar");
       expect(progressBar).toBeInTheDocument();

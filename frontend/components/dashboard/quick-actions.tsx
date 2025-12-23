@@ -3,15 +3,7 @@
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Plus,
-  FileText,
-  GitCompare,
-  Download,
-  Briefcase,
-  Building2,
-  Zap,
-} from "lucide-react";
+import { Plus, FileText, GitCompare, Download, Briefcase, Building2, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface QuickActionsProps {
@@ -37,7 +29,7 @@ export function QuickActions({
     <Card className={cn("terminal-card", className)}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Zap className="h-5 w-5 text-terminal" />
+          <Zap className="text-terminal h-5 w-5" />
           Quick Actions
         </CardTitle>
       </CardHeader>
@@ -46,45 +38,45 @@ export function QuickActions({
           {/* New Employee Analysis */}
           <Button
             variant="outline"
-            className="h-auto py-4 flex flex-col items-center gap-2 hover:border-terminal hover:text-terminal group"
+            className="hover:border-terminal hover:text-terminal group flex h-auto flex-col items-center gap-2 py-4"
             onClick={onNewEmployeeAnalysis}
           >
-            <div className="p-2 rounded-lg bg-chart-2/20 group-hover:bg-terminal/20 transition-colors">
-              <Briefcase className="h-5 w-5 text-chart-2 group-hover:text-terminal transition-colors" />
+            <div className="bg-chart-2/20 group-hover:bg-terminal/20 rounded-lg p-2 transition-colors">
+              <Briefcase className="text-chart-2 group-hover:text-terminal h-5 w-5 transition-colors" />
             </div>
             <div className="text-center">
-              <p className="font-medium text-sm">New Job Analysis</p>
-              <p className="text-xs text-muted-foreground">Compare offers</p>
+              <p className="text-sm font-medium">New Job Analysis</p>
+              <p className="text-muted-foreground text-xs">Compare offers</p>
             </div>
           </Button>
 
           {/* New Founder Analysis */}
           <Button
             variant="outline"
-            className="h-auto py-4 flex flex-col items-center gap-2 hover:border-terminal hover:text-terminal group"
+            className="hover:border-terminal hover:text-terminal group flex h-auto flex-col items-center gap-2 py-4"
             onClick={onNewFounderAnalysis}
           >
-            <div className="p-2 rounded-lg bg-chart-3/20 group-hover:bg-terminal/20 transition-colors">
-              <Building2 className="h-5 w-5 text-chart-3 group-hover:text-terminal transition-colors" />
+            <div className="bg-chart-3/20 group-hover:bg-terminal/20 rounded-lg p-2 transition-colors">
+              <Building2 className="text-chart-3 group-hover:text-terminal h-5 w-5 transition-colors" />
             </div>
             <div className="text-center">
-              <p className="font-medium text-sm">Cap Table</p>
-              <p className="text-xs text-muted-foreground">Founder tools</p>
+              <p className="text-sm font-medium">Cap Table</p>
+              <p className="text-muted-foreground text-xs">Founder tools</p>
             </div>
           </Button>
 
           {/* Load Example */}
           <Button
             variant="outline"
-            className="h-auto py-4 flex flex-col items-center gap-2 hover:border-terminal hover:text-terminal group"
+            className="hover:border-terminal hover:text-terminal group flex h-auto flex-col items-center gap-2 py-4"
             onClick={onLoadExample}
           >
-            <div className="p-2 rounded-lg bg-muted group-hover:bg-terminal/20 transition-colors">
-              <FileText className="h-5 w-5 text-muted-foreground group-hover:text-terminal transition-colors" />
+            <div className="bg-muted group-hover:bg-terminal/20 rounded-lg p-2 transition-colors">
+              <FileText className="text-muted-foreground group-hover:text-terminal h-5 w-5 transition-colors" />
             </div>
             <div className="text-center">
-              <p className="font-medium text-sm">Load Example</p>
-              <p className="text-xs text-muted-foreground">Try a demo</p>
+              <p className="text-sm font-medium">Load Example</p>
+              <p className="text-muted-foreground text-xs">Try a demo</p>
             </div>
           </Button>
 
@@ -92,15 +84,15 @@ export function QuickActions({
           {hasScenarios && onCompareAll && (
             <Button
               variant="outline"
-              className="h-auto py-4 flex flex-col items-center gap-2 hover:border-terminal hover:text-terminal group"
+              className="hover:border-terminal hover:text-terminal group flex h-auto flex-col items-center gap-2 py-4"
               onClick={onCompareAll}
             >
-              <div className="p-2 rounded-lg bg-muted group-hover:bg-terminal/20 transition-colors">
-                <GitCompare className="h-5 w-5 text-muted-foreground group-hover:text-terminal transition-colors" />
+              <div className="bg-muted group-hover:bg-terminal/20 rounded-lg p-2 transition-colors">
+                <GitCompare className="text-muted-foreground group-hover:text-terminal h-5 w-5 transition-colors" />
               </div>
               <div className="text-center">
-                <p className="font-medium text-sm">Compare All</p>
-                <p className="text-xs text-muted-foreground">Side by side</p>
+                <p className="text-sm font-medium">Compare All</p>
+                <p className="text-muted-foreground text-xs">Side by side</p>
               </div>
             </Button>
           )}
@@ -109,28 +101,28 @@ export function QuickActions({
           {hasScenarios && !onCompareAll && onExportSummary && (
             <Button
               variant="outline"
-              className="h-auto py-4 flex flex-col items-center gap-2 hover:border-terminal hover:text-terminal group"
+              className="hover:border-terminal hover:text-terminal group flex h-auto flex-col items-center gap-2 py-4"
               onClick={onExportSummary}
             >
-              <div className="p-2 rounded-lg bg-muted group-hover:bg-terminal/20 transition-colors">
-                <Download className="h-5 w-5 text-muted-foreground group-hover:text-terminal transition-colors" />
+              <div className="bg-muted group-hover:bg-terminal/20 rounded-lg p-2 transition-colors">
+                <Download className="text-muted-foreground group-hover:text-terminal h-5 w-5 transition-colors" />
               </div>
               <div className="text-center">
-                <p className="font-medium text-sm">Export</p>
-                <p className="text-xs text-muted-foreground">Download data</p>
+                <p className="text-sm font-medium">Export</p>
+                <p className="text-muted-foreground text-xs">Download data</p>
               </div>
             </Button>
           )}
 
           {/* Empty slot placeholder */}
           {!hasScenarios && (
-            <div className="h-auto py-4 flex flex-col items-center gap-2 border border-dashed rounded-lg opacity-50">
-              <div className="p-2 rounded-lg bg-muted">
-                <Plus className="h-5 w-5 text-muted-foreground" />
+            <div className="flex h-auto flex-col items-center gap-2 rounded-lg border border-dashed py-4 opacity-50">
+              <div className="bg-muted rounded-lg p-2">
+                <Plus className="text-muted-foreground h-5 w-5" />
               </div>
               <div className="text-center">
-                <p className="font-medium text-sm text-muted-foreground">More Actions</p>
-                <p className="text-xs text-muted-foreground">Save scenarios first</p>
+                <p className="text-muted-foreground text-sm font-medium">More Actions</p>
+                <p className="text-muted-foreground text-xs">Save scenarios first</p>
               </div>
             </div>
           )}

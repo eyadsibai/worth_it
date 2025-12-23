@@ -22,14 +22,12 @@ export function StepOptionPool({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <PieChart className="h-6 w-6 text-primary" />
+      <div className="space-y-2 text-center">
+        <div className="bg-primary/10 mx-auto flex h-12 w-12 items-center justify-center rounded-full">
+          <PieChart className="text-primary h-6 w-6" />
         </div>
         <h2 className="text-2xl font-semibold">Reserve equity for employees?</h2>
-        <p className="text-muted-foreground">
-          Set aside shares for future employee option grants
-        </p>
+        <p className="text-muted-foreground">Set aside shares for future employee option grants</p>
       </div>
 
       {/* Option Pool Selection */}
@@ -43,24 +41,19 @@ export function StepOptionPool({
             <Label
               key={option.value}
               htmlFor={`pool-${option.value}`}
-              className="flex items-center space-x-3 p-4 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/5"
+              className="hover:bg-accent/50 [&:has([data-state=checked])]:border-primary [&:has([data-state=checked])]:bg-primary/5 flex cursor-pointer items-center space-x-3 rounded-lg border p-4 transition-colors"
             >
-              <RadioGroupItem
-                value={option.value.toString()}
-                id={`pool-${option.value}`}
-              />
+              <RadioGroupItem value={option.value.toString()} id={`pool-${option.value}`} />
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{option.label}</span>
                   {option.value === 15 && (
-                    <span className="text-xs bg-terminal/20 text-terminal px-2 py-0.5 rounded-full">
+                    <span className="bg-terminal/20 text-terminal rounded-full px-2 py-0.5 text-xs">
                       Recommended
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  {option.description}
-                </p>
+                <p className="text-muted-foreground mt-0.5 text-sm">{option.description}</p>
               </div>
             </Label>
           ))}
@@ -68,10 +61,10 @@ export function StepOptionPool({
       </Card>
 
       {/* Info Card */}
-      <Card className="p-4 bg-muted/50">
-        <p className="text-sm text-muted-foreground">
-          💡 The option pool is carved out from founder equity proportionally.
-          For example, a 15% pool reduces each founder stake by 15%.
+      <Card className="bg-muted/50 p-4">
+        <p className="text-muted-foreground text-sm">
+          💡 The option pool is carved out from founder equity proportionally. For example, a 15%
+          pool reduces each founder stake by 15%.
         </p>
       </Card>
 
@@ -79,7 +72,7 @@ export function StepOptionPool({
       <div className="flex justify-between pt-4">
         <div className="flex gap-2">
           <Button variant="outline" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
           <Button variant="ghost" onClick={onSkipWizard}>
@@ -88,7 +81,7 @@ export function StepOptionPool({
         </div>
         <Button onClick={onNext}>
           Next
-          <ArrowRight className="h-4 w-4 ml-2" />
+          <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>

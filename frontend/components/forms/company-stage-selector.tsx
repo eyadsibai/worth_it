@@ -122,10 +122,7 @@ function generateRoundsForStage(stage: CompanyStage): DilutionRoundForm[] {
   return rounds;
 }
 
-export function CompanyStageSelector({
-  form,
-  onChange,
-}: CompanyStageSelectorProps) {
+export function CompanyStageSelector({ form, onChange }: CompanyStageSelectorProps) {
   const currentStage = form.watch("company_stage") as CompanyStage | undefined;
 
   const handleStageChange = (value: string) => {
@@ -142,7 +139,7 @@ export function CompanyStageSelector({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <Building2 className="h-4 w-4 text-muted-foreground" />
+        <Building2 className="text-muted-foreground h-4 w-4" />
         <Label className="text-sm font-medium">Company Stage</Label>
       </div>
 
@@ -151,25 +148,26 @@ export function CompanyStageSelector({
           <SelectValue placeholder="Select current funding stage..." />
         </SelectTrigger>
         <SelectContent>
-          {(Object.entries(STAGE_DEFINITIONS) as [CompanyStage, typeof STAGE_DEFINITIONS[CompanyStage]][]).map(
-            ([stage, config]) => (
-              <SelectItem key={stage} value={stage}>
-                <div className="flex items-center justify-between w-full gap-4">
-                  <div>
-                    <span className="font-medium">{config.label}</span>
-                    <span className="text-muted-foreground ml-2 text-xs">
-                      {config.description}
-                    </span>
-                  </div>
+          {(
+            Object.entries(STAGE_DEFINITIONS) as [
+              CompanyStage,
+              (typeof STAGE_DEFINITIONS)[CompanyStage],
+            ][]
+          ).map(([stage, config]) => (
+            <SelectItem key={stage} value={stage}>
+              <div className="flex w-full items-center justify-between gap-4">
+                <div>
+                  <span className="font-medium">{config.label}</span>
+                  <span className="text-muted-foreground ml-2 text-xs">{config.description}</span>
                 </div>
-              </SelectItem>
-            )
-          )}
+              </div>
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
 
       {currentStage && (
-        <div className="flex flex-wrap gap-2 mt-2">
+        <div className="mt-2 flex flex-wrap gap-2">
           <Badge variant="outline" className="text-xs">
             {STAGE_DEFINITIONS[currentStage].completedRounds.length} completed round
             {STAGE_DEFINITIONS[currentStage].completedRounds.length !== 1 ? "s" : ""}
@@ -180,9 +178,9 @@ export function CompanyStageSelector({
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground">
-        Selecting a stage will configure funding rounds automatically. Completed rounds
-        represent historical dilution; upcoming rounds are what you&apos;ll model.
+      <p className="text-muted-foreground text-xs">
+        Selecting a stage will configure funding rounds automatically. Completed rounds represent
+        historical dilution; upcoming rounds are what you&apos;ll model.
       </p>
     </div>
   );

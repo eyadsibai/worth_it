@@ -63,9 +63,7 @@ vi.mock("framer-motion", () => ({
 
 // Mock recharts (causes issues in test environment)
 vi.mock("recharts", () => ({
-  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   LineChart: () => <div data-testid="line-chart" />,
   AreaChart: () => <div data-testid="area-chart" />,
   Line: () => null,

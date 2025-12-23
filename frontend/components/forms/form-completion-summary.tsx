@@ -58,12 +58,7 @@ export function FormCompletionSummary({
   const sectionNames = Object.keys(status.sections);
 
   return (
-    <div
-      className={cn(
-        "terminal-card-sm text-sm",
-        className
-      )}
-    >
+    <div className={cn("terminal-card-sm text-sm", className)}>
       {/* Header - always visible */}
       <button
         type="button"
@@ -71,11 +66,11 @@ export function FormCompletionSummary({
         className="flex w-full items-center justify-between text-left"
       >
         <div className="flex items-center gap-2">
-          <span className="font-medium text-muted-foreground">Form Status</span>
+          <span className="text-muted-foreground font-medium">Form Status</span>
           {status.isAllComplete ? (
-            <Check className="h-4 w-4 text-chart-3" aria-label="All complete" />
+            <Check className="text-chart-3 h-4 w-4" aria-label="All complete" />
           ) : status.sectionsWithErrors > 0 ? (
-            <X className="h-4 w-4 text-destructive" aria-label="Has errors" />
+            <X className="text-destructive h-4 w-4" aria-label="Has errors" />
           ) : status.sectionsWithWarnings > 0 ? (
             <AlertTriangle className="h-4 w-4 text-amber-500" aria-label="Has warnings" />
           ) : null}
@@ -83,16 +78,16 @@ export function FormCompletionSummary({
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground">{status.summaryText}</span>
           {isExpanded ? (
-            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            <ChevronUp className="text-muted-foreground h-4 w-4" />
           ) : (
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            <ChevronDown className="text-muted-foreground h-4 w-4" />
           )}
         </div>
       </button>
 
       {/* Expanded details */}
       {isExpanded && sectionNames.length > 0 && (
-        <div className="mt-3 space-y-2 border-t border-border pt-3">
+        <div className="border-border mt-3 space-y-2 border-t pt-3">
           {sectionNames.map((name) => {
             const section = status.sections[name];
             const { icon: Icon, className: iconClass, label } = getStatusIcon(section.status);
@@ -100,15 +95,13 @@ export function FormCompletionSummary({
             return (
               <div key={name} className="flex items-start gap-2">
                 <Icon
-                  className={cn("h-4 w-4 mt-0.5 flex-shrink-0", iconClass)}
+                  className={cn("mt-0.5 h-4 w-4 flex-shrink-0", iconClass)}
                   aria-label={label}
                 />
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <span className="font-medium">{name}</span>
                   {section.firstError && section.status === "incomplete" && (
-                    <p className="text-destructive text-xs mt-0.5 truncate">
-                      {section.firstError}
-                    </p>
+                    <p className="text-destructive mt-0.5 truncate text-xs">{section.firstError}</p>
                   )}
                 </div>
               </div>

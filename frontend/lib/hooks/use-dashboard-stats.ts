@@ -103,22 +103,18 @@ export function useDashboardStats(): UseDashboardStatsReturn {
       const worthItCount = employeePreviews.filter((s) => s.isWorthIt).length;
       const notWorthItCount = employeePreviews.length - worthItCount;
 
-      const totalNetBenefit = employeePreviews.reduce(
-        (sum, s) => sum + s.netBenefit,
-        0
-      );
+      const totalNetBenefit = employeePreviews.reduce((sum, s) => sum + s.netBenefit, 0);
       const averageNetBenefit =
-        employeePreviews.length > 0
-          ? totalNetBenefit / employeePreviews.length
-          : 0;
+        employeePreviews.length > 0 ? totalNetBenefit / employeePreviews.length : 0;
 
       // Find best opportunity (highest net benefit among employee scenarios)
       // Only surface a "best opportunity" when it has a positive net benefit.
-      const bestEmployeeScenario = employeePreviews.length > 0
-        ? employeePreviews.reduce((best, current) =>
-            current.netBenefit > best.netBenefit ? current : best
-          )
-        : null;
+      const bestEmployeeScenario =
+        employeePreviews.length > 0
+          ? employeePreviews.reduce((best, current) =>
+              current.netBenefit > best.netBenefit ? current : best
+            )
+          : null;
 
       const bestOpportunity =
         bestEmployeeScenario && bestEmployeeScenario.netBenefit > 0
@@ -129,14 +125,13 @@ export function useDashboardStats(): UseDashboardStatsReturn {
           : null;
 
       // Combine and sort all scenarios by date (most recent first)
-      const allPreviews: ScenarioPreview[] = [
-        ...employeePreviews,
-        ...founderPreviews,
-      ].sort((a, b) => {
-        const dateA = a.type === "employee" ? a.timestamp : a.updatedAt;
-        const dateB = b.type === "employee" ? b.timestamp : b.updatedAt;
-        return new Date(dateB).getTime() - new Date(dateA).getTime();
-      });
+      const allPreviews: ScenarioPreview[] = [...employeePreviews, ...founderPreviews].sort(
+        (a, b) => {
+          const dateA = a.type === "employee" ? a.timestamp : a.updatedAt;
+          const dateB = b.type === "employee" ? b.timestamp : b.updatedAt;
+          return new Date(dateB).getTime() - new Date(dateA).getTime();
+        }
+      );
 
       setStats({
         totalScenarios: employeePreviews.length + founderPreviews.length,
@@ -164,10 +159,7 @@ export function useDashboardStats(): UseDashboardStatsReturn {
   // Listen for storage changes (in case user modifies scenarios in another tab)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (
-        e.key === "worth_it_scenarios" ||
-        e.key === "worth_it_founder_scenarios"
-      ) {
+      if (e.key === "worth_it_scenarios" || e.key === "worth_it_founder_scenarios") {
         loadStats();
       }
     };

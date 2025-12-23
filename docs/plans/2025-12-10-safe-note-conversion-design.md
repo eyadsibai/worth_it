@@ -25,6 +25,7 @@ Implement automatic conversion of SAFEs and Convertible Notes to equity when a p
 ### `POST /api/cap-table/convert`
 
 **Request:**
+
 ```json
 {
   "cap_table": {
@@ -44,6 +45,7 @@ Implement automatic conversion of SAFEs and Convertible Notes to equity when a p
 ```
 
 **Response:**
+
 ```json
 {
   "updated_cap_table": {
@@ -84,12 +86,14 @@ shares_issued = investment_amount / conversion_price
 ```
 
 **Validation:**
+
 - SAFE must have at least `valuation_cap` OR `discount_pct`
 - If only cap → use cap price
 - If only discount → use discount price
 - If both → use lower price
 
 **Example:**
+
 ```
 SAFE: $100K, $5M cap, 20% discount
 Round: $10M pre-money, 10M shares → $1.00/share
@@ -105,6 +109,7 @@ shares_issued = $100K / $0.50 = 200,000 shares
 **Key Difference:** Notes accrue interest added to principal before conversion.
 
 **Interest Calculation:**
+
 ```python
 if interest_type == "simple":
     interest = principal × (rate / 100) × (months_elapsed / 12)
@@ -116,10 +121,12 @@ conversion_amount = principal + interest
 ```
 
 **Time Calculation:**
+
 - `months_elapsed` = difference between note `date` and priced round `date`
 - Both dates are required
 
 **Example:**
+
 ```
 Note: $50K principal, 5% rate, simple interest
       $4M cap, 15% discount, issued Jan 1, 2024

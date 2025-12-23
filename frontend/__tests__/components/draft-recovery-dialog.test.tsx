@@ -32,12 +32,7 @@ describe("DraftRecoveryDialog", () => {
 
   it("renders when open is true", () => {
     render(
-      <DraftRecoveryDialog
-        open={true}
-        draft={mockDraft}
-        onRestore={vi.fn()}
-        onDiscard={vi.fn()}
-      />
+      <DraftRecoveryDialog open={true} draft={mockDraft} onRestore={vi.fn()} onDiscard={vi.fn()} />
     );
 
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
@@ -46,12 +41,7 @@ describe("DraftRecoveryDialog", () => {
 
   it("does not render when open is false", () => {
     render(
-      <DraftRecoveryDialog
-        open={false}
-        draft={mockDraft}
-        onRestore={vi.fn()}
-        onDiscard={vi.fn()}
-      />
+      <DraftRecoveryDialog open={false} draft={mockDraft} onRestore={vi.fn()} onDiscard={vi.fn()} />
     );
 
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
@@ -59,12 +49,7 @@ describe("DraftRecoveryDialog", () => {
 
   it("displays time since save", () => {
     render(
-      <DraftRecoveryDialog
-        open={true}
-        draft={mockDraft}
-        onRestore={vi.fn()}
-        onDiscard={vi.fn()}
-      />
+      <DraftRecoveryDialog open={true} draft={mockDraft} onRestore={vi.fn()} onDiscard={vi.fn()} />
     );
 
     // Should show relative time like "5 minutes ago"
@@ -73,12 +58,7 @@ describe("DraftRecoveryDialog", () => {
 
   it("displays draft summary", () => {
     render(
-      <DraftRecoveryDialog
-        open={true}
-        draft={mockDraft}
-        onRestore={vi.fn()}
-        onDiscard={vi.fn()}
-      />
+      <DraftRecoveryDialog open={true} draft={mockDraft} onRestore={vi.fn()} onDiscard={vi.fn()} />
     );
 
     // Should show some summary of the saved data

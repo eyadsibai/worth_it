@@ -128,9 +128,7 @@ export function ValuationCalculator() {
       const response = await dcfMutation.mutateAsync({
         projected_cash_flows: data.projectedCashFlows.map((cf) => cf.value),
         discount_rate: data.discountRate / 100,
-        terminal_growth_rate: data.terminalGrowthRate
-          ? data.terminalGrowthRate / 100
-          : undefined,
+        terminal_growth_rate: data.terminalGrowthRate ? data.terminalGrowthRate / 100 : undefined,
       });
       const result = transformValuationResult(response);
       updateMethodResult("dcf", result, null);
@@ -149,10 +147,7 @@ export function ValuationCalculator() {
         exit_year: data.exitYear,
         target_return_multiple:
           data.returnType === "multiple" ? data.targetReturnMultiple : undefined,
-        target_irr:
-          data.returnType === "irr" && data.targetIRR
-            ? data.targetIRR / 100
-            : undefined,
+        target_irr: data.returnType === "irr" && data.targetIRR ? data.targetIRR / 100 : undefined,
         expected_dilution: data.expectedDilution / 100,
         exit_probability: data.exitProbability / 100,
         investment_amount: data.investmentAmount,
@@ -204,9 +199,7 @@ export function ValuationCalculator() {
           projected_exit_value: vcMethodData.projectedExitValue,
           exit_year: vcMethodData.exitYear,
           target_return_multiple:
-            vcMethodData.returnType === "multiple"
-              ? vcMethodData.targetReturnMultiple
-              : undefined,
+            vcMethodData.returnType === "multiple" ? vcMethodData.targetReturnMultiple : undefined,
           target_irr:
             vcMethodData.returnType === "irr" && vcMethodData.targetIRR
               ? vcMethodData.targetIRR / 100
@@ -255,7 +248,7 @@ export function ValuationCalculator() {
       <Card className="border-0 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_2px_8px_rgba(0,0,0,0.04)]">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Calculator className="h-5 w-5 text-primary" />
+            <Calculator className="text-primary h-5 w-5" />
             <CardTitle>Startup Valuation Calculator</CardTitle>
           </div>
           <CardDescription>
@@ -263,11 +256,8 @@ export function ValuationCalculator() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs
-            value={activeMethod}
-            onValueChange={(v) => setActiveMethod(v as ValuationMethod)}
-          >
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+          <Tabs value={activeMethod} onValueChange={(v) => setActiveMethod(v as ValuationMethod)}>
+            <TabsList className="mb-6 grid w-full grid-cols-3">
               <TabsTrigger value="revenue_multiple" className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
                 <span className="hidden sm:inline">Revenue Multiple</span>
@@ -310,24 +300,16 @@ export function ValuationCalculator() {
             </TabsContent>
           </Tabs>
 
-          <div className="flex gap-3 mt-6 pt-4 border-t border-border">
-            <Button
-              onClick={handleSubmit}
-              disabled={isLoading}
-              className="flex-1"
-            >
+          <div className="border-border mt-6 flex gap-3 border-t pt-4">
+            <Button onClick={handleSubmit} disabled={isLoading} className="flex-1">
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
-                <Calculator className="h-4 w-4 mr-2" />
+                <Calculator className="mr-2 h-4 w-4" />
               )}
               Calculate Valuation
             </Button>
-            <Button
-              variant="outline"
-              onClick={handleCompare}
-              disabled={isLoading}
-            >
+            <Button variant="outline" onClick={handleCompare} disabled={isLoading}>
               Compare All Methods
             </Button>
           </div>
@@ -335,9 +317,7 @@ export function ValuationCalculator() {
       </Card>
 
       {/* Individual Result */}
-      {currentResult?.result && (
-        <ValuationResult result={currentResult.result} />
-      )}
+      {currentResult?.result && <ValuationResult result={currentResult.result} />}
 
       {currentResult?.error && (
         <Card className="border-destructive bg-destructive/10">

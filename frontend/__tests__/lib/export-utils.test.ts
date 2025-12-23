@@ -238,9 +238,7 @@ describe("saveScenario", () => {
     const saved = JSON.parse(localStorage.getItem("worth_it_scenarios") || "[]");
     expect(saved).toHaveLength(2);
   });
-
 });
-
 
 describe("getSavedScenarios", () => {
   it("returns empty array when no scenarios saved", () => {
@@ -287,7 +285,6 @@ describe("deleteScenario", () => {
     const scenarios = getSavedScenarios();
     expect(scenarios).toHaveLength(1);
   });
-
 });
 
 describe("clearAllScenarios", () => {
@@ -367,7 +364,10 @@ describe("exportScenarioAsCSV", () => {
 
   it("handles scenario names with quotes and commas", async () => {
     const { exportScenarioAsCSV } = await import("@/lib/export-utils");
-    const scenario = createMockScenario('Scenario with, "quotes" and comma', "2024-01-01T00:00:00Z");
+    const scenario = createMockScenario(
+      'Scenario with, "quotes" and comma',
+      "2024-01-01T00:00:00Z"
+    );
 
     // Should not throw - CSV escaping is applied internally
     expect(() => exportScenarioAsCSV(scenario)).not.toThrow();
@@ -663,8 +663,16 @@ describe("exportScenarioComparisonPDF", () => {
       createMockScenario("Scenario B", "2024-01-02T00:00:00Z"),
     ];
     // Override to have different outcomes for comparison
-    scenarios[0].results = { finalPayoutValue: 400000, finalOpportunityCost: 200000, netOutcome: 200000 };
-    scenarios[1].results = { finalPayoutValue: 600000, finalOpportunityCost: 200000, netOutcome: 400000 };
+    scenarios[0].results = {
+      finalPayoutValue: 400000,
+      finalOpportunityCost: 200000,
+      netOutcome: 200000,
+    };
+    scenarios[1].results = {
+      finalPayoutValue: 600000,
+      finalOpportunityCost: 200000,
+      netOutcome: 400000,
+    };
 
     // Should not throw
     expect(() => exportScenarioComparisonPDF(scenarios)).not.toThrow();

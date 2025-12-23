@@ -38,8 +38,11 @@ function MetricRow({ label, values, format = "number", higherIsBetter = true }: 
   const bestCount = numericValues.filter((v) => v === best).length;
 
   return (
-    <div className="grid gap-4" style={{ gridTemplateColumns: `200px repeat(${values.length}, 1fr)` }}>
-      <div className="text-sm font-medium text-muted-foreground">{label}</div>
+    <div
+      className="grid gap-4"
+      style={{ gridTemplateColumns: `200px repeat(${values.length}, 1fr)` }}
+    >
+      <div className="text-muted-foreground text-sm font-medium">{label}</div>
       {values.map((value, idx) => {
         const numValue = typeof value === "number" ? value : 0;
         // Only highlight when there's a clear winner (best value appears only once)
@@ -58,7 +61,7 @@ function MetricRow({ label, values, format = "number", higherIsBetter = true }: 
           <div
             key={idx}
             className={cn(
-              "text-sm font-semibold text-right",
+              "text-right text-sm font-semibold",
               isBest && "text-green-600 dark:text-green-400"
             )}
           >
@@ -70,14 +73,11 @@ function MetricRow({ label, values, format = "number", higherIsBetter = true }: 
   );
 }
 
-export function ScenarioComparison({
-  scenarios,
-  onRemoveScenario,
-}: ScenarioComparisonProps) {
+export function ScenarioComparison({ scenarios, onRemoveScenario }: ScenarioComparisonProps) {
   if (scenarios.length === 0) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-muted-foreground">
+        <CardContent className="text-muted-foreground py-8 text-center">
           Select scenarios to compare them side by side.
         </CardContent>
       </Card>
@@ -90,7 +90,7 @@ export function ScenarioComparison({
         <CardHeader>
           <CardTitle className="text-lg">{scenarios[0].name}</CardTitle>
         </CardHeader>
-        <CardContent className="text-center text-muted-foreground">
+        <CardContent className="text-muted-foreground text-center">
           Add another scenario to compare metrics.
         </CardContent>
       </Card>
@@ -116,7 +116,7 @@ export function ScenarioComparison({
           <div></div>
           {scenarios.map((scenario) => (
             <div key={scenario.id} className="flex items-center justify-between">
-              <span className="font-semibold truncate">{scenario.name}</span>
+              <span className="truncate font-semibold">{scenario.name}</span>
               {onRemoveScenario && (
                 <Button
                   variant="ghost"

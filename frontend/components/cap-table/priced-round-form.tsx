@@ -5,7 +5,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { NumberInputField, SliderField, TextInputField, CheckboxField } from "@/components/forms/form-fields";
+import {
+  NumberInputField,
+  SliderField,
+  TextInputField,
+  CheckboxField,
+} from "@/components/forms/form-fields";
 import { PricedRoundFormSchema, type PricedRoundFormData } from "@/lib/schemas";
 import { InformationBox } from "@/components/ui/information-box";
 import { TOOLTIPS } from "@/lib/constants/tooltips";
@@ -108,11 +113,11 @@ export function PricedRoundForm({
           <InformationBox className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Post-Money Valuation:</span>
-              <span className="tabular-nums font-medium">SAR {postMoney.toLocaleString()}</span>
+              <span className="font-medium tabular-nums">SAR {postMoney.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Dilution:</span>
-              <span className="tabular-nums text-amber-500">{dilutionPct.toFixed(2)}%</span>
+              <span className="text-amber-500 tabular-nums">{dilutionPct.toFixed(2)}%</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Price Per Share:</span>
@@ -120,7 +125,9 @@ export function PricedRoundForm({
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">New Shares Issued:</span>
-              <span className="tabular-nums">{newShares.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+              <span className="tabular-nums">
+                {newShares.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </span>
             </div>
           </InformationBox>
         )}
@@ -158,9 +165,12 @@ export function PricedRoundForm({
           />
 
           {amountRaised > 0 && (
-            <div className="text-xs text-muted-foreground p-2 bg-muted rounded">
-              At exit, investor gets {liquidationMult}x (SAR {(amountRaised * liquidationMult).toLocaleString()})
-              {participating ? " + their pro-rata share of remaining proceeds" : " OR their pro-rata share (whichever is higher)"}
+            <div className="text-muted-foreground bg-muted rounded p-2 text-xs">
+              At exit, investor gets {liquidationMult}x (SAR{" "}
+              {(amountRaised * liquidationMult).toLocaleString()})
+              {participating
+                ? " + their pro-rata share of remaining proceeds"
+                : " OR their pro-rata share (whichever is higher)"}
             </div>
           )}
         </InformationBox>

@@ -65,9 +65,7 @@ export interface ScenarioCalculationResult {
  *
  * Each query uses `keepPreviousData` to maintain stale results during refetch.
  */
-export function useScenarioCalculation(
-  input: ScenarioCalculationInput
-): ScenarioCalculationResult {
+export function useScenarioCalculation(input: ScenarioCalculationInput): ScenarioCalculationResult {
   const { globalSettings, currentJob, equityDetails } = input;
   const queryClient = useQueryClient();
 
@@ -105,10 +103,7 @@ export function useScenarioCalculation(
   }, [globalSettings, currentJob, equityDetails]);
 
   // Step 1: Query monthly data grid
-  const monthlyDataQuery = useMonthlyDataGridQuery(
-    monthlyDataRequest,
-    hasValidData
-  );
+  const monthlyDataQuery = useMonthlyDataGridQuery(monthlyDataRequest, hasValidData);
 
   // Build Step 2 request: Opportunity cost (depends on Step 1 data)
   const opportunityCostRequest = React.useMemo<OpportunityCostRequest | null>(() => {
@@ -209,10 +204,7 @@ export function useScenarioCalculation(
 
   // Get the first error from the chain
   const error =
-    monthlyDataQuery.error ||
-    opportunityCostQuery.error ||
-    startupScenarioQuery.error ||
-    null;
+    monthlyDataQuery.error || opportunityCostQuery.error || startupScenarioQuery.error || null;
 
   // Determine error type from error code (using APIError) or fallback to message parsing
   const getErrorType = React.useCallback((err: Error | null): ErrorType => {
@@ -233,7 +225,11 @@ export function useScenarioCalculation(
           return "generic";
         default: {
           const message = err.message.toLowerCase();
-          if (message.includes("network") || message.includes("connection") || message.includes("no response")) {
+          if (
+            message.includes("network") ||
+            message.includes("connection") ||
+            message.includes("no response")
+          ) {
             return "network";
           }
           return "generic";
@@ -243,13 +239,25 @@ export function useScenarioCalculation(
 
     // Legacy fallback for non-APIError errors
     const message = err.message.toLowerCase();
-    if (message.includes("network") || message.includes("fetch") || message.includes("connection")) {
+    if (
+      message.includes("network") ||
+      message.includes("fetch") ||
+      message.includes("connection")
+    ) {
       return "network";
     }
-    if (message.includes("invalid") || message.includes("validation") || message.includes("required")) {
+    if (
+      message.includes("invalid") ||
+      message.includes("validation") ||
+      message.includes("required")
+    ) {
       return "validation";
     }
-    if (message.includes("calculation") || message.includes("compute") || message.includes("overflow")) {
+    if (
+      message.includes("calculation") ||
+      message.includes("compute") ||
+      message.includes("overflow")
+    ) {
       return "calculation";
     }
     return "generic";

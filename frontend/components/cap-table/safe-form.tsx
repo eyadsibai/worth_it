@@ -17,11 +17,7 @@ interface SAFEFormProps {
   submitLabel?: string;
 }
 
-export function SAFEForm({
-  onSubmit,
-  defaultValues,
-  submitLabel = "Add SAFE",
-}: SAFEFormProps) {
+export function SAFEForm({ onSubmit, defaultValues, submitLabel = "Add SAFE" }: SAFEFormProps) {
   const form = useForm<SAFEFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(SAFEFormSchema) as any,

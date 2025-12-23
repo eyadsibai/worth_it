@@ -24,11 +24,14 @@ export function MonteCarloScatter({ data }: MonteCarloScatterProps) {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-2">Valuation vs Outcome</h3>
-      <p className="text-sm text-muted-foreground mb-4">
+      <h3 className="mb-2 text-lg font-semibold">Valuation vs Outcome</h3>
+      <p className="text-muted-foreground mb-4 text-sm">
         Relationship between simulated valuations and net outcomes
       </p>
-      <div role="img" aria-label="Scatter plot showing relationship between exit valuations and net outcomes">
+      <div
+        role="img"
+        aria-label="Scatter plot showing relationship between exit valuations and net outcomes"
+      >
         <ResponsiveContainer width="100%" height={400}>
           <ScatterChart>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
@@ -40,7 +43,12 @@ export function MonteCarloScatter({ data }: MonteCarloScatterProps) {
               tick={{ fill: colors.foreground }}
               stroke={colors.muted}
               tickFormatter={formatCurrency}
-              label={{ value: "Exit Valuation", position: "insideBottom", offset: -5, fill: colors.foreground }}
+              label={{
+                value: "Exit Valuation",
+                position: "insideBottom",
+                offset: -5,
+                fill: colors.foreground,
+              }}
             />
             <YAxis
               type="number"
@@ -50,7 +58,12 @@ export function MonteCarloScatter({ data }: MonteCarloScatterProps) {
               tick={{ fill: colors.foreground }}
               stroke={colors.muted}
               tickFormatter={formatCurrency}
-              label={{ value: "Net Outcome", angle: -90, position: "insideLeft", fill: colors.foreground }}
+              label={{
+                value: "Net Outcome",
+                angle: -90,
+                position: "insideLeft",
+                fill: colors.foreground,
+              }}
             />
             <Tooltip
               cursor={{ strokeDasharray: "3 3" }}

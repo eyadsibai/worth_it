@@ -32,11 +32,14 @@ export type CancellableMutationOptions<TData, TError, TVariables> = Omit<
 /**
  * Extended result type that includes cancel functionality
  */
-export type CancellableMutationResult<TData, TError, TVariables> =
-  UseMutationResult<TData, TError, TVariables> & {
-    /** Cancel any in-flight request */
-    cancel: () => void;
-  };
+export type CancellableMutationResult<TData, TError, TVariables> = UseMutationResult<
+  TData,
+  TError,
+  TVariables
+> & {
+  /** Cancel any in-flight request */
+  cancel: () => void;
+};
 
 /**
  * A mutation hook that automatically cancels previous in-flight requests
@@ -60,11 +63,7 @@ export type CancellableMutationResult<TData, TError, TVariables> =
  * mutation.mutate({ value: 'B' }); // This runs, cancelling the above
  * ```
  */
-export function useCancellableMutation<
-  TData = unknown,
-  TError = Error,
-  TVariables = void,
->(
+export function useCancellableMutation<TData = unknown, TError = Error, TVariables = void>(
   options: CancellableMutationOptions<TData, TError, TVariables>
 ): CancellableMutationResult<TData, TError, TVariables> {
   // Track the current AbortController for cancellation

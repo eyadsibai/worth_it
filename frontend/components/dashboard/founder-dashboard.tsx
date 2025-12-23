@@ -100,11 +100,10 @@ export function FounderDashboard() {
   );
 
   const totalOwnership =
-    capTable.stakeholders.reduce((sum, s) => sum + s.ownership_pct, 0) +
-    capTable.option_pool_pct;
+    capTable.stakeholders.reduce((sum, s) => sum + s.ownership_pct, 0) + capTable.option_pool_pct;
 
   return (
-    <div className="grid lg:grid-cols-[380px_1fr] gap-8">
+    <div className="grid gap-8 lg:grid-cols-[380px_1fr]">
       {/* Left Column - Configuration Sidebar */}
       <div className="space-y-6 lg:sticky lg:top-20 lg:self-start">
         {/* Template Picker when empty */}
@@ -136,15 +135,15 @@ export function FounderDashboard() {
         <Card className="terminal-card">
           <CardHeader className="pb-4">
             <CardTitle className="text-base">Option Pool</CardTitle>
-            <CardDescription className="text-sm">
-              Reserve equity for future grants
-            </CardDescription>
+            <CardDescription className="text-sm">Reserve equity for future grants</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm">Reserved for Options</Label>
-                <span className="text-sm tabular-nums font-medium">{capTable.option_pool_pct}%</span>
+                <span className="text-sm font-medium tabular-nums">
+                  {capTable.option_pool_pct}%
+                </span>
               </div>
               <Slider
                 value={[capTable.option_pool_pct]}
@@ -153,14 +152,14 @@ export function FounderDashboard() {
                 max={30}
                 step={1}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 Typical range: 10-20% for early-stage startups
               </p>
             </div>
 
             {/* Allocation Summary */}
             <motion.div
-              className="p-3 rounded-lg bg-muted/50 space-y-2"
+              className="bg-muted/50 space-y-2 rounded-lg p-3"
               whileHover={{ scale: 1.01 }}
               transition={{ duration: 0.2 }}
             >
@@ -179,7 +178,7 @@ export function FounderDashboard() {
                   <AnimatedPercentage value={capTable.option_pool_pct} decimals={0} />
                 </span>
               </div>
-              <div className="border-t border-border pt-2 flex justify-between font-medium text-sm">
+              <div className="border-border flex justify-between border-t pt-2 text-sm font-medium">
                 <span>Total Allocated</span>
                 <span
                   className={`tabular-nums ${
@@ -191,7 +190,7 @@ export function FounderDashboard() {
               </div>
               {totalOwnership > 100 && (
                 <motion.p
-                  className="text-xs text-destructive"
+                  className="text-destructive text-xs"
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
@@ -207,12 +206,14 @@ export function FounderDashboard() {
           <CardContent className="py-4">
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
-                <p className="text-2xl font-semibold tabular-nums">{capTable.stakeholders.length}</p>
-                <p className="text-xs text-muted-foreground">Stakeholders</p>
+                <p className="text-2xl font-semibold tabular-nums">
+                  {capTable.stakeholders.length}
+                </p>
+                <p className="text-muted-foreground text-xs">Stakeholders</p>
               </div>
               <div>
                 <p className="text-2xl font-semibold tabular-nums">{instruments.length}</p>
-                <p className="text-xs text-muted-foreground">Instruments</p>
+                <p className="text-muted-foreground text-xs">Instruments</p>
               </div>
             </div>
           </CardContent>

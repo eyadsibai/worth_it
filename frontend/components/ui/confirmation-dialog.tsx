@@ -93,10 +93,7 @@ export function ConfirmationDialog({
           <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            className={cn(
-              variant === "destructive" &&
-                buttonVariants({ variant: "destructive" })
-            )}
+            className={cn(variant === "destructive" && buttonVariants({ variant: "destructive" }))}
           >
             {confirmLabel}
           </AlertDialogAction>

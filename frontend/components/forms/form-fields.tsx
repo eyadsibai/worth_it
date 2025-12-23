@@ -13,13 +13,15 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { parseShorthand, formatNumberWithSeparators } from "@/lib/format-utils";
 import { ValidationIndicator } from "./validation-indicator";
 import { FormWarning } from "@/components/ui/form-warning";
@@ -52,7 +54,7 @@ function LabelWithTooltip({ label, tooltip }: { label: string; tooltip?: string 
         <TooltipTrigger asChild>
           <button
             type="button"
-            className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            className="text-muted-foreground hover:text-foreground inline-flex items-center justify-center transition-colors"
             aria-label={`Help for ${label}`}
           >
             <HelpCircle className="h-3.5 w-3.5" />
@@ -102,11 +104,9 @@ export function NumberInputField({
   const [rawInput, setRawInput] = React.useState("");
 
   // Compute placeholder: explicit placeholder takes precedence, then exampleValue
-  const computedPlaceholder = placeholder ?? (
-    exampleValue !== undefined
-      ? `e.g. ${formatNumberWithSeparators(exampleValue)}`
-      : undefined
-  );
+  const computedPlaceholder =
+    placeholder ??
+    (exampleValue !== undefined ? `e.g. ${formatNumberWithSeparators(exampleValue)}` : undefined);
 
   return (
     <FormField
@@ -139,7 +139,7 @@ export function NumberInputField({
             <FormControl>
               <div className="relative">
                 {prefix && (
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <span className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2">
                     {prefix}
                   </span>
                 )}
@@ -188,12 +188,14 @@ export function NumberInputField({
                   }}
                 />
                 {suffix && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <span className="text-muted-foreground absolute top-1/2 right-3 -translate-y-1/2">
                     {suffix}
                   </span>
                 )}
                 {/* Validation indicator - positioned after suffix if present */}
-                <span className={`absolute top-1/2 -translate-y-1/2 ${suffix ? "right-10" : "right-3"}`}>
+                <span
+                  className={`absolute top-1/2 -translate-y-1/2 ${suffix ? "right-10" : "right-3"}`}
+                >
                   <ValidationIndicator
                     isValid={!fieldState.error && !hasWarning}
                     hasError={!!fieldState.error}
@@ -207,7 +209,7 @@ export function NumberInputField({
             {description && <FormDescription>{description}</FormDescription>}
             <FormMessage />
             {hasWarning && <FormWarning>{warning}</FormWarning>}
-            {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
+            {hint && <p className="text-muted-foreground mt-1 text-xs">{hint}</p>}
           </FormItem>
         );
       }}
@@ -331,7 +333,7 @@ export function SliderField({
                   onClick={handleDecrement}
                   disabled={field.value <= min}
                   aria-label={`Decrease ${label}`}
-                  className="flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 touch-target"
+                  className="border-input bg-background hover:bg-accent hover:text-accent-foreground touch-target flex h-8 w-8 items-center justify-center rounded-md border text-sm font-medium disabled:pointer-events-none disabled:opacity-50"
                 >
                   −
                 </button>
@@ -346,7 +348,7 @@ export function SliderField({
                     min={min}
                     max={max}
                     step={step}
-                    className="h-8 w-16 rounded-md border border-input bg-background px-2 text-center text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring"
+                    className="border-input bg-background focus:ring-ring h-8 w-16 rounded-md border px-2 text-center text-sm font-medium focus:ring-2 focus:outline-none"
                     aria-label={`${label} value`}
                   />
                 ) : (
@@ -354,7 +356,7 @@ export function SliderField({
                     type="button"
                     onClick={handleEditClick}
                     aria-label={`Edit ${label} value`}
-                    className="h-8 min-w-[5rem] rounded-md border border-input bg-background px-2 text-center text-sm font-medium hover:bg-accent hover:text-accent-foreground touch-target whitespace-nowrap"
+                    className="border-input bg-background hover:bg-accent hover:text-accent-foreground touch-target h-8 min-w-[5rem] rounded-md border px-2 text-center text-sm font-medium whitespace-nowrap"
                   >
                     {formatValue ? formatValue(field.value) : field.value}
                   </button>
@@ -364,7 +366,7 @@ export function SliderField({
                   onClick={handleIncrement}
                   disabled={field.value >= max}
                   aria-label={`Increase ${label}`}
-                  className="flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 touch-target"
+                  className="border-input bg-background hover:bg-accent hover:text-accent-foreground touch-target flex h-8 w-8 items-center justify-center rounded-md border text-sm font-medium disabled:pointer-events-none disabled:opacity-50"
                 >
                   +
                 </button>
@@ -377,7 +379,7 @@ export function SliderField({
                 step={step}
                 value={[field.value]}
                 onValueChange={([value]) => field.onChange(value)}
-                getValueLabel={(value) => formatValue ? formatValue(value) : String(value)}
+                getValueLabel={(value) => (formatValue ? formatValue(value) : String(value))}
               />
             </FormControl>
             {description && <FormDescription>{description}</FormDescription>}
@@ -469,7 +471,7 @@ export function TextInputField({
                   {...field}
                 />
               </FormControl>
-              <span className="absolute right-3 top-1/2 -translate-y-1/2">
+              <span className="absolute top-1/2 right-3 -translate-y-1/2">
                 <ValidationIndicator
                   isValid={!fieldState.error}
                   hasError={!!fieldState.error}
@@ -492,19 +494,13 @@ export function TextInputField({
  * Checkbox field wrapper with label and description
  * Consolidates the common checkbox + label + description pattern
  */
-export function CheckboxField({
-  form,
-  name,
-  label,
-  description,
-  tooltip,
-}: FormFieldProps) {
+export function CheckboxField({ form, name, label, description, tooltip }: FormFieldProps) {
   return (
     <FormField
       control={form.control}
       name={name}
       render={({ field }) => (
-        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+        <FormItem className="flex flex-row items-start space-y-0 space-x-3">
           <FormControl>
             <Checkbox checked={field.value} onCheckedChange={field.onChange} />
           </FormControl>

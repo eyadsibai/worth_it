@@ -53,8 +53,20 @@ const sampleOptionsEquity: StockOptionsForm = {
 // Sample results
 const sampleResults: StartupScenarioResponse = {
   results_df: [
-    { year: 1, startup_monthly_salary: 8000, current_job_monthly_salary: 10000, monthly_surplus: -2000, cumulative_opportunity_cost: 24000 },
-    { year: 2, startup_monthly_salary: 8000, current_job_monthly_salary: 10500, monthly_surplus: -2500, cumulative_opportunity_cost: 54000 },
+    {
+      year: 1,
+      startup_monthly_salary: 8000,
+      current_job_monthly_salary: 10000,
+      monthly_surplus: -2000,
+      cumulative_opportunity_cost: 24000,
+    },
+    {
+      year: 2,
+      startup_monthly_salary: 8000,
+      current_job_monthly_salary: 10500,
+      monthly_surplus: -2500,
+      cumulative_opportunity_cost: 54000,
+    },
   ],
   final_payout_value: 500000,
   final_opportunity_cost: 54000,
@@ -273,7 +285,9 @@ describe("QuickAdjustPanel", () => {
       );
 
       // Initially should not call with results since nothing changed
-      expect(onChangeMock).not.toHaveBeenCalledWith(expect.objectContaining({ final_payout_value: expect.any(Number) }));
+      expect(onChangeMock).not.toHaveBeenCalledWith(
+        expect.objectContaining({ final_payout_value: expect.any(Number) })
+      );
     });
 
     it("calls onAdjustedResultsChange with adjusted results when slider values change", async () => {

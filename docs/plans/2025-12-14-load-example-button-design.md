@@ -35,6 +35,7 @@ Dropdown button positioned in sidebar, above the forms:
 ```
 
 Dropdown shows:
+
 - Example name (e.g., "Early-stage Startup (Seed)")
 - Brief description (e.g., "$8K salary, 0.5% equity")
 
@@ -50,12 +51,14 @@ Dropdown shows:
 ## Files
 
 **New:**
+
 - `lib/constants/examples.ts` - Example scenario data
 - `components/forms/example-loader.tsx` - Dropdown component
 - `__tests__/components/example-loader.test.tsx`
 - `__tests__/lib/constants/examples.test.ts`
 
 **Modified:**
+
 - `lib/store.ts` - Add `loadExample` action
 - `app/page.tsx` - Add ExampleLoader to sidebar
 
