@@ -27,8 +27,8 @@ Once running, visit:
 ## Architecture
 
 **3-Tier Design:**
-1. **Core Logic** ([src/worth_it/calculations.py](src/worth_it/calculations.py)) - Pure Python financial calculations
-2. **REST API** ([src/worth_it/api.py](src/worth_it/api.py)) - FastAPI endpoints + WebSocket for Monte Carlo
+1. **Core Logic** ([src/worth_it/calculations/](src/worth_it/calculations/)) - Pure Python financial calculations (modular package)
+2. **REST API** ([src/worth_it/api/](src/worth_it/api/)) - FastAPI endpoints + WebSocket for Monte Carlo
 3. **Data Models** ([src/worth_it/models.py](src/worth_it/models.py)) - Pydantic validation schemas
 
 ## Key Features

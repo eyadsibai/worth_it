@@ -6,6 +6,7 @@ import {
   isStockOptionsForm,
   isRSUForm,
   isValidEquityData,
+  getFirstInvalidEquityField,
 } from "@/lib/validation";
 
 describe("Stock Options Validation", () => {
@@ -178,5 +179,131 @@ describe("Combined Validation", () => {
 
     expect(isValidEquityData(invalidData)).toBe(false);
     expect(isValidEquityData(validData)).toBe(true);
+  });
+});
+
+describe("getFirstInvalidEquityField", () => {
+  it("should return null for valid RSU data", () => {
+    const validData: RSUForm = {
+      equity_type: "RSU",
+      monthly_salary: 8000,
+      total_equity_grant_pct: 1.5,
+      vesting_period: 4,
+      cliff_period: 1,
+      simulate_dilution: false,
+      dilution_rounds: [],
+      exit_valuation: 100000000,
+    };
+
+    expect(getFirstInvalidEquityField(validData)).toBeNull();
+  });
+
+  it("should return null for valid Stock Options data", () => {
+    const validData: StockOptionsForm = {
+      equity_type: "STOCK_OPTIONS",
+      monthly_salary: 8000,
+      num_options: 10000,
+      strike_price: 1.0,
+      vesting_period: 4,
+      cliff_period: 1,
+      exercise_strategy: "AT_EXIT",
+      exit_price_per_share: 10.0,
+    };
+
+    expect(getFirstInvalidEquityField(validData)).toBeNull();
+  });
+
+  it("should return 'total_equity_grant_pct' when missing for RSU", () => {
+    const data: RSUForm = {
+      equity_type: "RSU",
+      monthly_salary: 8000,
+      total_equity_grant_pct: 0, // Invalid
+      vesting_period: 4,
+      cliff_period: 1,
+      simulate_dilution: false,
+      dilution_rounds: [],
+      exit_valuation: 100000000,
+    };
+
+    expect(getFirstInvalidEquityField(data)).toBe("total_equity_grant_pct");
+  });
+
+  it("should return 'exit_valuation' when missing for RSU", () => {
+    const data: RSUForm = {
+      equity_type: "RSU",
+      monthly_salary: 8000,
+      total_equity_grant_pct: 1.5,
+      vesting_period: 4,
+      cliff_period: 1,
+      simulate_dilution: false,
+      dilution_rounds: [],
+      exit_valuation: 0, // Invalid
+    };
+
+    expect(getFirstInvalidEquityField(data)).toBe("exit_valuation");
+  });
+
+  it("should return 'monthly_salary' when missing for RSU", () => {
+    const data: RSUForm = {
+      equity_type: "RSU",
+      monthly_salary: 0, // Invalid
+      total_equity_grant_pct: 1.5,
+      vesting_period: 4,
+      cliff_period: 1,
+      simulate_dilution: false,
+      dilution_rounds: [],
+      exit_valuation: 100000000,
+    };
+
+    expect(getFirstInvalidEquityField(data)).toBe("monthly_salary");
+  });
+
+  it("should return 'num_options' when missing for Stock Options", () => {
+    const data: StockOptionsForm = {
+      equity_type: "STOCK_OPTIONS",
+      monthly_salary: 8000,
+      num_options: 0, // Invalid
+      strike_price: 1.0,
+      vesting_period: 4,
+      cliff_period: 1,
+      exercise_strategy: "AT_EXIT",
+      exit_price_per_share: 10.0,
+    };
+
+    expect(getFirstInvalidEquityField(data)).toBe("num_options");
+  });
+
+  it("should return 'strike_price' when missing for Stock Options", () => {
+    const data: StockOptionsForm = {
+      equity_type: "STOCK_OPTIONS",
+      monthly_salary: 8000,
+      num_options: 10000,
+      strike_price: 0, // Invalid
+      vesting_period: 4,
+      cliff_period: 1,
+      exercise_strategy: "AT_EXIT",
+      exit_price_per_share: 10.0,
+    };
+
+    expect(getFirstInvalidEquityField(data)).toBe("strike_price");
+  });
+
+  it("should return 'exit_price_per_share' when missing for Stock Options", () => {
+    const data: StockOptionsForm = {
+      equity_type: "STOCK_OPTIONS",
+      monthly_salary: 8000,
+      num_options: 10000,
+      strike_price: 1.0,
+      vesting_period: 4,
+      cliff_period: 1,
+      exercise_strategy: "AT_EXIT",
+      exit_price_per_share: 0, // Invalid
+    };
+
+    expect(getFirstInvalidEquityField(data)).toBe("exit_price_per_share");
+  });
+
+  it("should return null for null data", () => {
+    expect(getFirstInvalidEquityField(null)).toBeNull();
   });
 });

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { ErrorCard } from "@/components/ui/error-card";
 import { GlobalSettingsFormComponent } from "@/components/forms/global-settings-form";
 import { CurrentJobFormComponent } from "@/components/forms/current-job-form";
@@ -18,8 +18,10 @@ import { cn } from "@/lib/utils";
 import { FormCompletionSummary } from "@/components/forms/form-completion-summary";
 import { ExampleLoader } from "@/components/forms/example-loader";
 import { TemplatePicker } from "@/components/templates/template-picker";
+import { ActionableEmptyState } from "@/components/dashboard/actionable-empty-state";
 import { useAppStore } from "@/lib/store";
-import { isValidEquityData } from "@/lib/validation";
+import { isValidEquityData, getFirstInvalidEquityField } from "@/lib/validation";
+import { toast } from "sonner";
 import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
 
 /**
@@ -43,6 +45,7 @@ export function EmployeeDashboard() {
     comparisonScenarios,
     setComparisonScenarios,
     clearComparisonScenarios,
+    loadExample,
   } = useAppStore();
 
   // Debounce form values to prevent waterfall API calls on rapid form changes
@@ -58,6 +61,33 @@ export function EmployeeDashboard() {
     (data: RSUForm | StockOptionsForm) => setEquityDetails(data),
     [setEquityDetails]
   );
+
+  // Handler to load example scenario from empty state
+  const handleLoadExample = React.useCallback(() => {
+    const success = loadExample("early-stage");
+    if (success) {
+      toast.success("Example loaded", {
+        description: "Early-stage startup values applied to all forms.",
+      });
+    }
+  }, [loadExample]);
+
+  // Handler to focus the first missing field from empty state
+  const handleFocusMissingField = React.useCallback(() => {
+    const fieldName = getFirstInvalidEquityField(equityDetails);
+    if (!fieldName) return;
+
+    // Find and focus the input by name attribute
+    const input = document.querySelector<HTMLInputElement>(
+      `input[name="${fieldName}"]`
+    );
+
+    if (input) {
+      input.scrollIntoView({ behavior: "smooth", block: "center" });
+      // Small delay to ensure scroll completes before focus
+      setTimeout(() => input.focus(), 300);
+    }
+  }, [equityDetails]);
 
   // Use the custom hook for chained calculations
   const {
@@ -138,43 +168,28 @@ export function EmployeeDashboard() {
         {!hasValidData && (
           <Card className="terminal-card animate-scale-in delay-300">
             <CardContent className="py-16 text-center">
-              <div className="space-y-6 max-w-md mx-auto">
-                {!debouncedEquityDetails || !isValidEquityData(debouncedEquityDetails) ? (
-                  <>
-                    <AlertCircle className="h-12 w-12 text-accent/40 mx-auto" />
-                    <div className="space-y-3">
-                      <h3 className="text-lg font-medium text-foreground">Complete Equity Details</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed font-mono">
-                        Please fill in all equity fields in the Startup Offer form. Enter values greater than zero for:
-                        {debouncedEquityDetails?.equity_type === "STOCK_OPTIONS" ? (
-                          <span className="block mt-2">
-                            Number of Options, Strike Price, Exit Price Per Share, and Monthly Salary
-                          </span>
-                        ) : (
-                          <span className="block mt-2">
-                            Total Equity Grant %, Exit Valuation, and Monthly Salary
-                          </span>
-                        )}
-                      </p>
+              {!debouncedEquityDetails || !isValidEquityData(debouncedEquityDetails) ? (
+                <ActionableEmptyState
+                  equityType={debouncedEquityDetails?.equity_type ?? "RSU"}
+                  onLoadExample={handleLoadExample}
+                  onFocusMissingField={handleFocusMissingField}
+                />
+              ) : (
+                <div className="space-y-6 max-w-md mx-auto">
+                  <TemplatePicker mode="employee" />
+                  <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-border" />
                     </div>
-                  </>
-                ) : (
-                  <>
-                    <TemplatePicker mode="employee" />
-                    <div className="relative my-6">
-                      <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-border" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-card px-2 text-muted-foreground">or enter manually</span>
-                      </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">or enter manually</span>
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed font-mono">
-                      Complete the configuration forms on the left to generate your financial analysis.
-                    </p>
-                  </>
-                )}
-              </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed font-mono">
+                    Complete the configuration forms on the left to generate your financial analysis.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
