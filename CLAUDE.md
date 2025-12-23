@@ -73,7 +73,7 @@ const { data } = await apiClient.compareScenarios(scenarios);
 When adding a feature that involves calculations or business logic:
 1. ✅ Implement calculation in `backend/src/worth_it/calculations/`
 2. ✅ Add Pydantic models in `backend/src/worth_it/models.py`
-3. ✅ Create API endpoint in `backend/src/worth_it/api.py`
+3. ✅ Create API endpoint in `backend/src/worth_it/api/routers/`
 4. ✅ Write backend tests first (TDD)
 5. ✅ Add Zod schemas in `frontend/lib/schemas.ts`
 6. ✅ Add API client method in `frontend/lib/api-client.ts`
@@ -114,7 +114,7 @@ Zod schemas in `frontend/lib/schemas.ts` must match Pydantic models in `backend/
 
 1. **Backend**: Define Pydantic models in `backend/src/worth_it/models.py`
 2. **Backend**: Implement calculation in `backend/src/worth_it/calculations/`
-3. **Backend**: Create endpoint in `backend/src/worth_it/api.py`
+3. **Backend**: Create endpoint in `backend/src/worth_it/api/routers/`
 4. **Backend**: Add tests in `backend/tests/test_api.py`
 5. **Frontend**: Update Zod schema in `frontend/lib/schemas.ts`
 6. **Frontend**: Add API client method in `frontend/lib/api-client.ts`

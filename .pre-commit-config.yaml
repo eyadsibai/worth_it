@@ -38,16 +38,16 @@ repos:
         additional_dependencies:
           - pandas-stubs
         args: [--ignore-missing-imports]
-        files: ^backend/src/worth_it/(calculations|api|models)\.py$
+        files: ^backend/src/worth_it/
 
   # Type checking with pyright (matches CI)
   - repo: local
     hooks:
       - id: pyright
         name: pyright
-        entry: bash -c 'cd backend && uv run pyright src/worth_it/calculations.py src/worth_it/api.py src/worth_it/models.py'
+        entry: bash -c 'cd backend && uv run pyright src/'
         language: system
-        files: ^backend/src/worth_it/(calculations|api|models)\.py$
+        files: ^backend/src/worth_it/
         pass_filenames: false
 
   # Security checks

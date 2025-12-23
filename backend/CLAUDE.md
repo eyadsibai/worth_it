@@ -84,7 +84,10 @@ backend/
 │   │   ├── startup_service.py # StartupService: scenario calculations, IRR, NPV
 │   │   ├── cap_table_service.py # CapTableService: conversions, waterfall, dilution
 │   │   └── serializers.py     # ResponseMapper, column mapping, type conversion
-│   ├── api.py                 # FastAPI endpoints + WebSocket (thin handlers)
+│   ├── api/                   # API layer (FastAPI app + routers)
+│   │   ├── __init__.py        # FastAPI app, middleware, exception handlers
+│   │   ├── dependencies.py    # Shared dependencies (rate limiter, services)
+│   │   └── routers/           # Domain-specific endpoint routers
 │   ├── monte_carlo.py         # Monte Carlo simulation & sensitivity analysis
 │   ├── models.py              # Pydantic validation models
 │   ├── config.py              # Configuration management
@@ -125,7 +128,7 @@ backend/
 1. **Define Pydantic models** in `src/worth_it/models.py`
 2. **Implement calculation** in `src/worth_it/calculations/` (choose appropriate domain module)
 3. **Create service method** in `src/worth_it/services/` if orchestration is needed
-4. **Create endpoint** in `src/worth_it/api.py`
+4. **Create endpoint** in `src/worth_it/api/routers/` (choose appropriate router)
 5. **Add tests** in `tests/test_api.py`
 
 ## Configuration
@@ -152,7 +155,12 @@ LOG_LEVEL=INFO
 
 ## Important Files
 
-- `src/worth_it/api.py` - All API endpoints (thin handlers)
+- `src/worth_it/api/` - API layer (FastAPI app + domain routers)
+  - `__init__.py` - FastAPI app, middleware, exception handlers
+  - `routers/scenarios.py` - Scenario calculation endpoints
+  - `routers/monte_carlo.py` - Monte Carlo & sensitivity endpoints
+  - `routers/cap_table.py` - Cap table & waterfall endpoints
+  - `routers/valuation.py` - Valuation method endpoints
 - `src/worth_it/services/` - Business logic orchestration
   - `startup_service.py` - StartupService for scenario calculations
   - `cap_table_service.py` - CapTableService for conversions and waterfall
