@@ -18,6 +18,7 @@ from worth_it.calculations import (
 
 # --- Test Fixtures ---
 
+
 @pytest.fixture
 def base_params_rsu() -> dict[str, Any]:
     """Base parameters for RSU scenario."""
@@ -101,6 +102,7 @@ def sim_param_configs_exit_year() -> dict[str, Any]:
 
 # --- Profiling Utilities ---
 
+
 def profile_function(func, *args, num_runs: int = 3, **kwargs) -> dict[str, float]:
     """Profile a function and return timing statistics."""
     times = []
@@ -119,6 +121,7 @@ def profile_function(func, *args, num_runs: int = 3, **kwargs) -> dict[str, floa
 
 
 # --- Baseline Performance Tests ---
+
 
 class TestVectorizedPerformance:
     """Tests for vectorized Monte Carlo simulation performance."""
@@ -177,10 +180,12 @@ class TestVectorizedPerformance:
 
         # Profile the CURRENT implementation (list comprehension approach)
         def current_aggregation():
-            return np.array([
-                np.sum(investable_surpluses[i].reshape(-1, 12), axis=1)
-                for i in range(num_simulations)
-            ])
+            return np.array(
+                [
+                    np.sum(investable_surpluses[i].reshape(-1, 12), axis=1)
+                    for i in range(num_simulations)
+                ]
+            )
 
         current_timing = profile_function(current_aggregation, num_runs=5)
 
@@ -199,8 +204,8 @@ class TestVectorizedPerformance:
         # Performance improvement should be at least 2x
         speedup = current_timing["mean"] / optimized_timing["mean"]
         print(f"\nAnnual aggregation speedup: {speedup:.2f}x")
-        print(f"  Current: {current_timing['mean']*1000:.3f}ms")
-        print(f"  Optimized: {optimized_timing['mean']*1000:.3f}ms")
+        print(f"  Current: {current_timing['mean'] * 1000:.3f}ms")
+        print(f"  Optimized: {optimized_timing['mean'] * 1000:.3f}ms")
 
         # Assert significant improvement (target 2x, accept 1.5x minimum)
         assert speedup >= 1.5, f"Expected at least 1.5x speedup, got {speedup:.2f}x"
@@ -255,11 +260,11 @@ class TestEndToEndPerformance:
             num_runs=3,
         )
 
-        print(f"\n10k simulations (vectorized): {timing['mean']*1000:.1f}ms")
+        print(f"\n10k simulations (vectorized): {timing['mean'] * 1000:.1f}ms")
 
         # Target: < 500ms for 10k simulations
         assert timing["mean"] < 0.5, (
-            f"10k simulations took {timing['mean']*1000:.1f}ms (target: <500ms)"
+            f"10k simulations took {timing['mean'] * 1000:.1f}ms (target: <500ms)"
         )
 
     def test_monte_carlo_monthly_vs_annual_frequency(
@@ -295,8 +300,8 @@ class TestEndToEndPerformance:
         )
 
         print("\n10k simulations:")
-        print(f"  Monthly: {timing_monthly['mean']*1000:.1f}ms")
-        print(f"  Annual: {timing_annual['mean']*1000:.1f}ms")
+        print(f"  Monthly: {timing_monthly['mean'] * 1000:.1f}ms")
+        print(f"  Annual: {timing_annual['mean'] * 1000:.1f}ms")
 
         # Both should be reasonably fast
         assert timing_monthly["mean"] < 1.0
@@ -328,6 +333,6 @@ class TestPerformanceRegression:
         REGRESSION_THRESHOLD_MS = 200  # 200ms max for 10k simulations
 
         assert timing["mean"] * 1000 < REGRESSION_THRESHOLD_MS, (
-            f"Performance regression detected: {timing['mean']*1000:.1f}ms "
+            f"Performance regression detected: {timing['mean'] * 1000:.1f}ms "
             f"(threshold: {REGRESSION_THRESHOLD_MS}ms)"
         )

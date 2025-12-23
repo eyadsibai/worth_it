@@ -228,7 +228,7 @@ class TestVCMethod:
 
         # (1.5)^5 = 7.59x multiple implied
         # 100M / 7.59 ≈ 13.17M
-        expected = 100_000_000 / (1.50 ** 5)
+        expected = 100_000_000 / (1.50**5)
         assert result.valuation == pytest.approx(expected, rel=0.01)
 
     def test_vc_method_with_dilution_adjustment(self):

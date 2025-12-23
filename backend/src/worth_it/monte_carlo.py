@@ -165,9 +165,9 @@ def run_monte_carlo_simulation_vectorized(
     else:
         # Vectorized annual aggregation: reshape to (simulations, years, 12) and sum months
         # This is ~38x faster than the list comprehension approach
-        annual_investable_surpluses = investable_surpluses.reshape(
-            num_simulations, -1, 12
-        ).sum(axis=2)
+        annual_investable_surpluses = investable_surpluses.reshape(num_simulations, -1, 12).sum(
+            axis=2
+        )
         years_to_grow = exit_year - np.arange(1, exit_year + 1)
         fv_factors = (1 + sim_params["roi"][:, np.newaxis]) ** years_to_grow
         final_opportunity_cost = (annual_investable_surpluses * fv_factors).sum(axis=1)

@@ -164,10 +164,7 @@ class TestApplyHistorical:
         """Single completed round applies its dilution."""
         rounds = [{"year": -1, "dilution": 0.2}]
         pipeline = (
-            DilutionPipeline(years=range(5))
-            .with_rounds(rounds)
-            .classify()
-            .apply_historical()
+            DilutionPipeline(years=range(5)).with_rounds(rounds).classify().apply_historical()
         )
         assert pipeline._historical_factor == 0.8
 
@@ -178,10 +175,7 @@ class TestApplyHistorical:
             {"year": -1, "dilution": 0.2},  # 0.9 * 0.8 = 0.72
         ]
         pipeline = (
-            DilutionPipeline(years=range(5))
-            .with_rounds(rounds)
-            .classify()
-            .apply_historical()
+            DilutionPipeline(years=range(5)).with_rounds(rounds).classify().apply_historical()
         )
         assert np.isclose(pipeline._historical_factor, 0.72)
 
@@ -189,10 +183,7 @@ class TestApplyHistorical:
         """No completed rounds keeps factor at 1.0."""
         rounds = [{"year": 1, "dilution": 0.2}]
         pipeline = (
-            DilutionPipeline(years=range(5))
-            .with_rounds(rounds)
-            .classify()
-            .apply_historical()
+            DilutionPipeline(years=range(5)).with_rounds(rounds).classify().apply_historical()
         )
         assert pipeline._historical_factor == 1.0
 
@@ -200,10 +191,7 @@ class TestApplyHistorical:
         """Rounds without dilution key default to 0 dilution."""
         rounds = [{"year": -1}]  # No dilution key
         pipeline = (
-            DilutionPipeline(years=range(5))
-            .with_rounds(rounds)
-            .classify()
-            .apply_historical()
+            DilutionPipeline(years=range(5)).with_rounds(rounds).classify().apply_historical()
         )
         assert pipeline._historical_factor == 1.0
 
@@ -224,10 +212,7 @@ class TestApplySafeConversions:
             {"year": 3, "dilution": 0.2, "is_safe_note": False},  # Priced
         ]
         pipeline = (
-            DilutionPipeline(years=range(5))
-            .with_rounds(rounds)
-            .classify()
-            .apply_safe_conversions()
+            DilutionPipeline(years=range(5)).with_rounds(rounds).classify().apply_safe_conversions()
         )
         # SAFE at year 1 should convert at year 3
         safe_round = pipeline._upcoming[0]
@@ -240,10 +225,7 @@ class TestApplySafeConversions:
             {"year": 2, "dilution": 0.2, "is_safe_note": True},  # Also SAFE
         ]
         pipeline = (
-            DilutionPipeline(years=range(5))
-            .with_rounds(rounds)
-            .classify()
-            .apply_safe_conversions()
+            DilutionPipeline(years=range(5)).with_rounds(rounds).classify().apply_safe_conversions()
         )
         # Both SAFEs have no priced round to convert at
         for r in pipeline._upcoming:
@@ -256,10 +238,7 @@ class TestApplySafeConversions:
             {"year": 2, "dilution": 0.2, "is_safe_note": False},  # Priced
         ]
         pipeline = (
-            DilutionPipeline(years=range(5))
-            .with_rounds(rounds)
-            .classify()
-            .apply_safe_conversions()
+            DilutionPipeline(years=range(5)).with_rounds(rounds).classify().apply_safe_conversions()
         )
         assert len(pipeline._safe_conversions) == 0
 
@@ -270,10 +249,7 @@ class TestApplySafeConversions:
             {"year": 2, "dilution": 0.2, "is_safe_note": False},  # Same year, priced
         ]
         pipeline = (
-            DilutionPipeline(years=range(5))
-            .with_rounds(rounds)
-            .classify()
-            .apply_safe_conversions()
+            DilutionPipeline(years=range(5)).with_rounds(rounds).classify().apply_safe_conversions()
         )
         safe_round = [r for r in pipeline._upcoming if r.get("is_safe_note")][0]
         assert pipeline._safe_conversions[id(safe_round)] == 2
@@ -286,10 +262,7 @@ class TestApplySafeConversions:
             {"year": 2, "dilution": 0.15},
         ]
         pipeline = (
-            DilutionPipeline(years=range(5))
-            .with_rounds(rounds)
-            .classify()
-            .apply_safe_conversions()
+            DilutionPipeline(years=range(5)).with_rounds(rounds).classify().apply_safe_conversions()
         )
         years = [r["year"] for r in pipeline._upcoming]
         assert years == [1, 2, 3]
@@ -342,7 +315,7 @@ class TestApplyFutureRounds:
         """Historical factor is included in yearly factors."""
         rounds = [
             {"year": -1, "dilution": 0.1},  # Historical
-            {"year": 2, "dilution": 0.2},   # Future
+            {"year": 2, "dilution": 0.2},  # Future
         ]
         pipeline = (
             DilutionPipeline(years=range(4))
@@ -441,23 +414,13 @@ class TestBuild:
 
     def test_build_without_apply_future_rounds(self):
         """build() without apply_future_rounds returns ones array."""
-        result = (
-            DilutionPipeline(years=range(3))
-            .with_rounds([])
-            .classify()
-            .build()
-        )
+        result = DilutionPipeline(years=range(3)).with_rounds([]).classify().build()
         assert np.allclose(result.yearly_factors, [1.0, 1.0, 1.0])
         assert result.total_dilution == 0.0
 
     def test_build_empty_years(self):
         """build() with empty years returns zero total dilution."""
-        result = (
-            DilutionPipeline(years=range(0))
-            .with_rounds([])
-            .classify()
-            .build()
-        )
+        result = DilutionPipeline(years=range(0)).with_rounds([]).classify().build()
         assert len(result.yearly_factors) == 0
         assert result.total_dilution == 0.0
 
@@ -478,7 +441,7 @@ class TestCalculateDilutionSchedule:
         """Rounds are classified and processed correctly."""
         rounds = [
             {"year": -1, "dilution": 0.1},  # Historical
-            {"year": 2, "dilution": 0.2},   # Future
+            {"year": 2, "dilution": 0.2},  # Future
         ]
         result = calculate_dilution_schedule(
             years=range(4),

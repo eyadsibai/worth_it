@@ -78,7 +78,9 @@ def calculate_startup_scenario(
         initial_equity_pct = rsu_params.get("equity_pct", 0.0)
 
         # Calculate dilution using the dilution engine
-        dilution_rounds = rsu_params.get("dilution_rounds") if rsu_params.get("simulate_dilution") else None
+        dilution_rounds = (
+            rsu_params.get("dilution_rounds") if rsu_params.get("simulate_dilution") else None
+        )
         dilution_result = calculate_dilution_schedule(
             years=results_df.index,
             rounds=dilution_rounds,

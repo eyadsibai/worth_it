@@ -65,6 +65,7 @@ class MonteCarloResult:
         """Get the p-th percentile of net outcomes."""
         return float(np.percentile(self.net_outcomes, p))
 
+
 class MonteCarloSimulation(ABC):
     """Abstract base class for Monte Carlo simulations.
 
@@ -361,16 +362,12 @@ class IterativeMonteCarlo(MonteCarloSimulation):
             # Set valuation based on equity type
             if sim_startup_params["equity_type"] == EquityType.RSU:
                 sim_startup_params["rsu_params"] = sim_startup_params["rsu_params"].copy()
-                sim_startup_params["rsu_params"]["target_exit_valuation"] = samples[
+                sim_startup_params["rsu_params"]["target_exit_valuation"] = samples["valuation"][i]
+            else:
+                sim_startup_params["options_params"] = sim_startup_params["options_params"].copy()
+                sim_startup_params["options_params"]["target_exit_price_per_share"] = samples[
                     "valuation"
                 ][i]
-            else:
-                sim_startup_params["options_params"] = sim_startup_params[
-                    "options_params"
-                ].copy()
-                sim_startup_params["options_params"]["target_exit_price_per_share"] = (
-                    samples["valuation"][i]
-                )
 
             # Run calculation pipeline
             monthly_df = create_monthly_data_grid(
@@ -378,9 +375,7 @@ class IterativeMonteCarlo(MonteCarloSimulation):
                 self.base_params["current_job_monthly_salary"],
                 self.base_params["startup_monthly_salary"],
                 samples["salary_growth"][i],
-                dilution_rounds=sim_startup_params.get("rsu_params", {}).get(
-                    "dilution_rounds"
-                ),
+                dilution_rounds=sim_startup_params.get("rsu_params", {}).get("dilution_rounds"),
             )
 
             opportunity_cost_df = calculate_annual_opportunity_cost(
@@ -402,9 +397,7 @@ class IterativeMonteCarlo(MonteCarloSimulation):
         final_opportunity_costs = np.array(final_opportunity_costs_list)
 
         # Apply failure probability
-        failure_mask = (
-            np.random.rand(num_simulations) < self.base_params["failure_probability"]
-        )
+        failure_mask = np.random.rand(num_simulations) < self.base_params["failure_probability"]
         net_outcomes[failure_mask] = -final_opportunity_costs[failure_mask]
 
         return {

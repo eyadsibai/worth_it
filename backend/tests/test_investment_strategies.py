@@ -4,7 +4,6 @@ These tests verify the Strategy Pattern implementation for calculating
 future values with different investment frequencies.
 """
 
-
 import pandas as pd
 import pytest
 

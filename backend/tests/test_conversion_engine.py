@@ -124,9 +124,7 @@ class TestConversionPipeline:
         assert pipeline1.instruments == []
         assert pipeline2.instruments == safe_instrument
 
-    def test_pipeline_chaining(
-        self, simple_cap_table, priced_round, safe_instrument
-    ):
+    def test_pipeline_chaining(self, simple_cap_table, priced_round, safe_instrument):
         """Pipeline methods should be chainable."""
         result = (
             ConversionPipeline(cap_table=simple_cap_table, priced_round=priced_round)
@@ -141,9 +139,7 @@ class TestConversionPipeline:
         assert isinstance(result, ConversionResult)
         assert result.summary["instruments_converted"] == 1
 
-    def test_filter_outstanding_excludes_converted(
-        self, simple_cap_table, priced_round
-    ):
+    def test_filter_outstanding_excludes_converted(self, simple_cap_table, priced_round):
         """filter_outstanding should exclude already-converted instruments."""
         instruments = [
             {

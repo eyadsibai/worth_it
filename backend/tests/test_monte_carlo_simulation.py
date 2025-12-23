@@ -336,9 +336,7 @@ class TestPerformanceComparison:
         from worth_it.calculations import run_monte_carlo_simulation
 
         np.random.seed(42)
-        func_result = run_monte_carlo_simulation(
-            1000, base_params_rsu, sim_param_configs_fixed
-        )
+        func_result = run_monte_carlo_simulation(1000, base_params_rsu, sim_param_configs_fixed)
 
         np.random.seed(42)
         sim = VectorizedMonteCarlo(base_params_rsu, sim_param_configs_fixed)

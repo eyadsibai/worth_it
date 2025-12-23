@@ -59,8 +59,7 @@ class ResponseMapper:
         """
         # Rename columns that exist in the DataFrame
         rename_cols = {
-            k: v for k, v in STARTUP_SCENARIO_COLUMN_MAPPING.items()
-            if k in results_df.columns
+            k: v for k, v in STARTUP_SCENARIO_COLUMN_MAPPING.items() if k in results_df.columns
         }
         results_df_renamed = results_df.rename(columns=rename_cols)
         return cast(list[dict[str, Any]], results_df_renamed.to_dict(orient="records"))
@@ -90,16 +89,14 @@ def convert_equity_type_in_params(params: dict[str, Any]) -> dict[str, Any]:
         # Create new dicts to avoid mutation
         new_params = params.copy()
         new_params["startup_params"] = startup_params.copy()
-        new_params["startup_params"]["equity_type"] = EquityType(
-            startup_params["equity_type"]
-        )
+        new_params["startup_params"]["equity_type"] = EquityType(startup_params["equity_type"])
         return new_params
 
     return params
 
 
 def convert_equity_type_in_startup_params(
-    startup_params: dict[str, Any] | None
+    startup_params: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
     """
     Convert equity_type string to EquityType enum in a startup_params dict.
@@ -186,7 +183,9 @@ def convert_typed_base_params_to_internal(typed_params: TypedBaseParams) -> dict
             "strike_price": options.strike_price,
             "target_exit_price_per_share": options.exit_price_per_share,
             "exercise_strategy": (
-                "Exercise After Vesting" if options.exercise_strategy == "AFTER_VESTING" else "At Exit"
+                "Exercise After Vesting"
+                if options.exercise_strategy == "AFTER_VESTING"
+                else "At Exit"
             ),
             "exercise_year": options.exercise_year,
         }
@@ -286,7 +285,9 @@ def convert_typed_startup_params_to_internal(
             "strike_price": options.strike_price,
             "target_exit_price_per_share": options.exit_price_per_share,
             "exercise_strategy": (
-                "Exercise After Vesting" if options.exercise_strategy == "AFTER_VESTING" else "At Exit"
+                "Exercise After Vesting"
+                if options.exercise_strategy == "AFTER_VESTING"
+                else "At Exit"
             ),
             "exercise_year": options.exercise_year,
         }

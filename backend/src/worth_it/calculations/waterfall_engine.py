@@ -62,9 +62,7 @@ class WaterfallPipeline:
     _common_pct: float = 0.0
     _preferred_pct: float = 0.0
 
-    def with_preference_tiers(
-        self, tiers: list[dict[str, Any]] | None
-    ) -> WaterfallPipeline:
+    def with_preference_tiers(self, tiers: list[dict[str, Any]] | None) -> WaterfallPipeline:
         """Set preference tiers for the waterfall."""
         return dataclasses.replace(self, preference_tiers=tiers or [])
 
@@ -137,9 +135,7 @@ class WaterfallPipeline:
             if remaining >= total_preference_at_level:
                 # Full payment for all tiers at this level
                 for tier in tiers_at_level:
-                    preference = tier["investment_amount"] * tier.get(
-                        "liquidation_multiplier", 1.0
-                    )
+                    preference = tier["investment_amount"] * tier.get("liquidation_multiplier", 1.0)
 
                     for sid in tier.get("stakeholder_ids", []):
                         payout = dict(payouts[sid])
@@ -148,52 +144,47 @@ class WaterfallPipeline:
                         payouts[sid] = payout
 
                     step_num += 1
-                    steps.append({
-                        "step_number": step_num,
-                        "description": (
-                            f"{tier['name']} liquidation preference "
-                            f"({tier.get('liquidation_multiplier', 1.0)}x)"
-                        ),
-                        "amount": preference,
-                        "recipients": [
-                            payouts[sid]["name"]
-                            for sid in tier.get("stakeholder_ids", [])
-                        ],
-                        "remaining_proceeds": remaining - preference,
-                    })
+                    steps.append(
+                        {
+                            "step_number": step_num,
+                            "description": (
+                                f"{tier['name']} liquidation preference "
+                                f"({tier.get('liquidation_multiplier', 1.0)}x)"
+                            ),
+                            "amount": preference,
+                            "recipients": [
+                                payouts[sid]["name"] for sid in tier.get("stakeholder_ids", [])
+                            ],
+                            "remaining_proceeds": remaining - preference,
+                        }
+                    )
                     remaining -= preference
             else:
                 # Pari passu distribution when insufficient
                 for tier in tiers_at_level:
-                    preference = tier["investment_amount"] * tier.get(
-                        "liquidation_multiplier", 1.0
-                    )
-                    share_of_remaining = (
-                        (preference / total_preference_at_level) * remaining
-                    )
+                    preference = tier["investment_amount"] * tier.get("liquidation_multiplier", 1.0)
+                    share_of_remaining = (preference / total_preference_at_level) * remaining
 
                     for sid in tier.get("stakeholder_ids", []):
                         payout = dict(payouts[sid])
-                        payout["payout_amount"] = (
-                            payout["payout_amount"] + share_of_remaining
-                        )
+                        payout["payout_amount"] = payout["payout_amount"] + share_of_remaining
                         payout["investment_amount"] = tier["investment_amount"]
                         payouts[sid] = payout
 
                     step_num += 1
-                    steps.append({
-                        "step_number": step_num,
-                        "description": (
-                            f"{tier['name']} liquidation preference "
-                            "(partial - pari passu)"
-                        ),
-                        "amount": share_of_remaining,
-                        "recipients": [
-                            payouts[sid]["name"]
-                            for sid in tier.get("stakeholder_ids", [])
-                        ],
-                        "remaining_proceeds": 0,
-                    })
+                    steps.append(
+                        {
+                            "step_number": step_num,
+                            "description": (
+                                f"{tier['name']} liquidation preference (partial - pari passu)"
+                            ),
+                            "amount": share_of_remaining,
+                            "recipients": [
+                                payouts[sid]["name"] for sid in tier.get("stakeholder_ids", [])
+                            ],
+                            "remaining_proceeds": 0,
+                        }
+                    )
 
                 remaining = 0
 
@@ -223,16 +214,13 @@ class WaterfallPipeline:
         converted_tiers: set[str] = set()
 
         for tier in self.preference_tiers:
-            tier_shares = sum(
-                payouts[sid]["shares"] for sid in tier.get("stakeholder_ids", [])
-            )
+            tier_shares = sum(payouts[sid]["shares"] for sid in tier.get("stakeholder_ids", []))
             tier_ownership = tier_shares / total_shares if total_shares > 0 else 0
 
             # What would they get from pro-rata conversion?
             pro_rata_value = tier_ownership * self.exit_valuation
             current_payout = sum(
-                payouts[sid]["payout_amount"]
-                for sid in tier.get("stakeholder_ids", [])
+                payouts[sid]["payout_amount"] for sid in tier.get("stakeholder_ids", [])
             )
 
             if not tier.get("participating", False):
@@ -289,13 +277,15 @@ class WaterfallPipeline:
             payouts[sid] = payout
 
         step_num += 1
-        steps.append({
-            "step_number": step_num,
-            "description": "Pro-rata distribution to common shareholders",
-            "amount": self.exit_valuation,
-            "recipients": [s["name"] for s in stakeholders],
-            "remaining_proceeds": 0,
-        })
+        steps.append(
+            {
+                "step_number": step_num,
+                "description": "Pro-rata distribution to common shareholders",
+                "amount": self.exit_valuation,
+                "recipients": [s["name"] for s in stakeholders],
+                "remaining_proceeds": 0,
+            }
+        )
 
         return dataclasses.replace(
             self,
@@ -315,16 +305,12 @@ class WaterfallPipeline:
         step_num = self._step_number
 
         # Calculate common shares
-        common_shares = sum(
-            s["shares"] for s in stakeholders if s["share_class"] == "common"
-        )
+        common_shares = sum(s["shares"] for s in stakeholders if s["share_class"] == "common")
 
         # Calculate shares eligible for remaining distribution
         shares_for_remaining = common_shares
         for tier in self.preference_tiers:
-            tier_shares = sum(
-                payouts[sid]["shares"] for sid in tier.get("stakeholder_ids", [])
-            )
+            tier_shares = sum(payouts[sid]["shares"] for sid in tier.get("stakeholder_ids", []))
             if tier["id"] in self._converted_tiers:
                 shares_for_remaining += tier_shares
             elif tier.get("participating", False):
@@ -336,15 +322,11 @@ class WaterfallPipeline:
             capped_tier_ids: set[str] = set()
 
             for tier in self.preference_tiers:
-                if (
-                    tier.get("participating", False)
-                    and tier["id"] not in self._converted_tiers
-                ):
+                if tier.get("participating", False) and tier["id"] not in self._converted_tiers:
                     cap = tier.get("participation_cap")
                     if cap is not None:
                         tier_shares = sum(
-                            payouts[sid]["shares"]
-                            for sid in tier.get("stakeholder_ids", [])
+                            payouts[sid]["shares"] for sid in tier.get("stakeholder_ids", [])
                         )
                         share_pct = tier_shares / shares_for_remaining
                         would_receive = share_pct * remaining
@@ -401,17 +383,17 @@ class WaterfallPipeline:
 
             step_num += 1
             recipients = [
-                payouts[sid]["name"]
-                for sid in payouts
-                if payouts[sid]["payout_amount"] > 0
+                payouts[sid]["name"] for sid in payouts if payouts[sid]["payout_amount"] > 0
             ]
-            steps.append({
-                "step_number": step_num,
-                "description": "Pro-rata distribution of remaining proceeds",
-                "amount": remaining,
-                "recipients": recipients,
-                "remaining_proceeds": 0,
-            })
+            steps.append(
+                {
+                    "step_number": step_num,
+                    "description": "Pro-rata distribution of remaining proceeds",
+                    "amount": remaining,
+                    "recipients": recipients,
+                    "remaining_proceeds": 0,
+                }
+            )
 
         return dataclasses.replace(
             self,
@@ -433,9 +415,7 @@ class WaterfallPipeline:
             payout = dict(payout_data)
 
             if total_payout > 0:
-                payout["payout_pct"] = (
-                    payout["payout_amount"] / self.exit_valuation
-                ) * 100
+                payout["payout_pct"] = (payout["payout_amount"] / self.exit_valuation) * 100
 
             # Calculate ROI for investors
             if payout["investment_amount"] and payout["investment_amount"] > 0:
@@ -451,21 +431,13 @@ class WaterfallPipeline:
             payouts[sid] = payout
 
         # If all preferred converted, count as common
-        if self._converted_tiers and len(self._converted_tiers) == len(
-            self.preference_tiers
-        ):
+        if self._converted_tiers and len(self._converted_tiers) == len(self.preference_tiers):
             common_total = total_payout
             preferred_total = 0
 
-        common_pct = (
-            (common_total / self.exit_valuation * 100)
-            if self.exit_valuation > 0
-            else 0
-        )
+        common_pct = (common_total / self.exit_valuation * 100) if self.exit_valuation > 0 else 0
         preferred_pct = (
-            (preferred_total / self.exit_valuation * 100)
-            if self.exit_valuation > 0
-            else 0
+            (preferred_total / self.exit_valuation * 100) if self.exit_valuation > 0 else 0
         )
 
         return dataclasses.replace(

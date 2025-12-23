@@ -76,9 +76,7 @@ class Settings:
 
     # WebSocket Security Settings
     WS_MAX_CONCURRENT_PER_IP: int = int(os.getenv("WS_MAX_CONCURRENT_PER_IP", "5"))
-    WS_SIMULATION_TIMEOUT_SECONDS: int = int(
-        os.getenv("WS_SIMULATION_TIMEOUT_SECONDS", "60")
-    )
+    WS_SIMULATION_TIMEOUT_SECONDS: int = int(os.getenv("WS_SIMULATION_TIMEOUT_SECONDS", "60"))
 
     @classmethod
     def is_production(cls) -> bool:
@@ -180,8 +178,7 @@ class Settings:
             )
         else:
             logger.debug(
-                f"Development mode: HOST={cls.API_HOST}, "
-                f"CORS defaults to localhost origins"
+                f"Development mode: HOST={cls.API_HOST}, CORS defaults to localhost origins"
             )
 
 

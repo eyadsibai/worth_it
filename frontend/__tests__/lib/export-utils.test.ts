@@ -654,10 +654,10 @@ describe("updateScenarioNotes", () => {
 describe("exportScenarioComparisonPDF", () => {
   // Import the function - we'll add it to the export-utils.ts
   // For now, test that it exists and has the expected signature
-  
+
   it("exports scenarios comparison as PDF", async () => {
     const { exportScenarioComparisonPDF } = await import("@/lib/export-utils");
-    
+
     const scenarios = [
       createMockScenario("Scenario A", "2024-01-01T00:00:00Z"),
       createMockScenario("Scenario B", "2024-01-02T00:00:00Z"),
@@ -665,23 +665,23 @@ describe("exportScenarioComparisonPDF", () => {
     // Override to have different outcomes for comparison
     scenarios[0].results = { finalPayoutValue: 400000, finalOpportunityCost: 200000, netOutcome: 200000 };
     scenarios[1].results = { finalPayoutValue: 600000, finalOpportunityCost: 200000, netOutcome: 400000 };
-    
+
     // Should not throw
     expect(() => exportScenarioComparisonPDF(scenarios)).not.toThrow();
   });
 
   it("handles empty scenarios array gracefully", async () => {
     const { exportScenarioComparisonPDF } = await import("@/lib/export-utils");
-    
+
     // Should not throw for empty array
     expect(() => exportScenarioComparisonPDF([])).not.toThrow();
   });
 
   it("handles single scenario gracefully", async () => {
     const { exportScenarioComparisonPDF } = await import("@/lib/export-utils");
-    
+
     const scenarios = [createMockScenario("Only One", "2024-01-01T00:00:00Z")];
-    
+
     // Should not throw for single scenario (though comparison doesn't make sense)
     expect(() => exportScenarioComparisonPDF(scenarios)).not.toThrow();
   });

@@ -1220,9 +1220,7 @@ class TestConvertInstruments:
         founder = next(s for s in updated_cap_table["stakeholders"] if s["name"] == "Founder")
         assert founder["ownership_pct"] == pytest.approx(78.43, rel=0.01)
 
-        investor = next(
-            s for s in updated_cap_table["stakeholders"] if s["name"] == "Investor A"
-        )
+        investor = next(s for s in updated_cap_table["stakeholders"] if s["name"] == "Investor A")
         assert investor["ownership_pct"] == pytest.approx(1.96, rel=0.01)
 
     def test_new_stakeholders_are_preferred(self, base_cap_table, seed_round):
@@ -1241,9 +1239,7 @@ class TestConvertInstruments:
         result = calculations.convert_instruments(base_cap_table, instruments, seed_round)
 
         investor = next(
-            s
-            for s in result["updated_cap_table"]["stakeholders"]
-            if s["name"] == "Investor A"
+            s for s in result["updated_cap_table"]["stakeholders"] if s["name"] == "Investor A"
         )
         assert investor["share_class"] == "preferred"
         assert investor["type"] == "investor"
@@ -1323,7 +1319,9 @@ class TestCalculateWaterfall:
             }
         ]
 
-    def test_waterfall_non_participating_low_exit(self, simple_cap_table, single_tier_non_participating):
+    def test_waterfall_non_participating_low_exit(
+        self, simple_cap_table, single_tier_non_participating
+    ):
         """
         Non-participating preferred at low exit: takes preference, common gets nothing.
         Exit: $3M, Preference: $5M
@@ -1339,9 +1337,7 @@ class TestCalculateWaterfall:
         investor_payout = next(
             p for p in result["stakeholder_payouts"] if p["name"] == "Series A Investor"
         )
-        founder_payout = next(
-            p for p in result["stakeholder_payouts"] if p["name"] == "Founder"
-        )
+        founder_payout = next(p for p in result["stakeholder_payouts"] if p["name"] == "Founder")
 
         assert investor_payout["payout_amount"] == pytest.approx(3_000_000)
         assert founder_payout["payout_amount"] == pytest.approx(0)
@@ -1365,9 +1361,7 @@ class TestCalculateWaterfall:
         investor_payout = next(
             p for p in result["stakeholder_payouts"] if p["name"] == "Series A Investor"
         )
-        founder_payout = next(
-            p for p in result["stakeholder_payouts"] if p["name"] == "Founder"
-        )
+        founder_payout = next(p for p in result["stakeholder_payouts"] if p["name"] == "Founder")
 
         # 30% of $50M = $15M (converts because pro-rata > preference)
         assert investor_payout["payout_amount"] == pytest.approx(15_000_000)
@@ -1405,9 +1399,7 @@ class TestCalculateWaterfall:
         investor_payout = next(
             p for p in result["stakeholder_payouts"] if p["name"] == "Series A Investor"
         )
-        founder_payout = next(
-            p for p in result["stakeholder_payouts"] if p["name"] == "Founder"
-        )
+        founder_payout = next(p for p in result["stakeholder_payouts"] if p["name"] == "Founder")
 
         assert investor_payout["payout_amount"] == pytest.approx(9_500_000)
         assert founder_payout["payout_amount"] == pytest.approx(10_500_000)
@@ -1458,9 +1450,7 @@ class TestCalculateWaterfall:
         investor_payout = next(
             p for p in result["stakeholder_payouts"] if p["name"] == "Series A Investor"
         )
-        founder_payout = next(
-            p for p in result["stakeholder_payouts"] if p["name"] == "Founder"
-        )
+        founder_payout = next(p for p in result["stakeholder_payouts"] if p["name"] == "Founder")
 
         # Series A capped at 2x = $10M
         assert investor_payout["payout_amount"] == pytest.approx(10_000_000)
@@ -1538,9 +1528,7 @@ class TestCalculateWaterfall:
         series_a_payout = next(
             p for p in result["stakeholder_payouts"] if p["name"] == "Series A Investor"
         )
-        founder_payout = next(
-            p for p in result["stakeholder_payouts"] if p["name"] == "Founder"
-        )
+        founder_payout = next(p for p in result["stakeholder_payouts"] if p["name"] == "Founder")
 
         assert series_b_payout["payout_amount"] == pytest.approx(10_000_000)
         assert series_a_payout["payout_amount"] == pytest.approx(2_000_000)
@@ -1616,9 +1604,7 @@ class TestCalculateWaterfall:
         series_b_payout = next(
             p for p in result["stakeholder_payouts"] if p["name"] == "Series B Investor"
         )
-        founder_payout = next(
-            p for p in result["stakeholder_payouts"] if p["name"] == "Founder"
-        )
+        founder_payout = next(p for p in result["stakeholder_payouts"] if p["name"] == "Founder")
 
         # $8M split proportionally between $5M + $5M = $10M total preference
         # Each gets 50% = $4M
@@ -1653,9 +1639,7 @@ class TestCalculateWaterfall:
         investor_payout = next(
             p for p in result["stakeholder_payouts"] if p["name"] == "Series A Investor"
         )
-        founder_payout = next(
-            p for p in result["stakeholder_payouts"] if p["name"] == "Founder"
-        )
+        founder_payout = next(p for p in result["stakeholder_payouts"] if p["name"] == "Founder")
 
         assert investor_payout["payout_amount"] == pytest.approx(10_000_000)
         assert founder_payout["payout_amount"] == pytest.approx(5_000_000)
@@ -1705,7 +1689,9 @@ class TestCalculateWaterfall:
         assert result["common_pct"] == pytest.approx(100)
         assert result["preferred_pct"] == pytest.approx(0)
 
-    def test_waterfall_returns_waterfall_steps(self, simple_cap_table, single_tier_non_participating):
+    def test_waterfall_returns_waterfall_steps(
+        self, simple_cap_table, single_tier_non_participating
+    ):
         """
         Waterfall should return step-by-step breakdown.
         """
@@ -1758,9 +1744,7 @@ class TestCompletedRoundsDilution:
             current_job_salary_growth_rate=0.0,
         )
         return calculations.calculate_annual_opportunity_cost(
-            monthly_df=monthly_df,
-            annual_roi=0.05,
-            investment_frequency="Annually"
+            monthly_df=monthly_df, annual_roi=0.05, investment_frequency="Annually"
         )
 
     def test_completed_rounds_applied_from_year_zero(self, opportunity_cost_df):

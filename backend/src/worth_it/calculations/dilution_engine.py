@@ -79,14 +79,12 @@ class DilutionPipeline:
         completed = [
             r
             for r in self.rounds
-            if r.get("status") == "completed"
-            or (r.get("status") is None and r.get("year", 0) < 0)
+            if r.get("status") == "completed" or (r.get("status") is None and r.get("year", 0) < 0)
         ]
         upcoming = [
             r
             for r in self.rounds
-            if r.get("status") == "upcoming"
-            or (r.get("status") is None and r.get("year", 0) >= 0)
+            if r.get("status") == "upcoming" or (r.get("status") is None and r.get("year", 0) >= 0)
         ]
         return dataclasses.replace(self, _completed=completed, _upcoming=upcoming)
 
@@ -119,10 +117,7 @@ class DilutionPipeline:
                 # Find next priced round at or after this SAFE
                 conversion_year = None
                 for future in sorted_upcoming:
-                    if (
-                        not future.get("is_safe_note", False)
-                        and future["year"] >= r["year"]
-                    ):
+                    if not future.get("is_safe_note", False) and future["year"] >= r["year"]:
                         conversion_year = future["year"]
                         break
                 safe_map[id(r)] = conversion_year
@@ -207,8 +202,7 @@ def calculate_dilution_schedule(
         return pipeline.with_simulated_dilution(simulated_dilution)
 
     return (
-        pipeline
-        .with_rounds(rounds)
+        pipeline.with_rounds(rounds)
         .classify()
         .apply_historical()
         .apply_safe_conversions()

@@ -132,10 +132,9 @@ class TestWaterfallPipeline:
 
     def test_initialize_payouts_creates_payout_entries(self, simple_cap_table):
         """initialize_payouts should create entries for all stakeholders."""
-        pipeline = (
-            WaterfallPipeline(cap_table=simple_cap_table, exit_valuation=10_000_000)
-            .initialize_payouts()
-        )
+        pipeline = WaterfallPipeline(
+            cap_table=simple_cap_table, exit_valuation=10_000_000
+        ).initialize_payouts()
 
         assert len(pipeline._payouts) == 2
         assert "founder-1" in pipeline._payouts
@@ -239,9 +238,7 @@ class TestWaterfallConvenienceFunction:
             }
         ]
 
-    def test_convenience_function_returns_dict(
-        self, simple_cap_table, non_participating_tier
-    ):
+    def test_convenience_function_returns_dict(self, simple_cap_table, non_participating_tier):
         """calculate_waterfall should return a dict for backward compatibility."""
         result = calculate_waterfall(
             cap_table=simple_cap_table,
@@ -255,9 +252,7 @@ class TestWaterfallConvenienceFunction:
         assert "common_pct" in result
         assert "preferred_pct" in result
 
-    def test_low_exit_investor_takes_all(
-        self, simple_cap_table, non_participating_tier
-    ):
+    def test_low_exit_investor_takes_all(self, simple_cap_table, non_participating_tier):
         """At low exit, investor should take all proceeds via preference."""
         result = calculate_waterfall(
             cap_table=simple_cap_table,
@@ -268,16 +263,12 @@ class TestWaterfallConvenienceFunction:
         investor = next(
             p for p in result["stakeholder_payouts"] if p["name"] == "Series A Investor"
         )
-        founder = next(
-            p for p in result["stakeholder_payouts"] if p["name"] == "Founder"
-        )
+        founder = next(p for p in result["stakeholder_payouts"] if p["name"] == "Founder")
 
         assert investor["payout_amount"] == pytest.approx(3_000_000)
         assert founder["payout_amount"] == pytest.approx(0)
 
-    def test_high_exit_investor_converts(
-        self, simple_cap_table, non_participating_tier
-    ):
+    def test_high_exit_investor_converts(self, simple_cap_table, non_participating_tier):
         """At high exit, non-participating investor should convert for pro-rata."""
         result = calculate_waterfall(
             cap_table=simple_cap_table,
@@ -288,9 +279,7 @@ class TestWaterfallConvenienceFunction:
         investor = next(
             p for p in result["stakeholder_payouts"] if p["name"] == "Series A Investor"
         )
-        founder = next(
-            p for p in result["stakeholder_payouts"] if p["name"] == "Founder"
-        )
+        founder = next(p for p in result["stakeholder_payouts"] if p["name"] == "Founder")
 
         # 30% of $50M = $15M (converts because pro-rata > $5M preference)
         assert investor["payout_amount"] == pytest.approx(15_000_000)

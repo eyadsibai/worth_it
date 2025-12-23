@@ -250,9 +250,7 @@ async def websocket_monte_carlo(websocket: WebSocket):
                         details=field_errors if field_errors else None,
                     )
                 )
-                logger.warning(
-                    f"Invalid Monte Carlo request from {client_ip}: {e}"
-                )
+                logger.warning(f"Invalid Monte Carlo request from {client_ip}: {e}")
                 return
 
             # Convert typed models to internal format for calculations
@@ -262,7 +260,9 @@ async def websocket_monte_carlo(websocket: WebSocket):
             # Run simulation with timeout
             try:
                 await asyncio.wait_for(
-                    _run_simulation_with_progress(websocket, request, base_params, sim_param_configs),
+                    _run_simulation_with_progress(
+                        websocket, request, base_params, sim_param_configs
+                    ),
                     timeout=settings.WS_SIMULATION_TIMEOUT_SECONDS,
                 )
             except TimeoutError:
@@ -296,7 +296,9 @@ async def websocket_monte_carlo(websocket: WebSocket):
                 logger.error("Failed to send error message to WebSocket client")
         except (ValueError, TypeError, KeyError) as e:
             # Known calculation errors - log and send sanitized message
-            logger.error(f"Calculation error in WebSocket Monte Carlo from {client_ip}: {e}", exc_info=True)
+            logger.error(
+                f"Calculation error in WebSocket Monte Carlo from {client_ip}: {e}", exc_info=True
+            )
             try:
                 await websocket.send_json(
                     create_ws_error_message(

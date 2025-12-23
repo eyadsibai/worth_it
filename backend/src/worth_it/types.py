@@ -48,7 +48,9 @@ class RSUParams(TypedDict, total=False):
     target_exit_valuation: float
     simulate_dilution: bool
     dilution_rounds: list[DilutionRound]
-    company_stage: str | None  # "pre-seed" | "seed" | "series-a" | "series-b" | "series-c" | "series-d" | "pre-ipo"
+    company_stage: (
+        str | None
+    )  # "pre-seed" | "seed" | "series-a" | "series-b" | "series-c" | "series-d" | "pre-ipo"
 
 
 class OptionsParams(TypedDict, total=False):

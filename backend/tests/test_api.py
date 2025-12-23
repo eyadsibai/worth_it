@@ -658,7 +658,9 @@ class TestWebSocketMonteCarlo:
         with client.websocket_connect("/ws/monte-carlo") as websocket:
             # Request more simulations than the configured limit
             request = self._get_valid_request()
-            request["num_simulations"] = settings.MAX_SIMULATIONS + 1  # Exceeds configured MAX_SIMULATIONS
+            request["num_simulations"] = (
+                settings.MAX_SIMULATIONS + 1
+            )  # Exceeds configured MAX_SIMULATIONS
             websocket.send_json(request)
 
             msg = websocket.receive_json()
@@ -701,7 +703,9 @@ class TestWebSocketSecurity:
         test_settings = InvalidConcurrentSettings()
         try:
             test_settings.validate()
-            raise AssertionError("Should have raised validation error for WS_MAX_CONCURRENT_PER_IP=0")
+            raise AssertionError(
+                "Should have raised validation error for WS_MAX_CONCURRENT_PER_IP=0"
+            )
         except ValueError as e:
             assert "WS_MAX_CONCURRENT_PER_IP" in str(e)
 
@@ -716,7 +720,9 @@ class TestWebSocketSecurity:
         test_settings = InvalidTimeoutSettings()
         try:
             test_settings.validate()
-            raise AssertionError("Should have raised validation error for WS_SIMULATION_TIMEOUT_SECONDS=3")
+            raise AssertionError(
+                "Should have raised validation error for WS_SIMULATION_TIMEOUT_SECONDS=3"
+            )
         except ValueError as e:
             assert "WS_SIMULATION_TIMEOUT_SECONDS" in str(e)
 
@@ -1081,9 +1087,7 @@ class TestWaterfallAPI:
         investor_payout = next(
             p for p in low_exit["stakeholder_payouts"] if p["name"] == "Series A Investor"
         )
-        founder_payout = next(
-            p for p in low_exit["stakeholder_payouts"] if p["name"] == "Founder"
-        )
+        founder_payout = next(p for p in low_exit["stakeholder_payouts"] if p["name"] == "Founder")
         assert investor_payout["payout_amount"] == pytest.approx(3000000)
         assert founder_payout["payout_amount"] == pytest.approx(0)
 

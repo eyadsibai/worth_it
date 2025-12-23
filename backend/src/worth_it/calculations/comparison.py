@@ -111,9 +111,7 @@ def identify_winner(scenarios: list[dict]) -> WinnerResult:
             winner_index = i
 
     # Check for ties
-    tie_count = sum(
-        1 for s in scenarios if s["results"]["net_outcome"] == max_outcome
-    )
+    tie_count = sum(1 for s in scenarios if s["results"]["net_outcome"] == max_outcome)
     is_tie = tie_count > 1
 
     # Calculate advantage over second place
@@ -281,10 +279,13 @@ def generate_comparison_insights(scenarios: list[dict]) -> list[ComparisonInsigh
         def parse_year(breakeven_str: str) -> int:
             """Extract year number from breakeven string."""
             import re
+
             match = re.search(r"\d+", breakeven_str)
             return int(match.group()) if match else 99
 
-        earliest = min(breakeven_scenarios, key=lambda s: parse_year(s["results"]["breakeven"] or "Year 99"))
+        earliest = min(
+            breakeven_scenarios, key=lambda s: parse_year(s["results"]["breakeven"] or "Year 99")
+        )
 
         if earliest["results"]["breakeven"]:
             insights.append(

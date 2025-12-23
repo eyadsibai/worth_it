@@ -265,4 +265,3 @@ function getUnitForVariable(variable: string): string {
   };
   return units[variable] || "";
 }
-

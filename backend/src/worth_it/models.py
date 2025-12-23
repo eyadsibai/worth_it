@@ -207,13 +207,10 @@ def validate_base_params(base_params: dict[str, Any]) -> None:
     # We must explicitly check for bool first to reject boolean values.
     exit_year = base_params.get("exit_year")
     if isinstance(exit_year, bool) or not isinstance(exit_year, int):
-        raise ValueError(
-            f"exit_year must be an integer between 1 and 20, got: {exit_year}"
-        )
+        raise ValueError(f"exit_year must be an integer between 1 and 20, got: {exit_year}")
     if exit_year < 1 or exit_year > 20:
-        raise ValueError(
-            f"exit_year must be an integer between 1 and 20, got: {exit_year}"
-        )
+        raise ValueError(f"exit_year must be an integer between 1 and 20, got: {exit_year}")
+
 
 # --- Cap Table Models ---
 
@@ -294,9 +291,7 @@ class ConvertibleNote(BaseModel):
     def validate_cap_or_discount(self) -> ConvertibleNote:
         """Ensure note has at least a cap or discount."""
         if self.valuation_cap is None and self.discount_pct is None:
-            raise ValueError(
-                "Convertible note must have at least a valuation_cap or discount_pct"
-            )
+            raise ValueError("Convertible note must have at least a valuation_cap or discount_pct")
         return self
 
 
@@ -354,6 +349,7 @@ class CapTableConversionResponse(BaseModel):
     updated_cap_table: CapTable
     converted_instruments: list[ConvertedInstrumentDetail]
     summary: ConversionSummary
+
 
 # --- Request Models ---
 
@@ -699,9 +695,7 @@ class RevenueMultipleRequest(BaseModel):
     """Request for Revenue Multiple valuation method."""
 
     annual_revenue: float = Field(..., ge=0, description="Annual revenue (ARR or TTM)")
-    revenue_multiple: float = Field(
-        ..., gt=0, le=100, description="Revenue multiple (e.g., 10x)"
-    )
+    revenue_multiple: float = Field(..., gt=0, le=100, description="Revenue multiple (e.g., 10x)")
     growth_rate: float | None = Field(
         default=None, ge=-1, le=10, description="YoY revenue growth rate (e.g., 0.5 for 50%)"
     )
@@ -788,10 +782,7 @@ class ValuationCompareRequest(BaseModel):
     @model_validator(mode="after")
     def validate_at_least_one_method(self) -> Self:
         """At least one valuation method must be provided."""
-        if all(
-            m is None
-            for m in [self.revenue_multiple, self.dcf, self.vc_method]
-        ):
+        if all(m is None for m in [self.revenue_multiple, self.dcf, self.vc_method]):
             raise ValueError("At least one valuation method must be provided")
         return self
 

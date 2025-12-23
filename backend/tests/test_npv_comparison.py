@@ -225,9 +225,7 @@ class TestStartupScenarioNPV:
             startup_params=startup_params,
         )
 
-        expected_net_npv = (
-            result["final_payout_value_npv"] - result["final_opportunity_cost_npv"]
-        )
+        expected_net_npv = result["final_payout_value_npv"] - result["final_opportunity_cost_npv"]
 
         # If net_outcome_npv is returned, verify it matches
         if "net_outcome_npv" in result:

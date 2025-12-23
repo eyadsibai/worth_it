@@ -105,14 +105,10 @@ class MonthlyInvestmentStrategy(InvestmentFrequencyStrategy):
         ).sum()
 
         # Future value of exercise costs (additional cash outflow)
-        fv_exercise_cost = (
-            current_df["ExerciseCost"] * (1 + monthly_roi) ** months_to_grow
-        ).sum()
+        fv_exercise_cost = (current_df["ExerciseCost"] * (1 + monthly_roi) ** months_to_grow).sum()
 
         # Future value of cash from sale
-        fv_cash_from_sale = (
-            current_df["CashFromSale"] * (1 + monthly_roi) ** months_to_grow
-        ).sum()
+        fv_cash_from_sale = (current_df["CashFromSale"] * (1 + monthly_roi) ** months_to_grow).sum()
 
         return FutureValueResult(
             fv_investable_surplus=float(fv_investable_surplus),
@@ -139,22 +135,14 @@ class AnnualInvestmentStrategy(InvestmentFrequencyStrategy):
     ) -> FutureValueResult:
         """Calculate FV with annual compounding."""
         # Reindex to ensure all years up to year_end are included
-        annual_investable = annual_investable_surplus.reindex(
-            range(1, year_end + 1), fill_value=0
-        )
-        annual_exercise = annual_exercise_cost.reindex(
-            range(1, year_end + 1), fill_value=0
-        )
-        annual_cash = annual_cash_from_sale.reindex(
-            range(1, year_end + 1), fill_value=0
-        )
+        annual_investable = annual_investable_surplus.reindex(range(1, year_end + 1), fill_value=0)
+        annual_exercise = annual_exercise_cost.reindex(range(1, year_end + 1), fill_value=0)
+        annual_cash = annual_cash_from_sale.reindex(range(1, year_end + 1), fill_value=0)
 
         years_to_grow = year_end - annual_investable.index
 
         # Future value of foregone salary that could be invested
-        fv_investable_surplus = (
-            annual_investable * (1 + annual_roi) ** years_to_grow
-        ).sum()
+        fv_investable_surplus = (annual_investable * (1 + annual_roi) ** years_to_grow).sum()
 
         # Future value of exercise costs (additional cash outflow)
         fv_exercise_cost = (annual_exercise * (1 + annual_roi) ** years_to_grow).sum()

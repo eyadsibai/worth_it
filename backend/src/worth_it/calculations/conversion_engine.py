@@ -61,18 +61,13 @@ class ConversionPipeline:
     _new_stakeholders: list[dict[str, Any]] = field(default_factory=list)
     _total_new_shares: int = 0
 
-    def with_instruments(
-        self, instruments: list[dict[str, Any]] | None
-    ) -> ConversionPipeline:
+    def with_instruments(self, instruments: list[dict[str, Any]] | None) -> ConversionPipeline:
         """Set instruments to convert."""
         return dataclasses.replace(self, instruments=instruments or [])
 
     def filter_outstanding(self) -> ConversionPipeline:
         """Filter to only outstanding (not yet converted) instruments."""
-        outstanding = [
-            inst for inst in self.instruments
-            if inst.get("status") == "outstanding"
-        ]
+        outstanding = [inst for inst in self.instruments if inst.get("status") == "outstanding"]
         return dataclasses.replace(self, _outstanding=outstanding)
 
     def calculate_conversions(self) -> ConversionPipeline:
@@ -104,9 +99,7 @@ class ConversionPipeline:
 
                 # Calculate months elapsed
                 if note_date and round_date:
-                    months_elapsed = calculate_months_between_dates(
-                        note_date, round_date
-                    )
+                    months_elapsed = calculate_months_between_dates(note_date, round_date)
                 else:
                     months_elapsed = instrument.get("maturity_months", 12)
 
@@ -134,17 +127,19 @@ class ConversionPipeline:
             shares_issued = int(conversion_amount / conversion_price)
             total_new_shares += shares_issued
 
-            conversions.append({
-                "instrument_id": instrument_id,
-                "instrument_type": instrument_type,
-                "investor_name": investor_name,
-                "investment_amount": conversion_amount,
-                "conversion_price": conversion_price,
-                "price_source": price_source,
-                "shares_issued": shares_issued,
-                "ownership_pct": 0,  # Calculated later
-                "accrued_interest": accrued_interest,
-            })
+            conversions.append(
+                {
+                    "instrument_id": instrument_id,
+                    "instrument_type": instrument_type,
+                    "investor_name": investor_name,
+                    "investment_amount": conversion_amount,
+                    "conversion_price": conversion_price,
+                    "price_source": price_source,
+                    "shares_issued": shares_issued,
+                    "ownership_pct": 0,  # Calculated later
+                    "accrued_interest": accrued_interest,
+                }
+            )
 
         return dataclasses.replace(
             self,
@@ -190,8 +185,7 @@ class ConversionPipeline:
         # Recalculate ownership percentages
         for stakeholder in all_stakeholders:
             stakeholder["ownership_pct"] = (
-                (stakeholder["shares"] / new_total_shares) * 100
-                if new_total_shares > 0 else 0
+                (stakeholder["shares"] / new_total_shares) * 100 if new_total_shares > 0 else 0
             )
 
         # Update ownership in conversions
@@ -199,13 +193,13 @@ class ConversionPipeline:
         for conversion in conversions:
             conversion["ownership_pct"] = (
                 (conversion["shares_issued"] / new_total_shares) * 100
-                if new_total_shares > 0 else 0
+                if new_total_shares > 0
+                else 0
             )
 
         # Calculate dilution
         total_dilution_pct = (
-            (self._total_new_shares / new_total_shares) * 100
-            if new_total_shares > 0 else 0
+            (self._total_new_shares / new_total_shares) * 100 if new_total_shares > 0 else 0
         )
 
         return ConversionResult(

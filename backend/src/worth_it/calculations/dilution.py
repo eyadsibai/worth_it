@@ -70,9 +70,7 @@ def calculate_dilution_preview(
     """
     # Validate inputs
     if pre_money_valuation <= 0:
-        raise ValueError(
-            f"pre_money_valuation must be positive, got {pre_money_valuation}"
-        )
+        raise ValueError(f"pre_money_valuation must be positive, got {pre_money_valuation}")
     if amount_raised <= 0:
         raise ValueError(f"amount_raised must be positive, got {amount_raised}")
 

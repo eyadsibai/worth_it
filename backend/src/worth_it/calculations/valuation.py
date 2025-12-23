@@ -23,9 +23,7 @@ class RevenueMultipleParams(BaseModel):
     """Parameters for Revenue Multiple valuation method."""
 
     annual_revenue: float = Field(..., ge=0, description="Annual revenue (ARR or TTM)")
-    revenue_multiple: float = Field(
-        ..., gt=0, le=100, description="Revenue multiple (e.g., 10x)"
-    )
+    revenue_multiple: float = Field(..., gt=0, le=100, description="Revenue multiple (e.g., 10x)")
     growth_rate: float | None = Field(
         default=None, ge=-1, le=10, description="YoY revenue growth rate (e.g., 0.5 for 50%)"
     )
