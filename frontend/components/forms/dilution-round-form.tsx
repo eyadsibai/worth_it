@@ -124,7 +124,7 @@ export function DilutionRoundFormComponent({
                   form={form}
                   name={`dilution_rounds.${roundIndex}.dilution_pct`}
                   label="Dilution %"
-                  description="Percentage dilution (optional)"
+                  description="Expected dilution"
                   min={0}
                   max={50}
                   step={0.5}
@@ -135,7 +135,7 @@ export function DilutionRoundFormComponent({
                   form={form}
                   name={`dilution_rounds.${roundIndex}.pre_money_valuation`}
                   label="Pre-Money Valuation"
-                  description="Valuation before round (optional)"
+                  description="Pre-round valuation"
                   min={0}
                   max={1000000000}
                   step={1000000}
@@ -148,7 +148,7 @@ export function DilutionRoundFormComponent({
                   form={form}
                   name={`dilution_rounds.${roundIndex}.amount_raised`}
                   label="Amount Raised"
-                  description="Capital raised (optional)"
+                  description="Amount raised"
                   min={0}
                   max={500000000}
                   step={500000}
@@ -158,7 +158,7 @@ export function DilutionRoundFormComponent({
                   form={form}
                   name={`dilution_rounds.${roundIndex}.salary_change`}
                   label="New Salary"
-                  description="Updated monthly salary (optional)"
+                  description="New monthly salary"
                   min={0}
                   max={50000}
                   step={500}
