@@ -55,8 +55,8 @@ describe("SummaryCard", () => {
 
   it("displays worth it and not worth it counts", () => {
     render(<SummaryCard stats={populatedStats} />);
-    // Multiple elements match "worth it" - use getAllByText
-    expect(screen.getAllByText(/worth it/i).length).toBeGreaterThan(0);
+    // Match the standalone "Worth It" label without also matching "Not Worth It"
+    expect(screen.getAllByText(/^worth it$/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/not worth it/i)).toBeInTheDocument();
     // The counts (2 and 1) are rendered via AnimatedNumber
     expect(screen.getAllByText("2").length).toBeGreaterThan(0);
