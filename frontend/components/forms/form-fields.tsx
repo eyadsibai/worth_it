@@ -44,11 +44,11 @@ interface FormFieldProps {
  */
 function LabelWithTooltip({ label, tooltip }: { label: string; tooltip?: string }) {
   if (!tooltip) {
-    return <FormLabel>{label}</FormLabel>;
+    return <FormLabel className="whitespace-nowrap">{label}</FormLabel>;
   }
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 whitespace-nowrap">
       <FormLabel>{label}</FormLabel>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -314,9 +314,9 @@ export function SliderField({
         };
 
         return (
-          <FormItem>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+          <FormItem className="min-w-0">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2">
                 <LabelWithTooltip label={label} tooltip={tooltip} />
                 <ValidationIndicator
                   isValid={!fieldState.error && !hasWarning}
@@ -327,13 +327,13 @@ export function SliderField({
                 />
               </div>
               {/* Touch-friendly value controls */}
-              <div className="flex items-center gap-1">
+              <div className="flex shrink-0 items-center gap-1">
                 <button
                   type="button"
                   onClick={handleDecrement}
                   disabled={field.value <= min}
                   aria-label={`Decrease ${label}`}
-                  className="border-input bg-background hover:bg-accent hover:text-accent-foreground touch-target flex h-8 w-8 items-center justify-center rounded-md border text-sm font-medium disabled:pointer-events-none disabled:opacity-50"
+                  className="border-input bg-background hover:bg-accent hover:text-accent-foreground touch-target flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-sm font-medium disabled:pointer-events-none disabled:opacity-50"
                 >
                   −
                 </button>
@@ -348,7 +348,7 @@ export function SliderField({
                     min={min}
                     max={max}
                     step={step}
-                    className="border-input bg-background focus:ring-ring h-8 w-16 rounded-md border px-2 text-center text-sm font-medium focus:ring-2 focus:outline-none"
+                    className="border-input bg-background focus:ring-ring h-8 w-16 shrink-0 rounded-md border px-2 text-center text-sm font-medium focus:ring-2 focus:outline-none"
                     aria-label={`${label} value`}
                   />
                 ) : (
@@ -356,7 +356,7 @@ export function SliderField({
                     type="button"
                     onClick={handleEditClick}
                     aria-label={`Edit ${label} value`}
-                    className="border-input bg-background hover:bg-accent hover:text-accent-foreground touch-target h-8 min-w-[5rem] rounded-md border px-2 text-center text-sm font-medium whitespace-nowrap"
+                    className="border-input bg-background hover:bg-accent hover:text-accent-foreground touch-target h-8 min-w-[4.5rem] shrink-0 rounded-md border px-2 text-center text-sm font-medium whitespace-nowrap"
                   >
                     {formatValue ? formatValue(field.value) : field.value}
                   </button>
@@ -366,7 +366,7 @@ export function SliderField({
                   onClick={handleIncrement}
                   disabled={field.value >= max}
                   aria-label={`Increase ${label}`}
-                  className="border-input bg-background hover:bg-accent hover:text-accent-foreground touch-target flex h-8 w-8 items-center justify-center rounded-md border text-sm font-medium disabled:pointer-events-none disabled:opacity-50"
+                  className="border-input bg-background hover:bg-accent hover:text-accent-foreground touch-target flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-sm font-medium disabled:pointer-events-none disabled:opacity-50"
                 >
                   +
                 </button>

@@ -179,19 +179,21 @@ export type TimelineExportFormat = "png" | "pdf" | "csv" | "json";
 
 export const TIMELINE_FILTER_STORAGE_KEY = "equity-timeline-filters";
 
-// Chart colors matching Fundcy palette
+// Chart colors matching Fundcy palette (hex values for Recharts compatibility)
+// Note: CSS variables use OKLCH format, but Recharts needs raw color values
 export const OWNERSHIP_COLORS: Record<OwnershipCategory, string> = {
-  founder: "hsl(var(--chart-1))", // Dark forest green
-  investor: "hsl(var(--chart-4))", // Teal/mint
-  employee: "hsl(var(--chart-2))", // Medium green
-  option_pool: "hsl(var(--chart-3))", // Lime
+  founder: "#1A3D2E", // Dark forest green (chart-1)
+  investor: "#3DD9C1", // Teal/mint (chart-4)
+  employee: "#2D5A3D", // Medium green (chart-2)
+  option_pool: "#9BC53D", // Lime (chart-3)
 };
 
 // Named colors for specific stakeholders (cycles through)
+// Using hex values for Recharts compatibility
 export const STAKEHOLDER_COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
+  "#1A3D2E", // Dark forest (chart-1)
+  "#2D5A3D", // Medium green (chart-2)
+  "#9BC53D", // Lime (chart-3)
+  "#3DD9C1", // Teal/mint (chart-4)
+  "#7FCB9B", // Light mint (chart-5)
 ];

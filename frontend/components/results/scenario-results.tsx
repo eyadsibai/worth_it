@@ -481,7 +481,7 @@ export function ScenarioResults({
           {/* Final Payout */}
           <Card className="terminal-card h-full overflow-hidden">
             <CardHeader className="px-4 pt-4 pb-2">
-              <CardDescription className="data-label flex items-center gap-1 text-xs">
+              <CardDescription className="data-label flex w-fit items-center gap-1 text-xs">
                 <span className="hidden sm:inline">Final Payout {showNPV && "(NPV)"}</span>
                 <span className="sm:hidden">Payout {showNPV && "(NPV)"}</span>
                 <InfoTooltip content={RESULT_EXPLANATIONS.finalPayout} iconSize={12} />
@@ -500,8 +500,8 @@ export function ScenarioResults({
           {/* Opportunity Cost */}
           <Card className="terminal-card h-full overflow-hidden">
             <CardHeader className="px-4 pt-4 pb-2">
-              <CardDescription className="data-label flex items-center gap-1 text-xs">
-                <span className="hidden sm:inline">Opportunity Cost {showNPV && "(NPV)"}</span>
+              <CardDescription className="data-label flex w-fit items-center gap-1 text-xs">
+                <span className="hidden sm:inline">Opp. Cost {showNPV && "(NPV)"}</span>
                 <span className="sm:hidden">Opp. Cost {showNPV && "(NPV)"}</span>
                 <InfoTooltip content={RESULT_EXPLANATIONS.opportunityCost} iconSize={12} />
               </CardDescription>
@@ -520,7 +520,7 @@ export function ScenarioResults({
           {/* Net Benefit */}
           <Card className="terminal-card h-full overflow-hidden">
             <CardHeader className="px-4 pt-4 pb-2">
-              <CardDescription className="data-label flex items-center gap-1 text-xs">
+              <CardDescription className="data-label flex w-fit items-center gap-1 text-xs">
                 Net Benefit {showNPV && "(NPV)"}
                 <InfoTooltip content={RESULT_EXPLANATIONS.netBenefit} iconSize={12} />
               </CardDescription>
@@ -558,7 +558,7 @@ export function ScenarioResults({
             displayResults.total_dilution !== undefined && (
               <Card className="terminal-card h-full overflow-hidden">
                 <CardHeader className="px-4 pt-4 pb-2">
-                  <CardDescription className="data-label flex items-center gap-1 text-xs">
+                  <CardDescription className="data-label flex w-fit items-center gap-1 text-xs">
                     <span className="hidden sm:inline">Total Dilution</span>
                     <span className="sm:hidden">Dilution</span>
                     <InfoTooltip content={RESULT_EXPLANATIONS.totalDilution} iconSize={12} />
@@ -582,7 +582,7 @@ export function ScenarioResults({
           {/* Break-Even */}
           <Card className="terminal-card h-full overflow-hidden">
             <CardHeader className="px-4 pt-4 pb-2">
-              <CardDescription className="data-label flex items-center gap-1 text-xs">
+              <CardDescription className="data-label flex w-fit items-center gap-1 text-xs">
                 Break-Even
                 <InfoTooltip content={RESULT_EXPLANATIONS.breakEven} iconSize={12} />
               </CardDescription>

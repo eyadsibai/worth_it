@@ -12,6 +12,7 @@ import {
   LineChart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAppStore } from "@/lib/store";
 import { EXAMPLE_SCENARIOS, type ExampleStage } from "@/lib/constants/examples";
 import { FOUNDER_TEMPLATES } from "@/lib/constants/founder-templates";
@@ -97,7 +98,7 @@ export function TemplatePicker({ mode }: TemplatePickerProps) {
                 <Button
                   key={scenario.id}
                   variant="outline"
-                  className="hover:border-primary hover:bg-primary/5 h-auto flex-col items-start gap-2 p-4 text-left transition-colors"
+                  className="hover:border-primary hover:bg-primary/5 h-auto flex-col items-start gap-2 overflow-hidden p-4 text-left whitespace-normal transition-colors"
                   onClick={() => handleEmployeeTemplate(scenario.id, scenario.name)}
                 >
                   <div className="flex w-full items-center gap-2">
@@ -106,9 +107,16 @@ export function TemplatePicker({ mode }: TemplatePickerProps) {
                     </div>
                     <span className="text-sm font-medium">{scenario.name}</span>
                   </div>
-                  <span className="text-muted-foreground line-clamp-2 text-xs">
-                    {scenario.description}
-                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground line-clamp-2 text-xs">
+                        {scenario.description}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[200px]">
+                      {scenario.description}
+                    </TooltipContent>
+                  </Tooltip>
                 </Button>
               );
             })
@@ -119,7 +127,7 @@ export function TemplatePicker({ mode }: TemplatePickerProps) {
                 <Button
                   key={template.id}
                   variant="outline"
-                  className="hover:border-primary hover:bg-primary/5 h-auto flex-col items-start gap-2 p-4 text-left transition-colors"
+                  className="hover:border-primary hover:bg-primary/5 h-auto flex-col items-start gap-2 overflow-hidden p-4 text-left whitespace-normal transition-colors"
                   onClick={() => handleFounderTemplate(template.id, template.name)}
                 >
                   <div className="flex w-full items-center gap-2">
@@ -128,9 +136,16 @@ export function TemplatePicker({ mode }: TemplatePickerProps) {
                     </div>
                     <span className="text-sm font-medium">{template.name}</span>
                   </div>
-                  <span className="text-muted-foreground line-clamp-2 text-xs">
-                    {template.description}
-                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-muted-foreground line-clamp-2 text-xs">
+                        {template.description}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[200px]">
+                      {template.description}
+                    </TooltipContent>
+                  </Tooltip>
                 </Button>
               );
             })}
