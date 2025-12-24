@@ -277,14 +277,29 @@ export function EventTimeline({
     // Labels need ~12% spacing to avoid overlap (based on max-w-[100px] ~ 100px in typical container)
     const minSpacing = 10; // Minimum percentage spacing between labels
 
+    // Track which offset levels are "occupied" at each position cluster
+    // Events within minSpacing of each other form a cluster
+    let clusterStart = 0;
+    let usedOffsetsInCluster: Set<number> = new Set([0]); // First event always at offset 0
+
     for (let i = 1; i < positions.length; i++) {
       const current = positions[i];
-      const previous = positions[i - 1];
+      const clusterAnchor = positions[clusterStart];
 
-      // Check if too close to previous label
-      if (current.position - previous.position < minSpacing) {
-        // Alternate offset: if previous was at offset 0, use offset 1, and vice versa
-        current.labelOffset = (previous.labelOffset + 1) % 2;
+      // Check if current event is part of the same cluster (within minSpacing of cluster start)
+      if (current.position - clusterAnchor.position < minSpacing) {
+        // Find the next available offset level
+        let nextOffset = 0;
+        while (usedOffsetsInCluster.has(nextOffset)) {
+          nextOffset++;
+        }
+        current.labelOffset = nextOffset;
+        usedOffsetsInCluster.add(nextOffset);
+      } else {
+        // Start a new cluster
+        clusterStart = i;
+        usedOffsetsInCluster = new Set([0]);
+        current.labelOffset = 0;
       }
     }
 
@@ -351,7 +366,7 @@ export function EventTimeline({
       </div>
 
       {/* Event labels below the line */}
-      <div className="relative h-20">
+      <div className="relative h-28">
         {eventPositions.map(({ event, position, labelOffset }) => (
           <EventLabel
             key={event.id}

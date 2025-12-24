@@ -356,7 +356,11 @@ describe("WaterfallSummary", () => {
 
       const payoutDisplay = screen.getByTestId("highlighted-payout");
       const payoutAmount = within(payoutDisplay).getByText(/\$20/);
-      expect(payoutAmount.className).toContain("tabular-nums");
+      // AnimatedCurrencyDisplay nests the text in spans - tabular-nums is on a parent
+      const hasTabularNums =
+        payoutAmount.className.includes("tabular-nums") ||
+        payoutAmount.closest(".tabular-nums") !== null;
+      expect(hasTabularNums).toBe(true);
     });
   });
 });

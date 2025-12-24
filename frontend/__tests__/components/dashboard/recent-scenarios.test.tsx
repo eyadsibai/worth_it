@@ -63,7 +63,10 @@ describe("RecentScenarios", () => {
 
   it("displays net benefit for employee scenarios", () => {
     render(<RecentScenarios scenarios={mockScenarios} onLoadScenario={mockOnLoadScenario} />);
-    expect(screen.getByText("+$50,000")).toBeInTheDocument();
+    // AnimatedCurrencyDisplay renders + as a separate element for positive values
+    expect(screen.getByText("$50,000")).toBeInTheDocument();
+    expect(screen.getByText("+")).toBeInTheDocument();
+    // Negative values include the minus sign in the formatted currency
     expect(screen.getByText("-$25,000")).toBeInTheDocument();
   });
 

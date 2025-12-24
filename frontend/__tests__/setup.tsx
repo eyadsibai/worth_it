@@ -67,8 +67,44 @@ vi.mock("framer-motion", async () => {
     },
     AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
     useReducedMotion: () => true, // Simulate reduced motion preference in tests
+    useInView: () => true, // Always return true so animations trigger immediately
+    // Mock useMotionValue to track a value that can be set and retrieved
+    useMotionValue: (initial: number) => {
+      let current = initial;
+      const listeners: ((v: number) => void)[] = [];
+      return {
+        get: () => current,
+        set: (v: number) => {
+          current = v;
+          listeners.forEach((l) => l(v));
+        },
+        on: (event: string, callback: (v: number) => void) => {
+          if (event === "change") {
+            listeners.push(callback);
+            // Immediately call with current value
+            callback(current);
+          }
+          return () => {
+            const idx = listeners.indexOf(callback);
+            if (idx > -1) listeners.splice(idx, 1);
+          };
+        },
+      };
+    },
+    // Mock useSpring to return a value that immediately reflects changes
+    useSpring: (value: {
+      get: () => number;
+      on: (event: string, cb: (v: number) => void) => () => void;
+    }) => {
+      return value; // Pass through the motion value for immediate updates
+    },
   };
 });
+
+// Mock the custom useReducedMotion hook to return true in tests
+vi.mock("@/lib/hooks/use-reduced-motion", () => ({
+  useReducedMotion: () => true,
+}));
 
 // Mock crypto.randomUUID for tests (not available in jsdom)
 let uuidCounter = 0;

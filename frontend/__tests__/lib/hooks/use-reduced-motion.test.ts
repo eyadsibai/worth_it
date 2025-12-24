@@ -4,7 +4,12 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
-import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
+
+// Clear module cache and unmock the hook to test real implementation
+vi.unmock("@/lib/hooks/use-reduced-motion");
+
+// Import the real hook (not the mocked version from setup.tsx)
+const { useReducedMotion } = await import("@/lib/hooks/use-reduced-motion");
 
 describe("useReducedMotion", () => {
   let matchMediaMock: ReturnType<typeof vi.fn>;

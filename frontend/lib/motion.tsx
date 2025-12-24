@@ -221,6 +221,9 @@ const defaultNumberFormatter = (v: number) => v.toLocaleString();
 /**
  * Animated number counter that smoothly transitions between values
  * Great for displaying metrics, statistics, and financial figures
+ *
+ * Respects reduced motion preference for accessibility - when enabled,
+ * renders the final value immediately without animation.
  */
 export function AnimatedNumber({
   value,
@@ -228,8 +231,9 @@ export function AnimatedNumber({
   formatValue,
   className,
 }: AnimatedNumberProps) {
+  const prefersReducedMotion = useReducedMotion();
   const ref = React.useRef<HTMLSpanElement>(null);
-  const motionValue = useMotionValue(0);
+  const motionValue = useMotionValue(prefersReducedMotion ? value : 0);
   const springValue = useSpring(motionValue, {
     duration: duration * 1000,
     bounce: 0,
@@ -243,10 +247,10 @@ export function AnimatedNumber({
   );
 
   React.useEffect(() => {
-    if (isInView) {
+    if (isInView || prefersReducedMotion) {
       motionValue.set(value);
     }
-  }, [isInView, value, motionValue]);
+  }, [isInView, value, motionValue, prefersReducedMotion]);
 
   React.useEffect(() => {
     const unsubscribe = springValue.on("change", (latest) => {
@@ -257,9 +261,10 @@ export function AnimatedNumber({
     return unsubscribe;
   }, [springValue, memoizedFormatter]);
 
+  // When reduced motion is preferred, render the final value immediately
   return (
     <span ref={ref} className={className}>
-      {memoizedFormatter(0)}
+      {memoizedFormatter(prefersReducedMotion ? value : 0)}
     </span>
   );
 }
