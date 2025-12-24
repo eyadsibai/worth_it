@@ -15,7 +15,9 @@ import type {
   RSUForm,
   StockOptionsForm,
 } from "@/lib/schemas";
-import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { InfoTooltip, LabelWithTooltip } from "@/components/ui/info-tooltip";
+import { MetricCard, MetricCardHeader, MetricCardContent } from "@/components/ui/metric-card";
+import { ResponsiveText } from "@/components/ui/responsive-text";
 import { RESULT_EXPLANATIONS, generateResultsSummary } from "@/lib/constants/result-explanations";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CumulativeComparisonChart } from "@/components/charts/cumulative-comparison-chart";
@@ -479,52 +481,44 @@ export function ScenarioResults({
         {/* Carousel on mobile, 5-col grid on desktop */}
         <MetricCarousel>
           {/* Final Payout */}
-          <Card className="terminal-card h-full overflow-hidden">
-            <CardHeader className="px-4 pt-4 pb-2">
-              <CardDescription className="data-label flex items-center gap-1 text-xs">
-                <span className="hidden sm:inline">Final Payout {showNPV && "(NPV)"}</span>
-                <span className="sm:hidden">Payout {showNPV && "(NPV)"}</span>
-                <InfoTooltip content={RESULT_EXPLANATIONS.finalPayout} iconSize={12} />
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <CardTitle className="text-foreground text-lg font-semibold tracking-tight lg:text-xl">
-                <AnimatedCurrencyDisplay value={displayPayoutValue} responsive />
-              </CardTitle>
-              <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">
-                {results.payout_label}
-              </p>
-            </CardContent>
-          </Card>
+          <MetricCard>
+            <MetricCardHeader>
+              <LabelWithTooltip tooltip={RESULT_EXPLANATIONS.finalPayout} as="span">
+                <ResponsiveText
+                  full={`Final Payout${showNPV ? " (NPV)" : ""}`}
+                  short={`Payout${showNPV ? " (NPV)" : ""}`}
+                />
+              </LabelWithTooltip>
+            </MetricCardHeader>
+            <MetricCardContent subtitle={results.payout_label}>
+              <AnimatedCurrencyDisplay value={displayPayoutValue} responsive />
+            </MetricCardContent>
+          </MetricCard>
 
           {/* Opportunity Cost */}
-          <Card className="terminal-card h-full overflow-hidden">
-            <CardHeader className="px-4 pt-4 pb-2">
-              <CardDescription className="data-label flex items-center gap-1 text-xs">
-                <span className="hidden sm:inline">Opportunity Cost {showNPV && "(NPV)"}</span>
-                <span className="sm:hidden">Opp. Cost {showNPV && "(NPV)"}</span>
-                <InfoTooltip content={RESULT_EXPLANATIONS.opportunityCost} iconSize={12} />
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <CardTitle className="text-foreground text-lg font-semibold tracking-tight lg:text-xl">
-                <AnimatedCurrencyDisplay value={displayOpportunityCost} responsive />
-              </CardTitle>
-              <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">
-                <span className="hidden sm:inline">Current job alternative</span>
-                <span className="sm:hidden">Alt. path</span>
-              </p>
-            </CardContent>
-          </Card>
+          <MetricCard>
+            <MetricCardHeader>
+              <LabelWithTooltip tooltip={RESULT_EXPLANATIONS.opportunityCost} as="span">
+                <ResponsiveText
+                  full={`Opportunity Cost${showNPV ? " (NPV)" : ""}`}
+                  short={`Opp. Cost${showNPV ? " (NPV)" : ""}`}
+                />
+              </LabelWithTooltip>
+            </MetricCardHeader>
+            <MetricCardContent
+              subtitle={<ResponsiveText full="Current job alternative" short="Alt. path" />}
+            >
+              <AnimatedCurrencyDisplay value={displayOpportunityCost} responsive />
+            </MetricCardContent>
+          </MetricCard>
 
           {/* Net Benefit */}
-          <Card className="terminal-card h-full overflow-hidden">
-            <CardHeader className="px-4 pt-4 pb-2">
-              <CardDescription className="data-label flex items-center gap-1 text-xs">
-                Net Benefit {showNPV && "(NPV)"}
-                <InfoTooltip content={RESULT_EXPLANATIONS.netBenefit} iconSize={12} />
-              </CardDescription>
-            </CardHeader>
+          <MetricCard>
+            <MetricCardHeader>
+              <LabelWithTooltip tooltip={RESULT_EXPLANATIONS.netBenefit} as="span">
+                {`Net Benefit${showNPV ? " (NPV)" : ""}`}
+              </LabelWithTooltip>
+            </MetricCardHeader>
             <CardContent className="px-4 pb-4">
               <div className="flex items-center gap-1.5">
                 {isPositive ? (
@@ -551,63 +545,49 @@ export function ScenarioResults({
                 </Badge>
               </div>
             </CardContent>
-          </Card>
+          </MetricCard>
 
           {/* Dilution (if applicable) */}
           {displayResults.total_dilution !== null &&
             displayResults.total_dilution !== undefined && (
-              <Card className="terminal-card h-full overflow-hidden">
-                <CardHeader className="px-4 pt-4 pb-2">
-                  <CardDescription className="data-label flex items-center gap-1 text-xs">
-                    <span className="hidden sm:inline">Total Dilution</span>
-                    <span className="sm:hidden">Dilution</span>
-                    <InfoTooltip content={RESULT_EXPLANATIONS.totalDilution} iconSize={12} />
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="px-4 pb-4">
-                  <CardTitle className="text-foreground text-lg font-semibold tracking-tight tabular-nums lg:text-xl">
+              <MetricCard>
+                <MetricCardHeader>
+                  <LabelWithTooltip tooltip={RESULT_EXPLANATIONS.totalDilution} as="span">
+                    <ResponsiveText full="Total Dilution" short="Dilution" />
+                  </LabelWithTooltip>
+                </MetricCardHeader>
+                <MetricCardContent
+                  subtitle={`Final: ${((displayResults.diluted_equity_pct || 0) * 100).toFixed(2).replace(/\.?0+$/, "")}%`}
+                >
+                  <span className="tabular-nums">
                     {(displayResults.total_dilution * 100).toFixed(2).replace(/\.?0+$/, "")}%
-                  </CardTitle>
-                  <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">
-                    Final:{" "}
-                    {((displayResults.diluted_equity_pct || 0) * 100)
-                      .toFixed(2)
-                      .replace(/\.?0+$/, "")}
-                    %
-                  </p>
-                </CardContent>
-              </Card>
+                  </span>
+                </MetricCardContent>
+              </MetricCard>
             )}
 
           {/* Break-Even */}
-          <Card className="terminal-card h-full overflow-hidden">
-            <CardHeader className="px-4 pt-4 pb-2">
-              <CardDescription className="data-label flex items-center gap-1 text-xs">
+          <MetricCard>
+            <MetricCardHeader>
+              <LabelWithTooltip tooltip={RESULT_EXPLANATIONS.breakEven} as="span">
                 Break-Even
-                <InfoTooltip content={RESULT_EXPLANATIONS.breakEven} iconSize={12} />
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <CardTitle className="text-foreground text-lg font-semibold tracking-tight lg:text-xl">
-                {displayResults.results_df.length > 0 &&
-                displayResults.results_df[displayResults.results_df.length - 1].breakeven_value !==
-                  undefined ? (
-                  <CurrencyDisplay
-                    value={
-                      displayResults.results_df[displayResults.results_df.length - 1]
-                        .breakeven_value
-                    }
-                    responsive
-                  />
-                ) : (
-                  "N/A"
-                )}
-              </CardTitle>
-              <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">
-                {displayResults.breakeven_label}
-              </p>
-            </CardContent>
-          </Card>
+              </LabelWithTooltip>
+            </MetricCardHeader>
+            <MetricCardContent subtitle={displayResults.breakeven_label}>
+              {displayResults.results_df.length > 0 &&
+              displayResults.results_df[displayResults.results_df.length - 1].breakeven_value !==
+                undefined ? (
+                <CurrencyDisplay
+                  value={
+                    displayResults.results_df[displayResults.results_df.length - 1].breakeven_value
+                  }
+                  responsive
+                />
+              ) : (
+                "N/A"
+              )}
+            </MetricCardContent>
+          </MetricCard>
         </MetricCarousel>
 
         {/* Plain-English Summary */}
