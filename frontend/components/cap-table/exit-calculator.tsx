@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { motion, HighlightOnChange } from "@/lib/motion";
+import { formatLargeNumber, removeTrailingZeros } from "@/lib/format-utils";
 import type { Stakeholder } from "@/lib/schemas";
 
 interface ExitCalculatorProps {
@@ -53,23 +54,6 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
 
   const totalAllocatedPct = payouts.reduce((sum, p) => sum + p.ownershipPct, 0);
   const totalPayout = payouts.reduce((sum, p) => sum + p.payout, 0);
-
-  const formatCurrency = (value: number): string => {
-    const formatNum = (n: number, decimals: number) => {
-      const fixed = n.toFixed(decimals);
-      return fixed.replace(/\.?0+$/, "");
-    };
-    if (value >= 1000000000) {
-      return `$${formatNum(value / 1000000000, 2)}B`;
-    }
-    if (value >= 1000000) {
-      return `$${formatNum(value / 1000000, 2)}M`;
-    }
-    if (value >= 1000) {
-      return `$${formatNum(value / 1000, 1)}K`;
-    }
-    return `$${value.toFixed(0)}`;
-  };
 
   return (
     <Card className="terminal-card">
@@ -115,7 +99,7 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
                 whileTap={{ scale: 0.95 }}
                 transition={{ duration: 0.15 }}
               >
-                {formatCurrency(val)}
+                {formatLargeNumber(val)}
               </motion.button>
             ))}
           </div>
@@ -143,11 +127,11 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
                     {row.type.replace("_", " ")}
                   </TableCell>
                   <TableCell className="text-right">
-                    {row.ownershipPct.toFixed(2).replace(/\.?0+$/, "")}%
+                    {removeTrailingZeros(row.ownershipPct.toFixed(2))}%
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     <HighlightOnChange value={row.payout}>
-                      {formatCurrency(row.payout)}
+                      {formatLargeNumber(row.payout)}
                     </HighlightOnChange>
                   </TableCell>
                 </TableRow>
@@ -156,11 +140,11 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
                 <TableCell>Total</TableCell>
                 <TableCell />
                 <TableCell className="text-right">
-                  {totalAllocatedPct.toFixed(2).replace(/\.?0+$/, "")}%
+                  {removeTrailingZeros(totalAllocatedPct.toFixed(2))}%
                 </TableCell>
                 <TableCell className="text-terminal text-right tabular-nums">
                   <HighlightOnChange value={totalPayout}>
-                    {formatCurrency(totalPayout)}
+                    {formatLargeNumber(totalPayout)}
                   </HighlightOnChange>
                 </TableCell>
               </TableRow>

@@ -25,6 +25,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
 
   // Hide dev indicators in the bottom corner
+  // In Next.js 16+, setting to false disables all dev indicators
   devIndicators: false,
 
   // Disable source maps in production for smaller bundle sizes and faster builds

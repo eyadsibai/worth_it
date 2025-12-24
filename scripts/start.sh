@@ -106,15 +106,19 @@ echo "Checking prerequisites..."
 
 # Check if uv is installed
 if ! command -v uv &> /dev/null; then
-    echo -e "${YELLOW}uv package manager not found. Installing uv...${NC}"
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    export PATH="$HOME/.cargo/bin:$PATH"
-
-    # Verify installation
-    if ! command -v uv &> /dev/null; then
-        echo -e "${RED}ERROR: Failed to install uv. Please install manually from https://github.com/astral-sh/uv${NC}"
-        exit 1
-    fi
+    echo -e "${YELLOW}uv package manager not found.${NC}"
+    echo ""
+    echo "Please install uv using one of these methods:"
+    echo ""
+    echo "  macOS (Homebrew):  brew install uv"
+    echo "  Linux (Homebrew):  brew install uv"
+    echo "  pipx:              pipx install uv"
+    echo "  pip:               pip install uv"
+    echo "  Official script:   curl -LsSf https://astral.sh/uv/install.sh | sh"
+    echo ""
+    echo "For more options, see: https://docs.astral.sh/uv/getting-started/installation/"
+    echo ""
+    exit 1
 fi
 echo -e "${GREEN}✓ uv is installed${NC}"
 

@@ -10,6 +10,7 @@ import { ConvertibleNoteForm } from "./convertible-note-form";
 import { PricedRoundForm } from "./priced-round-form";
 import { motion, MotionFadeInUp, MotionList, MotionListItem, AnimatedNumber } from "@/lib/motion";
 import { generateId } from "@/lib/utils";
+import { formatLargeNumber } from "@/lib/format-utils";
 import type {
   FundingInstrument,
   SAFEFormData,
@@ -31,18 +32,6 @@ interface FundingRoundsManagerProps {
   onPricedRoundAdded?: (round: PricedRound) => void;
   stakeholders?: Stakeholder[]; // For dilution preview
   optionPoolPct?: number; // For dilution preview
-}
-
-// Format currency (no trailing zeros)
-function formatCurrency(value: number): string {
-  const formatNum = (n: number, decimals: number) => {
-    const fixed = n.toFixed(decimals);
-    return fixed.replace(/\.?0+$/, "");
-  };
-  if (value >= 1000000) {
-    return `$${formatNum(value / 1000000, 2)}M`;
-  }
-  return `$${value.toLocaleString()}`;
 }
 
 export function FundingRoundsManager({
@@ -260,24 +249,24 @@ export function FundingRoundsManager({
                           <div className="text-muted-foreground text-sm">
                             {instrument.type === "SAFE" && (
                               <>
-                                {formatCurrency(instrument.investment_amount)}
+                                {formatLargeNumber(instrument.investment_amount)}
                                 {instrument.valuation_cap &&
-                                  ` • Cap: ${formatCurrency(instrument.valuation_cap)}`}
+                                  ` • Cap: ${formatLargeNumber(instrument.valuation_cap)}`}
                                 {instrument.discount_pct &&
                                   ` • ${instrument.discount_pct}% discount`}
                               </>
                             )}
                             {instrument.type === "CONVERTIBLE_NOTE" && (
                               <>
-                                {formatCurrency(instrument.principal_amount)}
+                                {formatLargeNumber(instrument.principal_amount)}
                                 {` • ${instrument.interest_rate}% interest`}
                                 {` • ${instrument.maturity_months}mo maturity`}
                               </>
                             )}
                             {instrument.type === "PRICED_ROUND" && (
                               <>
-                                {formatCurrency(instrument.amount_raised)}
-                                {` • Pre: ${formatCurrency(instrument.pre_money_valuation)}`}
+                                {formatLargeNumber(instrument.amount_raised)}
+                                {` • Pre: ${formatLargeNumber(instrument.pre_money_valuation)}`}
                                 {instrument.lead_investor &&
                                   ` • Led by ${instrument.lead_investor}`}
                               </>

@@ -383,6 +383,10 @@ export function AnimatedCurrencyDisplay({
 
 /**
  * Animated percentage display
+ *
+ * Note: Trailing zeros are only removed when the animation completes (value stabilizes).
+ * During animation, we show consistent decimal places to avoid visual "jumping"
+ * between formats (e.g., "28" → "28.1" → "28.5" → "28.50").
  */
 export function AnimatedPercentage({
   value,
@@ -397,9 +401,11 @@ export function AnimatedPercentage({
   const motionValue = useMotionValue(0);
   const springValue = useSpring(motionValue, { duration: 800, bounce: 0 });
   const isInView = useInView(ref, { once: true, margin: "-50px" });
+  const targetValue = React.useRef(value);
 
   React.useEffect(() => {
     if (isInView) {
+      targetValue.current = value;
       motionValue.set(value);
     }
   }, [isInView, value, motionValue]);
@@ -407,9 +413,17 @@ export function AnimatedPercentage({
   React.useEffect(() => {
     const unsubscribe = springValue.on("change", (latest) => {
       if (ref.current) {
-        // Remove trailing zeros for cleaner display
-        const formatted = latest.toFixed(decimals).replace(/\.?0+$/, "");
-        ref.current.textContent = formatted + "%";
+        // Check if animation is close to complete (within 0.01 of target)
+        const isComplete = Math.abs(latest - targetValue.current) < 0.01;
+
+        if (isComplete) {
+          // Animation complete: use the exact target value and remove trailing zeros
+          const formatted = targetValue.current.toFixed(decimals).replace(/\.?0+$/, "");
+          ref.current.textContent = formatted + "%";
+        } else {
+          // During animation: show consistent decimal places to avoid visual jumping
+          ref.current.textContent = latest.toFixed(decimals) + "%";
+        }
       }
     });
     return unsubscribe;

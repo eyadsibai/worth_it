@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DollarSign, TrendingUp } from "lucide-react";
+import { formatLargeNumber } from "@/lib/format-utils";
 
 interface ValuationSliderProps {
   value: number;
@@ -15,24 +16,6 @@ interface ValuationSliderProps {
   max?: number;
   step?: number;
   breakevenPoints?: Record<string, number>;
-}
-
-// Format currency for display (no trailing zeros)
-function formatCurrency(value: number): string {
-  const formatNum = (n: number, decimals: number) => {
-    const fixed = n.toFixed(decimals);
-    return fixed.replace(/\.?0+$/, "");
-  };
-  if (value >= 1_000_000_000) {
-    return `$${formatNum(value / 1_000_000_000, 2)}B`;
-  }
-  if (value >= 1_000_000) {
-    return `$${formatNum(value / 1_000_000, 1)}M`;
-  }
-  if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(0)}K`;
-  }
-  return `$${value.toFixed(0)}`;
 }
 
 // Parse user input to number
@@ -131,7 +114,7 @@ export function ValuationSlider({
             </div>
           </div>
           <p className="text-muted-foreground mt-1 text-sm">
-            {formatCurrency(value)} exit valuation
+            {formatLargeNumber(value)} exit valuation
           </p>
         </div>
 
@@ -146,8 +129,8 @@ export function ValuationSlider({
             className="w-full"
           />
           <div className="text-muted-foreground flex justify-between text-xs">
-            <span>{formatCurrency(min)}</span>
-            <span>{formatCurrency(max)}</span>
+            <span>{formatLargeNumber(min)}</span>
+            <span>{formatLargeNumber(max)}</span>
           </div>
         </div>
 
@@ -190,7 +173,7 @@ export function ValuationSlider({
                     onClick={() => onChange(breakeven)}
                     className="h-auto px-2 py-0 text-xs tabular-nums"
                   >
-                    {formatCurrency(breakeven)}
+                    {formatLargeNumber(breakeven)}
                   </Button>
                 </div>
               ))}

@@ -130,7 +130,7 @@ export function OwnershipChart({ stakeholders, optionPoolPct }: OwnershipChartPr
                       dominantBaseline="central"
                       className="text-xs"
                     >
-                      {`${displayName}: ${(value as number).toFixed(1)}%`}
+                      {`${displayName}: ${(value as number).toFixed(1).replace(/\.?0+$/, "")}%`}
                     </text>
                   );
                 }}

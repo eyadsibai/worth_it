@@ -94,10 +94,39 @@ export function formatCurrencyCompact(value: number): string {
 }
 
 /**
- * Format a large number with a suffix (M, B, K) without trailing .00
+ * Remove trailing zeros from a fixed-decimal string for cleaner display.
+ * Uses the pattern /\.?0+$/ which removes:
+ * - Trailing zeros after a decimal point (e.g., "1.50" → "1.5")
+ * - The decimal point if all decimal digits are zeros (e.g., "1.00" → "1")
+ *
+ * Note: For edge cases like very small numbers (e.g., 0.001), this may reduce
+ * precision when used with limited decimal places. This is acceptable for UI
+ * display of currency and percentages where such precision isn't meaningful.
+ *
+ * @param numStr - A string from toFixed() (e.g., "1.50", "28.00")
+ * @returns String with trailing zeros removed (e.g., "1.5", "28")
+ */
+export function removeTrailingZeros(numStr: string): string {
+  return numStr.replace(/\.?0+$/, "");
+}
+
+/**
+ * Format a large number with a suffix (M, B, K) without trailing zeros.
+ *
+ * This function handles large currency values and formats them with appropriate
+ * suffixes for readability. Trailing zeros are automatically removed for cleaner
+ * display (e.g., "$1.50M" becomes "$1.5M", "$2.00M" becomes "$2M").
+ *
  * @param value - The number to format
  * @param prefix - Currency prefix (default: "$")
- * @returns Formatted string (e.g., "$10M", "$1.5B")
+ * @returns Formatted string (e.g., "$10M", "$1.5B", "$500K")
+ *
+ * @example
+ * formatLargeNumber(1500000)     // "$1.5M"
+ * formatLargeNumber(2000000)     // "$2M"
+ * formatLargeNumber(50000)       // "$50K"
+ * formatLargeNumber(500)         // "$500"
+ * formatLargeNumber(-1500000)    // "-$1.5M"
  */
 export function formatLargeNumber(value: number, prefix: string = "$"): string {
   const absValue = Math.abs(value);
@@ -105,17 +134,17 @@ export function formatLargeNumber(value: number, prefix: string = "$"): string {
 
   if (absValue >= 1_000_000_000) {
     const num = absValue / 1_000_000_000;
-    const formatted = num % 1 === 0 ? num.toFixed(0) : num.toFixed(2).replace(/\.?0+$/, "");
+    const formatted = num % 1 === 0 ? num.toFixed(0) : removeTrailingZeros(num.toFixed(2));
     return `${sign}${prefix}${formatted}B`;
   }
   if (absValue >= 1_000_000) {
     const num = absValue / 1_000_000;
-    const formatted = num % 1 === 0 ? num.toFixed(0) : num.toFixed(2).replace(/\.?0+$/, "");
+    const formatted = num % 1 === 0 ? num.toFixed(0) : removeTrailingZeros(num.toFixed(2));
     return `${sign}${prefix}${formatted}M`;
   }
   if (absValue >= 1_000) {
     const num = absValue / 1_000;
-    const formatted = num % 1 === 0 ? num.toFixed(0) : num.toFixed(1).replace(/\.?0+$/, "");
+    const formatted = num % 1 === 0 ? num.toFixed(0) : removeTrailingZeros(num.toFixed(1));
     return `${sign}${prefix}${formatted}K`;
   }
   return `${sign}${prefix}${absValue.toFixed(0)}`;
