@@ -362,9 +362,10 @@ describe("ScenarioComparison - Visual Diff", () => {
 
     render(<ScenarioComparison scenarios={scenarios} />, { wrapper: createWrapper() });
 
-    // The better value should have green styling
-    const betterValue = screen.getByTestId("best-net-outcome");
-    expect(betterValue).toHaveClass("text-terminal");
+    // The better value should have green styling (CurrencyDisplay applies class to inner span)
+    const betterValueContainer = screen.getByTestId("best-net-outcome");
+    const currencySpan = betterValueContainer.querySelector("span");
+    expect(currencySpan).toHaveClass("text-terminal");
   });
 });
 

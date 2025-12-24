@@ -12,6 +12,7 @@ import {
   type ComparisonDataForExport,
 } from "@/lib/export-utils";
 import { formatCurrency } from "@/lib/format-utils";
+import { CurrencyDisplay } from "@/components/ui/currency-display";
 import { useCompareScenarios } from "@/lib/api-client";
 import {
   transformWinnerResult,
@@ -407,10 +408,11 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
                     const payoutDiff = diffs.find((d) => d.metric === "finalPayoutValue");
                     const isBest = payoutDiff?.betterScenario === scenario.name;
                     return (
-                      <td key={`payout-${idx}`} className="px-4 py-3 font-semibold tabular-nums">
-                        <span className={isBest ? "text-terminal" : ""}>
-                          {formatCurrency(scenario.results.finalPayoutValue)}
-                        </span>
+                      <td key={`payout-${idx}`} className="px-4 py-3 font-semibold">
+                        <CurrencyDisplay
+                          value={scenario.results.finalPayoutValue}
+                          variant={isBest ? "positive" : "default"}
+                        />
                       </td>
                     );
                   })}
@@ -423,10 +425,11 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
                     const costDiff = diffs.find((d) => d.metric === "finalOpportunityCost");
                     const isBest = costDiff?.betterScenario === scenario.name;
                     return (
-                      <td key={`cost-${idx}`} className="px-4 py-3 font-semibold tabular-nums">
-                        <span className={isBest ? "text-terminal" : ""}>
-                          {formatCurrency(scenario.results.finalOpportunityCost)}
-                        </span>
+                      <td key={`cost-${idx}`} className="px-4 py-3 font-semibold">
+                        <CurrencyDisplay
+                          value={scenario.results.finalOpportunityCost}
+                          variant={isBest ? "positive" : "default"}
+                        />
                       </td>
                     );
                   })}
@@ -455,11 +458,12 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
                           ) : (
                             <TrendingDown className="text-destructive h-4 w-4" />
                           )}
-                          <span
-                            className={`font-semibold tabular-nums ${isBest || isPositive ? "text-terminal" : "text-destructive"}`}
-                            data-testid={isBest ? "best-net-outcome" : undefined}
-                          >
-                            {formatCurrency(scenario.results.netOutcome)}
+                          <span data-testid={isBest ? "best-net-outcome" : undefined}>
+                            <CurrencyDisplay
+                              value={scenario.results.netOutcome}
+                              variant={isBest || isPositive ? "positive" : "negative"}
+                              className="font-semibold"
+                            />
                           </span>
                           {showDiff && (
                             <span className="text-terminal text-xs font-medium">
