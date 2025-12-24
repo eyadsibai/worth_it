@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { UseFormReturn } from "react-hook-form";
-import { HelpCircle } from "lucide-react";
 import {
   FormControl,
   FormDescription,
@@ -21,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { parseShorthand, formatNumberWithSeparators } from "@/lib/format-utils";
 import { ValidationIndicator } from "./validation-indicator";
 import { FormWarning } from "@/components/ui/form-warning";
@@ -41,6 +40,7 @@ interface FormFieldProps {
 /**
  * FormLabel with optional tooltip icon
  * Shows a help icon next to the label that displays the tooltip on hover
+ * Uses shared InfoTooltip component for consistent tooltip styling
  */
 function LabelWithTooltip({ label, tooltip }: { label: string; tooltip?: string }) {
   if (!tooltip) {
@@ -48,22 +48,9 @@ function LabelWithTooltip({ label, tooltip }: { label: string; tooltip?: string 
   }
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1">
       <FormLabel>{label}</FormLabel>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            className="text-muted-foreground hover:text-foreground inline-flex items-center justify-center transition-colors"
-            aria-label={`Help for ${label}`}
-          >
-            <HelpCircle className="h-3.5 w-3.5" />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs" sideOffset={4}>
-          <p>{tooltip}</p>
-        </TooltipContent>
-      </Tooltip>
+      <InfoTooltip content={tooltip} ariaLabel={`Help for ${label}`} />
     </div>
   );
 }

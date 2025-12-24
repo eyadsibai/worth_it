@@ -17,10 +17,16 @@ describe("InfoTooltip", () => {
     expect(screen.getByRole("button", { name: /more information/i })).toBeInTheDocument();
   });
 
-  it("has correct aria-label", () => {
+  it("has correct default aria-label", () => {
     renderWithTooltip(<InfoTooltip content="Help text" />);
     const button = screen.getByRole("button");
     expect(button).toHaveAttribute("aria-label", "More information");
+  });
+
+  it("accepts custom aria-label", () => {
+    renderWithTooltip(<InfoTooltip content="Help text" ariaLabel="Help for Field Name" />);
+    const button = screen.getByRole("button");
+    expect(button).toHaveAttribute("aria-label", "Help for Field Name");
   });
 });
 

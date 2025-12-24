@@ -16,6 +16,8 @@ interface InfoTooltipProps {
   iconClassName?: string;
   /** Optional delay before showing tooltip (ms) */
   delayDuration?: number;
+  /** Optional custom aria-label for the tooltip trigger (default: "More information") */
+  ariaLabel?: string;
 }
 
 /**
@@ -33,6 +35,7 @@ export function InfoTooltip({
   iconSize = 14,
   iconClassName,
   delayDuration = 200,
+  ariaLabel = "More information",
 }: InfoTooltipProps) {
   return (
     <Tooltip delayDuration={delayDuration}>
@@ -45,7 +48,7 @@ export function InfoTooltip({
             "focus-visible:ring-ring focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1",
             "-mt-0.5 ml-1 align-middle transition-colors"
           )}
-          aria-label="More information"
+          aria-label={ariaLabel}
         >
           <Info
             size={iconSize}
