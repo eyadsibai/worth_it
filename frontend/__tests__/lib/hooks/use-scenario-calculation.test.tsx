@@ -3,7 +3,7 @@
  * Tests the 3-step chained calculation flow using TanStack Query
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
 import { useScenarioCalculation } from "@/lib/hooks/use-scenario-calculation";

@@ -1043,48 +1043,6 @@ export function exportCapTableAsPDF(
 // ============================================================================
 
 /**
- * Generic CSV column definition for type-safe CSV building
- */
-interface CSVColumn<T> {
-  header: string;
-  accessor: (row: T) => string | number | undefined | null;
-}
-
-/**
- * Build a CSV string from data using column definitions
- * Automatically applies RFC 4180 escaping to string values
- * Note: Prefixed with underscore - available for future refactoring of CSV exports
- */
-function _buildCSV<T>(data: T[], columns: CSVColumn<T>[]): string {
-  const rows: string[] = [];
-
-  // Header row
-  rows.push(columns.map((col) => escapeCSV(col.header)).join(","));
-
-  // Data rows
-  data.forEach((item) => {
-    const values = columns.map((col) => {
-      const value = col.accessor(item);
-      if (value === null || value === undefined) return "";
-      if (typeof value === "string") return escapeCSV(value);
-      return value.toString();
-    });
-    rows.push(values.join(","));
-  });
-
-  return rows.join("\n");
-}
-
-/**
- * Export CSV content as downloadable file
- * Note: Prefixed with underscore - available for future refactoring of CSV exports
- */
-function _exportCSV(csvContent: string, filename: string): void {
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
-  downloadBlob(blob, `${filename}.csv`);
-}
-
-/**
  * Download a Blob as a file
  */
 function downloadBlob(blob: Blob, filename: string): void {

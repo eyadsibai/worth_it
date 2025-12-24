@@ -44,22 +44,6 @@ const MonteCarloFormSchema = z.object({
 
 type MonteCarloForm = z.infer<typeof MonteCarloFormSchema>;
 
-// Type definitions for Monte Carlo simulation parameters
-interface NormalDistribution {
-  type: "normal";
-  mean: number;
-  std?: number;
-  std_dev?: number;
-}
-
-interface PertDistribution {
-  min_val: number;
-  mode: number;
-  max_val: number;
-}
-
-type SimParamConfig = NormalDistribution | PertDistribution;
-
 interface MonteCarloFormComponentProps {
   baseParams: TypedBaseParams;
   onComplete?: (results: { net_outcomes: number[]; simulated_valuations: number[] }) => void;

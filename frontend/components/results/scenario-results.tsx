@@ -22,7 +22,7 @@ import { CumulativeComparisonChart } from "@/components/charts/cumulative-compar
 import { OpportunityCostChart } from "@/components/charts/opportunity-cost-chart";
 import { formatCurrency } from "@/lib/format-utils";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
-import { AnimatedCurrencyDisplay, AnimatedPercentage, AnimatedNumber } from "@/lib/motion";
+import { AnimatedCurrencyDisplay, AnimatedPercentage } from "@/lib/motion";
 import {
   saveScenario,
   getSavedScenarios,

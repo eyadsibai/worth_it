@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  FOUNDER_TEMPLATES,
-  getFounderTemplateById,
-  type FounderTemplate,
-} from "@/lib/constants/founder-templates";
+import { FOUNDER_TEMPLATES, getFounderTemplateById } from "@/lib/constants/founder-templates";
 import { CapTableSchema, FundingInstrumentSchema, PreferenceTierSchema } from "@/lib/schemas";
 
 describe("FOUNDER_TEMPLATES", () => {

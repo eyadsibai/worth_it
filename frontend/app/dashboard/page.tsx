@@ -10,7 +10,6 @@ import { loadFounderScenarioById } from "@/lib/scenario-utils";
 import { getSavedScenarios } from "@/lib/export-utils";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
 
 export default function DashboardPage() {
   const router = useRouter();

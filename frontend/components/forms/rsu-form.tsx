@@ -30,7 +30,7 @@ import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 import { isValidRSUData } from "@/lib/validation";
 import { DEFAULT_DILUTION_ROUNDS } from "@/lib/constants/funding-rounds";
 import { TOOLTIPS } from "@/lib/constants/tooltips";
-import { FIELD_HINTS, FIELD_EXAMPLES } from "@/lib/constants/examples";
+import { FIELD_HINTS } from "@/lib/constants/examples";
 import { Plus, Rocket } from "lucide-react";
 
 interface RSUFormProps {

@@ -10,7 +10,7 @@ import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 import { isValidStockOptionsData } from "@/lib/validation";
 import type { StockOptionsForm } from "@/lib/schemas";
 import { TOOLTIPS } from "@/lib/constants/tooltips";
-import { FIELD_HINTS, FIELD_EXAMPLES } from "@/lib/constants/examples";
+import { FIELD_HINTS } from "@/lib/constants/examples";
 
 // Simplified schema for the form
 const StockOptionsFormSimplifiedSchema = z.object({

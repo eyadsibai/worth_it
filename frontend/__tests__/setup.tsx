@@ -17,12 +17,12 @@ vi.mock("framer-motion", async () => {
     motion: {
       div: ({
         children,
-        initial,
-        animate,
-        variants,
-        whileHover,
-        whileTap,
-        transition,
+        initial: _initial,
+        animate: _animate,
+        variants: _variants,
+        whileHover: _whileHover,
+        whileTap: _whileTap,
+        transition: _transition,
         ...props
       }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>) => {
         // Filter out motion-specific props and render as regular div
@@ -30,36 +30,36 @@ vi.mock("framer-motion", async () => {
       },
       button: ({
         children,
-        initial,
-        animate,
-        variants,
-        whileHover,
-        whileTap,
-        transition,
+        initial: _initial,
+        animate: _animate,
+        variants: _variants,
+        whileHover: _whileHover,
+        whileTap: _whileTap,
+        transition: _transition,
         ...props
       }: React.ButtonHTMLAttributes<HTMLButtonElement> & Record<string, unknown>) => {
         return <button {...props}>{children}</button>;
       },
       tr: ({
         children,
-        initial,
-        animate,
-        variants,
-        whileHover,
-        whileTap,
-        transition,
+        initial: _initial,
+        animate: _animate,
+        variants: _variants,
+        whileHover: _whileHover,
+        whileTap: _whileTap,
+        transition: _transition,
         ...props
       }: React.HTMLAttributes<HTMLTableRowElement> & Record<string, unknown>) => {
         return <tr {...props}>{children}</tr>;
       },
       span: ({
         children,
-        initial,
-        animate,
-        variants,
-        whileHover,
-        whileTap,
-        transition,
+        initial: _initial,
+        animate: _animate,
+        variants: _variants,
+        whileHover: _whileHover,
+        whileTap: _whileTap,
+        transition: _transition,
         ...props
       }: React.HTMLAttributes<HTMLSpanElement> & Record<string, unknown>) => {
         return <span {...props}>{children}</span>;
@@ -161,7 +161,7 @@ class IntersectionObserverMock {
   observe = vi.fn();
   unobserve = vi.fn();
   disconnect = vi.fn();
-  constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {}
+  constructor(_callback: IntersectionObserverCallback, _options?: IntersectionObserverInit) {}
 }
 Object.defineProperty(window, "IntersectionObserver", {
   writable: true,

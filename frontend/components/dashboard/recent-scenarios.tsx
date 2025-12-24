@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Briefcase, Building2, TrendingUp, TrendingDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/format-utils";
 import { AnimatedCurrencyDisplay, MotionListItem, MotionList } from "@/lib/motion";
 
 interface EmployeeScenarioPreview {

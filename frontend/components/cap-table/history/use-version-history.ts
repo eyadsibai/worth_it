@@ -16,7 +16,6 @@ import type {
   FundingDiff,
 } from "./types";
 import { VERSION_HISTORY_STORAGE_KEY, DEFAULT_MAX_VERSIONS, VERSION_TRIGGER_LABELS } from "./types";
-import type { Stakeholder, FundingInstrument } from "@/lib/schemas";
 
 /**
  * Create a human-readable description for a version based on trigger type and entity name.

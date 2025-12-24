@@ -10,7 +10,7 @@ import { InformationBox } from "@/components/ui/information-box";
 import { SliderField, SelectField, CurrencySliderField } from "./form-fields";
 import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 import { TOOLTIPS } from "@/lib/constants/tooltips";
-import { FIELD_HINTS, FIELD_EXAMPLES } from "@/lib/constants/examples";
+import { FIELD_HINTS } from "@/lib/constants/examples";
 
 interface CurrentJobFormProps {
   /** External value to sync with (e.g., from Zustand store) */

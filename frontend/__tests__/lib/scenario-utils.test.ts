@@ -3,7 +3,7 @@
  * Following TDD - these tests were written first
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { CapTable, FundingInstrument, PreferenceTier, FounderScenario } from "@/lib/schemas";
+import type { CapTable, FundingInstrument, PreferenceTier } from "@/lib/schemas";
 
 // Mock localStorage
 const localStorageMock = (() => {

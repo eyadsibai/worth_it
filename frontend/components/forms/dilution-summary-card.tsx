@@ -4,7 +4,7 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, TrendingDown, Clock, Target } from "lucide-react";
 import type { DilutionRoundForm } from "@/lib/schemas";
-import { AnimatedNumber, AnimatedProgress } from "@/lib/motion";
+import { AnimatedNumber } from "@/lib/motion";
 
 interface DilutionSummaryCardProps {
   completedRounds: DilutionRoundForm[];

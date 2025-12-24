@@ -11,7 +11,6 @@ import {
   RoundTypeEnum,
   // Request schemas
   MonthlyDataGridRequestSchema,
-  OpportunityCostRequestSchema,
   IRRRequestSchema,
   NPVRequestSchema,
   MonteCarloRequestSchema,

@@ -6,11 +6,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DecisionWizard } from "@/components/decision/decision-wizard";
-import type {
-  FinancialAnalysis,
-  DecisionRecommendation,
-  DecisionInputs,
-} from "@/lib/decision-framework";
+import type { FinancialAnalysis } from "@/lib/decision-framework";
 
 // Mock financial analysis
 const mockFinancialAnalysis: FinancialAnalysis = {

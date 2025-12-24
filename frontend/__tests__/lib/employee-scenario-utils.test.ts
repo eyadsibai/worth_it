@@ -1,11 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  filterScenarios,
-  sortScenarios,
-  searchScenarios,
-  type SortOption,
-  type FilterOption,
-} from "@/lib/employee-scenario-utils";
+import { filterScenarios, sortScenarios, searchScenarios } from "@/lib/employee-scenario-utils";
 import type { ScenarioData } from "@/lib/export-utils";
 
 // Test fixtures

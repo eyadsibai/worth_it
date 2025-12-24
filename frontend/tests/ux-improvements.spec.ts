@@ -57,7 +57,7 @@ test.describe("UX Improvements - Issues #128, #129, #147", () => {
    * Tests that first-time visitors see the welcome modal
    */
   test.describe("Onboarding Modal (#129)", () => {
-    test.beforeEach(async ({ page, context }) => {
+    test.beforeEach(async ({ context }) => {
       // Clear localStorage to simulate first visit
       await context.addInitScript(() => {
         localStorage.removeItem("worth_it_onboarded");
@@ -136,7 +136,7 @@ test.describe("UX Improvements - Issues #128, #129, #147", () => {
       await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 3000 });
     });
 
-    test("does not show modal on subsequent visits", async ({ page, context }) => {
+    test("does not show modal on subsequent visits", async ({ page }) => {
       // First visit - complete onboarding
       await page.goto("/");
       await page.waitForLoadState("networkidle");
@@ -250,7 +250,7 @@ test.describe("UX Improvements - Issues #128, #129, #147", () => {
    * Tests that calculation results are announced
    */
   test.describe("Live Region Announcements (#147)", () => {
-    test.beforeEach(async ({ page, context }) => {
+    test.beforeEach(async ({ context }) => {
       // Skip onboarding
       await context.addInitScript(() => {
         localStorage.setItem("worth_it_onboarded", "true");

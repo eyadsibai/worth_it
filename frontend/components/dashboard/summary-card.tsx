@@ -4,7 +4,6 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, BarChart3, Briefcase, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/format-utils";
 import {
   AnimatedNumber,
   AnimatedCurrencyDisplay,

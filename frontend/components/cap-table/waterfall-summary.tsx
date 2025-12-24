@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import type { WaterfallDistribution, PreferenceTier, StakeholderPayout } from "@/lib/schemas";
+import type { WaterfallDistribution, PreferenceTier } from "@/lib/schemas";
 import { formatCurrency, formatCurrencyCompact } from "@/lib/format-utils";
 import { AnimatedCurrencyDisplay, AnimatedNumber, AnimatedPercentage } from "@/lib/motion";
 
