@@ -21,6 +21,11 @@ interface CurrencyDisplayProps {
    * - "negative": Red color (text-destructive) for losses
    */
   variant?: "default" | "positive" | "negative";
+  /**
+   * When true, shows "+" prefix for positive values
+   * Useful for displaying gains/losses where sign matters
+   */
+  showSign?: boolean;
 }
 
 /**
@@ -42,16 +47,19 @@ export function CurrencyDisplay({
   showDecimals = false,
   responsive = false,
   variant = "default",
+  showSign = false,
 }: CurrencyDisplayProps) {
   // Use compact format below lg breakpoint (1024px)
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
   const useCompact = responsive && !isLargeScreen;
 
   const variantClass = variantClasses[variant];
+  const signPrefix = showSign && value > 0 ? "+" : "";
 
   if (useCompact) {
     return (
       <span className={cn("tabular-nums", variantClass, className)}>
+        {signPrefix}
         {formatCurrencyCompact(value)}
       </span>
     );
@@ -61,6 +69,7 @@ export function CurrencyDisplay({
 
   return (
     <span className={cn("tabular-nums", variantClass, className)}>
+      {signPrefix}
       {main}
       {showDecimals && <span className="currency-decimal">{decimal}</span>}
     </span>

@@ -4,7 +4,8 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, BarChart3, Briefcase, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/format-utils";
+import { DataLabel } from "@/components/ui/data-label";
+import { CurrencyDisplay } from "@/components/ui/currency-display";
 
 interface SummaryStats {
   totalScenarios: number;
@@ -42,21 +43,21 @@ export function SummaryCard({ stats, className }: SummaryCardProps) {
         {/* Total Scenarios */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="space-y-1">
-            <p className="text-muted-foreground text-xs tracking-wide uppercase">Total Scenarios</p>
+            <DataLabel>Total Scenarios</DataLabel>
             <p className="text-2xl font-semibold tabular-nums">{stats.totalScenarios}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-muted-foreground flex items-center gap-1 text-xs tracking-wide uppercase">
+            <DataLabel className="flex items-center gap-1">
               <Briefcase className="h-3 w-3" />
               Employee
-            </p>
+            </DataLabel>
             <p className="text-2xl font-semibold tabular-nums">{stats.employeeScenarios}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-muted-foreground flex items-center gap-1 text-xs tracking-wide uppercase">
+            <DataLabel className="flex items-center gap-1">
               <Building2 className="h-3 w-3" />
               Founder
-            </p>
+            </DataLabel>
             <p className="text-2xl font-semibold tabular-nums">{stats.founderScenarios}</p>
           </div>
         </div>
@@ -92,20 +93,15 @@ export function SummaryCard({ stats, className }: SummaryCardProps) {
         {/* Best Opportunity */}
         {stats.bestOpportunity && (
           <div className="border-border border-t pt-4">
-            <p className="text-muted-foreground mb-2 text-xs tracking-wide uppercase">
-              Best Opportunity
-            </p>
+            <DataLabel className="mb-2">Best Opportunity</DataLabel>
             <div className="flex items-center justify-between">
               <span className="max-w-[60%] truncate font-medium">{stats.bestOpportunity.name}</span>
-              <span
-                className={cn(
-                  "text-sm font-semibold tabular-nums",
-                  stats.bestOpportunity.netBenefit >= 0 ? "text-terminal" : "text-destructive"
-                )}
-              >
-                {stats.bestOpportunity.netBenefit >= 0 ? "+" : ""}
-                {formatCurrency(stats.bestOpportunity.netBenefit)}
-              </span>
+              <CurrencyDisplay
+                value={stats.bestOpportunity.netBenefit}
+                variant={stats.bestOpportunity.netBenefit >= 0 ? "positive" : "negative"}
+                className="text-sm font-semibold"
+                showSign
+              />
             </div>
           </div>
         )}
@@ -113,17 +109,13 @@ export function SummaryCard({ stats, className }: SummaryCardProps) {
         {/* Average Net Benefit */}
         {stats.employeeScenarios > 0 && (
           <div className="border-border border-t pt-4">
-            <p className="text-muted-foreground mb-1 text-xs tracking-wide uppercase">
-              Average Net Benefit
-            </p>
-            <p
-              className={cn(
-                "text-xl font-semibold tabular-nums",
-                stats.averageNetBenefit >= 0 ? "text-terminal" : "text-destructive"
-              )}
-            >
-              {stats.averageNetBenefit >= 0 ? "+" : ""}
-              {formatCurrency(stats.averageNetBenefit)}
+            <DataLabel className="mb-1">Average Net Benefit</DataLabel>
+            <p className="text-xl font-semibold">
+              <CurrencyDisplay
+                value={stats.averageNetBenefit}
+                variant={stats.averageNetBenefit >= 0 ? "positive" : "negative"}
+                showSign
+              />
               <span className="text-muted-foreground text-sm">/scenario</span>
             </p>
           </div>

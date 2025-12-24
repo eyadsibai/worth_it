@@ -114,4 +114,28 @@ describe("CurrencyDisplay", () => {
       expect(element).not.toHaveClass("text-destructive");
     });
   });
+
+  describe("Show Sign", () => {
+    it("shows + prefix for positive values when showSign is true", () => {
+      render(<CurrencyDisplay value={1000} showSign />);
+      expect(screen.getByText(/\+\$1,000/)).toBeInTheDocument();
+    });
+
+    it("shows no prefix for positive values when showSign is false", () => {
+      render(<CurrencyDisplay value={1000} showSign={false} />);
+      expect(screen.getByText(/\$1,000/)).toBeInTheDocument();
+      expect(screen.queryByText(/\+/)).not.toBeInTheDocument();
+    });
+
+    it("shows - for negative values regardless of showSign", () => {
+      render(<CurrencyDisplay value={-500} showSign />);
+      expect(screen.getByText(/-\$500/)).toBeInTheDocument();
+    });
+
+    it("shows no sign for zero with showSign", () => {
+      render(<CurrencyDisplay value={0} showSign />);
+      expect(screen.getByText(/\$0/)).toBeInTheDocument();
+      expect(screen.queryByText(/\+/)).not.toBeInTheDocument();
+    });
+  });
 });
