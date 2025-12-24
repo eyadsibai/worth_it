@@ -14,6 +14,7 @@ import { useCalculateWaterfall } from "@/lib/api-client";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { generateId } from "@/lib/utils";
 import type { CapTable, PreferenceTier, PricedRound } from "@/lib/schemas";
+import { formatLargeNumber } from "@/lib/format-utils";
 
 interface WaterfallAnalysisProps {
   capTable: CapTable;
@@ -224,10 +225,10 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
                           </div>
                           <div className="shrink-0 text-right">
                             <p className="font-medium tabular-nums">
-                              ${(step.amount / 1_000_000).toFixed(2)}M
+                              {formatLargeNumber(step.amount)}
                             </p>
                             <p className="text-muted-foreground text-xs tabular-nums">
-                              Remaining: ${(step.remaining_proceeds / 1_000_000).toFixed(2)}M
+                              Remaining: {formatLargeNumber(step.remaining_proceeds)}
                             </p>
                           </div>
                         </div>

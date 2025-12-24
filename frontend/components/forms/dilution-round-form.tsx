@@ -118,7 +118,8 @@ export function DilutionRoundFormComponent({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Responsive grid - Pre-Money Valuation needs full width for large values */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <NumberInputField
                   form={form}
                   name={`dilution_rounds.${roundIndex}.dilution_pct`}
@@ -138,13 +139,14 @@ export function DilutionRoundFormComponent({
                   description="Valuation before round (optional)"
                   min={0}
                   step={1000000}
-                  prefix="SAR"
+                  prefix="$"
                   placeholder="50000000"
                   formatDisplay={true}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Use responsive grid for currency fields - single column on small screens */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <NumberInputField
                   form={form}
                   name={`dilution_rounds.${roundIndex}.amount_raised`}
@@ -152,7 +154,7 @@ export function DilutionRoundFormComponent({
                   description="Capital raised (optional)"
                   min={0}
                   step={1000000}
-                  prefix="SAR"
+                  prefix="$"
                   placeholder="10000000"
                   formatDisplay={true}
                 />
@@ -164,7 +166,7 @@ export function DilutionRoundFormComponent({
                   description="Updated monthly salary (optional)"
                   min={0}
                   step={1000}
-                  prefix="SAR"
+                  prefix="$"
                   placeholder="12000"
                   formatDisplay={true}
                 />

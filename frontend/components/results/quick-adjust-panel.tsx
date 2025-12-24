@@ -226,7 +226,9 @@ export function QuickAdjustPanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="text-accent h-4 w-4" />
-            <CardTitle className="text-sm font-semibold">Quick Adjustments</CardTitle>
+            <CardTitle className="text-sm font-semibold whitespace-nowrap">
+              Quick Adjustments
+            </CardTitle>
             {hasChanges && <span className="text-accent text-xs">(modified)</span>}
           </div>
           <Button
@@ -292,7 +294,8 @@ export function QuickAdjustPanel({
                       Equity %
                     </Label>
                     <span className="text-accent text-sm tabular-nums">
-                      {equityPct.toFixed(2)}%
+                      {equityPct % 1 === 0 ? equityPct : equityPct.toFixed(2).replace(/\.?0+$/, "")}
+                      %
                     </span>
                   </div>
                   <Slider
@@ -320,7 +323,10 @@ export function QuickAdjustPanel({
                       Exit Price/Share
                     </Label>
                     <span className="text-accent text-sm tabular-nums">
-                      ${exitPricePerShare.toFixed(2)}
+                      $
+                      {exitPricePerShare % 1 === 0
+                        ? exitPricePerShare
+                        : exitPricePerShare.toFixed(2).replace(/\.?0+$/, "")}
                     </span>
                   </div>
                   <Slider

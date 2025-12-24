@@ -473,8 +473,8 @@ describe("QuickAdjustPanel", () => {
         />
       );
 
-      // Equity percentage should show 0.50%
-      expect(screen.getByText(/0\.50%/)).toBeInTheDocument();
+      // Equity percentage should show 0.5% (trailing zero stripped)
+      expect(screen.getByText(/0\.5%/)).toBeInTheDocument();
     });
   });
 });

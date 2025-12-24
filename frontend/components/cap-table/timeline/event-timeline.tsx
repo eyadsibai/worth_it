@@ -204,19 +204,28 @@ interface EventLabelProps {
   position: number;
   isSelected: boolean;
   isHovered: boolean;
+  /** Vertical offset index for collision avoidance (0 = normal, 1+ = offset down) */
+  offsetIndex?: number;
 }
 
-function EventLabel({ event, position, isSelected, isHovered }: EventLabelProps) {
+function EventLabel({ event, position, isSelected, isHovered, offsetIndex = 0 }: EventLabelProps) {
+  // Calculate vertical offset: alternate between normal and offset positions
+  // Using 36px per level to ensure clear separation between staggered labels
+  const verticalOffset = offsetIndex * 36;
+
   return (
     <div
       className={cn(
-        "absolute top-full mt-3 -translate-x-1/2 text-center",
+        "absolute -translate-x-1/2 text-center",
         "transition-colors duration-200",
         isSelected || isHovered ? "text-foreground" : "text-muted-foreground"
       )}
-      style={{ left: `${position}%` }}
+      style={{
+        left: `${position}%`,
+        top: `${8 + verticalOffset}px`, // Base top + offset
+      }}
     >
-      <p className="max-w-[80px] truncate text-xs font-medium whitespace-nowrap">{event.title}</p>
+      <p className="max-w-[100px] truncate text-xs font-medium whitespace-nowrap">{event.title}</p>
       <p className="text-[10px]">{format(new Date(event.timestamp), "MMM yyyy")}</p>
     </div>
   );
@@ -241,10 +250,10 @@ export function EventTimeline({
   const { onSelect, onHover } = interactionHandlers;
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Calculate positions for each event (0-100%)
+  // Calculate positions for each event (0-100%) with collision detection
   const eventPositions = useMemo(() => {
     if (events.length === 0) return [];
-    if (events.length === 1) return [{ event: events[0], position: 50 }];
+    if (events.length === 1) return [{ event: events[0], position: 50, labelOffset: 0 }];
 
     const timestamps = events.map((e) => e.timestamp);
     const minTime = Math.min(...timestamps);
@@ -254,13 +263,32 @@ export function EventTimeline({
     // Add padding so dots aren't at the very edge
     const paddingPct = 5;
 
-    return events.map((event) => ({
+    // First pass: calculate positions
+    const positions = events.map((event) => ({
       event,
       position:
         timeRange === 0
           ? 50
           : paddingPct + ((event.timestamp - minTime) / timeRange) * (100 - 2 * paddingPct),
+      labelOffset: 0, // Will be calculated in second pass
     }));
+
+    // Second pass: detect collisions and assign offsets
+    // Labels need ~12% spacing to avoid overlap (based on max-w-[100px] ~ 100px in typical container)
+    const minSpacing = 10; // Minimum percentage spacing between labels
+
+    for (let i = 1; i < positions.length; i++) {
+      const current = positions[i];
+      const previous = positions[i - 1];
+
+      // Check if too close to previous label
+      if (current.position - previous.position < minSpacing) {
+        // Alternate offset: if previous was at offset 0, use offset 1, and vice versa
+        current.labelOffset = (previous.labelOffset + 1) % 2;
+      }
+    }
+
+    return positions;
   }, [events]);
 
   // Find if a timestamp is selected or hovered
@@ -323,14 +351,15 @@ export function EventTimeline({
       </div>
 
       {/* Event labels below the line */}
-      <div className="relative h-12">
-        {eventPositions.map(({ event, position }) => (
+      <div className="relative h-20">
+        {eventPositions.map(({ event, position, labelOffset }) => (
           <EventLabel
             key={event.id}
             event={event}
             position={position}
             isSelected={isEventSelected(event)}
             isHovered={isEventHovered(event)}
+            offsetIndex={labelOffset}
           />
         ))}
       </div>

@@ -91,7 +91,7 @@ export function PricedRoundForm({
           tooltip={TOOLTIPS.preMoneyValuation}
           min={0}
           step={100000}
-          prefix="SAR"
+          prefix="$"
           placeholder="10000000"
           formatDisplay={true}
         />
@@ -104,7 +104,7 @@ export function PricedRoundForm({
           tooltip={TOOLTIPS.amountRaised}
           min={0}
           step={100000}
-          prefix="SAR"
+          prefix="$"
           placeholder="2000000"
           formatDisplay={true}
         />
@@ -113,15 +113,19 @@ export function PricedRoundForm({
           <InformationBox className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Post-Money Valuation:</span>
-              <span className="font-medium tabular-nums">SAR {postMoney.toLocaleString()}</span>
+              <span className="font-medium tabular-nums">${postMoney.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Dilution:</span>
-              <span className="text-amber-500 tabular-nums">{dilutionPct.toFixed(2)}%</span>
+              <span className="text-amber-500 tabular-nums">
+                {dilutionPct.toFixed(2).replace(/\.?0+$/, "")}%
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Price Per Share:</span>
-              <span className="tabular-nums">SAR {pricePerShare.toFixed(4)}</span>
+              <span className="tabular-nums">
+                ${pricePerShare.toFixed(4).replace(/\.?0+$/, "")}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">New Shares Issued:</span>
@@ -166,7 +170,7 @@ export function PricedRoundForm({
 
           {amountRaised > 0 && (
             <div className="text-muted-foreground bg-muted rounded p-2 text-xs">
-              At exit, investor gets {liquidationMult}x (SAR{" "}
+              At exit, investor gets {liquidationMult}x (${" "}
               {(amountRaised * liquidationMult).toLocaleString()})
               {participating
                 ? " + their pro-rata share of remaining proceeds"

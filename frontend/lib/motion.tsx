@@ -308,7 +308,6 @@ export function AnimatedCurrencyDisplay({
 }) {
   const prefersReducedMotion = useReducedMotion();
   const mainRef = React.useRef<HTMLSpanElement>(null);
-  const decimalRef = React.useRef<HTMLSpanElement>(null);
   const motionValue = useMotionValue(0);
   const springValue = useSpring(motionValue, {
     duration: prefersReducedMotion ? 0 : 800,
@@ -340,32 +339,28 @@ export function AnimatedCurrencyDisplay({
   }, [isInView, value, motionValue, showDelta]);
 
   // Format and update display using textContent (safe)
+  // No decimals - just show main currency value
   React.useEffect(() => {
     const unsubscribe = springValue.on("change", (latest) => {
-      const { main, decimal } = formatCurrencyWithDecimals(Math.round(latest));
+      const { main } = formatCurrencyWithDecimals(Math.round(latest));
       if (mainRef.current) {
         mainRef.current.textContent = main;
-      }
-      if (decimalRef.current) {
-        decimalRef.current.textContent = decimal;
       }
     });
     return unsubscribe;
   }, [springValue]);
 
-  const { main, decimal } = formatCurrencyWithDecimals(0);
+  const { main } = formatCurrencyWithDecimals(0);
 
   return (
-    <span className={`relative inline-flex items-center gap-2 ${className ?? ""}`}>
+    <span className={`relative inline-block ${className ?? ""}`}>
       {/* Full format shown on lg+ screens, compact on smaller when responsive */}
       <span className={`tabular-nums ${responsive ? "hidden lg:inline" : ""}`}>
         <span ref={mainRef}>{main}</span>
-        <span ref={decimalRef} className="currency-decimal">
-          {decimal}
-        </span>
       </span>
       {/* Compact format shown only on smaller screens when responsive */}
       {responsive && <span className="tabular-nums lg:hidden">{formatCurrencyCompact(value)}</span>}
+      {/* Delta positioned absolutely to prevent overflow */}
       <AnimatePresence>
         {delta !== null && (
           <motion.span
@@ -373,7 +368,7 @@ export function AnimatedCurrencyDisplay({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 5 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
-            className={`font-mono text-xs tabular-nums ${
+            className={`absolute top-0 left-full ml-1.5 hidden font-mono text-xs whitespace-nowrap tabular-nums lg:inline ${
               delta > 0 ? "text-terminal" : delta < 0 ? "text-destructive" : ""
             }`}
           >
@@ -388,6 +383,10 @@ export function AnimatedCurrencyDisplay({
 
 /**
  * Animated percentage display
+ *
+ * Note: Trailing zeros are only removed when the animation completes (value stabilizes).
+ * During animation, we show consistent decimal places to avoid visual "jumping"
+ * between formats (e.g., "28" → "28.1" → "28.5" → "28.50").
  */
 export function AnimatedPercentage({
   value,
@@ -402,9 +401,11 @@ export function AnimatedPercentage({
   const motionValue = useMotionValue(0);
   const springValue = useSpring(motionValue, { duration: 800, bounce: 0 });
   const isInView = useInView(ref, { once: true, margin: "-50px" });
+  const targetValue = React.useRef(value);
 
   React.useEffect(() => {
     if (isInView) {
+      targetValue.current = value;
       motionValue.set(value);
     }
   }, [isInView, value, motionValue]);
@@ -412,7 +413,17 @@ export function AnimatedPercentage({
   React.useEffect(() => {
     const unsubscribe = springValue.on("change", (latest) => {
       if (ref.current) {
-        ref.current.textContent = latest.toFixed(decimals) + "%";
+        // Check if animation is close to complete (within 0.01 of target)
+        const isComplete = Math.abs(latest - targetValue.current) < 0.01;
+
+        if (isComplete) {
+          // Animation complete: use the exact target value and remove trailing zeros
+          const formatted = targetValue.current.toFixed(decimals).replace(/\.?0+$/, "");
+          ref.current.textContent = formatted + "%";
+        } else {
+          // During animation: show consistent decimal places to avoid visual jumping
+          ref.current.textContent = latest.toFixed(decimals) + "%";
+        }
       }
     });
     return unsubscribe;

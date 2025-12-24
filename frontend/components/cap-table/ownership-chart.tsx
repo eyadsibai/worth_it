@@ -42,7 +42,9 @@ function CustomTooltip({
     return (
       <div className="bg-popover rounded-lg border p-3 shadow-lg">
         <p className="font-medium">{data.name}</p>
-        <p className="text-muted-foreground text-sm">{data.value.toFixed(2)}% ownership</p>
+        <p className="text-muted-foreground text-sm">
+          {data.value.toFixed(2).replace(/\.?0+$/, "")}% ownership
+        </p>
         <p className="text-muted-foreground text-xs capitalize">{data.type.replace("_", " ")}</p>
       </div>
     );
@@ -109,8 +111,30 @@ export function OwnershipChart({ stakeholders, optionPoolPct }: OwnershipChartPr
                 outerRadius={100}
                 paddingAngle={2}
                 dataKey="value"
-                label={({ name, value }) => `${name}: ${value.toFixed(1)}%`}
-                labelLine={false}
+                label={({ cx, cy, midAngle, outerRadius, name, value }) => {
+                  // Guard against undefined values
+                  if (midAngle === undefined || name === undefined) return null;
+                  // Position labels outside the pie chart
+                  const RADIAN = Math.PI / 180;
+                  const radius = (outerRadius as number) + 30;
+                  const x = (cx as number) + radius * Math.cos(-midAngle * RADIAN);
+                  const y = (cy as number) + radius * Math.sin(-midAngle * RADIAN);
+                  // Truncate long names to prevent overlap
+                  const displayName = name.length > 12 ? `${name.slice(0, 12)}...` : name;
+                  return (
+                    <text
+                      x={x}
+                      y={y}
+                      fill="hsl(var(--muted-foreground))"
+                      textAnchor={x > (cx as number) ? "start" : "end"}
+                      dominantBaseline="central"
+                      className="text-xs"
+                    >
+                      {`${displayName}: ${(value as number).toFixed(1).replace(/\.?0+$/, "")}%`}
+                    </text>
+                  );
+                }}
+                labelLine={{ stroke: "hsl(var(--muted-foreground))", strokeWidth: 1 }}
               >
                 {chartData.map((entry, index) => (
                   <Cell

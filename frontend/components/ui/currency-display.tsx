@@ -26,7 +26,7 @@ interface CurrencyDisplayProps {
 export function CurrencyDisplay({
   value,
   className,
-  showDecimals = true,
+  showDecimals = false,
   responsive = false,
 }: CurrencyDisplayProps) {
   // Use compact format below lg breakpoint (1024px)

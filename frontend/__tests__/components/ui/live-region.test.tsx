@@ -39,9 +39,9 @@ describe("LiveRegion", () => {
   });
 
   it("renders children content", () => {
-    render(<LiveRegion>Net benefit: SAR 245,000</LiveRegion>);
+    render(<LiveRegion>Net benefit: $245,000</LiveRegion>);
 
-    expect(screen.getByText("Net benefit: SAR 245,000")).toBeInTheDocument();
+    expect(screen.getByText("Net benefit: $245,000")).toBeInTheDocument();
   });
 
   it("updates content when children change", () => {

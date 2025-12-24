@@ -8,27 +8,22 @@ import {
   ResponsiveTableFooter,
   type Column,
 } from "@/components/ui/responsive-table";
+import { formatLargeNumber } from "@/lib/format-utils";
 import type { WaterfallDistribution, StakeholderPayout } from "@/lib/schemas";
 
 interface WaterfallTableProps {
   distribution: WaterfallDistribution | null;
 }
 
-// Format currency for display
+/**
+ * Format currency for display, handling null/undefined values.
+ * Uses the shared formatLargeNumber utility for consistent formatting.
+ */
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) {
     return "-";
   }
-  if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(2)}B`;
-  }
-  if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(2)}M`;
-  }
-  if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(1)}K`;
-  }
-  return `$${value.toFixed(0)}`;
+  return formatLargeNumber(value);
 }
 
 // Format ROI (multiple of invested capital)

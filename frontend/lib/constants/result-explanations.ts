@@ -85,15 +85,15 @@ function formatCompact(value: number): string {
   const sign = value < 0 ? "-" : "";
 
   if (absValue >= 1_000_000_000) {
-    return `${sign}SAR ${(absValue / 1_000_000_000).toFixed(1)}B`;
+    return `${sign}$${(absValue / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`;
   }
   if (absValue >= 1_000_000) {
-    return `${sign}SAR ${(absValue / 1_000_000).toFixed(1)}M`;
+    return `${sign}$${(absValue / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
   }
   if (absValue >= 1_000) {
-    return `${sign}SAR ${(absValue / 1_000).toFixed(0)}K`;
+    return `${sign}$${(absValue / 1_000).toFixed(0)}K`;
   }
-  return `${sign}SAR ${absValue.toFixed(0)}`;
+  return `${sign}$${absValue.toFixed(0)}`;
 }
 
 export type ResultExplanationKey = keyof typeof RESULT_EXPLANATIONS;

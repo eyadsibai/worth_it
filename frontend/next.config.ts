@@ -24,6 +24,10 @@ const nextConfig: NextConfig = {
   // Enable React strict mode for better development experience and future compatibility
   reactStrictMode: true,
 
+  // Hide dev indicators in the bottom corner
+  // In Next.js 16+, setting to false disables all dev indicators
+  devIndicators: false,
+
   // Disable source maps in production for smaller bundle sizes and faster builds
   productionBrowserSourceMaps: false,
 
@@ -31,6 +35,13 @@ const nextConfig: NextConfig = {
   experimental: {
     // Enable optimized CSS loading for better performance
     optimizeCss: true,
+  },
+
+  // Turbopack configuration
+  turbopack: {
+    // Set root to frontend directory to avoid multiple lockfile warnings
+    // (monorepo has root package.json for Playwright E2E testing)
+    root: __dirname,
   },
 };
 

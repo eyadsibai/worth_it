@@ -481,7 +481,7 @@ export function ScenarioResults({
           {/* Final Payout */}
           <Card className="terminal-card h-full overflow-hidden">
             <CardHeader className="px-4 pt-4 pb-2">
-              <CardDescription className="data-label flex items-center gap-1 text-xs">
+              <CardDescription className="data-label flex w-fit items-center gap-1 text-xs">
                 <span className="hidden sm:inline">Final Payout {showNPV && "(NPV)"}</span>
                 <span className="sm:hidden">Payout {showNPV && "(NPV)"}</span>
                 <InfoTooltip content={RESULT_EXPLANATIONS.finalPayout} iconSize={12} />
@@ -491,17 +491,15 @@ export function ScenarioResults({
               <CardTitle className="text-foreground text-lg font-semibold tracking-tight lg:text-xl">
                 <AnimatedCurrencyDisplay value={displayPayoutValue} responsive />
               </CardTitle>
-              <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">
-                {results.payout_label}
-              </p>
+              <p className="text-muted-foreground mt-1 text-xs">{results.payout_label}</p>
             </CardContent>
           </Card>
 
           {/* Opportunity Cost */}
           <Card className="terminal-card h-full overflow-hidden">
             <CardHeader className="px-4 pt-4 pb-2">
-              <CardDescription className="data-label flex items-center gap-1 text-xs">
-                <span className="hidden sm:inline">Opportunity Cost {showNPV && "(NPV)"}</span>
+              <CardDescription className="data-label flex w-fit items-center gap-1 text-xs">
+                <span className="hidden sm:inline">Opp. Cost {showNPV && "(NPV)"}</span>
                 <span className="sm:hidden">Opp. Cost {showNPV && "(NPV)"}</span>
                 <InfoTooltip content={RESULT_EXPLANATIONS.opportunityCost} iconSize={12} />
               </CardDescription>
@@ -510,7 +508,7 @@ export function ScenarioResults({
               <CardTitle className="text-foreground text-lg font-semibold tracking-tight lg:text-xl">
                 <AnimatedCurrencyDisplay value={displayOpportunityCost} responsive />
               </CardTitle>
-              <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">
+              <p className="text-muted-foreground mt-1 text-xs">
                 <span className="hidden sm:inline">Current job alternative</span>
                 <span className="sm:hidden">Alt. path</span>
               </p>
@@ -520,7 +518,7 @@ export function ScenarioResults({
           {/* Net Benefit */}
           <Card className="terminal-card h-full overflow-hidden">
             <CardHeader className="px-4 pt-4 pb-2">
-              <CardDescription className="data-label flex items-center gap-1 text-xs">
+              <CardDescription className="data-label flex w-fit items-center gap-1 text-xs">
                 Net Benefit {showNPV && "(NPV)"}
                 <InfoTooltip content={RESULT_EXPLANATIONS.netBenefit} iconSize={12} />
               </CardDescription>
@@ -558,7 +556,7 @@ export function ScenarioResults({
             displayResults.total_dilution !== undefined && (
               <Card className="terminal-card h-full overflow-hidden">
                 <CardHeader className="px-4 pt-4 pb-2">
-                  <CardDescription className="data-label flex items-center gap-1 text-xs">
+                  <CardDescription className="data-label flex w-fit items-center gap-1 text-xs">
                     <span className="hidden sm:inline">Total Dilution</span>
                     <span className="sm:hidden">Dilution</span>
                     <InfoTooltip content={RESULT_EXPLANATIONS.totalDilution} iconSize={12} />
@@ -566,10 +564,14 @@ export function ScenarioResults({
                 </CardHeader>
                 <CardContent className="px-4 pb-4">
                   <CardTitle className="text-foreground text-lg font-semibold tracking-tight tabular-nums lg:text-xl">
-                    {(displayResults.total_dilution * 100).toFixed(2)}%
+                    {(displayResults.total_dilution * 100).toFixed(2).replace(/\.?0+$/, "")}%
                   </CardTitle>
-                  <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">
-                    Final: {((displayResults.diluted_equity_pct || 0) * 100).toFixed(2)}%
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    Final:{" "}
+                    {((displayResults.diluted_equity_pct || 0) * 100)
+                      .toFixed(2)
+                      .replace(/\.?0+$/, "")}
+                    %
                   </p>
                 </CardContent>
               </Card>
@@ -578,7 +580,7 @@ export function ScenarioResults({
           {/* Break-Even */}
           <Card className="terminal-card h-full overflow-hidden">
             <CardHeader className="px-4 pt-4 pb-2">
-              <CardDescription className="data-label flex items-center gap-1 text-xs">
+              <CardDescription className="data-label flex w-fit items-center gap-1 text-xs">
                 Break-Even
                 <InfoTooltip content={RESULT_EXPLANATIONS.breakEven} iconSize={12} />
               </CardDescription>
@@ -599,9 +601,7 @@ export function ScenarioResults({
                   "N/A"
                 )}
               </CardTitle>
-              <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">
-                {displayResults.breakeven_label}
-              </p>
+              <p className="text-muted-foreground mt-1 text-xs">{displayResults.breakeven_label}</p>
             </CardContent>
           </Card>
         </MetricCarousel>

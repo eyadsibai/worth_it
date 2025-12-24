@@ -303,7 +303,7 @@ export function getExampleById(id: string): ExampleScenario | undefined {
  */
 export const FIELD_HINTS = {
   // Current Job Form
-  monthly_salary: "Tech average: SAR 8K-18K",
+  monthly_salary: "Tech average: $8K-18K",
   annual_salary_growth_rate: "Typical: 3-7% annually",
   assumed_annual_roi: "S&P 500 avg: 7-10%",
 
@@ -314,7 +314,7 @@ export const FIELD_HINTS = {
 
   // RSU specific
   total_equity_grant_pct: "Early: 0.1-2%, Growth: 0.01-0.1%",
-  exit_valuation: "Seed: SAR 50-200M, Series B: SAR 200M-1B",
+  exit_valuation: "Seed: $50-200M, Series B: $200M-1B",
 
   // Stock Options specific
   strike_price: "Usually: company's 409A valuation",
