@@ -16,6 +16,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { formatCurrency } from "@/lib/format-utils";
+import { useChartColors } from "@/lib/hooks/use-chart-colors";
 import type { FrontendValuationComparison, FrontendValuationResult } from "@/lib/schemas";
 
 interface ValuationComparisonProps {
@@ -59,6 +60,7 @@ function ChartTooltip({ active, payload }: ChartTooltipProps) {
 }
 
 export function ValuationComparison({ comparison }: ValuationComparisonProps) {
+  const chartColors = useChartColors();
   const chartData = comparison.results.map((result) => ({
     name: methodLabels[result.method] || result.method,
     valuation: result.valuation,
@@ -158,19 +160,19 @@ export function ValuationComparison({ comparison }: ValuationComparisonProps) {
                   strokeDasharray="3 3"
                   horizontal={true}
                   vertical={false}
-                  stroke="#E5E7EB"
+                  stroke={chartColors.grid}
                 />
                 <XAxis
                   type="number"
                   tickFormatter={(value) => `$${(value / 1000000).toFixed(0)}M`}
-                  tick={{ fontSize: 12, fill: "#6B7280" }}
+                  tick={{ fontSize: 12, fill: chartColors.foreground }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
                   type="category"
                   dataKey="name"
-                  tick={{ fontSize: 12, fill: "#6B7280" }}
+                  tick={{ fontSize: 12, fill: chartColors.foreground }}
                   axisLine={false}
                   tickLine={false}
                   width={100}
@@ -178,12 +180,12 @@ export function ValuationComparison({ comparison }: ValuationComparisonProps) {
                 <Tooltip content={<ChartTooltip />} />
                 <ReferenceLine
                   x={comparison.weightedAverage}
-                  stroke={CHART_COLORS.reference}
+                  stroke={chartColors.chart4}
                   strokeDasharray="3 3"
                   label={{
                     value: "Weighted Avg",
                     position: "top",
-                    fill: CHART_COLORS.reference,
+                    fill: chartColors.chart4,
                     fontSize: 10,
                   }}
                 />

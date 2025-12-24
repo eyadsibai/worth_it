@@ -26,6 +26,7 @@ import type {
   TimelineInteractionHandlers,
 } from "./types";
 import { STAKEHOLDER_COLORS } from "./types";
+import { useChartColors } from "@/lib/hooks/use-chart-colors";
 
 // ============================================================================
 // Custom Tooltip (Fundcy Dark Style)
@@ -86,6 +87,7 @@ export function OwnershipAreaChart({
 }: OwnershipAreaChartProps) {
   const { selectedTimestamp, hoveredTimestamp } = interactionState;
   const { onSelect, onHover } = interactionHandlers;
+  const chartColors = useChartColors();
 
   // Create color mapping for stakeholders
   const stakeholderColors = useMemo(() => {
@@ -155,13 +157,13 @@ export function OwnershipAreaChart({
             ))}
           </defs>
 
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartColors.grid} />
 
           <XAxis
             dataKey="date"
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+            tick={{ fontSize: 12, fill: chartColors.foreground }}
             dy={10}
           />
 
@@ -169,7 +171,7 @@ export function OwnershipAreaChart({
             domain={[0, 100]}
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+            tick={{ fontSize: 12, fill: chartColors.foreground }}
             tickFormatter={(value) => `${value}%`}
             width={45}
           />

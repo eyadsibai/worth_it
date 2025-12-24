@@ -13,6 +13,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useChartColors } from "@/lib/hooks/use-chart-colors";
 import type { WaterfallDistribution } from "@/lib/schemas";
 
 // Color palette for stakeholders
@@ -92,6 +93,8 @@ export function WaterfallChart({
   selectedValuation,
   onSelectValuation,
 }: WaterfallChartProps) {
+  const chartColors = useChartColors();
+
   // Transform data for stacked bar chart
   const { chartData, stakeholderNames } = React.useMemo(() => {
     if (!distributions.length) {
@@ -163,12 +166,18 @@ export function WaterfallChart({
             margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
             onClick={handleChartClick}
           >
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-            <XAxis dataKey="exit_label" tick={{ fontSize: 12 }} className="text-muted-foreground" />
+            <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+            <XAxis
+              dataKey="exit_label"
+              tick={{ fontSize: 12, fill: chartColors.foreground }}
+              axisLine={false}
+              tickLine={false}
+            />
             <YAxis
               tickFormatter={formatCurrency}
-              tick={{ fontSize: 12 }}
-              className="text-muted-foreground"
+              tick={{ fontSize: 12, fill: chartColors.foreground }}
+              axisLine={false}
+              tickLine={false}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend formatter={(value) => <span className="text-sm">{value}</span>} />
