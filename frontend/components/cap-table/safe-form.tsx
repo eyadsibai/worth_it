@@ -5,7 +5,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { NumberInputField, TextInputField, CheckboxField } from "@/components/forms/form-fields";
+import {
+  SliderField,
+  CurrencySliderField,
+  TextInputField,
+  CheckboxField,
+} from "@/components/forms/form-fields";
 import { SAFEFormSchema, type SAFEFormData } from "@/lib/schemas";
 import { InformationBox } from "@/components/ui/information-box";
 import { FileText } from "lucide-react";
@@ -47,40 +52,35 @@ export function SAFEForm({ onSubmit, defaultValues, submitLabel = "Add SAFE" }: 
           placeholder="e.g., Y Combinator"
         />
 
-        <NumberInputField
+        <CurrencySliderField
           form={form}
           name="investment_amount"
           label="Investment Amount"
           tooltip={TOOLTIPS.investmentAmount}
           min={0}
-          step={1000}
-          prefix="$"
-          placeholder="500000"
-          formatDisplay={true}
+          max={10000000}
+          step={50000}
         />
 
-        <NumberInputField
+        <CurrencySliderField
           form={form}
           name="valuation_cap"
           label="Valuation Cap (Optional)"
           tooltip={TOOLTIPS.valuationCap}
           min={0}
-          step={100000}
-          prefix="$"
-          placeholder="10000000"
-          formatDisplay={true}
+          max={100000000}
+          step={500000}
         />
 
-        <NumberInputField
+        <SliderField
           form={form}
           name="discount_pct"
           label="Discount % (Optional)"
           tooltip={TOOLTIPS.discountRate}
           min={0}
-          max={100}
+          max={50}
           step={1}
-          suffix="%"
-          placeholder="20"
+          formatValue={(v) => `${v}%`}
         />
 
         <InformationBox className="space-y-3">

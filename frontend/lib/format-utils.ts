@@ -171,3 +171,55 @@ export function formatCurrencyWithDecimals(value: number): { main: string; decim
     decimal: parts[1] ? `.${parts[1]}` : ".00",
   };
 }
+
+/**
+ * Convert a linear slider position (0-1) to a logarithmic value.
+ *
+ * This is essential for sliders covering large ranges like exit valuations ($1M to $10B).
+ * A linear slider would make it nearly impossible to select values in the lower range
+ * (e.g., $10M would be at 0.1% of the slider). Logarithmic scale distributes values
+ * evenly across orders of magnitude.
+ *
+ * Mathematical formula: value = min * (max/min)^position
+ *
+ * @param position - Linear position from 0 to 1 (0 = min, 1 = max)
+ * @param min - Minimum value (must be > 0 for logarithmic scale)
+ * @param max - Maximum value (must be > min)
+ * @returns The logarithmically-scaled value
+ *
+ * @example
+ * // For a $1M to $10B range:
+ * linearToLog(0, 1_000_000, 10_000_000_000)    // → $1M
+ * linearToLog(0.25, 1_000_000, 10_000_000_000) // → $10M
+ * linearToLog(0.5, 1_000_000, 10_000_000_000)  // → $100M (geometric mean)
+ * linearToLog(0.75, 1_000_000, 10_000_000_000) // → $1B
+ * linearToLog(1, 1_000_000, 10_000_000_000)    // → $10B
+ */
+export function linearToLog(position: number, min: number, max: number): number {
+  return min * Math.pow(max / min, position);
+}
+
+/**
+ * Convert a logarithmic value to a linear slider position (0-1).
+ *
+ * This is the inverse of linearToLog - used to position the slider thumb
+ * based on the current value.
+ *
+ * Mathematical formula: position = log(value/min) / log(max/min)
+ *
+ * @param value - The actual value to convert to position
+ * @param min - Minimum value (must be > 0 for logarithmic scale)
+ * @param max - Maximum value (must be > min)
+ * @returns Linear position from 0 to 1
+ *
+ * @example
+ * // For a $1M to $10B range:
+ * logToLinear(1_000_000, 1_000_000, 10_000_000_000)     // → 0
+ * logToLinear(10_000_000, 1_000_000, 10_000_000_000)    // → 0.25
+ * logToLinear(100_000_000, 1_000_000, 10_000_000_000)   // → 0.5
+ * logToLinear(1_000_000_000, 1_000_000, 10_000_000_000) // → 0.75
+ * logToLinear(10_000_000_000, 1_000_000, 10_000_000_000) // → 1
+ */
+export function logToLinear(value: number, min: number, max: number): number {
+  return Math.log(value / min) / Math.log(max / min);
+}

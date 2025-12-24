@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import {
-  NumberInputField,
   SelectField,
   TextInputField,
   CheckboxField,
@@ -86,7 +85,7 @@ export function StakeholderForm({
           />
         </div>
 
-        <NumberInputField
+        <SliderField
           form={form}
           name="ownership_pct"
           label="Ownership %"
@@ -94,8 +93,7 @@ export function StakeholderForm({
           min={0}
           max={100}
           step={0.1}
-          suffix="%"
-          placeholder="25"
+          formatValue={(v) => `${v.toFixed(1)}%`}
         />
 
         <InformationBox variant="default" className="rounded-md">

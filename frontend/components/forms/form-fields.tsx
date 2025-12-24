@@ -22,7 +22,14 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { parseShorthand, formatNumberWithSeparators } from "@/lib/format-utils";
+import {
+  parseShorthand,
+  formatNumberWithSeparators,
+  formatLargeNumber,
+  linearToLog,
+  logToLinear,
+} from "@/lib/format-utils";
+import { Button } from "@/components/ui/button";
 import { ValidationIndicator } from "./validation-indicator";
 import { FormWarning } from "@/components/ui/form-warning";
 import { getFieldWarning, type WarningContext } from "@/lib/hooks/use-field-warnings";
@@ -382,6 +389,406 @@ export function SliderField({
                 getValueLabel={(value) => (formatValue ? formatValue(value) : String(value))}
               />
             </FormControl>
+            {description && <FormDescription>{description}</FormDescription>}
+            <FormMessage />
+            {hasWarning && <FormWarning>{warning}</FormWarning>}
+          </FormItem>
+        );
+      }}
+    />
+  );
+}
+
+interface CurrencySliderFieldProps extends FormFieldProps {
+  min: number;
+  max: number;
+  step?: number;
+  /** Format for display: "compact" shows $10K, "full" shows $10,000 */
+  displayFormat?: "compact" | "full";
+}
+
+/**
+ * Currency slider with +/- buttons and shorthand input support.
+ * Designed for salary, prices, and smaller currency values with bounded ranges.
+ * Supports shorthand input (e.g., "50K", "1.5M") when editing directly.
+ */
+export function CurrencySliderField({
+  form,
+  name,
+  label,
+  description,
+  tooltip,
+  min,
+  max,
+  step = 100,
+  displayFormat = "compact",
+  warningContext,
+}: CurrencySliderFieldProps) {
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editValue, setEditValue] = React.useState("");
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const editCancelledRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const formatCurrencyValue = (value: number): string => {
+    if (displayFormat === "compact") {
+      return formatLargeNumber(value);
+    }
+    return `$${formatNumberWithSeparators(value)}`;
+  };
+
+  return (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field, fieldState }) => {
+        const warning = getFieldWarning(name, field.value, warningContext);
+        const hasWarning = !!warning && !fieldState.error;
+
+        const handleDecrement = () => {
+          const newValue = Math.max(min, field.value - step);
+          field.onChange(newValue);
+        };
+
+        const handleIncrement = () => {
+          const newValue = Math.min(max, field.value + step);
+          field.onChange(newValue);
+        };
+
+        const handleEditClick = () => {
+          editCancelledRef.current = false;
+          // Show current value in shorthand format for easier editing
+          setEditValue(formatLargeNumber(field.value).replace("$", ""));
+          setIsEditing(true);
+        };
+
+        const commitValue = () => {
+          if (editValue.trim() === "") {
+            setIsEditing(false);
+            return;
+          }
+          // Parse shorthand notation (e.g., "50K", "1.5M")
+          const parsed = parseShorthand(editValue);
+          if (isNaN(parsed)) {
+            setIsEditing(false);
+            return;
+          }
+          const clamped = Math.max(min, Math.min(max, parsed));
+          field.onChange(clamped);
+          setIsEditing(false);
+        };
+
+        const handleInputBlur = () => {
+          if (editCancelledRef.current) {
+            editCancelledRef.current = false;
+            return;
+          }
+          commitValue();
+        };
+
+        const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commitValue();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            editCancelledRef.current = true;
+            setIsEditing(false);
+          }
+        };
+
+        return (
+          <FormItem className="min-w-0">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <LabelWithTooltip label={label} tooltip={tooltip} />
+                <ValidationIndicator
+                  isValid={!fieldState.error && !hasWarning}
+                  hasError={!!fieldState.error}
+                  hasWarning={hasWarning}
+                  isTouched={fieldState.isTouched}
+                  isDirty={fieldState.isDirty}
+                />
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleDecrement}
+                  disabled={field.value <= min}
+                  aria-label={`Decrease ${label}`}
+                  className="border-input bg-background hover:bg-accent hover:text-accent-foreground touch-target flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-sm font-medium disabled:pointer-events-none disabled:opacity-50"
+                >
+                  −
+                </button>
+                {isEditing ? (
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={handleInputBlur}
+                    onKeyDown={handleInputKeyDown}
+                    placeholder="e.g. 10K"
+                    className="border-input bg-background focus:ring-ring h-8 w-20 shrink-0 rounded-md border px-2 text-center text-sm font-medium focus:ring-2 focus:outline-none"
+                    aria-label={`${label} value`}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleEditClick}
+                    aria-label={`Edit ${label} value`}
+                    className="border-input bg-background hover:bg-accent hover:text-accent-foreground touch-target h-8 min-w-[5rem] shrink-0 rounded-md border px-2 text-center text-sm font-medium whitespace-nowrap tabular-nums"
+                  >
+                    {formatCurrencyValue(field.value)}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleIncrement}
+                  disabled={field.value >= max}
+                  aria-label={`Increase ${label}`}
+                  className="border-input bg-background hover:bg-accent hover:text-accent-foreground touch-target flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-sm font-medium disabled:pointer-events-none disabled:opacity-50"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <FormControl>
+              <Slider
+                min={min}
+                max={max}
+                step={step}
+                value={[field.value]}
+                onValueChange={([value]) => field.onChange(value)}
+                getValueLabel={(value) => formatCurrencyValue(value)}
+              />
+            </FormControl>
+            {description && <FormDescription>{description}</FormDescription>}
+            <FormMessage />
+            {hasWarning && <FormWarning>{warning}</FormWarning>}
+          </FormItem>
+        );
+      }}
+    />
+  );
+}
+
+interface LogarithmicSliderFieldProps extends FormFieldProps {
+  min: number;
+  max: number;
+  /** Quick select buttons for common values */
+  quickSelects?: { label: string; value: number }[];
+}
+
+/** Default quick selects for exit valuation ($1M - $10B range) */
+const DEFAULT_VALUATION_QUICK_SELECTS = [
+  { label: "$10M", value: 10_000_000 },
+  { label: "$50M", value: 50_000_000 },
+  { label: "$100M", value: 100_000_000 },
+  { label: "$500M", value: 500_000_000 },
+  { label: "$1B", value: 1_000_000_000 },
+];
+
+/**
+ * Logarithmic slider for large value ranges like exit valuations ($1M - $10B).
+ * Uses logarithmic scale so each order of magnitude gets equal slider space.
+ * Includes quick-select buttons for common values.
+ */
+export function LogarithmicSliderField({
+  form,
+  name,
+  label,
+  description,
+  tooltip,
+  min,
+  max,
+  quickSelects = DEFAULT_VALUATION_QUICK_SELECTS,
+  warningContext,
+}: LogarithmicSliderFieldProps) {
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [editValue, setEditValue] = React.useState("");
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const editCancelledRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  // Filter quick selects to only show values within range
+  const visibleQuickSelects = quickSelects.filter((qs) => qs.value >= min && qs.value <= max);
+
+  return (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field, fieldState }) => {
+        const warning = getFieldWarning(name, field.value, warningContext);
+        const hasWarning = !!warning && !fieldState.error;
+
+        // Convert between actual value and slider position (0-100)
+        const sliderPosition = logToLinear(field.value, min, max) * 100;
+
+        const handleSliderChange = (values: number[]) => {
+          const position = values[0] / 100;
+          const newValue = linearToLog(position, min, max);
+          // Round to nearest reasonable step based on magnitude
+          const magnitude = Math.pow(10, Math.floor(Math.log10(newValue)));
+          const rounded = Math.round(newValue / magnitude) * magnitude;
+          field.onChange(Math.max(min, Math.min(max, rounded)));
+        };
+
+        const handleEditClick = () => {
+          editCancelledRef.current = false;
+          setEditValue(formatLargeNumber(field.value).replace("$", ""));
+          setIsEditing(true);
+        };
+
+        const commitValue = () => {
+          if (editValue.trim() === "") {
+            setIsEditing(false);
+            return;
+          }
+          const parsed = parseShorthand(editValue);
+          if (isNaN(parsed)) {
+            setIsEditing(false);
+            return;
+          }
+          const clamped = Math.max(min, Math.min(max, parsed));
+          field.onChange(clamped);
+          setIsEditing(false);
+        };
+
+        const handleInputBlur = () => {
+          if (editCancelledRef.current) {
+            editCancelledRef.current = false;
+            return;
+          }
+          commitValue();
+        };
+
+        const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commitValue();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            editCancelledRef.current = true;
+            setIsEditing(false);
+          }
+        };
+
+        // Calculate step sizes for +/- buttons based on current magnitude
+        const getStepSize = (value: number): number => {
+          if (value >= 1_000_000_000) return 100_000_000; // $100M steps above $1B
+          if (value >= 100_000_000) return 10_000_000; // $10M steps above $100M
+          if (value >= 10_000_000) return 1_000_000; // $1M steps above $10M
+          return 100_000; // $100K steps for smaller values
+        };
+
+        const handleDecrement = () => {
+          const stepSize = getStepSize(field.value);
+          const newValue = Math.max(min, field.value - stepSize);
+          field.onChange(newValue);
+        };
+
+        const handleIncrement = () => {
+          const stepSize = getStepSize(field.value);
+          const newValue = Math.min(max, field.value + stepSize);
+          field.onChange(newValue);
+        };
+
+        return (
+          <FormItem className="min-w-0">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <LabelWithTooltip label={label} tooltip={tooltip} />
+                <ValidationIndicator
+                  isValid={!fieldState.error && !hasWarning}
+                  hasError={!!fieldState.error}
+                  hasWarning={hasWarning}
+                  isTouched={fieldState.isTouched}
+                  isDirty={fieldState.isDirty}
+                />
+              </div>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleDecrement}
+                  disabled={field.value <= min}
+                  aria-label={`Decrease ${label}`}
+                  className="border-input bg-background hover:bg-accent hover:text-accent-foreground touch-target flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-sm font-medium disabled:pointer-events-none disabled:opacity-50"
+                >
+                  −
+                </button>
+                {isEditing ? (
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={handleInputBlur}
+                    onKeyDown={handleInputKeyDown}
+                    placeholder="e.g. 100M"
+                    className="border-input bg-background focus:ring-ring h-8 w-24 shrink-0 rounded-md border px-2 text-center text-sm font-medium focus:ring-2 focus:outline-none"
+                    aria-label={`${label} value`}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleEditClick}
+                    aria-label={`Edit ${label} value`}
+                    className="border-input bg-background hover:bg-accent hover:text-accent-foreground touch-target h-8 min-w-[5.5rem] shrink-0 rounded-md border px-2 text-center text-sm font-medium whitespace-nowrap tabular-nums"
+                  >
+                    {formatLargeNumber(field.value)}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleIncrement}
+                  disabled={field.value >= max}
+                  aria-label={`Increase ${label}`}
+                  className="border-input bg-background hover:bg-accent hover:text-accent-foreground touch-target flex h-8 w-8 shrink-0 items-center justify-center rounded-md border text-sm font-medium disabled:pointer-events-none disabled:opacity-50"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <FormControl>
+              <Slider
+                min={0}
+                max={100}
+                step={0.1}
+                value={[sliderPosition]}
+                onValueChange={handleSliderChange}
+                getValueLabel={() => formatLargeNumber(field.value)}
+              />
+            </FormControl>
+            {/* Quick select buttons */}
+            {visibleQuickSelects.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {visibleQuickSelects.map((qs) => (
+                  <Button
+                    key={qs.value}
+                    type="button"
+                    variant={field.value === qs.value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => field.onChange(qs.value)}
+                    className="h-7 px-2 text-xs tabular-nums"
+                  >
+                    {qs.label}
+                  </Button>
+                ))}
+              </div>
+            )}
             {description && <FormDescription>{description}</FormDescription>}
             <FormMessage />
             {hasWarning && <FormWarning>{warning}</FormWarning>}

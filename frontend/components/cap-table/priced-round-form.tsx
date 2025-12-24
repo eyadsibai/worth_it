@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import {
-  NumberInputField,
+  CurrencySliderField,
   SliderField,
   TextInputField,
   CheckboxField,
@@ -83,30 +83,26 @@ export function PricedRoundForm({
           />
         </div>
 
-        <NumberInputField
+        <CurrencySliderField
           form={form}
           name="pre_money_valuation"
           label="Pre-Money Valuation"
           description="Company valuation before this round"
           tooltip={TOOLTIPS.preMoneyValuation}
           min={0}
-          step={100000}
-          prefix="$"
-          placeholder="10000000"
-          formatDisplay={true}
+          max={1000000000}
+          step={1000000}
         />
 
-        <NumberInputField
+        <CurrencySliderField
           form={form}
           name="amount_raised"
           label="Amount Raised"
           description="Total capital raised in this round"
           tooltip={TOOLTIPS.amountRaised}
           min={0}
-          step={100000}
-          prefix="$"
-          placeholder="2000000"
-          formatDisplay={true}
+          max={500000000}
+          step={500000}
         />
 
         {preMoney > 0 && amountRaised > 0 && (

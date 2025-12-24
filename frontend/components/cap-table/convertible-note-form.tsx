@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { NumberInputField, SliderField, TextInputField } from "@/components/forms/form-fields";
+import { CurrencySliderField, SliderField, TextInputField } from "@/components/forms/form-fields";
 import { ConvertibleNoteFormSchema, type ConvertibleNoteFormData } from "@/lib/schemas";
 import { FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
 import { InformationBox } from "@/components/ui/information-box";
@@ -69,16 +69,14 @@ export function ConvertibleNoteForm({
           placeholder="e.g., Angel Investor"
         />
 
-        <NumberInputField
+        <CurrencySliderField
           form={form}
           name="principal_amount"
           label="Principal Amount"
           tooltip={TOOLTIPS.investmentAmount}
           min={0}
-          step={1000}
-          prefix="$"
-          placeholder="250000"
-          formatDisplay={true}
+          max={10000000}
+          step={50000}
         />
 
         <div className="grid grid-cols-2 gap-4">
@@ -159,28 +157,25 @@ export function ConvertibleNoteForm({
           </InformationBox>
         )}
 
-        <NumberInputField
+        <CurrencySliderField
           form={form}
           name="valuation_cap"
           label="Valuation Cap (Optional)"
           tooltip={TOOLTIPS.valuationCap}
           min={0}
-          step={100000}
-          prefix="$"
-          placeholder="10000000"
-          formatDisplay={true}
+          max={100000000}
+          step={500000}
         />
 
-        <NumberInputField
+        <SliderField
           form={form}
           name="discount_pct"
           label="Discount % (Optional)"
           tooltip={TOOLTIPS.discountRate}
           min={0}
-          max={100}
+          max={50}
           step={1}
-          suffix="%"
-          placeholder="20"
+          formatValue={(v) => `${v}%`}
         />
 
         <Button type="submit" className="w-full">

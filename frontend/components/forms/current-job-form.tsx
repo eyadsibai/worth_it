@@ -7,7 +7,7 @@ import { CurrentJobFormSchema, type CurrentJobForm } from "@/lib/schemas";
 import { Form } from "@/components/ui/form";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { InformationBox } from "@/components/ui/information-box";
-import { NumberInputField, SliderField, SelectField } from "./form-fields";
+import { SliderField, SelectField, CurrencySliderField } from "./form-fields";
 import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 import { TOOLTIPS } from "@/lib/constants/tooltips";
 import { FIELD_HINTS, FIELD_EXAMPLES } from "@/lib/constants/examples";
@@ -65,17 +65,15 @@ export function CurrentJobFormComponent({
   const formContent = (
     <Form {...form}>
       <form className="space-y-6">
-        <NumberInputField
+        <CurrencySliderField
           form={form}
           name="monthly_salary"
           label="Monthly Salary"
           tooltip={TOOLTIPS.currentMonthlySalary}
           min={0}
-          step={100}
-          prefix="$"
-          formatDisplay={true}
-          exampleValue={FIELD_EXAMPLES.monthly_salary}
-          hint={FIELD_HINTS.monthly_salary}
+          max={30000}
+          step={250}
+          description={FIELD_HINTS.monthly_salary}
         />
 
         <SliderField

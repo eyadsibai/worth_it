@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, History, Edit2 } from "lucide-react";
-import { NumberInputField, SelectField } from "./form-fields";
+import { SliderField, CurrencySliderField, SelectField } from "./form-fields";
 import type { DilutionRoundForm } from "@/lib/schemas";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatCurrency } from "@/lib/format-utils";
@@ -193,37 +193,35 @@ function CompletedRoundItem({ form, round, roundIndex, isEditing }: CompletedRou
             ]}
           />
 
-          <NumberInputField
+          <SliderField
             form={form}
             name={`dilution_rounds.${roundIndex}.dilution_pct`}
             label="Dilution %"
             min={0}
-            max={100}
-            step={0.1}
-            suffix="%"
+            max={50}
+            step={0.5}
+            formatValue={(v) => `${v.toFixed(1)}%`}
           />
         </div>
 
         {/* Responsive grid for currency fields with large values */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <NumberInputField
+          <CurrencySliderField
             form={form}
             name={`dilution_rounds.${roundIndex}.pre_money_valuation`}
             label="Pre-Money Valuation"
             min={0}
+            max={1000000000}
             step={1000000}
-            prefix="$"
-            formatDisplay={true}
           />
 
-          <NumberInputField
+          <CurrencySliderField
             form={form}
             name={`dilution_rounds.${roundIndex}.amount_raised`}
             label="Amount Raised"
             min={0}
-            step={1000000}
-            prefix="$"
-            formatDisplay={true}
+            max={500000000}
+            step={500000}
           />
         </div>
       </CardContent>

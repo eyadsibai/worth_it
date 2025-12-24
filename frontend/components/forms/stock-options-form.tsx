@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form } from "@/components/ui/form";
-import { NumberInputField, SliderField, SelectField } from "./form-fields";
+import { SliderField, SelectField, CurrencySliderField } from "./form-fields";
 import { useDeepCompareEffect } from "@/lib/use-deep-compare";
 import { isValidStockOptionsData } from "@/lib/validation";
 import type { StockOptionsForm } from "@/lib/schemas";
@@ -87,41 +87,38 @@ export function StockOptionsFormComponent({
   return (
     <Form {...form}>
       <form className="space-y-6">
-        <NumberInputField
+        <CurrencySliderField
           form={form}
           name="monthly_salary"
           label="Monthly Salary"
           tooltip={TOOLTIPS.startupMonthlySalary}
           min={0}
-          step={100}
-          prefix="$"
-          formatDisplay={true}
-          exampleValue={FIELD_EXAMPLES.startup_monthly_salary}
-          hint={FIELD_HINTS.startup_monthly_salary}
+          max={30000}
+          step={250}
+          description={FIELD_HINTS.startup_monthly_salary}
         />
 
-        <NumberInputField
+        <SliderField
           form={form}
           name="num_options"
           label="Number of Options"
           tooltip={TOOLTIPS.numOptions}
           min={0}
+          max={1000000}
           step={1000}
-          formatDisplay={true}
-          exampleValue={FIELD_EXAMPLES.number_of_options}
-          hint={FIELD_HINTS.number_of_options}
+          formatValue={(value) => value.toLocaleString()}
+          description={FIELD_HINTS.number_of_options}
         />
 
-        <NumberInputField
+        <CurrencySliderField
           form={form}
           name="strike_price"
           label="Strike Price"
           tooltip={TOOLTIPS.strikePrice}
           min={0}
-          step={0.01}
-          prefix="$"
-          exampleValue={FIELD_EXAMPLES.strike_price}
-          hint={FIELD_HINTS.strike_price}
+          max={100}
+          step={0.5}
+          description={FIELD_HINTS.strike_price}
         />
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -176,16 +173,15 @@ export function StockOptionsFormComponent({
           )}
         </div>
 
-        <NumberInputField
+        <CurrencySliderField
           form={form}
           name="exit_price_per_share"
           label="Exit Price Per Share"
           tooltip={TOOLTIPS.exitPricePerShare}
           min={0}
+          max={500}
           step={1}
-          prefix="$"
-          exampleValue={FIELD_EXAMPLES.exit_price_per_share}
-          hint={FIELD_HINTS.exit_price_per_share}
+          description={FIELD_HINTS.exit_price_per_share}
         />
       </form>
     </Form>

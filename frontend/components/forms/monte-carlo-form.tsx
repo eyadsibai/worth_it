@@ -8,7 +8,7 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InformationBox } from "@/components/ui/information-box";
-import { NumberInputField, SliderField } from "./form-fields";
+import { SliderField, LogarithmicSliderField } from "./form-fields";
 import { DistributionSection } from "./distribution-section";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, PlayCircle, CheckCircle2 } from "lucide-react";
@@ -181,30 +181,24 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
 
             {/* Exit Valuation - Always enabled */}
             <InformationBox title="Exit Valuation Distribution (Normal)" className="space-y-4">
-              <NumberInputField
+              <LogarithmicSliderField
                 form={form}
                 name="exit_valuation_mean"
                 label="Mean Valuation"
                 description="Expected exit valuation"
                 tooltip={TOOLTIPS.exitValuationMean}
-                min={0}
-                step={1000000}
-                prefix="$"
-                placeholder="100000000"
-                formatDisplay={true}
+                min={1000000}
+                max={10000000000}
               />
 
-              <NumberInputField
+              <LogarithmicSliderField
                 form={form}
                 name="exit_valuation_std"
                 label="Standard Deviation"
                 description="Uncertainty in valuation"
                 tooltip={TOOLTIPS.exitValuationStd}
-                min={0}
-                step={1000000}
-                prefix="$"
-                placeholder="50000000"
-                formatDisplay={true}
+                min={1000000}
+                max={5000000000}
               />
             </InformationBox>
 
@@ -216,7 +210,7 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
               description="Simulate uncertainty in salary growth rates"
               distributionType="PERT"
             >
-              <NumberInputField
+              <SliderField
                 form={form}
                 name="growth_rate_min"
                 label="Minimum"
@@ -225,10 +219,9 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
                 min={-50}
                 max={100}
                 step={0.5}
-                suffix="%"
-                placeholder="2"
+                formatValue={(v) => `${v.toFixed(1)}%`}
               />
-              <NumberInputField
+              <SliderField
                 form={form}
                 name="growth_rate_mode"
                 label="Most Likely"
@@ -237,10 +230,9 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
                 min={-50}
                 max={100}
                 step={0.5}
-                suffix="%"
-                placeholder="5"
+                formatValue={(v) => `${v.toFixed(1)}%`}
               />
-              <NumberInputField
+              <SliderField
                 form={form}
                 name="growth_rate_max"
                 label="Maximum"
@@ -249,8 +241,7 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
                 min={-50}
                 max={100}
                 step={0.5}
-                suffix="%"
-                placeholder="12"
+                formatValue={(v) => `${v.toFixed(1)}%`}
               />
             </DistributionSection>
 
@@ -263,7 +254,7 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
               distributionType="Normal"
               columns={2}
             >
-              <NumberInputField
+              <SliderField
                 form={form}
                 name="roi_mean"
                 label="Mean ROI"
@@ -272,10 +263,9 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
                 min={0}
                 max={50}
                 step={0.5}
-                suffix="%"
-                placeholder="7"
+                formatValue={(v) => `${v.toFixed(1)}%`}
               />
-              <NumberInputField
+              <SliderField
                 form={form}
                 name="roi_std"
                 label="Standard Deviation"
@@ -284,8 +274,7 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
                 min={0}
                 max={20}
                 step={0.5}
-                suffix="%"
-                placeholder="2"
+                formatValue={(v) => `${v.toFixed(1)}%`}
               />
             </DistributionSection>
 
@@ -297,7 +286,7 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
               description="Simulate uncertainty in when exit occurs"
               distributionType="PERT"
             >
-              <NumberInputField
+              <SliderField
                 form={form}
                 name="exit_year_min"
                 label="Earliest Exit"
@@ -306,10 +295,9 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
                 min={1}
                 max={20}
                 step={1}
-                suffix=" yrs"
-                placeholder="3"
+                formatValue={(v) => `${v} yrs`}
               />
-              <NumberInputField
+              <SliderField
                 form={form}
                 name="exit_year_mode"
                 label="Expected Exit"
@@ -318,10 +306,9 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
                 min={1}
                 max={20}
                 step={1}
-                suffix=" yrs"
-                placeholder="5"
+                formatValue={(v) => `${v} yrs`}
               />
-              <NumberInputField
+              <SliderField
                 form={form}
                 name="exit_year_max"
                 label="Latest Exit"
@@ -330,8 +317,7 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
                 min={1}
                 max={20}
                 step={1}
-                suffix=" yrs"
-                placeholder="10"
+                formatValue={(v) => `${v} yrs`}
               />
             </DistributionSection>
 
@@ -343,7 +329,7 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
               description="Simulate uncertainty in equity dilution"
               distributionType="PERT"
             >
-              <NumberInputField
+              <SliderField
                 form={form}
                 name="dilution_min"
                 label="Minimum Dilution"
@@ -352,10 +338,9 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
                 min={0}
                 max={100}
                 step={1}
-                suffix="%"
-                placeholder="10"
+                formatValue={(v) => `${v}%`}
               />
-              <NumberInputField
+              <SliderField
                 form={form}
                 name="dilution_mode"
                 label="Expected Dilution"
@@ -364,10 +349,9 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
                 min={0}
                 max={100}
                 step={1}
-                suffix="%"
-                placeholder="25"
+                formatValue={(v) => `${v}%`}
               />
-              <NumberInputField
+              <SliderField
                 form={form}
                 name="dilution_max"
                 label="Maximum Dilution"
@@ -376,8 +360,7 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
                 min={0}
                 max={100}
                 step={1}
-                suffix="%"
-                placeholder="50"
+                formatValue={(v) => `${v}%`}
               />
             </DistributionSection>
 

@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Settings } from "lucide-react";
-import { NumberInputField, SelectField } from "./form-fields";
+import { SliderField, CurrencySliderField, SelectField } from "./form-fields";
 import type { DilutionRoundForm } from "@/lib/schemas";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -106,7 +106,7 @@ export function DilutionRoundFormComponent({
                   ]}
                 />
 
-                <NumberInputField
+                <SliderField
                   form={form}
                   name={`dilution_rounds.${roundIndex}.year`}
                   label="Year"
@@ -114,61 +114,54 @@ export function DilutionRoundFormComponent({
                   min={0}
                   max={20}
                   step={1}
-                  placeholder="2"
+                  formatValue={(v) => `Year ${v}`}
                 />
               </div>
 
               {/* Responsive grid - Pre-Money Valuation needs full width for large values */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <NumberInputField
+                <SliderField
                   form={form}
                   name={`dilution_rounds.${roundIndex}.dilution_pct`}
                   label="Dilution %"
                   description="Percentage dilution (optional)"
                   min={0}
-                  max={100}
-                  step={0.1}
-                  suffix="%"
-                  placeholder="15"
+                  max={50}
+                  step={0.5}
+                  formatValue={(v) => `${v.toFixed(1)}%`}
                 />
 
-                <NumberInputField
+                <CurrencySliderField
                   form={form}
                   name={`dilution_rounds.${roundIndex}.pre_money_valuation`}
                   label="Pre-Money Valuation"
                   description="Valuation before round (optional)"
                   min={0}
+                  max={1000000000}
                   step={1000000}
-                  prefix="$"
-                  placeholder="50000000"
-                  formatDisplay={true}
                 />
               </div>
 
               {/* Use responsive grid for currency fields - single column on small screens */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <NumberInputField
+                <CurrencySliderField
                   form={form}
                   name={`dilution_rounds.${roundIndex}.amount_raised`}
                   label="Amount Raised"
                   description="Capital raised (optional)"
                   min={0}
-                  step={1000000}
-                  prefix="$"
-                  placeholder="10000000"
-                  formatDisplay={true}
+                  max={500000000}
+                  step={500000}
                 />
 
-                <NumberInputField
+                <CurrencySliderField
                   form={form}
                   name={`dilution_rounds.${roundIndex}.salary_change`}
                   label="New Salary"
                   description="Updated monthly salary (optional)"
                   min={0}
-                  step={1000}
-                  prefix="$"
-                  placeholder="12000"
-                  formatDisplay={true}
+                  max={50000}
+                  step={500}
                 />
               </div>
             </CardContent>

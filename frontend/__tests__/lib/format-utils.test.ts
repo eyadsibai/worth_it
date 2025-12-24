@@ -155,3 +155,119 @@ describe("formatNumberWithSeparators", () => {
     expect(formatNumberWithSeparators(-1000000)).toBe("-1,000,000");
   });
 });
+
+// Import logarithmic utilities for testing
+import { linearToLog, logToLinear } from "@/lib/format-utils";
+
+describe("logarithmic scale utilities", () => {
+  const MIN = 1_000_000; // $1M
+  const MAX = 10_000_000_000; // $10B
+
+  describe("linearToLog", () => {
+    it("converts position 0 to min value", () => {
+      expect(linearToLog(0, MIN, MAX)).toBe(MIN);
+    });
+
+    it("converts position 1 to max value", () => {
+      expect(linearToLog(1, MIN, MAX)).toBe(MAX);
+    });
+
+    it("converts position 0.5 to geometric mean", () => {
+      // Geometric mean of 1M and 10B = sqrt(1M * 10B) = 100M
+      const result = linearToLog(0.5, MIN, MAX);
+      expect(result).toBeCloseTo(100_000_000, -5); // Allow some floating point tolerance
+    });
+
+    it("maintains logarithmic distribution", () => {
+      // At position 0.25, should be sqrt(min * geometricMean) = sqrt(1M * 100M) = 10M
+      const result = linearToLog(0.25, MIN, MAX);
+      expect(result).toBeCloseTo(10_000_000, -4);
+    });
+
+    it("works with smaller ranges", () => {
+      // Range $10K to $1M
+      const smallMin = 10_000;
+      const smallMax = 1_000_000;
+      expect(linearToLog(0, smallMin, smallMax)).toBe(smallMin);
+      expect(linearToLog(1, smallMin, smallMax)).toBe(smallMax);
+      // Geometric mean = 100K
+      expect(linearToLog(0.5, smallMin, smallMax)).toBeCloseTo(100_000, -3);
+    });
+  });
+
+  describe("logToLinear", () => {
+    it("converts min value to position 0", () => {
+      expect(logToLinear(MIN, MIN, MAX)).toBe(0);
+    });
+
+    it("converts max value to position 1", () => {
+      expect(logToLinear(MAX, MIN, MAX)).toBe(1);
+    });
+
+    it("converts geometric mean to position 0.5", () => {
+      const geometricMean = 100_000_000; // $100M
+      expect(logToLinear(geometricMean, MIN, MAX)).toBeCloseTo(0.5, 5);
+    });
+
+    it("converts $10M to approximately position 0.25", () => {
+      const value = 10_000_000;
+      expect(logToLinear(value, MIN, MAX)).toBeCloseTo(0.25, 2);
+    });
+
+    it("converts $1B to approximately position 0.75", () => {
+      const value = 1_000_000_000;
+      expect(logToLinear(value, MIN, MAX)).toBeCloseTo(0.75, 2);
+    });
+  });
+
+  describe("round-trip conversion", () => {
+    it("linearToLog -> logToLinear returns original position", () => {
+      const testPositions = [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1];
+
+      testPositions.forEach((pos) => {
+        const value = linearToLog(pos, MIN, MAX);
+        const roundTrip = logToLinear(value, MIN, MAX);
+        expect(roundTrip).toBeCloseTo(pos, 10);
+      });
+    });
+
+    it("logToLinear -> linearToLog returns original value", () => {
+      const testValues = [
+        1_000_000, // $1M
+        10_000_000, // $10M
+        100_000_000, // $100M
+        1_000_000_000, // $1B
+        10_000_000_000, // $10B
+      ];
+
+      testValues.forEach((value) => {
+        const position = logToLinear(value, MIN, MAX);
+        const roundTrip = linearToLog(position, MIN, MAX);
+        expect(roundTrip).toBeCloseTo(value, -3);
+      });
+    });
+  });
+
+  describe("edge cases", () => {
+    it("handles position slightly below 0 by clamping", () => {
+      // Negative positions should still work mathematically
+      const result = linearToLog(-0.1, MIN, MAX);
+      expect(result).toBeLessThan(MIN);
+    });
+
+    it("handles position slightly above 1", () => {
+      const result = linearToLog(1.1, MIN, MAX);
+      expect(result).toBeGreaterThan(MAX);
+    });
+
+    it("handles value below min", () => {
+      const result = logToLinear(500_000, MIN, MAX);
+      expect(result).toBeLessThan(0);
+    });
+
+    it("handles value above max", () => {
+      const result = logToLinear(20_000_000_000, MIN, MAX);
+      expect(result).toBeGreaterThan(1);
+    });
+  });
+});

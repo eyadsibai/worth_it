@@ -11,7 +11,7 @@ import {
   FormLabel,
   FormDescription,
 } from "@/components/ui/form";
-import { NumberInputField, SliderField } from "./form-fields";
+import { SliderField, CurrencySliderField, LogarithmicSliderField } from "./form-fields";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import {
@@ -144,30 +144,27 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
   return (
     <Form {...form}>
       <form className="space-y-6">
-        <NumberInputField
+        <CurrencySliderField
           form={form}
           name="monthly_salary"
           label="Monthly Salary"
           tooltip={TOOLTIPS.startupMonthlySalary}
           min={0}
-          step={100}
-          prefix="$"
-          formatDisplay={true}
-          exampleValue={FIELD_EXAMPLES.startup_monthly_salary}
-          hint={FIELD_HINTS.startup_monthly_salary}
+          max={30000}
+          step={250}
+          description={FIELD_HINTS.startup_monthly_salary}
         />
 
-        <NumberInputField
+        <SliderField
           form={form}
           name="total_equity_grant_pct"
           label="Total Equity Grant"
           tooltip={TOOLTIPS.totalEquityGrantPct}
           min={0}
-          max={100}
+          max={10}
           step={0.01}
-          suffix="%"
-          exampleValue={FIELD_EXAMPLES.total_equity_grant_pct}
-          hint={FIELD_HINTS.total_equity_grant_pct}
+          formatValue={(value) => `${value.toFixed(2)}%`}
+          description={FIELD_HINTS.total_equity_grant_pct}
         />
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -195,17 +192,14 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
         </div>
 
         <div data-tour="exit-valuation-input">
-          <NumberInputField
+          <LogarithmicSliderField
             form={form}
             name="exit_valuation"
             label="Exit Valuation"
             tooltip={TOOLTIPS.exitValuation}
-            min={0}
-            step={1000000}
-            prefix="$"
-            formatDisplay={true}
-            exampleValue={FIELD_EXAMPLES.exit_valuation}
-            hint={FIELD_HINTS.exit_valuation}
+            min={1_000_000}
+            max={10_000_000_000}
+            description={FIELD_HINTS.exit_valuation}
           />
         </div>
 
