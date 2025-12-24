@@ -47,3 +47,4 @@ coverage.xml
 playwright/screenshots/*.png
 
 node_modules
+.worktrees/
