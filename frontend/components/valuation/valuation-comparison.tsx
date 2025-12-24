@@ -180,12 +180,12 @@ export function ValuationComparison({ comparison }: ValuationComparisonProps) {
                 <Tooltip content={<ChartTooltip />} />
                 <ReferenceLine
                   x={comparison.weightedAverage}
-                  stroke={chartColors.muted}
+                  stroke={chartColors.chart4}
                   strokeDasharray="3 3"
                   label={{
                     value: "Weighted Avg",
                     position: "top",
-                    fill: chartColors.muted,
+                    fill: chartColors.chart4,
                     fontSize: 10,
                   }}
                 />
