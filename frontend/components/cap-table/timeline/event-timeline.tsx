@@ -210,7 +210,8 @@ interface EventLabelProps {
 
 function EventLabel({ event, position, isSelected, isHovered, offsetIndex = 0 }: EventLabelProps) {
   // Calculate vertical offset: alternate between normal and offset positions
-  const verticalOffset = offsetIndex * 28; // 28px per offset level
+  // Using 36px per level to ensure clear separation between staggered labels
+  const verticalOffset = offsetIndex * 36;
 
   return (
     <div
@@ -221,7 +222,7 @@ function EventLabel({ event, position, isSelected, isHovered, offsetIndex = 0 }:
       )}
       style={{
         left: `${position}%`,
-        top: `${12 + verticalOffset}px`, // Base top + offset
+        top: `${8 + verticalOffset}px`, // Base top + offset
       }}
     >
       <p className="max-w-[100px] truncate text-xs font-medium whitespace-nowrap">{event.title}</p>
@@ -350,7 +351,7 @@ export function EventTimeline({
       </div>
 
       {/* Event labels below the line */}
-      <div className="relative h-16">
+      <div className="relative h-20">
         {eventPositions.map(({ event, position, labelOffset }) => (
           <EventLabel
             key={event.id}

@@ -176,11 +176,27 @@ function isStockOptions(form: RSUForm | StockOptionsForm): form is StockOptionsF
 }
 
 /**
+ * Format currency for display in timeline events
+ */
+function formatCompactCurrency(value: number): string {
+  if (value >= 1_000_000_000) {
+    return `$${(value / 1_000_000_000).toFixed(1)}B`;
+  }
+  if (value >= 1_000_000) {
+    return `$${(value / 1_000_000).toFixed(0)}M`;
+  }
+  if (value >= 1_000) {
+    return `$${(value / 1_000).toFixed(0)}K`;
+  }
+  return `$${value.toLocaleString()}`;
+}
+
+/**
  * Derive timeline events from employee equity form data
  */
 export function deriveEmployeeTimelineEvents(
   equityDetails: RSUForm | StockOptionsForm,
-  _globalSettings: GlobalSettingsForm // Reserved for future use with salary-based milestones
+  globalSettings: GlobalSettingsForm
 ): TimelineEvent[] {
   const events: TimelineEvent[] = [];
 
@@ -247,8 +263,8 @@ export function deriveEmployeeTimelineEvents(
     });
   }
 
-  // 3. Vesting Milestones (25%, 50%, 75%, 100%)
-  const milestones = [25, 50, 75, 100];
+  // 3. Vesting Milestones (50% and 100% only - reduced from 25/50/75/100)
+  const milestones = [50, 100];
   milestones.forEach((pct) => {
     const monthsToMilestone = (pct / 100) * vestingMonths;
 
@@ -274,7 +290,72 @@ export function deriveEmployeeTimelineEvents(
     });
   });
 
-  // 4. Exercise Deadline (for options only - 10 years from grant)
+  // 4. Funding Rounds (if RSU with dilution simulation enabled)
+  if (
+    !isStockOptions(equityDetails) &&
+    equityDetails.simulate_dilution &&
+    equityDetails.dilution_rounds
+  ) {
+    equityDetails.dilution_rounds.forEach((round, idx) => {
+      if (!round.enabled || round.year <= 0) return; // Skip disabled or past rounds
+
+      const roundDate = addMonths(grantDate, round.year * 12);
+
+      // Calculate vested percentage at this point
+      const monthsFromGrant = round.year * 12;
+      const vestedAtRound = Math.min(100, Math.max(0, (monthsFromGrant / vestingMonths) * 100));
+
+      events.push({
+        id: `funding_round_${idx}`,
+        timestamp: roundDate.getTime(),
+        type: "funding_round",
+        title: round.round_name,
+        description:
+          round.amount_raised > 0
+            ? `${formatCompactCurrency(round.amount_raised)} raised at ${formatCompactCurrency(round.pre_money_valuation)} pre-money. ${round.dilution_pct}% dilution.`
+            : `${round.dilution_pct}% dilution from ${round.round_name}`,
+        ownershipSnapshot: createVestingSnapshot(vestedAtRound),
+        metadata: {
+          amount: round.amount_raised,
+          valuation: round.pre_money_valuation,
+          percentageChange: -round.dilution_pct,
+        },
+      });
+
+      // Add salary change event if there's a salary increase
+      if (round.salary_change > 0 && round.salary_change !== equityDetails.monthly_salary) {
+        events.push({
+          id: `salary_change_${idx}`,
+          timestamp: roundDate.getTime() + 1, // Slightly after funding round
+          type: "stakeholder_added", // Reuse this type for salary events
+          title: "Salary Increase",
+          description: `Monthly salary increases to ${formatCompactCurrency(round.salary_change)}/mo after ${round.round_name}`,
+          ownershipSnapshot: createVestingSnapshot(vestedAtRound),
+          metadata: {
+            amount: round.salary_change,
+          },
+        });
+      }
+    });
+  }
+
+  // 5. Target Exit Date (from global settings)
+  if (globalSettings.exit_year > 0) {
+    const exitDate = addMonths(grantDate, globalSettings.exit_year * 12);
+    const vestedAtExit = Math.min(100, ((globalSettings.exit_year * 12) / vestingMonths) * 100);
+
+    events.push({
+      id: "target_exit",
+      timestamp: exitDate.getTime(),
+      type: "company_founded", // Reuse for exit milestone
+      title: "Target Exit",
+      description: `Projected exit/liquidity event in Year ${globalSettings.exit_year}`,
+      ownershipSnapshot: createVestingSnapshot(vestedAtExit),
+      metadata: {},
+    });
+  }
+
+  // 6. Exercise Deadline (for options only - 10 years from grant)
   if (isStockOptions(equityDetails)) {
     const exerciseDeadline = addMonths(grantDate, 120); // 10 years
 
