@@ -491,9 +491,7 @@ export function ScenarioResults({
               <CardTitle className="text-foreground text-lg font-semibold tracking-tight lg:text-xl">
                 <AnimatedCurrencyDisplay value={displayPayoutValue} responsive />
               </CardTitle>
-              <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">
-                {results.payout_label}
-              </p>
+              <p className="text-muted-foreground mt-1 text-xs">{results.payout_label}</p>
             </CardContent>
           </Card>
 
@@ -510,7 +508,7 @@ export function ScenarioResults({
               <CardTitle className="text-foreground text-lg font-semibold tracking-tight lg:text-xl">
                 <AnimatedCurrencyDisplay value={displayOpportunityCost} responsive />
               </CardTitle>
-              <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">
+              <p className="text-muted-foreground mt-1 text-xs">
                 <span className="hidden sm:inline">Current job alternative</span>
                 <span className="sm:hidden">Alt. path</span>
               </p>
@@ -568,7 +566,7 @@ export function ScenarioResults({
                   <CardTitle className="text-foreground text-lg font-semibold tracking-tight tabular-nums lg:text-xl">
                     {(displayResults.total_dilution * 100).toFixed(2).replace(/\.?0+$/, "")}%
                   </CardTitle>
-                  <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">
+                  <p className="text-muted-foreground mt-1 text-xs">
                     Final:{" "}
                     {((displayResults.diluted_equity_pct || 0) * 100)
                       .toFixed(2)
@@ -603,9 +601,7 @@ export function ScenarioResults({
                   "N/A"
                 )}
               </CardTitle>
-              <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">
-                {displayResults.breakeven_label}
-              </p>
+              <p className="text-muted-foreground mt-1 text-xs">{displayResults.breakeven_label}</p>
             </CardContent>
           </Card>
         </MetricCarousel>

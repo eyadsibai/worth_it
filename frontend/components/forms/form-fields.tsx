@@ -150,7 +150,7 @@ export function NumberInputField({
                   min={!formatDisplay ? min : undefined}
                   max={!formatDisplay ? max : undefined}
                   step={!formatDisplay ? step : undefined}
-                  className={`${prefix ? "pl-12" : ""} ${rightPadding}`}
+                  className={`${prefix ? "pl-7" : ""} ${rightPadding}`}
                   value={displayValue}
                   onFocus={() => {
                     setIsFocused(true);

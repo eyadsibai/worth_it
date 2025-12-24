@@ -226,7 +226,9 @@ export function QuickAdjustPanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="text-accent h-4 w-4" />
-            <CardTitle className="text-sm font-semibold">Quick Adjustments</CardTitle>
+            <CardTitle className="text-sm font-semibold whitespace-nowrap">
+              Quick Adjustments
+            </CardTitle>
             {hasChanges && <span className="text-accent text-xs">(modified)</span>}
           </div>
           <Button
