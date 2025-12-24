@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { motion } from "@/lib/motion";
 import { useAppStore } from "@/lib/store";
 import { EXAMPLE_SCENARIOS, type ExampleStage } from "@/lib/constants/examples";
 import { FOUNDER_TEMPLATES } from "@/lib/constants/founder-templates";
@@ -89,67 +90,98 @@ export function TemplatePicker({ mode }: TemplatePickerProps) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <motion.div
+        className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: { staggerChildren: 0.08 },
+          },
+        }}
+      >
         {mode === "employee"
           ? // Employee templates
             EXAMPLE_SCENARIOS.map((scenario) => {
               const Icon = STAGE_ICONS[scenario.stage];
               return (
-                <Button
+                <motion.div
                   key={scenario.id}
-                  variant="outline"
-                  className="hover:border-primary hover:bg-primary/5 h-auto flex-col items-start gap-2 overflow-hidden p-4 text-left whitespace-normal transition-colors"
-                  onClick={() => handleEmployeeTemplate(scenario.id, scenario.name)}
+                  variants={{
+                    hidden: { opacity: 0, y: 12 },
+                    visible: { opacity: 1, y: 0 },
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 >
-                  <div className="flex w-full items-center gap-2">
-                    <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
-                      <Icon className="text-primary h-4 w-4" />
+                  <Button
+                    variant="outline"
+                    className="hover:border-primary hover:bg-primary/5 h-auto w-full flex-col items-start gap-2 overflow-hidden p-4 text-left whitespace-normal transition-colors"
+                    onClick={() => handleEmployeeTemplate(scenario.id, scenario.name)}
+                  >
+                    <div className="flex w-full items-center gap-2">
+                      <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
+                        <Icon className="text-primary h-4 w-4" />
+                      </div>
+                      <span className="text-sm font-medium">{scenario.name}</span>
                     </div>
-                    <span className="text-sm font-medium">{scenario.name}</span>
-                  </div>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="text-muted-foreground line-clamp-2 text-xs">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-muted-foreground line-clamp-2 text-xs">
+                          {scenario.description}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[200px]">
                         {scenario.description}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-[200px]">
-                      {scenario.description}
-                    </TooltipContent>
-                  </Tooltip>
-                </Button>
+                      </TooltipContent>
+                    </Tooltip>
+                  </Button>
+                </motion.div>
               );
             })
           : // Founder templates
             FOUNDER_TEMPLATES.map((template) => {
               const Icon = FOUNDER_ICONS[template.id] || Users;
               return (
-                <Button
+                <motion.div
                   key={template.id}
-                  variant="outline"
-                  className="hover:border-primary hover:bg-primary/5 h-auto flex-col items-start gap-2 overflow-hidden p-4 text-left whitespace-normal transition-colors"
-                  onClick={() => handleFounderTemplate(template.id, template.name)}
+                  variants={{
+                    hidden: { opacity: 0, y: 12 },
+                    visible: { opacity: 1, y: 0 },
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 >
-                  <div className="flex w-full items-center gap-2">
-                    <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
-                      <Icon className="text-primary h-4 w-4" />
+                  <Button
+                    variant="outline"
+                    className="hover:border-primary hover:bg-primary/5 h-auto w-full flex-col items-start gap-2 overflow-hidden p-4 text-left whitespace-normal transition-colors"
+                    onClick={() => handleFounderTemplate(template.id, template.name)}
+                  >
+                    <div className="flex w-full items-center gap-2">
+                      <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
+                        <Icon className="text-primary h-4 w-4" />
+                      </div>
+                      <span className="text-sm font-medium">{template.name}</span>
                     </div>
-                    <span className="text-sm font-medium">{template.name}</span>
-                  </div>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="text-muted-foreground line-clamp-2 text-xs">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="text-muted-foreground line-clamp-2 text-xs">
+                          {template.description}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[200px]">
                         {template.description}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-[200px]">
-                      {template.description}
-                    </TooltipContent>
-                  </Tooltip>
-                </Button>
+                      </TooltipContent>
+                    </Tooltip>
+                  </Button>
+                </motion.div>
               );
             })}
-      </div>
+      </motion.div>
     </div>
   );
 }

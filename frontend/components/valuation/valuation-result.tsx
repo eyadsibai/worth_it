@@ -8,6 +8,7 @@ import { Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatCurrency } from "@/lib/format-utils";
 import type { FrontendValuationResult } from "@/lib/schemas";
+import { AnimatedCurrencyDisplay, AnimatedPercentage, AnimatedProgress } from "@/lib/motion";
 
 interface ValuationResultProps {
   result: FrontendValuationResult;
@@ -34,9 +35,6 @@ function getConfidenceLevel(confidence: number): "low" | "medium" | "high" {
 export function ValuationResult({ result }: ValuationResultProps) {
   const confidenceLevel = getConfidenceLevel(result.confidence);
   const confidencePercent = Math.round(result.confidence * 100);
-  const valuationStr = formatCurrency(result.valuation);
-  // Split currency for Fundcy styling (large number, muted decimals)
-  const [wholePart, decimalPart] = valuationStr.split(".");
 
   return (
     <Card className="border-0 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_2px_8px_rgba(0,0,0,0.04)]">
@@ -46,7 +44,7 @@ export function ValuationResult({ result }: ValuationResultProps) {
             {methodLabels[result.method] || result.method}
           </CardTitle>
           <Badge variant="outline" className={`text-xs ${confidenceColors[confidenceLevel]}`}>
-            {confidencePercent}% confidence
+            <AnimatedPercentage value={confidencePercent} decimals={0} /> confidence
           </Badge>
         </div>
       </CardHeader>
@@ -54,8 +52,7 @@ export function ValuationResult({ result }: ValuationResultProps) {
         <div>
           <p className="text-muted-foreground mb-1 text-xs tracking-wide uppercase">Valuation</p>
           <p className="text-3xl font-semibold tabular-nums">
-            {wholePart}
-            {decimalPart && <span className="text-muted-foreground">.{decimalPart}</span>}
+            <AnimatedCurrencyDisplay value={result.valuation} showDelta={false} />
           </p>
         </div>
 
@@ -66,7 +63,11 @@ export function ValuationResult({ result }: ValuationResultProps) {
               {confidenceLevel.charAt(0).toUpperCase() + confidenceLevel.slice(1)}
             </span>
           </div>
-          <Progress value={confidencePercent} className="h-2" />
+          <AnimatedProgress
+            value={confidencePercent}
+            className="bg-muted h-2 overflow-hidden rounded-full"
+            barClassName="bg-primary h-full rounded-full"
+          />
         </div>
 
         {result.notes && (

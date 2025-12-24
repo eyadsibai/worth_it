@@ -4,6 +4,7 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, TrendingDown, Clock, Target } from "lucide-react";
 import type { DilutionRoundForm } from "@/lib/schemas";
+import { AnimatedNumber, AnimatedProgress } from "@/lib/motion";
 
 interface DilutionSummaryCardProps {
   completedRounds: DilutionRoundForm[];
@@ -79,7 +80,7 @@ export function DilutionSummaryCard({ completedRounds, upcomingRounds }: Dilutio
             Equity Remaining
           </p>
           <p className="text-4xl font-semibold tabular-nums" data-testid="equity-remaining">
-            {equityRemaining}
+            <AnimatedNumber value={equityRemaining} />
             <span className="text-muted-foreground text-xl">%</span>
           </p>
         </div>

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, Briefcase, Building2, TrendingUp, TrendingDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format-utils";
+import { AnimatedCurrencyDisplay, MotionListItem, MotionList } from "@/lib/motion";
 
 interface EmployeeScenarioPreview {
   type: "employee";
@@ -99,89 +100,90 @@ export function RecentScenarios({
             <p className="text-sm">Your saved work will appear here.</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <MotionList className="space-y-2">
             {displayedScenarios.map((scenario) => (
-              <button
-                key={`${scenario.type}-${scenario.id}`}
-                onClick={() => onLoadScenario(scenario.id, scenario.type)}
-                className="bg-card hover:bg-accent/50 group flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors"
-              >
-                {/* Icon */}
-                <div
-                  className={cn(
-                    "rounded-lg p-2",
-                    scenario.type === "employee" ? "bg-chart-2/20" : "bg-chart-3/20"
-                  )}
+              <MotionListItem key={`${scenario.type}-${scenario.id}`}>
+                <button
+                  onClick={() => onLoadScenario(scenario.id, scenario.type)}
+                  className="bg-card hover:bg-accent/50 group flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors"
                 >
-                  {scenario.type === "employee" ? (
-                    <Briefcase className="text-chart-2 h-4 w-4" />
-                  ) : (
-                    <Building2 className="text-chart-3 h-4 w-4" />
-                  )}
-                </div>
+                  {/* Icon */}
+                  <div
+                    className={cn(
+                      "rounded-lg p-2",
+                      scenario.type === "employee" ? "bg-chart-2/20" : "bg-chart-3/20"
+                    )}
+                  >
+                    {scenario.type === "employee" ? (
+                      <Briefcase className="text-chart-2 h-4 w-4" />
+                    ) : (
+                      <Building2 className="text-chart-3 h-4 w-4" />
+                    )}
+                  </div>
 
-                {/* Info */}
-                <div className="min-w-0 flex-1">
-                  <p className="group-hover:text-terminal truncate font-medium transition-colors">
-                    {scenario.name}
-                  </p>
-                  <div className="text-muted-foreground flex items-center gap-2 text-xs">
-                    <span>
-                      {formatRelativeTime(
-                        scenario.type === "employee" ? scenario.timestamp : scenario.updatedAt
+                  {/* Info */}
+                  <div className="min-w-0 flex-1">
+                    <p className="group-hover:text-terminal truncate font-medium transition-colors">
+                      {scenario.name}
+                    </p>
+                    <div className="text-muted-foreground flex items-center gap-2 text-xs">
+                      <span>
+                        {formatRelativeTime(
+                          scenario.type === "employee" ? scenario.timestamp : scenario.updatedAt
+                        )}
+                      </span>
+                      {scenario.type === "employee" && (
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "px-1.5 py-0 text-xs",
+                            scenario.isWorthIt
+                              ? "border-terminal/30 text-terminal"
+                              : "border-muted-foreground/30 text-muted-foreground"
+                          )}
+                        >
+                          {scenario.isWorthIt ? (
+                            <TrendingUp className="mr-1 h-3 w-3" />
+                          ) : (
+                            <TrendingDown className="mr-1 h-3 w-3" />
+                          )}
+                          {scenario.isWorthIt ? "Worth it" : "Not worth it"}
+                        </Badge>
                       )}
-                    </span>
-                    {scenario.type === "employee" && (
-                      <Badge
-                        variant="outline"
+                      {scenario.type === "founder" && (
+                        <span className="text-xs">
+                          {scenario.stakeholderCount} stakeholder
+                          {scenario.stakeholderCount !== 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Value */}
+                  <div className="shrink-0 text-right">
+                    {scenario.type === "employee" ? (
+                      <span
                         className={cn(
-                          "px-1.5 py-0 text-xs",
-                          scenario.isWorthIt
-                            ? "border-terminal/30 text-terminal"
-                            : "border-muted-foreground/30 text-muted-foreground"
+                          "text-sm font-semibold tabular-nums",
+                          scenario.netBenefit >= 0 ? "text-terminal" : "text-destructive"
                         )}
                       >
-                        {scenario.isWorthIt ? (
-                          <TrendingUp className="mr-1 h-3 w-3" />
-                        ) : (
-                          <TrendingDown className="mr-1 h-3 w-3" />
-                        )}
-                        {scenario.isWorthIt ? "Worth it" : "Not worth it"}
-                      </Badge>
-                    )}
-                    {scenario.type === "founder" && (
-                      <span className="text-xs">
-                        {scenario.stakeholderCount} stakeholder
-                        {scenario.stakeholderCount !== 1 ? "s" : ""}
+                        {scenario.netBenefit >= 0 ? "+" : ""}
+                        <AnimatedCurrencyDisplay value={scenario.netBenefit} showDelta={false} />
+                      </span>
+                    ) : (
+                      <span className="text-terminal text-sm font-semibold tabular-nums">
+                        <AnimatedCurrencyDisplay value={scenario.totalFunding} showDelta={false} />
                       </span>
                     )}
                   </div>
-                </div>
 
-                {/* Value */}
-                <div className="shrink-0 text-right">
-                  {scenario.type === "employee" ? (
-                    <span
-                      className={cn(
-                        "text-sm font-semibold tabular-nums",
-                        scenario.netBenefit >= 0 ? "text-terminal" : "text-destructive"
-                      )}
-                    >
-                      {scenario.netBenefit >= 0 ? "+" : ""}
-                      {formatCurrency(scenario.netBenefit)}
-                    </span>
-                  ) : (
-                    <span className="text-terminal text-sm font-semibold tabular-nums">
-                      {formatCurrency(scenario.totalFunding)}
-                    </span>
-                  )}
-                </div>
-
-                {/* Arrow */}
-                <ChevronRight className="text-muted-foreground group-hover:text-terminal h-4 w-4 shrink-0 transition-colors" />
-              </button>
+                  {/* Arrow */}
+                  <ChevronRight className="text-muted-foreground group-hover:text-terminal h-4 w-4 shrink-0 transition-colors" />
+                </button>
+              </MotionListItem>
             ))}
-          </div>
+          </MotionList>
         )}
       </CardContent>
     </Card>

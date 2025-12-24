@@ -22,7 +22,7 @@ import { CumulativeComparisonChart } from "@/components/charts/cumulative-compar
 import { OpportunityCostChart } from "@/components/charts/opportunity-cost-chart";
 import { formatCurrency } from "@/lib/format-utils";
 import { CurrencyDisplay } from "@/components/ui/currency-display";
-import { AnimatedCurrencyDisplay } from "@/lib/motion";
+import { AnimatedCurrencyDisplay, AnimatedPercentage, AnimatedNumber } from "@/lib/motion";
 import {
   saveScenario,
   getSavedScenarios,
@@ -564,14 +564,14 @@ export function ScenarioResults({
                 </CardHeader>
                 <CardContent className="px-4 pb-4">
                   <CardTitle className="text-foreground text-lg font-semibold tracking-tight tabular-nums lg:text-xl">
-                    {(displayResults.total_dilution * 100).toFixed(2).replace(/\.?0+$/, "")}%
+                    <AnimatedPercentage value={displayResults.total_dilution * 100} decimals={2} />
                   </CardTitle>
                   <p className="text-muted-foreground mt-1 text-xs">
                     Final:{" "}
-                    {((displayResults.diluted_equity_pct || 0) * 100)
-                      .toFixed(2)
-                      .replace(/\.?0+$/, "")}
-                    %
+                    <AnimatedPercentage
+                      value={(displayResults.diluted_equity_pct || 0) * 100}
+                      decimals={2}
+                    />
                   </p>
                 </CardContent>
               </Card>

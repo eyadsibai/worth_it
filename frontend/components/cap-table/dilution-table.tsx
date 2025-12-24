@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { TrendingDown, Star } from "lucide-react";
 import type { DilutionData } from "@/lib/schemas";
+import { motion } from "@/lib/motion";
 
 interface DilutionTableProps {
   data: DilutionData[];
@@ -61,9 +62,12 @@ export function DilutionTable({ data }: DilutionTableProps) {
         </TableHeader>
         <TableBody>
           {data.map((row, index) => (
-            <TableRow
+            <motion.tr
               key={`${row.name}-${row.type}-${index}`}
-              className={row.isNew ? "bg-terminal/5" : undefined}
+              className={`hover:bg-muted/50 border-b transition-colors ${row.isNew ? "bg-terminal/5" : ""}`}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2, delay: index * 0.05 }}
             >
               <TableCell>
                 <div className="flex items-center gap-2">
@@ -90,7 +94,7 @@ export function DilutionTable({ data }: DilutionTableProps) {
                   </span>
                 )}
               </TableCell>
-            </TableRow>
+            </motion.tr>
           ))}
         </TableBody>
       </Table>

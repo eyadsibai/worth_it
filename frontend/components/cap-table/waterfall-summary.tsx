@@ -4,6 +4,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import type { WaterfallDistribution, PreferenceTier, StakeholderPayout } from "@/lib/schemas";
 import { formatCurrency, formatCurrencyCompact } from "@/lib/format-utils";
+import { AnimatedCurrencyDisplay, AnimatedNumber, AnimatedPercentage } from "@/lib/motion";
 
 interface WaterfallSummaryProps {
   distribution: WaterfallDistribution | null;
@@ -55,7 +56,7 @@ export function WaterfallSummary({
           <p>
             At an exit valuation of{" "}
             <span className="text-foreground font-semibold">
-              {formatCurrencyCompact(exitValuation)}
+              <AnimatedNumber value={exitValuation} formatValue={(v) => formatCurrencyCompact(v)} />
             </span>
             , here&apos;s how the money flows:
           </p>
@@ -164,14 +165,17 @@ export function WaterfallSummary({
           </h4>
           <div className="flex items-baseline gap-3">
             <span className="text-3xl font-bold tabular-nums">
-              {formatCurrency(highlightedPayout.payout_amount)}
+              <AnimatedCurrencyDisplay value={highlightedPayout.payout_amount} showDelta={false} />
             </span>
             <span className="text-muted-foreground text-lg tabular-nums">
-              ({highlightedPayout.payout_pct.toFixed(1)}%)
+              (<AnimatedPercentage value={highlightedPayout.payout_pct} decimals={1} />)
             </span>
             {highlightedPayout.roi !== undefined && (
               <span className="text-terminal text-lg font-semibold tabular-nums">
-                {highlightedPayout.roi.toFixed(1)}x ROI
+                <AnimatedNumber
+                  value={highlightedPayout.roi}
+                  formatValue={(v) => v.toFixed(1) + "x ROI"}
+                />
               </span>
             )}
           </div>

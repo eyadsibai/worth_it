@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { toast } from "sonner";
+import { motion } from "@/lib/motion";
 import {
   getSavedScenarios,
   deleteScenario,
@@ -300,7 +301,18 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[400px] pr-4">
-            <div className="space-y-3">
+            <motion.div
+              className="space-y-3"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.05 },
+                },
+              }}
+            >
               {filteredScenarios.length === 0 && scenarios.length > 0 ? (
                 <div className="text-muted-foreground py-8 text-center text-sm">
                   No scenarios match your search or filter
@@ -311,9 +323,16 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                 const isSelected = selectedScenarios.has(scenario.timestamp);
 
                 return (
-                  <div
+                  <motion.div
                     key={scenario.timestamp}
-                    className={`cursor-pointer rounded-lg border p-4 transition-all ${
+                    variants={{
+                      hidden: { opacity: 0, y: 10 },
+                      visible: { opacity: 1, y: 0 },
+                    }}
+                    whileHover={{ scale: 1.01, x: 4 }}
+                    whileTap={{ scale: 0.99 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                    className={`cursor-pointer rounded-lg border p-4 ${
                       isSelected
                         ? "border-accent bg-accent/5"
                         : "border-border hover:border-accent/50 hover:bg-accent/5"
@@ -443,10 +462,10 @@ export function ScenarioManager({ onLoadScenario, onCompareScenarios }: Scenario
                         Load Scenario
                       </Button>
                     )}
-                  </div>
+                  </motion.div>
                 );
               })}
-            </div>
+            </motion.div>
           </ScrollArea>
         </CardContent>
       </Card>

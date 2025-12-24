@@ -9,7 +9,7 @@ import { ChevronDown, ChevronUp, RefreshCw, SlidersHorizontal } from "lucide-rea
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatCurrencyCompact } from "@/lib/format-utils";
 import type { RSUForm, StockOptionsForm, StartupScenarioResponse } from "@/lib/schemas";
-import { AnimatedCurrencyDisplay } from "@/lib/motion";
+import { AnimatedCurrencyDisplay, AnimatedNumber, AnimatedPercentage } from "@/lib/motion";
 
 interface QuickAdjustPanelProps {
   equityDetails: RSUForm | StockOptionsForm;
@@ -268,7 +268,10 @@ export function QuickAdjustPanel({
                       Exit Valuation
                     </Label>
                     <span className="text-accent text-sm tabular-nums">
-                      {formatCurrencyCompact(exitValuation)}
+                      <AnimatedNumber
+                        value={exitValuation}
+                        formatValue={(v) => formatCurrencyCompact(v)}
+                      />
                     </span>
                   </div>
                   <Slider
@@ -294,8 +297,7 @@ export function QuickAdjustPanel({
                       Equity %
                     </Label>
                     <span className="text-accent text-sm tabular-nums">
-                      {equityPct % 1 === 0 ? equityPct : equityPct.toFixed(2).replace(/\.?0+$/, "")}
-                      %
+                      <AnimatedPercentage value={equityPct} decimals={2} />
                     </span>
                   </div>
                   <Slider
@@ -323,10 +325,12 @@ export function QuickAdjustPanel({
                       Exit Price/Share
                     </Label>
                     <span className="text-accent text-sm tabular-nums">
-                      $
-                      {exitPricePerShare % 1 === 0
-                        ? exitPricePerShare
-                        : exitPricePerShare.toFixed(2).replace(/\.?0+$/, "")}
+                      <AnimatedNumber
+                        value={exitPricePerShare}
+                        formatValue={(v) =>
+                          "$" + (v % 1 === 0 ? v.toString() : v.toFixed(2).replace(/\.?0+$/, ""))
+                        }
+                      />
                     </span>
                   </div>
                   <Slider
@@ -352,7 +356,7 @@ export function QuickAdjustPanel({
                       Options
                     </Label>
                     <span className="text-accent text-sm tabular-nums">
-                      {numOptions.toLocaleString()}
+                      <AnimatedNumber value={numOptions} formatValue={(v) => v.toLocaleString()} />
                     </span>
                   </div>
                   <Slider
@@ -380,7 +384,10 @@ export function QuickAdjustPanel({
                   Startup Salary
                 </Label>
                 <span className="text-accent text-sm tabular-nums">
-                  {formatCurrency(startupSalary)}/mo
+                  <AnimatedNumber
+                    value={startupSalary}
+                    formatValue={(v) => formatCurrency(v) + "/mo"}
+                  />
                 </span>
               </div>
               <Slider

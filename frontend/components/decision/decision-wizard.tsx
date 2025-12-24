@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { motion } from "@/lib/motion";
 import {
   ChevronRight,
   ChevronLeft,
@@ -61,11 +62,14 @@ interface OptionButtonProps {
 
 function OptionButton({ selected, onClick, children, className }: OptionButtonProps) {
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
+      whileHover={{ scale: 1.02, x: 4 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
       className={cn(
-        "flex w-full items-center gap-2 rounded-xl border-2 px-4 py-3 text-left transition-all",
+        "flex w-full items-center gap-2 rounded-xl border-2 px-4 py-3 text-left",
         "hover:border-primary/50 hover:bg-primary/5",
         "focus:ring-ring focus:ring-2 focus:ring-offset-2 focus:outline-none",
         selected
@@ -74,16 +78,26 @@ function OptionButton({ selected, onClick, children, className }: OptionButtonPr
         className
       )}
     >
-      <div
+      <motion.div
         className={cn(
           "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2",
           selected ? "border-primary bg-primary" : "border-muted-foreground"
         )}
+        animate={{ scale: selected ? 1 : 0.9 }}
+        transition={{ type: "spring", stiffness: 500, damping: 25 }}
       >
-        {selected && <Check className="text-primary-foreground h-3 w-3" />}
-      </div>
+        {selected && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 500, damping: 20 }}
+          >
+            <Check className="text-primary-foreground h-3 w-3" />
+          </motion.div>
+        )}
+      </motion.div>
       <span className="text-sm font-medium">{children}</span>
-    </button>
+    </motion.button>
   );
 }
 
@@ -95,11 +109,14 @@ interface ToggleButtonProps {
 
 function ToggleButton({ selected, onClick, label }: ToggleButtonProps) {
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
       className={cn(
-        "rounded-lg border px-4 py-2 text-sm font-medium transition-all",
+        "rounded-lg border px-4 py-2 text-sm font-medium",
         "focus:ring-ring focus:ring-2 focus:ring-offset-2 focus:outline-none",
         selected
           ? "border-primary bg-primary text-primary-foreground"
@@ -107,7 +124,7 @@ function ToggleButton({ selected, onClick, label }: ToggleButtonProps) {
       )}
     >
       {label}
-    </button>
+    </motion.button>
   );
 }
 

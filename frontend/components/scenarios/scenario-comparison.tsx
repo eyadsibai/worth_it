@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { X, TrendingUp, TrendingDown, Trophy, Scale, Info, Download, Loader2 } from "lucide-react";
+import { motion } from "@/lib/motion";
 import {
   type ScenarioData,
   exportScenarioComparisonPDF,
@@ -141,8 +142,19 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
 
         {/* Winner Badge Section */}
         {!isLoadingComparison && winner && !winner.isTie && winner.netOutcomeAdvantage > 0 && (
-          <div className="flex items-center gap-3 rounded-lg border border-amber-500/20 bg-amber-500/10 p-4">
-            <Trophy className="h-6 w-6 text-amber-500" data-testid="trophy-icon" />
+          <motion.div
+            className="flex items-center gap-3 rounded-lg border border-amber-500/20 bg-amber-500/10 p-4"
+            initial={{ opacity: 0, scale: 0.9, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+          >
+            <motion.div
+              initial={{ rotate: -15, scale: 0 }}
+              animate={{ rotate: 0, scale: 1 }}
+              transition={{ type: "spring", stiffness: 500, damping: 15, delay: 0.1 }}
+            >
+              <Trophy className="h-6 w-6 text-amber-500" data-testid="trophy-icon" />
+            </motion.div>
             <div>
               <div className="text-foreground flex items-center gap-2 font-semibold">
                 {winner.winnerName}
@@ -159,7 +171,7 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
                 )}
               </p>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Insights Section */}
@@ -168,17 +180,36 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
             <h4 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
               Key Insights
             </h4>
-            <div className="grid gap-2">
+            <motion.div
+              className="grid gap-2"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.1 },
+                },
+              }}
+            >
               {insights.map((insight, idx) => (
-                <div key={idx} className="bg-secondary/50 flex items-start gap-3 rounded-lg p-3">
+                <motion.div
+                  key={idx}
+                  className="bg-secondary/50 flex items-start gap-3 rounded-lg p-3"
+                  variants={{
+                    hidden: { opacity: 0, x: -15 },
+                    visible: { opacity: 1, x: 0 },
+                  }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                >
                   <InsightIcon type={insight.icon} />
                   <div>
                     <p className="text-foreground text-sm font-medium">{insight.title}</p>
                     <p className="text-muted-foreground text-xs">{insight.description}</p>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         )}
 

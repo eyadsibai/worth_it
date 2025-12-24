@@ -5,6 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, BarChart3, Briefcase, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format-utils";
+import {
+  AnimatedNumber,
+  AnimatedCurrencyDisplay,
+  AnimatedPercentage,
+  AnimatedProgress,
+} from "@/lib/motion";
 
 interface SummaryStats {
   totalScenarios: number;
@@ -43,21 +49,27 @@ export function SummaryCard({ stats, className }: SummaryCardProps) {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="space-y-1">
             <p className="text-muted-foreground text-xs tracking-wide uppercase">Total Scenarios</p>
-            <p className="text-2xl font-semibold tabular-nums">{stats.totalScenarios}</p>
+            <p className="text-2xl font-semibold tabular-nums">
+              <AnimatedNumber value={stats.totalScenarios} />
+            </p>
           </div>
           <div className="space-y-1">
             <p className="text-muted-foreground flex items-center gap-1 text-xs tracking-wide uppercase">
               <Briefcase className="h-3 w-3" />
               Employee
             </p>
-            <p className="text-2xl font-semibold tabular-nums">{stats.employeeScenarios}</p>
+            <p className="text-2xl font-semibold tabular-nums">
+              <AnimatedNumber value={stats.employeeScenarios} />
+            </p>
           </div>
           <div className="space-y-1">
             <p className="text-muted-foreground flex items-center gap-1 text-xs tracking-wide uppercase">
               <Building2 className="h-3 w-3" />
               Founder
             </p>
-            <p className="text-2xl font-semibold tabular-nums">{stats.founderScenarios}</p>
+            <p className="text-2xl font-semibold tabular-nums">
+              <AnimatedNumber value={stats.founderScenarios} />
+            </p>
           </div>
         </div>
 
@@ -66,24 +78,25 @@ export function SummaryCard({ stats, className }: SummaryCardProps) {
           <div className="border-border border-t pt-4">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-muted-foreground text-sm">Worth It Rate</span>
-              <span className="text-sm font-medium">{worthItPercentage}%</span>
+              <span className="text-sm font-medium">
+                <AnimatedPercentage value={worthItPercentage} decimals={0} />
+              </span>
             </div>
             <div className="flex gap-2">
-              <div className="bg-terminal/20 h-2 flex-1 overflow-hidden rounded-full">
-                <div
-                  className="bg-terminal h-full transition-all duration-500"
-                  style={{ width: `${worthItPercentage}%` }}
-                />
-              </div>
+              <AnimatedProgress
+                value={worthItPercentage}
+                className="bg-terminal/20 h-2 flex-1 overflow-hidden rounded-full"
+                barClassName="bg-terminal h-full rounded-full"
+              />
             </div>
             <div className="mt-2 flex justify-between text-xs">
               <span className="text-terminal flex items-center gap-1">
                 <TrendingUp className="h-3 w-3" />
-                {stats.worthItCount} worth it
+                <AnimatedNumber value={stats.worthItCount} /> worth it
               </span>
               <span className="text-muted-foreground flex items-center gap-1">
                 <TrendingDown className="h-3 w-3" />
-                {stats.notWorthItCount} not worth it
+                <AnimatedNumber value={stats.notWorthItCount} /> not worth it
               </span>
             </div>
           </div>
@@ -104,7 +117,10 @@ export function SummaryCard({ stats, className }: SummaryCardProps) {
                 )}
               >
                 {stats.bestOpportunity.netBenefit >= 0 ? "+" : ""}
-                {formatCurrency(stats.bestOpportunity.netBenefit)}
+                <AnimatedCurrencyDisplay
+                  value={stats.bestOpportunity.netBenefit}
+                  showDelta={false}
+                />
               </span>
             </div>
           </div>
@@ -123,7 +139,7 @@ export function SummaryCard({ stats, className }: SummaryCardProps) {
               )}
             >
               {stats.averageNetBenefit >= 0 ? "+" : ""}
-              {formatCurrency(stats.averageNetBenefit)}
+              <AnimatedCurrencyDisplay value={stats.averageNetBenefit} showDelta={false} />
               <span className="text-muted-foreground text-sm">/scenario</span>
             </p>
           </div>

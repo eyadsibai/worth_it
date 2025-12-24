@@ -45,13 +45,22 @@ export function WizardProgress({ currentStep, totalSteps, stepLabels = [] }: Wiz
       {/* Step dots */}
       <div className="flex justify-between px-1">
         {Array.from({ length: totalSteps }).map((_, index) => (
-          <div
+          <motion.div
             key={index}
             className={cn(
-              "h-2 w-2 rounded-full transition-colors",
-              // Steps before current are filled, others are muted
+              "h-2 w-2 rounded-full",
               index < currentStep ? "bg-primary" : "bg-muted-foreground/30"
             )}
+            initial={{ scale: 0 }}
+            animate={{
+              scale: 1,
+              backgroundColor: index < currentStep ? undefined : undefined,
+            }}
+            transition={{
+              scale: { duration: 0.2, delay: index * 0.05 },
+              backgroundColor: { duration: 0.3 },
+            }}
+            whileHover={{ scale: 1.3 }}
           />
         ))}
       </div>
