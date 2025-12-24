@@ -14,6 +14,13 @@ interface CurrencyDisplayProps {
    * and full notation ($123,456.00) on larger viewports
    */
   responsive?: boolean;
+  /**
+   * Color variant for the display
+   * - "default": No color applied (inherits from parent)
+   * - "positive": Green color (text-terminal) for gains
+   * - "negative": Red color (text-destructive) for losses
+   */
+  variant?: "default" | "positive" | "negative";
 }
 
 /**
@@ -23,24 +30,37 @@ interface CurrencyDisplayProps {
  * When responsive=true, shows compact format ($123K) at tablet/mobile
  * to prevent text truncation in tight layouts
  */
+const variantClasses = {
+  default: "",
+  positive: "text-terminal",
+  negative: "text-destructive",
+} as const;
+
 export function CurrencyDisplay({
   value,
   className,
   showDecimals = false,
   responsive = false,
+  variant = "default",
 }: CurrencyDisplayProps) {
   // Use compact format below lg breakpoint (1024px)
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
   const useCompact = responsive && !isLargeScreen;
 
+  const variantClass = variantClasses[variant];
+
   if (useCompact) {
-    return <span className={cn("tabular-nums", className)}>{formatCurrencyCompact(value)}</span>;
+    return (
+      <span className={cn("tabular-nums", variantClass, className)}>
+        {formatCurrencyCompact(value)}
+      </span>
+    );
   }
 
   const { main, decimal } = formatCurrencyWithDecimals(value);
 
   return (
-    <span className={cn("tabular-nums", className)}>
+    <span className={cn("tabular-nums", variantClass, className)}>
       {main}
       {showDecimals && <span className="currency-decimal">{decimal}</span>}
     </span>
