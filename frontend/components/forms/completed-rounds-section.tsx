@@ -204,7 +204,8 @@ function CompletedRoundItem({ form, round, roundIndex, isEditing }: CompletedRou
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {/* Responsive grid for currency fields with large values */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <NumberInputField
             form={form}
             name={`dilution_rounds.${roundIndex}.pre_money_valuation`}
