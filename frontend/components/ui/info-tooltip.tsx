@@ -60,35 +60,54 @@ export function InfoTooltip({
   );
 }
 
+interface LabelWithTooltipProps {
+  children: React.ReactNode;
+  /** Tooltip content - can be a string or React node */
+  tooltip: React.ReactNode;
+  className?: string;
+  /** For label elements - associates with form input */
+  htmlFor?: string;
+  /** Element type to render (default: "label") */
+  as?: "label" | "span" | "div";
+}
+
 /**
  * Label with integrated info tooltip.
- * Convenience component for form labels that need contextual help.
+ * Convenience component for labels that need contextual help.
+ *
+ * Use `as="span"` or `as="div"` for non-form contexts (e.g., card headers).
  *
  * @example
- * <LabelWithTooltip tooltip="Explanation text">Field Label</LabelWithTooltip>
+ * // Form label (default)
+ * <LabelWithTooltip tooltip="Explanation text" htmlFor="my-input">
+ *   Field Label
+ * </LabelWithTooltip>
+ *
+ * // Non-form context (e.g., metric card header)
+ * <LabelWithTooltip tooltip="Help text" as="span">
+ *   <ResponsiveText full="Full Label" short="Short" />
+ * </LabelWithTooltip>
  */
 export function LabelWithTooltip({
   children,
   tooltip,
   className,
   htmlFor,
-}: {
-  children: React.ReactNode;
-  tooltip: string;
-  className?: string;
-  htmlFor?: string;
-}) {
+  as: Component = "label",
+}: LabelWithTooltipProps) {
+  const baseClasses = cn(
+    "text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+    "flex items-center gap-1",
+    className
+  );
+
+  // Only pass htmlFor to label elements
+  const labelProps = Component === "label" ? { htmlFor } : {};
+
   return (
-    <label
-      htmlFor={htmlFor}
-      className={cn(
-        "text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
-        "flex items-center gap-1",
-        className
-      )}
-    >
+    <Component className={baseClasses} {...labelProps}>
       {children}
       <InfoTooltip content={tooltip} />
-    </label>
+    </Component>
   );
 }
