@@ -13,9 +13,13 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
-  // Strict rules - treat warnings as errors
+  // Strict rules - enforce code quality standards
   {
     rules: {
+      // ═══════════════════════════════════════════════════════════════════════
+      // TYPE SAFETY - Catch bugs before they happen
+      // ═══════════════════════════════════════════════════════════════════════
+
       // Unused variables should be errors, not warnings
       "@typescript-eslint/no-unused-vars": [
         "error",
@@ -25,6 +29,30 @@ const eslintConfig = defineConfig([
           caughtErrorsIgnorePattern: "^_",
         },
       ],
+
+      // Prevent 'any' from defeating TypeScript's purpose
+      "@typescript-eslint/no-explicit-any": "error",
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // BUG PREVENTION - Common sources of runtime errors
+      // ═══════════════════════════════════════════════════════════════════════
+
+      // Always use === instead of == (prevents type coercion bugs)
+      eqeqeq: ["error", "always"],
+
+      // No console.log in production (allow warn/error for debugging)
+      "no-console": ["error", { allow: ["warn", "error"] }],
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // CODE QUALITY - Best practices
+      // ═══════════════════════════════════════════════════════════════════════
+
+      // Require explicit return types on exported functions (better APIs)
+      "@typescript-eslint/explicit-module-boundary-types": "off", // Too strict for React
+
+      // Note: prefer-nullish-coalescing and prefer-optional-chain require
+      // type-aware linting which significantly slows down CI. Use TypeScript
+      // strict mode in tsconfig.json for these checks instead.
     },
   },
 ]);

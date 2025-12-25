@@ -211,10 +211,9 @@ export function CapTableManager({
             });
             setInstruments(updatedInstruments, "Mark instruments as converted");
 
-            // Log success (toast can be added later)
-            console.log(
-              `Conversion complete: ${result.summary.instruments_converted} instrument(s) converted, ${result.summary.total_shares_issued.toLocaleString()} new shares issued.`
-            );
+            // Conversion complete - toast notification could be added here
+            // Instruments converted: result.summary.instruments_converted
+            // Shares issued: result.summary.total_shares_issued
           },
           onError: (error) => {
             console.error(

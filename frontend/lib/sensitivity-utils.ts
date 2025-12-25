@@ -138,7 +138,7 @@ export function transformSensitivityResponse(
   response: SensitivityAnalysisResponse,
   currentNetOutcome: number
 ): SensitivityDataPoint[] {
-  if (response.data == null || response.data.length === 0) {
+  if (response.data === null || response.data === undefined || response.data.length === 0) {
     return [];
   }
 

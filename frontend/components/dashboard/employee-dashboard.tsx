@@ -316,8 +316,10 @@ export function EmployeeDashboard() {
                     currentJob={debouncedCurrentJob}
                     equityDetails={debouncedEquityDetails}
                     currentOutcome={
-                      startupScenarioResult?.final_payout_value != null &&
-                      startupScenarioResult?.final_opportunity_cost != null
+                      startupScenarioResult?.final_payout_value !== null &&
+                      startupScenarioResult?.final_payout_value !== undefined &&
+                      startupScenarioResult?.final_opportunity_cost !== null &&
+                      startupScenarioResult?.final_opportunity_cost !== undefined
                         ? startupScenarioResult.final_payout_value -
                           startupScenarioResult.final_opportunity_cost
                         : 0

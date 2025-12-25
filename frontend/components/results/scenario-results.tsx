@@ -105,8 +105,10 @@ export function ScenarioResults({
 
   // Check if NPV values are available
   const hasNPVValues =
-    displayResults.final_payout_value_npv != null &&
-    displayResults.final_opportunity_cost_npv != null;
+    displayResults.final_payout_value_npv !== null &&
+    displayResults.final_payout_value_npv !== undefined &&
+    displayResults.final_opportunity_cost_npv !== null &&
+    displayResults.final_opportunity_cost_npv !== undefined;
 
   // Get the values to display based on toggle state
   const displayPayoutValue =
