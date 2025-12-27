@@ -98,6 +98,19 @@ export function OwnershipAreaChart({
     return colors;
   }, [stakeholderNames]);
 
+  // Get unique date values for X-axis to prevent duplicate labels
+  // Multiple events can occur on the same date (e.g., vesting + funding round)
+  const uniqueDateTicks = useMemo(() => {
+    const seen = new Set<string>();
+    return chartData
+      .map((point) => point.date)
+      .filter((date) => {
+        if (seen.has(date)) return false;
+        seen.add(date);
+        return true;
+      });
+  }, [chartData]);
+
   // Handle mouse move on chart - use Recharts' internal type
   const handleMouseMove = useCallback(
     (state: { activePayload?: Array<{ payload?: TimelineChartDataPoint }> } | null) => {
@@ -161,6 +174,7 @@ export function OwnershipAreaChart({
 
           <XAxis
             dataKey="date"
+            ticks={uniqueDateTicks}
             axisLine={false}
             tickLine={false}
             tick={{ fontSize: 12, fill: chartColors.foreground }}
