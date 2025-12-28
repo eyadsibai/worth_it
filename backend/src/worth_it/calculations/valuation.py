@@ -287,12 +287,10 @@ class RiskFactorSummationParams:
     Attributes:
         base_valuation: Starting valuation (average for stage/region)
         factors: List of risk factors with adjustments
-        adjustment_step: Standard adjustment increment (default 250K)
     """
 
     base_valuation: float
     factors: list[RiskFactor]
-    adjustment_step: float = 250_000
 
 
 @dataclass(frozen=True)
@@ -334,7 +332,7 @@ def calculate_risk_factor_summation(
     9. Litigation risk
     10. International risk
     11. Reputation risk
-    12. Potential lucrative exit
+    12. Exit Potential
 
     Args:
         params: RiskFactorSummationParams with base and factors

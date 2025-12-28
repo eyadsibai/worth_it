@@ -836,7 +836,7 @@ class TestRiskFactorSummation:
             RiskFactor("Litigation", 0),
             RiskFactor("International", 0),
             RiskFactor("Reputation", 250_000),
-            RiskFactor("Lucrative Exit", 500_000),
+            RiskFactor("Exit Potential", 500_000),
         ]
         params = RiskFactorSummationParams(
             base_valuation=2_000_000,
