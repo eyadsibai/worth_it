@@ -415,9 +415,7 @@ test.describe('Valuation Calculator', () => {
       expect(data.scenario_present_values).toBeDefined();
     });
 
-    test('should calculate with any probabilities (no sum validation)', async ({ request }) => {
-      // NOTE: The API does not validate that probabilities sum to 1.0
-      // It calculates with whatever probabilities are provided
+    test('should validate probabilities sum to 1', async ({ request }) => {
       const response = await request.post('http://localhost:8000/api/valuation/first-chicago', {
         data: {
           scenarios: [
@@ -428,11 +426,8 @@ test.describe('Valuation Calculator', () => {
         },
       });
 
-      // API accepts any probabilities and performs the calculation
-      expect(response.ok()).toBeTruthy();
-      const data = await response.json();
-      // Weighted value = 0.5 * 50M + 0.3 * 5M = 25M + 1.5M = 26.5M
-      expect(data.weighted_value).toBe(26500000);
+      // Should fail validation since probabilities sum to 0.8, not 1.0
+      expect(response.status()).toBe(400);
     });
 
     test('should require at least one scenario', async ({ request }) => {

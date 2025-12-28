@@ -836,6 +836,14 @@ class FirstChicagoRequest(BaseModel):
         default=None, gt=0, description="Current investment amount (optional)"
     )
 
+    @model_validator(mode="after")
+    def validate_probabilities_sum_to_one(self) -> Self:
+        """Probabilities must sum to approximately 1.0."""
+        total = sum(s.probability for s in self.scenarios)
+        if not (0.99 <= total <= 1.01):  # Allow small floating point tolerance
+            raise ValueError(f"Scenario probabilities must sum to 1.0 (got {total:.4f})")
+        return self
+
     model_config = {
         "json_schema_extra": {
             "example": {
