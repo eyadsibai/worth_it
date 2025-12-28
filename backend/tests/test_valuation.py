@@ -623,3 +623,66 @@ class TestBerkusMethod:
         )
         assert result.valuation == 1_500_000
         assert result.method == "berkus"
+
+
+class TestCalculateBerkus:
+    """Tests for calculate_berkus function."""
+
+    def test_full_score_valuation(self) -> None:
+        """Test maximum valuation (all criteria at max)."""
+        from worth_it.calculations.valuation import BerkusParams, calculate_berkus
+
+        params = BerkusParams(
+            sound_idea=500_000,
+            prototype=500_000,
+            quality_team=500_000,
+            strategic_relationships=500_000,
+            product_rollout=500_000,
+        )
+        result = calculate_berkus(params)
+        assert result.valuation == 2_500_000
+        assert result.method == "berkus"
+
+    def test_partial_score_valuation(self) -> None:
+        """Test partial scoring."""
+        from worth_it.calculations.valuation import BerkusParams, calculate_berkus
+
+        params = BerkusParams(
+            sound_idea=400_000,
+            prototype=300_000,
+            quality_team=500_000,
+            strategic_relationships=200_000,
+            product_rollout=100_000,
+        )
+        result = calculate_berkus(params)
+        assert result.valuation == 1_500_000
+
+    def test_breakdown_included(self) -> None:
+        """Test that breakdown shows each criterion."""
+        from worth_it.calculations.valuation import BerkusParams, calculate_berkus
+
+        params = BerkusParams(
+            sound_idea=100_000,
+            prototype=200_000,
+            quality_team=300_000,
+            strategic_relationships=400_000,
+            product_rollout=500_000,
+        )
+        result = calculate_berkus(params)
+        assert result.breakdown["sound_idea"] == 100_000
+        assert result.breakdown["prototype"] == 200_000
+        assert result.breakdown["quality_team"] == 300_000
+
+    def test_zero_valuation(self) -> None:
+        """Test with all zeros."""
+        from worth_it.calculations.valuation import BerkusParams, calculate_berkus
+
+        params = BerkusParams(
+            sound_idea=0,
+            prototype=0,
+            quality_team=0,
+            strategic_relationships=0,
+            product_rollout=0,
+        )
+        result = calculate_berkus(params)
+        assert result.valuation == 0
