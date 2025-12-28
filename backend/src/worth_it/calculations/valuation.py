@@ -260,6 +260,105 @@ class ScorecardResult:
     method: str = "scorecard"
 
 
+# ============================================================================
+# Risk Factor Summation Method (Pre-Revenue)
+# ============================================================================
+
+
+@dataclass(frozen=True)
+class RiskFactor:
+    """A single risk factor for Risk Factor Summation.
+
+    Attributes:
+        name: Factor name (e.g., "Management Risk", "Competition")
+        adjustment: Dollar adjustment (-500K to +500K typically)
+                   Positive = risk reducer (adds value)
+                   Negative = risk increaser (subtracts value)
+    """
+
+    name: str
+    adjustment: float
+
+
+@dataclass(frozen=True)
+class RiskFactorSummationParams:
+    """Parameters for Risk Factor Summation Method.
+
+    Attributes:
+        base_valuation: Starting valuation (average for stage/region)
+        factors: List of risk factors with adjustments
+        adjustment_step: Standard adjustment increment (default 250K)
+    """
+
+    base_valuation: float
+    factors: list[RiskFactor]
+    adjustment_step: float = 250_000
+
+
+@dataclass(frozen=True)
+class RiskFactorSummationResult:
+    """Result of Risk Factor Summation Method.
+
+    Attributes:
+        valuation: Final valuation after all adjustments
+        total_adjustment: Sum of all adjustments
+        factor_adjustments: Each factor's adjustment
+        method: Always "risk_factor_summation"
+    """
+
+    valuation: float
+    total_adjustment: float
+    factor_adjustments: dict[str, float]
+    method: str = "risk_factor_summation"
+
+
+def calculate_risk_factor_summation(
+    params: RiskFactorSummationParams,
+) -> RiskFactorSummationResult:
+    """Calculate valuation using Risk Factor Summation Method.
+
+    The Risk Factor Summation Method:
+    1. Starts with average pre-money valuation
+    2. Adjusts by +/- $250K for each of 12 risk factors
+    3. Factors rated: Very Low Risk (+2), Low (+1), Neutral (0), High (-1), Very High (-2)
+
+    Standard 12 factors:
+    1. Management
+    2. Stage of the business
+    3. Legislation/Political risk
+    4. Manufacturing risk
+    5. Sales and marketing risk
+    6. Funding/Capital raising risk
+    7. Competition risk
+    8. Technology risk
+    9. Litigation risk
+    10. International risk
+    11. Reputation risk
+    12. Potential lucrative exit
+
+    Args:
+        params: RiskFactorSummationParams with base and factors
+
+    Returns:
+        RiskFactorSummationResult with adjusted valuation
+    """
+    factor_adjustments: dict[str, float] = {}
+    total_adjustment = 0.0
+
+    for factor in params.factors:
+        factor_adjustments[factor.name] = factor.adjustment
+        total_adjustment += factor.adjustment
+
+    valuation = max(0, params.base_valuation + total_adjustment)
+
+    return RiskFactorSummationResult(
+        valuation=valuation,
+        total_adjustment=total_adjustment,
+        factor_adjustments=factor_adjustments,
+        method="risk_factor_summation",
+    )
+
+
 def calculate_scorecard(params: ScorecardParams) -> ScorecardResult:
     """Calculate valuation using the Scorecard Method.
 
