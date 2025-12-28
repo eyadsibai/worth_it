@@ -210,6 +210,41 @@ class BerkusResult:
     method: str = "berkus"
 
 
+def calculate_berkus(params: BerkusParams) -> BerkusResult:
+    """Calculate valuation using the Berkus Method.
+
+    The Berkus Method assigns value to five key risk-reducing elements:
+    1. Sound Idea (basic value)
+    2. Prototype (technology risk reduction)
+    3. Quality Management Team (execution risk reduction)
+    4. Strategic Relationships (market risk reduction)
+    5. Product Rollout or Sales (production risk reduction)
+
+    Each element is worth $0 to $500K (configurable), max total $2.5M.
+
+    Args:
+        params: BerkusParams with scores for each criterion
+
+    Returns:
+        BerkusResult with total valuation and breakdown
+    """
+    breakdown = {
+        "sound_idea": min(params.sound_idea, params.max_per_criterion),
+        "prototype": min(params.prototype, params.max_per_criterion),
+        "quality_team": min(params.quality_team, params.max_per_criterion),
+        "strategic_relationships": min(params.strategic_relationships, params.max_per_criterion),
+        "product_rollout": min(params.product_rollout, params.max_per_criterion),
+    }
+
+    valuation = sum(breakdown.values())
+
+    return BerkusResult(
+        valuation=valuation,
+        breakdown=breakdown,
+        method="berkus",
+    )
+
+
 # ============================================================================
 # Revenue Multiple Valuation
 # ============================================================================
