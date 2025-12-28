@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -17,6 +18,7 @@ import {
   Lightbulb,
   ClipboardList,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { RevenueMultipleForm } from "./revenue-multiple-form";
@@ -29,6 +31,10 @@ import { RiskFactorForm } from "./risk-factor-form";
 import { ValuationResult } from "./valuation-result";
 import { ValuationComparison } from "./valuation-comparison";
 import { FirstChicagoResults } from "./first-chicago-results";
+import { MonteCarloToggle } from "./monte-carlo-toggle";
+import { MonteCarloResults, type MonteCarloResultData } from "./monte-carlo-results";
+import { DistributionInput, type DistributionValue } from "./distribution-input";
+import { useValuationMonteCarlo, distributionsToApiFormat } from "@/lib/hooks";
 import {
   useCalculateRevenueMultiple,
   useCalculateDCF,
@@ -165,6 +171,14 @@ const defaultRiskFactorValues: RiskFactorSummationFormData = {
   ],
 };
 
+// Default distribution configurations for First Chicago Monte Carlo
+const DEFAULT_MC_DISTRIBUTIONS: Record<string, DistributionValue> = {
+  best_value: { type: "triangular", params: { min: 40000000, mode: 50000000, max: 80000000 } },
+  base_value: { type: "triangular", params: { min: 15000000, mode: 20000000, max: 30000000 } },
+  worst_value: { type: "triangular", params: { min: 0, mode: 5000000, max: 10000000 } },
+  discount_rate: { type: "normal", params: { mean: 0.25, std: 0.03 } },
+};
+
 // Type guard for pre-revenue results
 function isPreRevenueResult(
   result: FrontendValuationResult | PreRevenueResult
@@ -267,7 +281,6 @@ function PreRevenueResultCard({ result }: { result: PreRevenueResult }) {
   );
 }
 
-
 export function ValuationCalculator() {
   const [activeMethod, setActiveMethod] = React.useState<ValuationMethod>("revenue_multiple");
   const [methodResults, setMethodResults] = React.useState<MethodResult[]>([]);
@@ -275,6 +288,39 @@ export function ValuationCalculator() {
   const [firstChicagoResult, setFirstChicagoResult] =
     React.useState<FrontendFirstChicagoResult | null>(null);
   const [firstChicagoError, setFirstChicagoError] = React.useState<string | null>(null);
+
+  // Monte Carlo state
+  const [mcEnabled, setMcEnabled] = React.useState(false);
+  const [mcSimulations, setMcSimulations] = React.useState(10000);
+  const [mcDistributions, setMcDistributions] =
+    React.useState<Record<string, DistributionValue>>(DEFAULT_MC_DISTRIBUTIONS);
+  const [mcResult, setMcResult] = React.useState<MonteCarloResultData | null>(null);
+
+  // Monte Carlo WebSocket hook
+  const {
+    isRunning: mcIsRunning,
+    progress: mcProgress,
+    result: mcStreamResult,
+    error: mcError,
+    runSimulation: runMonteCarlo,
+  } = useValuationMonteCarlo({
+    onComplete: (result) => {
+      toast.success("Monte Carlo simulation complete", {
+        description: `Ran ${mcSimulations.toLocaleString()} simulations`,
+      });
+      setMcResult(result);
+    },
+    onError: (error) => {
+      toast.error("Simulation failed", { description: error });
+    },
+  });
+
+  // Update mcResult when streaming result changes
+  React.useEffect(() => {
+    if (mcStreamResult) {
+      setMcResult(mcStreamResult);
+    }
+  }, [mcStreamResult]);
 
   // API mutations - revenue-based methods
   const revenueMultipleMutation = useCalculateRevenueMultiple();
@@ -333,7 +379,33 @@ export function ValuationCalculator() {
     berkusMutation.isPending ||
     scorecardMutation.isPending ||
     riskFactorMutation.isPending ||
-    compareMutation.isPending;
+    compareMutation.isPending ||
+    mcIsRunning;
+
+  // Handle Monte Carlo simulation for First Chicago
+  const handleFirstChicagoMonteCarlo = () => {
+    const formData = firstChicagoForm.getValues();
+
+    // Build distributions from form data + user configured distributions
+    const distributions = [
+      { name: "best_prob", distribution_type: "fixed", params: { value: formData.scenarios[0].probability / 100 } },
+      { name: "base_prob", distribution_type: "fixed", params: { value: formData.scenarios[1].probability / 100 } },
+      { name: "worst_prob", distribution_type: "fixed", params: { value: formData.scenarios[2].probability / 100 } },
+      { name: "years", distribution_type: "fixed", params: { value: formData.scenarios[0].yearsToExit } },
+      ...distributionsToApiFormat(mcDistributions),
+    ];
+
+    runMonteCarlo({
+      method: "first_chicago",
+      distributions,
+      n_simulations: mcSimulations,
+    });
+  };
+
+  // Update distribution helper
+  const updateDistribution = (name: string, value: DistributionValue) => {
+    setMcDistributions((prev) => ({ ...prev, [name]: value }));
+  };
 
   // Handle Revenue Multiple submission
   const handleRevenueMultiple = async (data: RevenueMultipleFormData) => {
@@ -380,7 +452,7 @@ export function ValuationCalculator() {
           data.returnType === "multiple" ? data.targetReturnMultiple : undefined,
         target_irr: data.returnType === "irr" && data.targetIRR ? data.targetIRR / 100 : undefined,
         expected_dilution: data.expectedDilution / 100,
-        exit_probability: data.exitProbability / 100,
+        exit_probability: data.exitProbability ? data.exitProbability / 100 : undefined,
         investment_amount: data.investmentAmount,
       });
       const result = transformValuationResult(response);
@@ -394,23 +466,21 @@ export function ValuationCalculator() {
 
   // Handle First Chicago submission
   const handleFirstChicago = async (data: FirstChicagoFormData) => {
-    // Validate probabilities sum to 100%
-    const totalProbability = data.scenarios.reduce((sum, s) => sum + s.probability, 0);
-    if (Math.abs(totalProbability - 100) > 0.01) {
-      setFirstChicagoError("Scenario probabilities must sum to 100%");
-      toast.error("Validation error", { description: "Probabilities must sum to 100%" });
-      return;
-    }
-
     try {
+      // Validate that probabilities sum to 100%
+      const totalProbability = data.scenarios.reduce((sum, s) => sum + s.probability, 0);
+      if (Math.abs(totalProbability - 100) > 0.01) {
+        throw new Error(`Scenario probabilities must sum to 100% (currently ${totalProbability}%)`);
+      }
+
       const response = await firstChicagoMutation.mutateAsync({
         scenarios: data.scenarios.map((s) => ({
           name: s.name,
-          probability: s.probability / 100, // Convert to decimal
+          probability: s.probability / 100,
           exit_value: s.exitValue,
           years_to_exit: s.yearsToExit,
         })),
-        discount_rate: data.discountRate / 100, // Convert to decimal
+        discount_rate: data.discountRate / 100,
         current_investment: data.currentInvestment,
       });
       const result = transformFirstChicagoResponse(response);
@@ -494,61 +564,6 @@ export function ValuationCalculator() {
     });
   };
 
-  // Compare all methods with results
-  const handleCompare = async () => {
-    const revenueMultipleData = revenueMultipleForm.getValues();
-    const dcfData = dcfForm.getValues();
-    const vcMethodData = vcMethodForm.getValues();
-
-    try {
-      const response = await compareMutation.mutateAsync({
-        revenue_multiple: {
-          annual_revenue: revenueMultipleData.annualRevenue,
-          revenue_multiple: revenueMultipleData.revenueMultiple,
-          growth_rate: revenueMultipleData.growthRate
-            ? revenueMultipleData.growthRate / 100
-            : undefined,
-          industry_benchmark_multiple: revenueMultipleData.industryBenchmarkMultiple,
-        },
-        dcf: {
-          projected_cash_flows: dcfData.projectedCashFlows.map((cf) => cf.value),
-          discount_rate: dcfData.discountRate / 100,
-          terminal_growth_rate: dcfData.terminalGrowthRate
-            ? dcfData.terminalGrowthRate / 100
-            : undefined,
-        },
-        vc_method: {
-          projected_exit_value: vcMethodData.projectedExitValue,
-          exit_year: vcMethodData.exitYear,
-          target_return_multiple:
-            vcMethodData.returnType === "multiple" ? vcMethodData.targetReturnMultiple : undefined,
-          target_irr:
-            vcMethodData.returnType === "irr" && vcMethodData.targetIRR
-              ? vcMethodData.targetIRR / 100
-              : undefined,
-          expected_dilution: vcMethodData.expectedDilution / 100,
-          exit_probability: vcMethodData.exitProbability / 100,
-          investment_amount: vcMethodData.investmentAmount,
-        },
-      });
-      const comparisonResult = transformValuationComparison(response);
-      setComparison(comparisonResult);
-
-      // Also update individual results
-      comparisonResult.results.forEach((r) => {
-        updateMethodResult(r.method as ValuationMethod, r, null);
-      });
-      toast.success("Comparison complete", {
-        description: `Analyzed ${comparisonResult.results.length} valuation methods`,
-      });
-    } catch (error) {
-      console.error("Comparison failed:", error);
-      toast.error("Comparison failed", {
-        description: (error as Error).message || "Failed to compare valuation methods",
-      });
-    }
-  };
-
   const handleSubmit = () => {
     switch (activeMethod) {
       case "revenue_multiple":
@@ -575,6 +590,65 @@ export function ValuationCalculator() {
     }
   };
 
+  const handleCompare = async () => {
+    try {
+      const revenueMultipleData = revenueMultipleForm.getValues();
+      const dcfData = dcfForm.getValues();
+      const vcMethodData = vcMethodForm.getValues();
+
+      const response = await compareMutation.mutateAsync({
+        methods: [
+          {
+            method: "revenue_multiple",
+            params: {
+              annual_revenue: revenueMultipleData.annualRevenue,
+              revenue_multiple: revenueMultipleData.revenueMultiple,
+              growth_rate: revenueMultipleData.growthRate
+                ? revenueMultipleData.growthRate / 100
+                : undefined,
+              industry_benchmark_multiple: revenueMultipleData.industryBenchmarkMultiple,
+            },
+          },
+          {
+            method: "dcf",
+            params: {
+              projected_cash_flows: dcfData.projectedCashFlows.map((cf) => cf.value),
+              discount_rate: dcfData.discountRate / 100,
+              terminal_growth_rate: dcfData.terminalGrowthRate
+                ? dcfData.terminalGrowthRate / 100
+                : undefined,
+            },
+          },
+          {
+            method: "vc_method",
+            params: {
+              projected_exit_value: vcMethodData.projectedExitValue,
+              exit_year: vcMethodData.exitYear,
+              target_return_multiple:
+                vcMethodData.returnType === "multiple"
+                  ? vcMethodData.targetReturnMultiple
+                  : undefined,
+              target_irr:
+                vcMethodData.returnType === "irr" && vcMethodData.targetIRR
+                  ? vcMethodData.targetIRR / 100
+                  : undefined,
+              expected_dilution: vcMethodData.expectedDilution / 100,
+              exit_probability: vcMethodData.exitProbability
+                ? vcMethodData.exitProbability / 100
+                : undefined,
+              investment_amount: vcMethodData.investmentAmount,
+            },
+          },
+        ],
+      });
+      const result = transformValuationComparison(response);
+      setComparison(result);
+    } catch (error) {
+      const message = (error as Error).message;
+      toast.error("Comparison failed", { description: message });
+    }
+  };
+
   const currentResult = methodResults.find((r) => r.method === activeMethod);
 
   return (
@@ -582,7 +656,7 @@ export function ValuationCalculator() {
       <Card className="border-0 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_2px_8px_rgba(0,0,0,0.04)]">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Calculator className="text-primary h-5 w-5" />
+            <Calculator className="text-primary h-6 w-6" />
             <CardTitle>Startup Valuation Calculator</CardTitle>
           </div>
           <CardDescription>
@@ -670,11 +744,79 @@ export function ValuationCalculator() {
             </TabsContent>
 
             <TabsContent value="first_chicago">
-              <Form {...firstChicagoForm}>
-                <form onSubmit={firstChicagoForm.handleSubmit(handleFirstChicago)}>
-                  <FirstChicagoForm form={firstChicagoForm} />
-                </form>
-              </Form>
+              <div className="space-y-4">
+                <Form {...firstChicagoForm}>
+                  <form onSubmit={firstChicagoForm.handleSubmit(handleFirstChicago)}>
+                    <FirstChicagoForm form={firstChicagoForm} />
+                  </form>
+                </Form>
+
+                {/* Monte Carlo Enhancement */}
+                <MonteCarloToggle
+                  enabled={mcEnabled}
+                  onEnabledChange={setMcEnabled}
+                  simulations={mcSimulations}
+                  onSimulationsChange={setMcSimulations}
+                />
+
+                {mcEnabled && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Distribution Configuration</CardTitle>
+                      <CardDescription>
+                        Configure probability distributions for Monte Carlo simulation parameters
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <DistributionInput
+                        name="best_value"
+                        label="Best Case Exit Value"
+                        value={mcDistributions.best_value}
+                        onChange={(v) => updateDistribution("best_value", v)}
+                        prefix="$"
+                        description="Exit value in best case scenario"
+                      />
+                      <DistributionInput
+                        name="base_value"
+                        label="Base Case Exit Value"
+                        value={mcDistributions.base_value}
+                        onChange={(v) => updateDistribution("base_value", v)}
+                        prefix="$"
+                        description="Exit value in base case scenario"
+                      />
+                      <DistributionInput
+                        name="worst_value"
+                        label="Worst Case Exit Value"
+                        value={mcDistributions.worst_value}
+                        onChange={(v) => updateDistribution("worst_value", v)}
+                        prefix="$"
+                        description="Exit value in worst case scenario"
+                      />
+                      <DistributionInput
+                        name="discount_rate"
+                        label="Discount Rate"
+                        value={mcDistributions.discount_rate}
+                        onChange={(v) => updateDistribution("discount_rate", v)}
+                        description="Required rate of return (as decimal, e.g., 0.25 for 25%)"
+                      />
+
+                      <Button
+                        type="button"
+                        onClick={handleFirstChicagoMonteCarlo}
+                        disabled={mcIsRunning}
+                        className="w-full"
+                      >
+                        {mcIsRunning ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="mr-2 h-4 w-4" />
+                        )}
+                        Run Monte Carlo Simulation
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             </TabsContent>
 
             {/* Pre-Revenue Tab Contents */}
@@ -703,14 +845,14 @@ export function ValuationCalculator() {
             </TabsContent>
           </Tabs>
 
-          <div className="border-border mt-6 flex gap-3 border-t pt-4">
+          <div className="border-border mt-6 flex flex-wrap gap-3 border-t pt-4">
             <Button onClick={handleSubmit} disabled={isLoading} className="flex-1">
-              {isLoading ? (
+              {isLoading && !mcIsRunning ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <Calculator className="mr-2 h-4 w-4" />
               )}
-              Calculate Valuation
+              Calculate {activeMethod.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
             </Button>
             <Button variant="outline" onClick={handleCompare} disabled={isLoading}>
               Compare All Methods
@@ -736,7 +878,7 @@ export function ValuationCalculator() {
         </Card>
       )}
 
-      {/* First Chicago Result (has different structure) */}
+      {/* First Chicago Results */}
       {activeMethod === "first_chicago" && firstChicagoResult && (
         <FirstChicagoResults result={firstChicagoResult} />
       )}
@@ -745,6 +887,39 @@ export function ValuationCalculator() {
         <Card className="border-destructive bg-destructive/10">
           <CardContent className="pt-6">
             <p className="text-destructive">{firstChicagoError}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Monte Carlo Results */}
+      {activeMethod === "first_chicago" && mcEnabled && (mcResult || mcIsRunning) && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="text-primary h-5 w-5" />
+            <h3 className="text-lg font-semibold">Monte Carlo Simulation Results</h3>
+          </div>
+          {mcResult ? (
+            <MonteCarloResults result={mcResult} progress={mcProgress} isRunning={mcIsRunning} />
+          ) : mcIsRunning ? (
+            <Card>
+              <CardContent className="py-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Running simulation...</span>
+                    <span className="font-mono">{Math.round(mcProgress * 100)}%</span>
+                  </div>
+                  <Progress value={mcProgress * 100} />
+                </div>
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+      )}
+
+      {activeMethod === "first_chicago" && mcEnabled && mcError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="pt-6">
+            <p className="text-destructive">{mcError}</p>
           </CardContent>
         </Card>
       )}

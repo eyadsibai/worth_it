@@ -41,3 +41,4 @@ export {
   MobileViewProvider,
   type MobileView,
 } from "./use-mobile-view";
+export { useValuationMonteCarlo, distributionsToApiFormat } from "./use-valuation-monte-carlo";
