@@ -2123,3 +2123,97 @@ class TestFirstChicagoModels:
             discount_rate=0.25,
         )
         assert len(request.scenarios) == 3
+
+
+class TestFirstChicagoEndpoint:
+    """Tests for First Chicago API endpoint."""
+
+    def test_first_chicago_basic_calculation(self) -> None:
+        """Test POST /api/valuation/first-chicago with standard 3-scenario input."""
+        request_data = {
+            "scenarios": [
+                {
+                    "name": "Best Case",
+                    "probability": 0.25,
+                    "exit_value": 50_000_000,
+                    "years_to_exit": 5,
+                },
+                {
+                    "name": "Base Case",
+                    "probability": 0.50,
+                    "exit_value": 20_000_000,
+                    "years_to_exit": 5,
+                },
+                {
+                    "name": "Worst Case",
+                    "probability": 0.25,
+                    "exit_value": 5_000_000,
+                    "years_to_exit": 5,
+                },
+            ],
+            "discount_rate": 0.25,
+        }
+
+        response = client.post("/api/valuation/first-chicago", json=request_data)
+        assert response.status_code == 200
+
+        data = response.json()
+        assert "weighted_value" in data
+        assert "present_value" in data
+        assert "scenario_values" in data
+        assert "scenario_present_values" in data
+        assert data["method"] == "first_chicago"
+
+        # Verify weighted value: 0.25*50M + 0.5*20M + 0.25*5M = 23.75M
+        assert data["weighted_value"] == pytest.approx(23_750_000, rel=0.01)
+
+    def test_first_chicago_different_exit_years(self) -> None:
+        """Test with scenarios having different years_to_exit values."""
+        request_data = {
+            "scenarios": [
+                {
+                    "name": "Early Exit",
+                    "probability": 0.30,
+                    "exit_value": 30_000_000,
+                    "years_to_exit": 3,
+                },
+                {
+                    "name": "Normal Exit",
+                    "probability": 0.70,
+                    "exit_value": 60_000_000,
+                    "years_to_exit": 7,
+                },
+            ],
+            "discount_rate": 0.20,
+        }
+
+        response = client.post("/api/valuation/first-chicago", json=request_data)
+        assert response.status_code == 200
+
+        data = response.json()
+        # Each scenario discounted with its own time horizon
+        assert "Early Exit" in data["scenario_present_values"]
+        assert "Normal Exit" in data["scenario_present_values"]
+
+    def test_first_chicago_validation_error(self) -> None:
+        """Test validation rejects invalid input."""
+        # Missing required fields - app uses 400 for validation errors
+        response = client.post("/api/valuation/first-chicago", json={})
+        assert response.status_code == 400
+
+        # Invalid probability (> 1.0)
+        response = client.post(
+            "/api/valuation/first-chicago",
+            json={
+                "scenarios": [
+                    {
+                        "name": "Invalid",
+                        "probability": 1.5,
+                        "exit_value": 10_000_000,
+                        "years_to_exit": 5,
+                    }
+                ],
+                "discount_rate": 0.25,
+            },
+        )
+        assert response.status_code == 400
