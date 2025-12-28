@@ -7,7 +7,6 @@ import { Info, TrendingUp, Calculator, BarChart3 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatCurrency } from "@/lib/format-utils";
 import type { FrontendFirstChicagoResult } from "@/lib/schemas";
-import { AnimatedCurrencyDisplay } from "@/lib/motion";
 
 interface FirstChicagoResultsProps {
   result: FrontendFirstChicagoResult;
@@ -54,7 +53,7 @@ export function FirstChicagoResults({ result }: FirstChicagoResultsProps) {
             </Tooltip>
           </div>
           <p className="text-3xl font-semibold tabular-nums">
-            <AnimatedCurrencyDisplay value={result.presentValue} showDelta={false} />
+            {formatCurrency(result.presentValue)}
           </p>
         </div>
 

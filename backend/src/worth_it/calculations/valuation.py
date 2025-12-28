@@ -420,10 +420,11 @@ def calculate_first_chicago(params: FirstChicagoParams) -> FirstChicagoResult:
         # Store raw exit value
         scenario_values[scenario.name] = scenario.exit_value
 
-        # Calculate present value for this scenario
+        # Calculate present value for this scenario (probability-weighted)
         discount_factor = (1 + params.discount_rate) ** scenario.years_to_exit
         pv = scenario.exit_value / discount_factor
-        scenario_present_values[scenario.name] = pv
+        # Store probability-weighted PV for contribution percentage display
+        scenario_present_values[scenario.name] = scenario.probability * pv
 
         # Accumulate weighted values
         weighted_exit_value += scenario.probability * scenario.exit_value
