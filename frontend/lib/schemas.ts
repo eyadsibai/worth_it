@@ -1224,6 +1224,95 @@ export function transformFirstChicagoScenario(
   };
 }
 
+// ============================================================================
+// Pre-Revenue Valuation Schemas (Phase 2)
+// ============================================================================
+
+// Berkus Method - 5 criteria scored $0-$500K each, max $2.5M total
+export const BerkusRequestSchema = z.object({
+  sound_idea: z.number().min(0).max(500_000),
+  prototype: z.number().min(0).max(500_000),
+  quality_team: z.number().min(0).max(500_000),
+  strategic_relationships: z.number().min(0).max(500_000),
+  product_rollout: z.number().min(0).max(500_000),
+  max_per_criterion: z.number().min(0).default(500_000),
+});
+export type BerkusRequest = z.infer<typeof BerkusRequestSchema>;
+
+export const BerkusResponseSchema = z.object({
+  valuation: z.number(),
+  breakdown: z.record(z.string(), z.number()),
+  method: z.literal("berkus"),
+});
+export type BerkusResponse = z.infer<typeof BerkusResponseSchema>;
+
+// Scorecard Method - weighted factors compared to baseline
+export const ScorecardFactorRequestSchema = z.object({
+  name: z.string().min(1).max(50),
+  weight: z.number().min(0).max(1),
+  score: z.number().min(0).max(2), // 0 = below average, 1 = average, 2 = exceptional
+});
+export type ScorecardFactorRequest = z.infer<typeof ScorecardFactorRequestSchema>;
+
+export const ScorecardRequestSchema = z.object({
+  base_valuation: z.number().gt(0),
+  factors: z.array(ScorecardFactorRequestSchema).min(1),
+});
+export type ScorecardRequest = z.infer<typeof ScorecardRequestSchema>;
+
+export const ScorecardResponseSchema = z.object({
+  valuation: z.number(),
+  adjustment_factor: z.number(),
+  factor_contributions: z.record(z.string(), z.number()),
+  method: z.literal("scorecard"),
+});
+export type ScorecardResponse = z.infer<typeof ScorecardResponseSchema>;
+
+// Risk Factor Summation Method - ±$500K adjustments per risk factor
+export const RiskFactorRequestSchema = z.object({
+  name: z.string().min(1).max(50),
+  adjustment: z.number().min(-500_000).max(500_000),
+});
+export type RiskFactorRequest = z.infer<typeof RiskFactorRequestSchema>;
+
+export const RiskFactorSummationRequestSchema = z.object({
+  base_valuation: z.number().gt(0),
+  factors: z.array(RiskFactorRequestSchema).min(1),
+});
+export type RiskFactorSummationRequest = z.infer<typeof RiskFactorSummationRequestSchema>;
+
+export const RiskFactorSummationResponseSchema = z.object({
+  valuation: z.number(),
+  total_adjustment: z.number(),
+  factor_adjustments: z.record(z.string(), z.number()),
+  method: z.literal("risk_factor_summation"),
+});
+export type RiskFactorSummationResponse = z.infer<typeof RiskFactorSummationResponseSchema>;
+
+// ============================================================================
+// Pre-Revenue Valuation Frontend Types (camelCase)
+// ============================================================================
+
+/**
+ * Frontend-friendly Berkus result interface.
+ */
+export interface FrontendBerkusResult {
+  valuation: number;
+  breakdown: Record<string, number>;
+  method: "berkus";
+}
+
+/**
+ * Transform API Berkus result to frontend format.
+ */
+export function transformBerkusResult(response: BerkusResponse): FrontendBerkusResult {
+  return {
+    valuation: response.valuation,
+    breakdown: response.breakdown,
+    method: response.method,
+  };
+}
+
 /**
  * Frontend-friendly First Chicago result interface using camelCase.
  */
@@ -1246,6 +1335,52 @@ export function transformFirstChicagoResponse(
     presentValue: response.present_value,
     scenarioValues: response.scenario_values,
     scenarioPresentValues: response.scenario_present_values,
+    method: response.method,
+  };
+}
+
+/**
+ * Frontend-friendly Scorecard result interface.
+ */
+export interface FrontendScorecardResult {
+  valuation: number;
+  adjustmentFactor: number;
+  factorContributions: Record<string, number>;
+  method: "scorecard";
+}
+
+/**
+ * Transform API Scorecard result to frontend format.
+ */
+export function transformScorecardResult(response: ScorecardResponse): FrontendScorecardResult {
+  return {
+    valuation: response.valuation,
+    adjustmentFactor: response.adjustment_factor,
+    factorContributions: response.factor_contributions,
+    method: response.method,
+  };
+}
+
+/**
+ * Frontend-friendly Risk Factor Summation result interface.
+ */
+export interface FrontendRiskFactorSummationResult {
+  valuation: number;
+  totalAdjustment: number;
+  factorAdjustments: Record<string, number>;
+  method: "risk_factor_summation";
+}
+
+/**
+ * Transform API Risk Factor Summation result to frontend format.
+ */
+export function transformRiskFactorSummationResult(
+  response: RiskFactorSummationResponse
+): FrontendRiskFactorSummationResult {
+  return {
+    valuation: response.valuation,
+    totalAdjustment: response.total_adjustment,
+    factorAdjustments: response.factor_adjustments,
     method: response.method,
   };
 }
@@ -1278,3 +1413,60 @@ export const FirstChicagoFormSchema = z.object({
   currentInvestment: z.number().gt(0).optional(),
 });
 export type FirstChicagoFormData = z.infer<typeof FirstChicagoFormSchema>;
+
+// ============================================================================
+// Pre-Revenue Valuation Form Schemas
+// ============================================================================
+
+/**
+ * Berkus Method form schema - 5 criteria with dollar slider values.
+ */
+export const BerkusFormSchema = z.object({
+  soundIdea: z.number().min(0).max(500_000),
+  prototype: z.number().min(0).max(500_000),
+  qualityTeam: z.number().min(0).max(500_000),
+  strategicRelationships: z.number().min(0).max(500_000),
+  productRollout: z.number().min(0).max(500_000),
+  maxPerCriterion: z.number().min(0).default(500_000),
+});
+export type BerkusFormData = z.infer<typeof BerkusFormSchema>;
+
+/**
+ * Scorecard factor form schema - individual factor entry.
+ */
+export const ScorecardFactorFormSchema = z.object({
+  name: z.string().min(1, "Factor name is required").max(50),
+  weight: z.number().min(0, "Weight must be positive").max(1, "Weight must be ≤ 1"),
+  score: z.number().min(0, "Score must be positive").max(2, "Score must be ≤ 2"),
+});
+export type ScorecardFactorFormData = z.infer<typeof ScorecardFactorFormSchema>;
+
+/**
+ * Scorecard Method form schema.
+ */
+export const ScorecardFormSchema = z.object({
+  baseValuation: z.number().gt(0, "Base valuation must be positive"),
+  factors: z.array(ScorecardFactorFormSchema).min(1, "At least one factor is required"),
+});
+export type ScorecardFormData = z.infer<typeof ScorecardFormSchema>;
+
+/**
+ * Risk factor form schema - individual factor entry.
+ */
+export const RiskFactorFormSchema = z.object({
+  name: z.string().min(1, "Factor name is required").max(50),
+  adjustment: z
+    .number()
+    .min(-500_000, "Adjustment must be ≥ -$500K")
+    .max(500_000, "Adjustment must be ≤ $500K"),
+});
+export type RiskFactorFormData = z.infer<typeof RiskFactorFormSchema>;
+
+/**
+ * Risk Factor Summation Method form schema.
+ */
+export const RiskFactorSummationFormSchema = z.object({
+  baseValuation: z.number().gt(0, "Base valuation must be positive"),
+  factors: z.array(RiskFactorFormSchema).min(1, "At least one factor is required"),
+});
+export type RiskFactorSummationFormData = z.infer<typeof RiskFactorSummationFormSchema>;
