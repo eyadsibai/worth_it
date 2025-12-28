@@ -44,7 +44,18 @@ export function DistributionInput({
   description,
 }: DistributionInputProps) {
   const handleTypeChange = (type: DistributionType) => {
-    onChange({ type, params: { ...DEFAULT_PARAMS[type] } });
+    // Start from default params for the new type, then preserve any
+    // existing parameters that are also valid for the new type (by key).
+    const baseParams = { ...DEFAULT_PARAMS[type] };
+    const preservedParams: Record<string, number> = { ...baseParams };
+
+    for (const [key, existingValue] of Object.entries(value.params ?? {})) {
+      if (Object.prototype.hasOwnProperty.call(baseParams, key)) {
+        preservedParams[key] = existingValue;
+      }
+    }
+
+    onChange({ type, params: preservedParams });
   };
 
   const handleParamChange = (paramName: string, paramValue: number) => {

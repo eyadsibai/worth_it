@@ -369,6 +369,9 @@ def _get_valuation_function(method: str) -> Any:
             years: int,
         ) -> float:
             total_prob = best_prob + base_prob + worst_prob
+            # Guard against division by zero if all probabilities are zero
+            if total_prob <= 0:
+                total_prob = 1.0  # Fallback to equal weights
             params = FirstChicagoParams(
                 scenarios=[
                     FirstChicagoScenario("Best", best_prob / total_prob, best_value, years),
@@ -435,6 +438,16 @@ async def websocket_valuation_monte_carlo(websocket: WebSocket) -> None:
             n_simulations = min(config_data.get("n_simulations", 10000), 100000)
             batch_size = min(config_data.get("batch_size", 1000), 5000)
 
+            # Validate distributions are provided
+            if not distributions:
+                await websocket.send_json(
+                    {
+                        "type": "error",
+                        "message": "No distributions provided. At least one distribution is required.",
+                    }
+                )
+                return
+
             # Get valuation function based on method
             try:
                 valuation_fn = _get_valuation_function(method)
@@ -442,15 +455,31 @@ async def websocket_valuation_monte_carlo(websocket: WebSocket) -> None:
                 await websocket.send_json({"type": "error", "message": str(e)})
                 return
 
-            # Convert distributions to ParameterDistribution objects
-            param_dists = [
-                ParameterDistribution(
-                    name=d["name"],
-                    distribution_type=DistributionType(d["distribution_type"]),
-                    params=d["params"],
+            # Convert distributions to ParameterDistribution objects with validation
+            try:
+                param_dists = []
+                for d in distributions:
+                    if "name" not in d:
+                        raise ValueError("Distribution missing required 'name' field")
+                    if "distribution_type" not in d:
+                        raise ValueError(
+                            f"Distribution '{d.get('name', 'unknown')}' missing 'distribution_type'"
+                        )
+                    if "params" not in d:
+                        raise ValueError(f"Distribution '{d['name']}' missing 'params'")
+
+                    param_dists.append(
+                        ParameterDistribution(
+                            name=d["name"],
+                            distribution_type=DistributionType(d["distribution_type"]),
+                            params=d["params"],
+                        )
+                    )
+            except (ValueError, KeyError) as e:
+                await websocket.send_json(
+                    {"type": "error", "message": f"Invalid distribution configuration: {e}"}
                 )
-                for d in distributions
-            ]
+                return
 
             # Run simulation in batches
             all_valuations: list[float] = []

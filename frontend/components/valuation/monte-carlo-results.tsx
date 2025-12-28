@@ -59,16 +59,20 @@ function PercentileRow({ percentile, value, interpretation, isHighlighted }: Per
 export function MonteCarloResults({ result, progress, isRunning }: MonteCarloResultsProps) {
   const chartColors = useChartColors();
 
-  // Prepare histogram data for Recharts
-  const histogramData = result.histogram_counts.map((count, i) => ({
-    binCenter: (result.histogram_bins[i] + result.histogram_bins[i + 1]) / 2,
-    binStart: result.histogram_bins[i],
-    binEnd: result.histogram_bins[i + 1],
-    count,
+  // Prepare histogram data for Recharts with bounds checking
+  const bins = result.histogram_bins ?? [];
+  const counts = result.histogram_counts ?? [];
+  // We can only form a bin when we have both a start and an end boundary
+  const pairCount = Math.min(counts.length, Math.max(0, bins.length - 1));
+  const histogramData = Array.from({ length: pairCount }, (_, i) => ({
+    binCenter: (bins[i] + bins[i + 1]) / 2,
+    binStart: bins[i],
+    binEnd: bins[i + 1],
+    count: counts[i],
   }));
 
-  // Find max count for Y-axis scaling
-  const maxCount = Math.max(...result.histogram_counts);
+  // Find max count for Y-axis scaling (handle empty/mismatched data safely)
+  const maxCount = counts.length ? Math.max(...counts) : 0;
 
   return (
     <div className="space-y-6">

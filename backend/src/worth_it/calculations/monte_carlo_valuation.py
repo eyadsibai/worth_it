@@ -48,6 +48,39 @@ class ParameterDistribution:
     params: dict[str, float]
 
 
+def validate_distribution_params(dist: ParameterDistribution) -> None:
+    """Validate distribution parameters.
+
+    Args:
+        dist: Parameter distribution to validate
+
+    Raises:
+        ValueError: If parameters are invalid
+    """
+    match dist.distribution_type:
+        case DistributionType.NORMAL:
+            if dist.params.get("std", 0) < 0:
+                raise ValueError(
+                    f"Normal distribution '{dist.name}' has negative std: {dist.params['std']}"
+                )
+        case DistributionType.UNIFORM:
+            if dist.params.get("min", 0) > dist.params.get("max", 0):
+                raise ValueError(f"Uniform distribution '{dist.name}' has min > max: {dist.params}")
+        case DistributionType.TRIANGULAR:
+            min_val = dist.params.get("min", 0)
+            mode_val = dist.params.get("mode", 0)
+            max_val = dist.params.get("max", 0)
+            if not (min_val <= mode_val <= max_val):
+                raise ValueError(
+                    f"Triangular distribution '{dist.name}' requires min <= mode <= max: {dist.params}"
+                )
+        case DistributionType.LOGNORMAL:
+            if dist.params.get("sigma", 0) < 0:
+                raise ValueError(
+                    f"Lognormal distribution '{dist.name}' has negative sigma: {dist.params['sigma']}"
+                )
+
+
 def sample_distribution(
     dist: ParameterDistribution,
     n_samples: int,
@@ -62,7 +95,11 @@ def sample_distribution(
 
     Returns:
         Array of sampled values
+
+    Raises:
+        ValueError: If distribution parameters are invalid
     """
+    validate_distribution_params(dist)
     rng = np.random.default_rng(seed)
 
     match dist.distribution_type:
@@ -157,12 +194,15 @@ def run_monte_carlo_simulation(config: MonteCarloConfig) -> MonteCarloResult:
         MonteCarloResult with distribution statistics
     """
     # Sample all parameters
+    # Derive a unique seed per parameter distribution to avoid unintended
+    # correlation between parameters while keeping simulations reproducible.
     param_samples: dict[str, np.ndarray] = {}
-    for dist in config.parameter_distributions:
+    for idx, dist in enumerate(config.parameter_distributions):
+        seed_for_param = None if config.seed is None else config.seed + idx
         param_samples[dist.name] = sample_distribution(
             dist,
             n_samples=config.n_simulations,
-            seed=config.seed,
+            seed=seed_for_param,
         )
 
     # Run simulations
