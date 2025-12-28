@@ -26,6 +26,7 @@ test.describe('Valuation Calculator', () => {
       await expect(page.getByRole('tab', { name: /Revenue/i })).toBeVisible();
       await expect(page.getByRole('tab', { name: /DCF/i })).toBeVisible();
       await expect(page.getByRole('tab', { name: /VC/i })).toBeVisible();
+      await expect(page.getByRole('tab', { name: /Chicago/i })).toBeVisible();
     });
 
     test('should show Revenue Multiple form by default', async ({ page }) => {
@@ -306,6 +307,159 @@ test.describe('Valuation Calculator', () => {
       });
 
       expect(response.status()).toBe(422);
+    });
+  });
+
+  test.describe('First Chicago Method', () => {
+    test.beforeEach(async ({ page }) => {
+      // Click First Chicago tab
+      await page.getByRole('tab', { name: /Chicago/i }).click();
+    });
+
+    test('should show First Chicago tab', async ({ page }) => {
+      // First Chicago tab should exist and be clickable
+      await expect(page.getByRole('tab', { name: /Chicago/i })).toBeVisible();
+      await expect(page.getByRole('tab', { name: /Chicago/i })).toHaveAttribute('data-state', 'active');
+    });
+
+    test('should show scenario fields', async ({ page }) => {
+      await expect(page.getByText(/Scenarios/i)).toBeVisible();
+      await expect(page.getByText(/Discount Rate/i)).toBeVisible();
+      await expect(page.getByText(/Total Probability/i)).toBeVisible();
+    });
+
+    test('should display default three scenarios', async ({ page }) => {
+      // Should show Best, Base, and Worst cases by default
+      await expect(page.getByText('Best Case')).toBeVisible();
+      await expect(page.getByText('Base Case')).toBeVisible();
+      await expect(page.getByText('Worst Case')).toBeVisible();
+    });
+
+    test('should show probability sum indicator', async ({ page }) => {
+      // Default scenarios should sum to 100%
+      await expect(page.getByText('100.0%')).toBeVisible();
+    });
+
+    test('should allow adding a new scenario', async ({ page }) => {
+      // Click Add Scenario button
+      await page.getByRole('button', { name: /Add Scenario/i }).click();
+
+      // Should have 4 scenarios now
+      await expect(page.getByText('Scenario 4')).toBeVisible();
+    });
+
+    test('should allow removing a scenario', async ({ page }) => {
+      // Count initial scenarios (should be 3)
+      const initialCount = await page.locator('text=Exit Value').count();
+
+      // Find and click the first remove button
+      const removeButtons = page.locator('button:has(svg.lucide-trash-2)');
+      await removeButtons.first().click();
+
+      // Should have one less scenario
+      const newCount = await page.locator('text=Exit Value').count();
+      expect(newCount).toBe(initialCount - 1);
+    });
+
+    test('should calculate First Chicago valuation', async ({ page }) => {
+      // Fill discount rate
+      await page.locator('input[name="discountRate"]').fill('25');
+
+      // Click calculate
+      await page.getByRole('button', { name: /Calculate Valuation/i }).click();
+
+      // Should show result with Present Value
+      await expect(page.getByText(/Present Value/i)).toBeVisible({ timeout: 10000 });
+      // Should show a dollar amount
+      await expect(page.getByText(/\$[\d,]+/)).toBeVisible({ timeout: 10000 });
+    });
+
+    test('should show scenario breakdown in results', async ({ page }) => {
+      // Calculate with defaults
+      await page.getByRole('button', { name: /Calculate Valuation/i }).click();
+
+      // Should show scenario breakdown section
+      await expect(page.getByText(/Scenario Breakdown/i)).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText(/% of total/i)).toBeVisible({ timeout: 10000 });
+    });
+  });
+
+  test.describe('First Chicago API Integration', () => {
+    test('should call first-chicago API endpoint', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/valuation/first-chicago', {
+        data: {
+          scenarios: [
+            { name: 'Best Case', probability: 0.25, exit_value: 50000000, years_to_exit: 5 },
+            { name: 'Base Case', probability: 0.50, exit_value: 20000000, years_to_exit: 5 },
+            { name: 'Worst Case', probability: 0.25, exit_value: 5000000, years_to_exit: 5 },
+          ],
+          discount_rate: 0.25,
+        },
+      });
+
+      expect(response.ok()).toBeTruthy();
+      const data = await response.json();
+      expect(data.method).toBe('first_chicago');
+      expect(data.weighted_value).toBeGreaterThan(0);
+      expect(data.present_value).toBeGreaterThan(0);
+      expect(data.scenario_values).toBeDefined();
+      expect(data.scenario_present_values).toBeDefined();
+    });
+
+    test('should validate probabilities sum to 1', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/valuation/first-chicago', {
+        data: {
+          scenarios: [
+            { name: 'Best', probability: 0.5, exit_value: 50000000, years_to_exit: 5 },
+            { name: 'Worst', probability: 0.3, exit_value: 5000000, years_to_exit: 5 },
+          ],
+          discount_rate: 0.25,
+        },
+      });
+
+      // Should fail validation since probabilities sum to 0.8, not 1.0
+      expect(response.status()).toBe(400);
+    });
+
+    test('should require at least one scenario', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/valuation/first-chicago', {
+        data: {
+          scenarios: [],
+          discount_rate: 0.25,
+        },
+      });
+
+      expect(response.status()).toBe(422);
+    });
+
+    test('should validate positive exit values', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/valuation/first-chicago', {
+        data: {
+          scenarios: [
+            { name: 'Only', probability: 1.0, exit_value: -100, years_to_exit: 5 },
+          ],
+          discount_rate: 0.25,
+        },
+      });
+
+      expect(response.status()).toBe(422);
+    });
+
+    test('should calculate correct weighted value', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/valuation/first-chicago', {
+        data: {
+          scenarios: [
+            { name: 'High', probability: 0.5, exit_value: 20000000, years_to_exit: 5 },
+            { name: 'Low', probability: 0.5, exit_value: 10000000, years_to_exit: 5 },
+          ],
+          discount_rate: 0.25,
+        },
+      });
+
+      expect(response.ok()).toBeTruthy();
+      const data = await response.json();
+      // Weighted value = 0.5 * 20M + 0.5 * 10M = 15M
+      expect(data.weighted_value).toBe(15000000);
     });
   });
 
