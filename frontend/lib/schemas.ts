@@ -1154,3 +1154,127 @@ export const ValuationCalculatorFormSchema = z.object({
   vcMethod: VCMethodFormSchema.optional(),
 });
 export type ValuationCalculatorFormData = z.infer<typeof ValuationCalculatorFormSchema>;
+
+// ============================================================================
+// First Chicago Method Schemas (Phase 1)
+// ============================================================================
+
+/**
+ * A single scenario for First Chicago Method valuation.
+ * Each scenario represents a possible outcome (e.g., Best/Base/Worst case).
+ */
+export const FirstChicagoScenarioSchema = z.object({
+  name: z.string().min(1, "Scenario name is required").max(50),
+  probability: z.number().min(0, "Probability must be >= 0").max(1, "Probability must be <= 1"),
+  exit_value: z.number().gt(0, "Exit value must be positive"),
+  years_to_exit: z.number().int().min(1, "At least 1 year").max(20, "Max 20 years"),
+});
+export type FirstChicagoScenario = z.infer<typeof FirstChicagoScenarioSchema>;
+
+/**
+ * Request schema for First Chicago Method API endpoint.
+ */
+export const FirstChicagoRequestSchema = z.object({
+  scenarios: z.array(FirstChicagoScenarioSchema).min(1, "At least one scenario required").max(10),
+  discount_rate: z
+    .number()
+    .gt(0, "Discount rate must be positive")
+    .lt(1, "Discount rate must be < 100%"),
+  current_investment: z.number().gt(0).optional(),
+});
+export type FirstChicagoRequest = z.infer<typeof FirstChicagoRequestSchema>;
+
+/**
+ * Response schema for First Chicago Method API endpoint.
+ */
+export const FirstChicagoResponseSchema = z.object({
+  weighted_value: z.number(),
+  present_value: z.number(),
+  scenario_values: z.record(z.string(), z.number()),
+  scenario_present_values: z.record(z.string(), z.number()),
+  method: z.literal("first_chicago"),
+});
+export type FirstChicagoResponse = z.infer<typeof FirstChicagoResponseSchema>;
+
+// ============================================================================
+// First Chicago Method Frontend Types (camelCase)
+// ============================================================================
+
+/**
+ * Frontend-friendly First Chicago scenario interface using camelCase.
+ */
+export interface FrontendFirstChicagoScenario {
+  name: string;
+  probability: number;
+  exitValue: number;
+  yearsToExit: number;
+}
+
+/**
+ * Transform API First Chicago scenario to frontend format.
+ */
+export function transformFirstChicagoScenario(
+  item: FirstChicagoScenario
+): FrontendFirstChicagoScenario {
+  return {
+    name: item.name,
+    probability: item.probability,
+    exitValue: item.exit_value,
+    yearsToExit: item.years_to_exit,
+  };
+}
+
+/**
+ * Frontend-friendly First Chicago result interface using camelCase.
+ */
+export interface FrontendFirstChicagoResult {
+  weightedValue: number;
+  presentValue: number;
+  scenarioValues: Record<string, number>;
+  scenarioPresentValues: Record<string, number>;
+  method: "first_chicago";
+}
+
+/**
+ * Transform API First Chicago response to frontend format.
+ */
+export function transformFirstChicagoResponse(
+  response: FirstChicagoResponse
+): FrontendFirstChicagoResult {
+  return {
+    weightedValue: response.weighted_value,
+    presentValue: response.present_value,
+    scenarioValues: response.scenario_values,
+    scenarioPresentValues: response.scenario_present_values,
+    method: response.method,
+  };
+}
+
+// ============================================================================
+// First Chicago Method Form Schemas
+// ============================================================================
+
+/**
+ * Form schema for a single First Chicago scenario input.
+ * Uses camelCase field names for React Hook Form compatibility.
+ */
+export const FirstChicagoScenarioFormSchema = z.object({
+  name: z.string().min(1, "Scenario name is required").max(50),
+  probability: z.number().min(0).max(100), // Percentage form (25 = 25%)
+  exitValue: z.number().gt(0, "Exit value must be positive"),
+  yearsToExit: z.number().int().min(1).max(20),
+});
+export type FirstChicagoScenarioFormData = z.infer<typeof FirstChicagoScenarioFormSchema>;
+
+/**
+ * Form schema for First Chicago Method calculator.
+ */
+export const FirstChicagoFormSchema = z.object({
+  scenarios: z
+    .array(FirstChicagoScenarioFormSchema)
+    .min(1, "At least one scenario required")
+    .max(10, "Maximum 10 scenarios"),
+  discountRate: z.number().gt(0, "Discount rate must be positive").max(100),
+  currentInvestment: z.number().gt(0).optional(),
+});
+export type FirstChicagoFormData = z.infer<typeof FirstChicagoFormSchema>;
