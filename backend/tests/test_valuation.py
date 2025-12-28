@@ -686,3 +686,116 @@ class TestCalculateBerkus:
         )
         result = calculate_berkus(params)
         assert result.valuation == 0
+
+
+# ============================================================================
+# Scorecard Method Tests
+# ============================================================================
+
+
+class TestScorecardMethod:
+    """Tests for Scorecard Method valuation."""
+
+    def test_scorecard_factor_creation(self) -> None:
+        """Test creating a scorecard factor."""
+        from worth_it.calculations.valuation import ScorecardFactor
+
+        factor = ScorecardFactor(
+            name="Team",
+            weight=0.30,
+            score=1.25,  # 25% above average
+        )
+        assert factor.name == "Team"
+        assert factor.weight == 0.30
+        assert factor.score == 1.25
+
+    def test_scorecard_params_creation(self) -> None:
+        """Test creating scorecard params."""
+        from worth_it.calculations.valuation import ScorecardFactor, ScorecardParams
+
+        params = ScorecardParams(
+            base_valuation=2_000_000,  # Average pre-money in region
+            factors=[
+                ScorecardFactor("Team", 0.30, 1.25),
+                ScorecardFactor("Market Size", 0.25, 1.10),
+                ScorecardFactor("Product", 0.15, 1.00),
+                ScorecardFactor("Competition", 0.10, 0.90),
+                ScorecardFactor("Marketing", 0.10, 1.00),
+                ScorecardFactor("Need for Funding", 0.05, 1.00),
+                ScorecardFactor("Other", 0.05, 1.00),
+            ],
+        )
+        assert params.base_valuation == 2_000_000
+        assert len(params.factors) == 7
+
+
+class TestCalculateScorecard:
+    """Tests for calculate_scorecard function."""
+
+    def test_average_company_valuation(self) -> None:
+        """Test company matching average (all scores = 1.0)."""
+        from worth_it.calculations.valuation import (
+            ScorecardFactor,
+            ScorecardParams,
+            calculate_scorecard,
+        )
+
+        params = ScorecardParams(
+            base_valuation=2_000_000,
+            factors=[
+                ScorecardFactor("Team", 0.30, 1.0),
+                ScorecardFactor("Market", 0.25, 1.0),
+                ScorecardFactor("Product", 0.20, 1.0),
+                ScorecardFactor("Competition", 0.15, 1.0),
+                ScorecardFactor("Other", 0.10, 1.0),
+            ],
+        )
+        result = calculate_scorecard(params)
+        # All 1.0 scores = 100% of base
+        assert result.valuation == pytest.approx(2_000_000, rel=0.01)
+
+    def test_above_average_company(self) -> None:
+        """Test company scoring above average."""
+        from worth_it.calculations.valuation import (
+            ScorecardFactor,
+            ScorecardParams,
+            calculate_scorecard,
+        )
+
+        params = ScorecardParams(
+            base_valuation=2_000_000,
+            factors=[
+                ScorecardFactor("Team", 0.30, 1.50),  # +50%
+                ScorecardFactor("Market", 0.25, 1.25),  # +25%
+                ScorecardFactor("Product", 0.20, 1.10),  # +10%
+                ScorecardFactor("Competition", 0.15, 1.00),
+                ScorecardFactor("Other", 0.10, 1.00),
+            ],
+        )
+        result = calculate_scorecard(params)
+        # Weighted sum: 0.30*1.5 + 0.25*1.25 + 0.20*1.10 + 0.15*1.0 + 0.10*1.0
+        # = 0.45 + 0.3125 + 0.22 + 0.15 + 0.10 = 1.2325
+        # Valuation = 2M * 1.2325 = 2,465,000
+        assert result.valuation == pytest.approx(2_465_000, rel=0.01)
+
+    def test_below_average_company(self) -> None:
+        """Test company scoring below average."""
+        from worth_it.calculations.valuation import (
+            ScorecardFactor,
+            ScorecardParams,
+            calculate_scorecard,
+        )
+
+        params = ScorecardParams(
+            base_valuation=2_000_000,
+            factors=[
+                ScorecardFactor("Team", 0.30, 0.75),  # -25%
+                ScorecardFactor("Market", 0.25, 0.80),  # -20%
+                ScorecardFactor("Product", 0.20, 1.00),
+                ScorecardFactor("Competition", 0.15, 0.90),
+                ScorecardFactor("Other", 0.10, 1.00),
+            ],
+        )
+        result = calculate_scorecard(params)
+        # Weighted sum < 1.0, so valuation < base
+        assert result.valuation < 2_000_000

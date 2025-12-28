@@ -210,6 +210,97 @@ class BerkusResult:
     method: str = "berkus"
 
 
+# ============================================================================
+# Scorecard Method (Pre-Revenue)
+# ============================================================================
+
+
+@dataclass(frozen=True)
+class ScorecardFactor:
+    """A single factor for Scorecard Method.
+
+    Attributes:
+        name: Factor name (e.g., "Team", "Market Size")
+        weight: Weight of this factor (0.0 to 1.0, all weights should sum to 1.0)
+        score: Score relative to average (1.0 = average, 1.5 = 50% better, 0.75 = 25% worse)
+    """
+
+    name: str
+    weight: float
+    score: float
+
+
+@dataclass(frozen=True)
+class ScorecardParams:
+    """Parameters for Scorecard Method valuation.
+
+    Attributes:
+        base_valuation: Average pre-money valuation for comparable companies
+        factors: List of weighted scoring factors
+    """
+
+    base_valuation: float
+    factors: list[ScorecardFactor]
+
+
+@dataclass(frozen=True)
+class ScorecardResult:
+    """Result of Scorecard Method valuation.
+
+    Attributes:
+        valuation: Adjusted valuation based on scores
+        adjustment_factor: Overall multiplier applied to base (e.g., 1.25 = 25% premium)
+        factor_contributions: Contribution of each factor to adjustment
+        method: Always "scorecard"
+    """
+
+    valuation: float
+    adjustment_factor: float
+    factor_contributions: dict[str, float]
+    method: str = "scorecard"
+
+
+def calculate_scorecard(params: ScorecardParams) -> ScorecardResult:
+    """Calculate valuation using the Scorecard Method.
+
+    The Scorecard Method:
+    1. Starts with average pre-money valuation for the region/stage
+    2. Compares the startup to average across weighted factors
+    3. Adjusts valuation based on weighted score
+
+    Standard factors and weights:
+    - Strength of Team: 30%
+    - Size of Opportunity: 25%
+    - Product/Technology: 15%
+    - Competitive Environment: 10%
+    - Marketing/Sales: 10%
+    - Need for Additional Funding: 5%
+    - Other: 5%
+
+    Args:
+        params: ScorecardParams with base valuation and factors
+
+    Returns:
+        ScorecardResult with adjusted valuation
+    """
+    factor_contributions: dict[str, float] = {}
+    total_weighted_score = 0.0
+
+    for factor in params.factors:
+        contribution = factor.weight * factor.score
+        factor_contributions[factor.name] = contribution
+        total_weighted_score += contribution
+
+    valuation = params.base_valuation * total_weighted_score
+
+    return ScorecardResult(
+        valuation=valuation,
+        adjustment_factor=total_weighted_score,
+        factor_contributions=factor_contributions,
+        method="scorecard",
+    )
+
+
 def calculate_berkus(params: BerkusParams) -> BerkusResult:
     """Calculate valuation using the Berkus Method.
 
