@@ -798,3 +798,90 @@ class ValuationCompareResponse(BaseModel):
     range_pct: float
     outliers: list[str]
     insights: list[str]
+
+
+# --- First Chicago Method Models ---
+
+
+class FirstChicagoScenarioRequest(BaseModel):
+    """API request model for a single First Chicago scenario."""
+
+    name: str = Field(..., min_length=1, max_length=50, description="Scenario name")
+    probability: float = Field(..., ge=0.0, le=1.0, description="Probability (0-1)")
+    exit_value: float = Field(..., gt=0, description="Expected exit value")
+    years_to_exit: int = Field(..., ge=1, le=20, description="Years until exit")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "name": "Base Case",
+                "probability": 0.50,
+                "exit_value": 20000000,
+                "years_to_exit": 5,
+            }
+        }
+    }
+
+
+class FirstChicagoRequest(BaseModel):
+    """API request model for First Chicago Method valuation."""
+
+    scenarios: list[FirstChicagoScenarioRequest] = Field(
+        ..., min_length=1, max_length=10, description="Valuation scenarios"
+    )
+    discount_rate: float = Field(
+        ..., gt=0, lt=1, description="Required rate of return (e.g., 0.25 for 25%)"
+    )
+    current_investment: float | None = Field(
+        default=None, gt=0, description="Current investment amount (optional)"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "scenarios": [
+                    {
+                        "name": "Best",
+                        "probability": 0.25,
+                        "exit_value": 50000000,
+                        "years_to_exit": 5,
+                    },
+                    {
+                        "name": "Base",
+                        "probability": 0.50,
+                        "exit_value": 20000000,
+                        "years_to_exit": 5,
+                    },
+                    {
+                        "name": "Worst",
+                        "probability": 0.25,
+                        "exit_value": 5000000,
+                        "years_to_exit": 5,
+                    },
+                ],
+                "discount_rate": 0.25,
+            }
+        }
+    }
+
+
+class FirstChicagoResponse(BaseModel):
+    """API response model for First Chicago Method valuation."""
+
+    weighted_value: float = Field(..., description="Probability-weighted exit value")
+    present_value: float = Field(..., description="Present value of weighted outcome")
+    scenario_values: dict[str, float] = Field(..., description="Exit value per scenario")
+    scenario_present_values: dict[str, float] = Field(..., description="PV per scenario")
+    method: str = Field(default="first_chicago", description="Valuation method used")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "weighted_value": 23750000,
+                "present_value": 7782387,
+                "scenario_values": {"Best": 50000000, "Base": 20000000, "Worst": 5000000},
+                "scenario_present_values": {"Best": 16384000, "Base": 6553600, "Worst": 1638400},
+                "method": "first_chicago",
+            }
+        }
+    }
