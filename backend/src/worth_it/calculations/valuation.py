@@ -107,6 +107,40 @@ class FirstChicagoScenario:
     years_to_exit: int
 
 
+@dataclass(frozen=True)
+class FirstChicagoParams:
+    """Parameters for First Chicago Method valuation.
+
+    Attributes:
+        scenarios: List of scenarios (typically Best/Base/Worst cases)
+        discount_rate: Required rate of return (e.g., 0.25 for 25%)
+        current_investment: Optional current investment amount for ROI calc
+    """
+
+    scenarios: list[FirstChicagoScenario]
+    discount_rate: float
+    current_investment: float | None = None
+
+
+@dataclass(frozen=True)
+class FirstChicagoResult:
+    """Result of First Chicago Method valuation.
+
+    Attributes:
+        weighted_value: Probability-weighted exit value
+        present_value: Discounted present value of weighted outcome
+        scenario_values: Exit value for each scenario
+        scenario_present_values: Present value for each scenario
+        method: Always "first_chicago"
+    """
+
+    weighted_value: float
+    present_value: float
+    scenario_values: dict[str, float]
+    scenario_present_values: dict[str, float]
+    method: str = "first_chicago"
+
+
 @dataclass
 class ValuationResult:
     """Result from a valuation method."""

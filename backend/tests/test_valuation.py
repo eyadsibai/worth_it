@@ -14,6 +14,8 @@ from pydantic import ValidationError
 
 from worth_it.calculations.valuation import (
     DCFParams,
+    FirstChicagoParams,
+    FirstChicagoResult,
     FirstChicagoScenario,
     RevenueMultipleParams,
     ValuationResult,
@@ -455,3 +457,48 @@ class TestFirstChicagoScenario:
             years_to_exit=3,
         )
         assert scenario.probability == 0.0
+
+
+class TestFirstChicagoParams:
+    """Tests for FirstChicagoParams dataclass."""
+
+    def test_params_creation_with_three_scenarios(self) -> None:
+        """Test creating params with standard three scenarios."""
+        best = FirstChicagoScenario("Best", 0.25, 50_000_000, 5)
+        base = FirstChicagoScenario("Base", 0.50, 20_000_000, 5)
+        worst = FirstChicagoScenario("Worst", 0.25, 5_000_000, 5)
+
+        params = FirstChicagoParams(
+            scenarios=[best, base, worst],
+            discount_rate=0.25,
+        )
+
+        assert len(params.scenarios) == 3
+        assert params.discount_rate == 0.25
+
+    def test_params_with_optional_current_investment(self) -> None:
+        """Test params with current investment amount."""
+        scenario = FirstChicagoScenario("Base", 1.0, 10_000_000, 3)
+        params = FirstChicagoParams(
+            scenarios=[scenario],
+            discount_rate=0.20,
+            current_investment=1_000_000,
+        )
+        assert params.current_investment == 1_000_000
+
+
+class TestFirstChicagoResult:
+    """Tests for FirstChicagoResult dataclass."""
+
+    def test_result_creation(self) -> None:
+        """Test creating a result with all fields."""
+        result = FirstChicagoResult(
+            weighted_value=15_000_000,
+            present_value=5_859_375,
+            scenario_values={"Best": 50_000_000, "Base": 20_000_000, "Worst": 5_000_000},
+            scenario_present_values={"Best": 19_531_250, "Base": 7_812_500, "Worst": 1_953_125},
+            method="first_chicago",
+        )
+        assert result.weighted_value == 15_000_000
+        assert result.present_value == 5_859_375
+        assert result.method == "first_chicago"
