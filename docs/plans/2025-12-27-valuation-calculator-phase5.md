@@ -8,9 +8,9 @@
 
 **Tech Stack:** Python/ReportLab (PDF), python-docx (DOCX), FastAPI file responses, React for preview/download UI, TDD throughout.
 
-**Prerequisites:** Phases 1-4 complete (valuation methods, Monte Carlo, benchmarks working)
+**Prerequisites:** Phases 1-4 complete (valuation methods, Monte Carlo, benchmarks working). Phase 2 patterns: frozen dataclasses for all params/results, Pydantic for API validation.
 
-**Branch:** Create from `feature/valuation-phase4` as `feature/valuation-phase5`
+**Branch:** Create from `master` (after Phase 4 merge) as `feature/valuation-phase5`
 
 ---
 

@@ -8,9 +8,9 @@
 
 **Tech Stack:** Python 3.13/NumPy/SciPy (backend), TypeScript/React/Zod (frontend), Playwright (E2E)
 
-**Prerequisites:** Phases 1-5 complete (First Chicago, Pre-Revenue, Monte Carlo, Benchmarks, Exports)
+**Prerequisites:** Phases 1-5 complete (First Chicago, Pre-Revenue, Monte Carlo, Benchmarks, Exports). Phase 2 patterns: frozen dataclasses for all params/results, Pydantic for API validation.
 
-**Branch:** `feature/valuation-phase6` from `feature/valuation-phase5`
+**Branch:** Create from `master` (after Phase 5 merge) as `feature/valuation-phase6`
 
 ---
 

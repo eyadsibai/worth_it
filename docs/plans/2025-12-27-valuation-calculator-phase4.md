@@ -8,9 +8,9 @@
 
 **Tech Stack:** Python/FastAPI (backend), TypeScript/React (frontend), JSON data files for benchmarks, TDD throughout.
 
-**Prerequisites:** Phases 1-3 complete (First Chicago, Pre-Revenue methods, Monte Carlo working)
+**Prerequisites:** Phases 1-3 complete (First Chicago, Pre-Revenue methods, Monte Carlo working). Phase 2 patterns: frozen dataclasses for all params/results, Pydantic for API validation.
 
-**Branch:** Create from `feature/valuation-phase3` as `feature/valuation-phase4`
+**Branch:** Create from `master` (after Phase 3 merge) as `feature/valuation-phase4`
 
 ---
 
@@ -205,7 +205,7 @@ class IndustryBenchmark:
     metrics: dict[str, BenchmarkMetric]
 
 
-@dataclass
+@dataclass(frozen=True)
 class ValidationResult:
     """Result of validating a value against benchmarks.
 
