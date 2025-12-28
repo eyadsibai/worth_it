@@ -90,6 +90,23 @@ class VCMethodParams(BaseModel):
         return self
 
 
+@dataclass(frozen=True)
+class FirstChicagoScenario:
+    """A single scenario for First Chicago Method valuation.
+
+    Attributes:
+        name: Scenario identifier (e.g., "Best Case", "Base Case", "Worst Case")
+        probability: Probability of this outcome (0.0 to 1.0)
+        exit_value: Expected company value at exit
+        years_to_exit: Years until liquidity event
+    """
+
+    name: str
+    probability: float
+    exit_value: float
+    years_to_exit: int
+
+
 @dataclass
 class ValuationResult:
     """Result from a valuation method."""

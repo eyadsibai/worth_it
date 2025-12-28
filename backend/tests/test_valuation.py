@@ -14,6 +14,7 @@ from pydantic import ValidationError
 
 from worth_it.calculations.valuation import (
     DCFParams,
+    FirstChicagoScenario,
     RevenueMultipleParams,
     ValuationResult,
     VCMethodParams,
@@ -421,3 +422,36 @@ class TestValuationComparison:
         """Empty results should raise an error."""
         with pytest.raises(ValueError, match="at least one"):
             compare_valuations([])
+
+
+# ============================================================================
+# First Chicago Method Tests
+# ============================================================================
+
+
+class TestFirstChicagoScenario:
+    """Tests for FirstChicagoScenario dataclass."""
+
+    def test_scenario_creation(self) -> None:
+        """Test creating a scenario with all required fields."""
+        scenario = FirstChicagoScenario(
+            name="Base Case",
+            probability=0.5,
+            exit_value=10_000_000,
+            years_to_exit=5,
+        )
+        assert scenario.name == "Base Case"
+        assert scenario.probability == 0.5
+        assert scenario.exit_value == 10_000_000
+        assert scenario.years_to_exit == 5
+
+    def test_scenario_probability_bounds(self) -> None:
+        """Test that probability must be between 0 and 1."""
+        # Valid probabilities should work
+        scenario = FirstChicagoScenario(
+            name="Test",
+            probability=0.0,
+            exit_value=1_000_000,
+            years_to_exit=3,
+        )
+        assert scenario.probability == 0.0
