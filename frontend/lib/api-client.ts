@@ -39,6 +39,8 @@ import type {
   ValuationResult,
   ValuationCompareRequest,
   ValuationCompareResponse,
+  FirstChicagoRequest,
+  FirstChicagoResponse,
   ErrorCode,
   FieldError,
 } from "./schemas";
@@ -362,6 +364,15 @@ class APIClient {
     return data;
   }
 
+  // First Chicago Method Valuation
+  async calculateFirstChicago(request: FirstChicagoRequest): Promise<FirstChicagoResponse> {
+    const { data } = await this.client.post<FirstChicagoResponse>(
+      "/api/valuation/first-chicago",
+      request
+    );
+    return data;
+  }
+
   // WebSocket URL for Monte Carlo
   getMonteCarloWebSocketURL(): string {
     return `${this.wsURL}/ws/monte-carlo`;
@@ -497,6 +508,13 @@ export function useCalculateVCMethod() {
 export function useCompareValuations() {
   return useMutation({
     mutationFn: (request: ValuationCompareRequest) => apiClient.compareValuations(request),
+  });
+}
+
+// First Chicago Method Valuation
+export function useCalculateFirstChicago() {
+  return useMutation({
+    mutationFn: (request: FirstChicagoRequest) => apiClient.calculateFirstChicago(request),
   });
 }
 
