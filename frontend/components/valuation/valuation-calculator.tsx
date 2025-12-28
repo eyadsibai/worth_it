@@ -7,12 +7,25 @@ import { Form } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calculator, TrendingUp, DollarSign, Target, Loader2, BarChart3 } from "lucide-react";
+import {
+  Calculator,
+  TrendingUp,
+  DollarSign,
+  Target,
+  Loader2,
+  BarChart3,
+  Lightbulb,
+  ClipboardList,
+  AlertTriangle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { RevenueMultipleForm } from "./revenue-multiple-form";
 import { DCFForm } from "./dcf-form";
 import { VCMethodForm } from "./vc-method-form";
 import { FirstChicagoForm, DEFAULT_SCENARIOS } from "./first-chicago-form";
+import { BerkusForm } from "./berkus-form";
+import { ScorecardForm } from "./scorecard-form";
+import { RiskFactorForm } from "./risk-factor-form";
 import { ValuationResult } from "./valuation-result";
 import { ValuationComparison } from "./valuation-comparison";
 import { FirstChicagoResults } from "./first-chicago-results";
@@ -22,29 +35,56 @@ import {
   useCalculateVCMethod,
   useCalculateFirstChicago,
   useCompareValuations,
+  useCalculateBerkus,
+  useCalculateScorecard,
+  useCalculateRiskFactorSummation,
 } from "@/lib/api-client";
 import {
   RevenueMultipleFormSchema,
   DCFFormSchema,
   VCMethodFormSchema,
   FirstChicagoFormSchema,
+  BerkusFormSchema,
+  ScorecardFormSchema,
+  RiskFactorSummationFormSchema,
   transformValuationResult,
   transformValuationComparison,
   transformFirstChicagoResponse,
+  transformBerkusResult,
+  transformScorecardResult,
+  transformRiskFactorSummationResult,
   type RevenueMultipleFormData,
   type DCFFormData,
   type VCMethodFormData,
   type FirstChicagoFormData,
+  type BerkusFormData,
+  type ScorecardFormData,
+  type RiskFactorSummationFormData,
   type FrontendValuationResult,
   type FrontendValuationComparison,
   type FrontendFirstChicagoResult,
+  type FrontendBerkusResult,
+  type FrontendScorecardResult,
+  type FrontendRiskFactorSummationResult,
 } from "@/lib/schemas";
 
-type ValuationMethod = "revenue_multiple" | "dcf" | "vc_method" | "first_chicago";
+type ValuationMethod =
+  | "revenue_multiple"
+  | "dcf"
+  | "vc_method"
+  | "first_chicago"
+  | "berkus"
+  | "scorecard"
+  | "risk_factor_summation";
+
+type PreRevenueResult =
+  | FrontendBerkusResult
+  | FrontendScorecardResult
+  | FrontendRiskFactorSummationResult;
 
 interface MethodResult {
   method: ValuationMethod;
-  result: FrontendValuationResult | null;
+  result: FrontendValuationResult | PreRevenueResult | null;
   error: string | null;
 }
 
@@ -84,6 +124,150 @@ const defaultFirstChicagoValues: FirstChicagoFormData = {
   currentInvestment: undefined,
 };
 
+// Pre-revenue method defaults
+const defaultBerkusValues: BerkusFormData = {
+  soundIdea: 250_000,
+  prototype: 200_000,
+  qualityTeam: 300_000,
+  strategicRelationships: 150_000,
+  productRollout: 100_000,
+  maxPerCriterion: 500_000,
+};
+
+const defaultScorecardValues: ScorecardFormData = {
+  baseValuation: 1_500_000,
+  factors: [
+    { name: "Strength of Management Team", weight: 0.3, score: 1.0 },
+    { name: "Size of Opportunity", weight: 0.25, score: 1.0 },
+    { name: "Product/Technology", weight: 0.15, score: 1.0 },
+    { name: "Competitive Environment", weight: 0.1, score: 1.0 },
+    { name: "Marketing/Sales Channels", weight: 0.1, score: 1.0 },
+    { name: "Need for Additional Investment", weight: 0.05, score: 1.0 },
+    { name: "Other Factors", weight: 0.05, score: 1.0 },
+  ],
+};
+
+const defaultRiskFactorValues: RiskFactorSummationFormData = {
+  baseValuation: 1_500_000,
+  factors: [
+    { name: "Management Risk", adjustment: 0 },
+    { name: "Stage of Business", adjustment: 0 },
+    { name: "Legislation/Political Risk", adjustment: 0 },
+    { name: "Manufacturing Risk", adjustment: 0 },
+    { name: "Sales and Marketing Risk", adjustment: 0 },
+    { name: "Funding/Capital Raising Risk", adjustment: 0 },
+    { name: "Competition Risk", adjustment: 0 },
+    { name: "Technology Risk", adjustment: 0 },
+    { name: "Litigation Risk", adjustment: 0 },
+    { name: "International Risk", adjustment: 0 },
+    { name: "Reputation Risk", adjustment: 0 },
+    { name: "Exit Potential", adjustment: 0 },
+  ],
+};
+
+// Type guard for pre-revenue results
+function isPreRevenueResult(
+  result: FrontendValuationResult | PreRevenueResult
+): result is PreRevenueResult {
+  return (
+    result.method === "berkus" ||
+    result.method === "scorecard" ||
+    result.method === "risk_factor_summation"
+  );
+}
+
+// Format currency helper
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+// Simple result card for pre-revenue methods
+function PreRevenueResultCard({ result }: { result: PreRevenueResult }) {
+  const methodLabels = {
+    berkus: "Berkus Method",
+    scorecard: "Scorecard Method",
+    risk_factor_summation: "Risk Factor Summation",
+  };
+
+  return (
+    <Card className="border-0 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_2px_8px_rgba(0,0,0,0.04)]">
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Calculator className="text-primary h-5 w-5" />
+          <CardTitle>{methodLabels[result.method]}</CardTitle>
+        </div>
+        <CardDescription>Pre-revenue valuation estimate</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div>
+            <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+              Estimated Valuation
+            </p>
+            <p className="text-4xl font-semibold tabular-nums">
+              {formatCurrency(result.valuation)}
+            </p>
+          </div>
+
+          {/* Breakdown for Berkus */}
+          {"breakdown" in result && (
+            <div className="border-t pt-4">
+              <p className="text-muted-foreground mb-2 text-sm font-medium">
+                Breakdown by Criterion
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {Object.entries(result.breakdown).map(([key, value]) => (
+                  <div key={key} className="flex justify-between">
+                    <span className="text-muted-foreground capitalize">
+                      {key.replace(/_/g, " ")}
+                    </span>
+                    <span className="font-medium">{formatCurrency(value)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Adjustment factor for Scorecard */}
+          {"adjustmentFactor" in result && (
+            <div className="border-t pt-4">
+              <p className="text-muted-foreground mb-2 text-sm font-medium">Scorecard Details</p>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Adjustment Factor</span>
+                  <span className="font-medium">{result.adjustmentFactor.toFixed(2)}x</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Total adjustment for Risk Factor */}
+          {"totalAdjustment" in result && (
+            <div className="border-t pt-4">
+              <p className="text-muted-foreground mb-2 text-sm font-medium">Risk Adjustment</p>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total Adjustment</span>
+                <span
+                  className={`font-medium ${result.totalAdjustment >= 0 ? "text-terminal" : "text-destructive"}`}
+                >
+                  {result.totalAdjustment >= 0 ? "+" : ""}
+                  {formatCurrency(result.totalAdjustment)}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+
 export function ValuationCalculator() {
   const [activeMethod, setActiveMethod] = React.useState<ValuationMethod>("revenue_multiple");
   const [methodResults, setMethodResults] = React.useState<MethodResult[]>([]);
@@ -92,12 +276,17 @@ export function ValuationCalculator() {
     React.useState<FrontendFirstChicagoResult | null>(null);
   const [firstChicagoError, setFirstChicagoError] = React.useState<string | null>(null);
 
-  // API mutations
+  // API mutations - revenue-based methods
   const revenueMultipleMutation = useCalculateRevenueMultiple();
   const dcfMutation = useCalculateDCF();
   const vcMethodMutation = useCalculateVCMethod();
   const firstChicagoMutation = useCalculateFirstChicago();
   const compareMutation = useCompareValuations();
+
+  // API mutations - pre-revenue methods
+  const berkusMutation = useCalculateBerkus();
+  const scorecardMutation = useCalculateScorecard();
+  const riskFactorMutation = useCalculateRiskFactorSummation();
 
   // Forms
   const revenueMultipleForm = useForm<RevenueMultipleFormData>({
@@ -120,11 +309,30 @@ export function ValuationCalculator() {
     defaultValues: defaultFirstChicagoValues,
   });
 
+  // Pre-revenue forms
+  const berkusForm = useForm<BerkusFormData>({
+    resolver: zodResolver(BerkusFormSchema),
+    defaultValues: defaultBerkusValues,
+  });
+
+  const scorecardForm = useForm<ScorecardFormData>({
+    resolver: zodResolver(ScorecardFormSchema),
+    defaultValues: defaultScorecardValues,
+  });
+
+  const riskFactorForm = useForm<RiskFactorSummationFormData>({
+    resolver: zodResolver(RiskFactorSummationFormSchema),
+    defaultValues: defaultRiskFactorValues,
+  });
+
   const isLoading =
     revenueMultipleMutation.isPending ||
     dcfMutation.isPending ||
     vcMethodMutation.isPending ||
     firstChicagoMutation.isPending ||
+    berkusMutation.isPending ||
+    scorecardMutation.isPending ||
+    riskFactorMutation.isPending ||
     compareMutation.isPending;
 
   // Handle Revenue Multiple submission
@@ -216,9 +424,68 @@ export function ValuationCalculator() {
     }
   };
 
+  // Handle Berkus Method submission
+  const handleBerkus = async (data: BerkusFormData) => {
+    try {
+      const response = await berkusMutation.mutateAsync({
+        sound_idea: data.soundIdea,
+        prototype: data.prototype,
+        quality_team: data.qualityTeam,
+        strategic_relationships: data.strategicRelationships,
+        product_rollout: data.productRollout,
+        max_per_criterion: data.maxPerCriterion,
+      });
+      const result = transformBerkusResult(response);
+      updateMethodResult("berkus", result, null);
+    } catch (error) {
+      const message = (error as Error).message;
+      updateMethodResult("berkus", null, message);
+      toast.error("Calculation failed", { description: message });
+    }
+  };
+
+  // Handle Scorecard Method submission
+  const handleScorecard = async (data: ScorecardFormData) => {
+    try {
+      const response = await scorecardMutation.mutateAsync({
+        base_valuation: data.baseValuation,
+        factors: data.factors.map((f) => ({
+          name: f.name,
+          weight: f.weight,
+          score: f.score,
+        })),
+      });
+      const result = transformScorecardResult(response);
+      updateMethodResult("scorecard", result, null);
+    } catch (error) {
+      const message = (error as Error).message;
+      updateMethodResult("scorecard", null, message);
+      toast.error("Calculation failed", { description: message });
+    }
+  };
+
+  // Handle Risk Factor Summation submission
+  const handleRiskFactor = async (data: RiskFactorSummationFormData) => {
+    try {
+      const response = await riskFactorMutation.mutateAsync({
+        base_valuation: data.baseValuation,
+        factors: data.factors.map((f) => ({
+          name: f.name,
+          adjustment: f.adjustment,
+        })),
+      });
+      const result = transformRiskFactorSummationResult(response);
+      updateMethodResult("risk_factor_summation", result, null);
+    } catch (error) {
+      const message = (error as Error).message;
+      updateMethodResult("risk_factor_summation", null, message);
+      toast.error("Calculation failed", { description: message });
+    }
+  };
+
   const updateMethodResult = (
     method: ValuationMethod,
-    result: FrontendValuationResult | null,
+    result: FrontendValuationResult | PreRevenueResult | null,
     error: string | null
   ) => {
     setMethodResults((prev) => {
@@ -296,6 +563,15 @@ export function ValuationCalculator() {
       case "first_chicago":
         firstChicagoForm.handleSubmit(handleFirstChicago)();
         break;
+      case "berkus":
+        berkusForm.handleSubmit(handleBerkus)();
+        break;
+      case "scorecard":
+        scorecardForm.handleSubmit(handleScorecard)();
+        break;
+      case "risk_factor_summation":
+        riskFactorForm.handleSubmit(handleRiskFactor)();
+        break;
     }
   };
 
@@ -315,29 +591,60 @@ export function ValuationCalculator() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeMethod} onValueChange={(v) => setActiveMethod(v as ValuationMethod)}>
-            <TabsList className="mb-6 grid w-full grid-cols-4">
-              <TabsTrigger value="revenue_multiple" className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                <span className="hidden sm:inline">Revenue Multiple</span>
-                <span className="sm:hidden">Revenue</span>
-              </TabsTrigger>
-              <TabsTrigger value="dcf" className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4" />
-                <span className="hidden sm:inline">DCF</span>
-                <span className="sm:hidden">DCF</span>
-              </TabsTrigger>
-              <TabsTrigger value="vc_method" className="flex items-center gap-2">
-                <Target className="h-4 w-4" />
-                <span className="hidden sm:inline">VC Method</span>
-                <span className="sm:hidden">VC</span>
-              </TabsTrigger>
-              <TabsTrigger value="first_chicago" className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                <span className="hidden sm:inline">First Chicago</span>
-                <span className="sm:hidden">Chicago</span>
-              </TabsTrigger>
-            </TabsList>
+            {/* Revenue-Based Methods */}
+            <div className="mb-4">
+              <p className="text-muted-foreground mb-2 text-xs font-medium tracking-wide uppercase">
+                Revenue-Based Methods
+              </p>
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="revenue_multiple" className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  <span className="hidden sm:inline">Revenue Multiple</span>
+                  <span className="sm:hidden">Revenue</span>
+                </TabsTrigger>
+                <TabsTrigger value="dcf" className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  <span className="hidden sm:inline">DCF</span>
+                  <span className="sm:hidden">DCF</span>
+                </TabsTrigger>
+                <TabsTrigger value="vc_method" className="flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  <span className="hidden sm:inline">VC Method</span>
+                  <span className="sm:hidden">VC</span>
+                </TabsTrigger>
+                <TabsTrigger value="first_chicago" className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  <span className="hidden sm:inline">First Chicago</span>
+                  <span className="sm:hidden">Chicago</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
+            {/* Pre-Revenue Methods */}
+            <div className="mb-6">
+              <p className="text-muted-foreground mb-2 text-xs font-medium tracking-wide uppercase">
+                Pre-Revenue Methods
+              </p>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="berkus" className="flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4" />
+                  <span className="hidden sm:inline">Berkus</span>
+                  <span className="sm:hidden">Berkus</span>
+                </TabsTrigger>
+                <TabsTrigger value="scorecard" className="flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  <span className="hidden sm:inline">Scorecard</span>
+                  <span className="sm:hidden">Score</span>
+                </TabsTrigger>
+                <TabsTrigger value="risk_factor_summation" className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="hidden sm:inline">Risk Factor</span>
+                  <span className="sm:hidden">Risk</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            {/* Revenue-Based Tab Contents */}
             <TabsContent value="revenue_multiple">
               <Form {...revenueMultipleForm}>
                 <form onSubmit={revenueMultipleForm.handleSubmit(handleRevenueMultiple)}>
@@ -369,6 +676,31 @@ export function ValuationCalculator() {
                 </form>
               </Form>
             </TabsContent>
+
+            {/* Pre-Revenue Tab Contents */}
+            <TabsContent value="berkus">
+              <Form {...berkusForm}>
+                <form onSubmit={berkusForm.handleSubmit(handleBerkus)}>
+                  <BerkusForm form={berkusForm} />
+                </form>
+              </Form>
+            </TabsContent>
+
+            <TabsContent value="scorecard">
+              <Form {...scorecardForm}>
+                <form onSubmit={scorecardForm.handleSubmit(handleScorecard)}>
+                  <ScorecardForm form={scorecardForm} />
+                </form>
+              </Form>
+            </TabsContent>
+
+            <TabsContent value="risk_factor_summation">
+              <Form {...riskFactorForm}>
+                <form onSubmit={riskFactorForm.handleSubmit(handleRiskFactor)}>
+                  <RiskFactorForm form={riskFactorForm} />
+                </form>
+              </Form>
+            </TabsContent>
           </Tabs>
 
           <div className="border-border mt-6 flex gap-3 border-t pt-4">
@@ -388,9 +720,13 @@ export function ValuationCalculator() {
       </Card>
 
       {/* Individual Result */}
-      {activeMethod !== "first_chicago" && currentResult?.result && (
-        <ValuationResult result={currentResult.result} />
-      )}
+      {activeMethod !== "first_chicago" &&
+        currentResult?.result &&
+        (isPreRevenueResult(currentResult.result) ? (
+          <PreRevenueResultCard result={currentResult.result} />
+        ) : (
+          <ValuationResult result={currentResult.result} />
+        ))}
 
       {activeMethod !== "first_chicago" && currentResult?.error && (
         <Card className="border-destructive bg-destructive/10">

@@ -1427,7 +1427,7 @@ export const BerkusFormSchema = z.object({
   qualityTeam: z.number().min(0).max(500_000),
   strategicRelationships: z.number().min(0).max(500_000),
   productRollout: z.number().min(0).max(500_000),
-  maxPerCriterion: z.number().min(0).default(500_000),
+  maxPerCriterion: z.number().min(0),
 });
 export type BerkusFormData = z.infer<typeof BerkusFormSchema>;
 
