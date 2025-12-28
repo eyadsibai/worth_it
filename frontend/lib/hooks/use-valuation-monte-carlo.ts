@@ -59,6 +59,8 @@ export function useValuationMonteCarlo(
   const [error, setError] = React.useState<string | null>(null);
 
   const wsRef = React.useRef<WebSocket | null>(null);
+  // Use ref to track running state to avoid stale closure in onclose
+  const isRunningRef = React.useRef(false);
 
   // Cleanup on unmount
   React.useEffect(() => {
@@ -84,6 +86,7 @@ export function useValuationMonteCarlo(
     (config: ValuationMonteCarloConfig) => {
       // Reset state
       setIsRunning(true);
+      isRunningRef.current = true;
       setProgress(0);
       setResult(null);
       setError(null);
@@ -121,12 +124,14 @@ export function useValuationMonteCarlo(
           } else if (data.type === "complete") {
             setResult(data.result);
             setIsRunning(false);
+            isRunningRef.current = false;
             setProgress(1);
             onComplete?.(data.result);
           } else if (data.type === "error") {
             const errorMessage = data.message || "Simulation failed";
             setError(errorMessage);
             setIsRunning(false);
+            isRunningRef.current = false;
             onError?.(errorMessage);
           }
         } catch (e) {
@@ -138,18 +143,21 @@ export function useValuationMonteCarlo(
         console.error("WebSocket error:", event);
         setError("Connection error");
         setIsRunning(false);
+        isRunningRef.current = false;
         onError?.("Connection error");
       };
 
       ws.onclose = () => {
-        if (isRunning) {
+        // Use ref to check running state to avoid stale closure
+        if (isRunningRef.current) {
           // Unexpected close while running
           setIsRunning(false);
+          isRunningRef.current = false;
         }
         wsRef.current = null;
       };
     },
-    [onComplete, onError, isRunning]
+    [onComplete, onError]
   );
 
   return {
