@@ -14,6 +14,8 @@ from worth_it.config import settings
 from worth_it.exceptions import CalculationError
 from worth_it.models import (
     DCFRequest,
+    FirstChicagoRequest,
+    FirstChicagoResponse,
     RevenueMultipleRequest,
     ValuationCompareRequest,
     ValuationCompareResponse,
@@ -192,3 +194,48 @@ async def compare_valuation_methods(request: Request, body: ValuationCompareRequ
         )
     except (ValueError, TypeError) as e:
         raise CalculationError("Invalid parameters for valuation comparison") from e
+
+
+@router.post("/first-chicago", response_model=FirstChicagoResponse)
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def calculate_first_chicago_valuation(request: Request, body: FirstChicagoRequest):
+    """Calculate company valuation using First Chicago Method.
+
+    The First Chicago Method values a company by:
+    1. Defining multiple scenarios (typically Best/Base/Worst cases)
+    2. Assigning probability weights to each scenario
+    3. Calculating present value for each scenario (using its own time horizon)
+    4. Computing probability-weighted present value
+
+    This method is particularly useful for early-stage companies where
+    multiple outcome paths are realistic possibilities.
+    """
+    try:
+        # Convert API request to domain params
+        scenarios = [
+            calculations.FirstChicagoScenario(
+                name=s.name,
+                probability=s.probability,
+                exit_value=s.exit_value,
+                years_to_exit=s.years_to_exit,
+            )
+            for s in body.scenarios
+        ]
+
+        params = calculations.FirstChicagoParams(
+            scenarios=scenarios,
+            discount_rate=body.discount_rate,
+            current_investment=body.current_investment,
+        )
+
+        result = calculations.calculate_first_chicago(params)
+
+        return FirstChicagoResponse(
+            weighted_value=result.weighted_value,
+            present_value=result.present_value,
+            scenario_values=result.scenario_values,
+            scenario_present_values=result.scenario_present_values,
+            method=result.method,
+        )
+    except (ValueError, TypeError) as e:
+        raise CalculationError("Invalid parameters for First Chicago valuation") from e
