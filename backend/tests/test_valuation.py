@@ -21,6 +21,7 @@ from worth_it.calculations.valuation import (
     ValuationResult,
     VCMethodParams,
     calculate_dcf,
+    calculate_first_chicago,
     calculate_revenue_multiple,
     calculate_vc_method,
     compare_valuations,
@@ -502,3 +503,82 @@ class TestFirstChicagoResult:
         assert result.weighted_value == 15_000_000
         assert result.present_value == 5_859_375
         assert result.method == "first_chicago"
+
+
+class TestCalculateFirstChicago:
+    """Tests for calculate_first_chicago function."""
+
+    def test_basic_three_scenario_valuation(self) -> None:
+        """Test standard three-scenario First Chicago calculation."""
+        # Standard Best/Base/Worst with 25/50/25 probability split
+        params = FirstChicagoParams(
+            scenarios=[
+                FirstChicagoScenario("Best", 0.25, 50_000_000, 5),
+                FirstChicagoScenario("Base", 0.50, 20_000_000, 5),
+                FirstChicagoScenario("Worst", 0.25, 5_000_000, 5),
+            ],
+            discount_rate=0.25,
+        )
+
+        result = calculate_first_chicago(params)
+
+        # Weighted value = 0.25*50M + 0.50*20M + 0.25*5M = 12.5M + 10M + 1.25M = 23.75M
+        assert result.weighted_value == pytest.approx(23_750_000, rel=0.01)
+
+        # Present value = 23.75M / (1.25)^5 = 23.75M / 3.0517578125 ≈ 7,782,387
+        assert result.present_value == pytest.approx(7_782_387, rel=0.01)
+
+        assert result.method == "first_chicago"
+        assert "Best" in result.scenario_values
+        assert "Base" in result.scenario_values
+        assert "Worst" in result.scenario_values
+
+    def test_single_scenario(self) -> None:
+        """Test with just one scenario (100% probability)."""
+        params = FirstChicagoParams(
+            scenarios=[
+                FirstChicagoScenario("Only", 1.0, 10_000_000, 3),
+            ],
+            discount_rate=0.20,
+        )
+
+        result = calculate_first_chicago(params)
+
+        # Weighted = 10M, PV = 10M / 1.2^3 = 10M / 1.728 ≈ 5,787,037
+        assert result.weighted_value == pytest.approx(10_000_000, rel=0.01)
+        assert result.present_value == pytest.approx(5_787_037, rel=0.01)
+
+    def test_different_time_horizons(self) -> None:
+        """Test scenarios with different exit timelines."""
+        params = FirstChicagoParams(
+            scenarios=[
+                FirstChicagoScenario("Quick Exit", 0.30, 15_000_000, 3),
+                FirstChicagoScenario("Normal Exit", 0.50, 30_000_000, 5),
+                FirstChicagoScenario("Long Exit", 0.20, 60_000_000, 7),
+            ],
+            discount_rate=0.25,
+        )
+
+        result = calculate_first_chicago(params)
+
+        # Each scenario discounted separately, then weighted
+        # Quick: 15M / 1.25^3 = 7,680,000 * 0.30 = 2,304,000
+        # Normal: 30M / 1.25^5 = 9,830,400 * 0.50 = 4,915,200
+        # Long: 60M / 1.25^7 = 12,582,912 * 0.20 = 2,516,582
+        # Total PV ≈ 9,735,782
+        assert result.present_value == pytest.approx(9_735_782, rel=0.02)
+
+    def test_probabilities_sum_to_one_validation(self) -> None:
+        """Test that probabilities should sum close to 1.0."""
+        params = FirstChicagoParams(
+            scenarios=[
+                FirstChicagoScenario("A", 0.25, 10_000_000, 5),
+                FirstChicagoScenario("B", 0.25, 20_000_000, 5),
+                # Probabilities sum to 0.5, not 1.0
+            ],
+            discount_rate=0.20,
+        )
+
+        # Should still calculate but may want to add warning in future
+        result = calculate_first_chicago(params)
+        assert result is not None
