@@ -167,6 +167,50 @@ class ValuationComparison:
 
 
 # ============================================================================
+# Berkus Method (Pre-Revenue)
+# ============================================================================
+
+
+@dataclass(frozen=True)
+class BerkusParams:
+    """Parameters for Berkus Method valuation.
+
+    Each criterion is scored 0 to max_value (default $500K).
+    Total valuation is sum of all criteria.
+
+    Attributes:
+        sound_idea: Value for basic value/idea (0-500K)
+        prototype: Value for technology/prototype (0-500K)
+        quality_team: Value for execution/management team (0-500K)
+        strategic_relationships: Value for strategic relationships (0-500K)
+        product_rollout: Value for product rollout/sales (0-500K)
+        max_per_criterion: Maximum value per criterion (default 500K)
+    """
+
+    sound_idea: float
+    prototype: float
+    quality_team: float
+    strategic_relationships: float
+    product_rollout: float
+    max_per_criterion: float = 500_000
+
+
+@dataclass(frozen=True)
+class BerkusResult:
+    """Result of Berkus Method valuation.
+
+    Attributes:
+        valuation: Total valuation (sum of all criteria)
+        breakdown: Value assigned to each criterion
+        method: Always "berkus"
+    """
+
+    valuation: float
+    breakdown: dict[str, float]
+    method: str = "berkus"
+
+
+# ============================================================================
 # Revenue Multiple Valuation
 # ============================================================================
 

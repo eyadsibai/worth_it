@@ -582,3 +582,44 @@ class TestCalculateFirstChicago:
         # Should still calculate but may want to add warning in future
         result = calculate_first_chicago(params)
         assert result is not None
+
+
+# ============================================================================
+# Berkus Method Tests
+# ============================================================================
+
+
+class TestBerkusMethod:
+    """Tests for Berkus Method valuation."""
+
+    def test_berkus_params_creation(self) -> None:
+        """Test creating Berkus params with all criteria."""
+        from worth_it.calculations.valuation import BerkusParams
+
+        params = BerkusParams(
+            sound_idea=400_000,  # 0-500K
+            prototype=300_000,  # 0-500K
+            quality_team=500_000,  # 0-500K
+            strategic_relationships=200_000,  # 0-500K
+            product_rollout=100_000,  # 0-500K
+        )
+        assert params.sound_idea == 400_000
+        assert params.quality_team == 500_000
+
+    def test_berkus_result_creation(self) -> None:
+        """Test Berkus result structure."""
+        from worth_it.calculations.valuation import BerkusResult
+
+        result = BerkusResult(
+            valuation=1_500_000,
+            breakdown={
+                "sound_idea": 400_000,
+                "prototype": 300_000,
+                "quality_team": 500_000,
+                "strategic_relationships": 200_000,
+                "product_rollout": 100_000,
+            },
+            method="berkus",
+        )
+        assert result.valuation == 1_500_000
+        assert result.method == "berkus"
