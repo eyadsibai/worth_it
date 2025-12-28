@@ -11,14 +11,11 @@ Key concepts:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
 
 import numpy as np
-
-if TYPE_CHECKING:
-    pass
 
 
 class DistributionType(Enum):
@@ -98,3 +95,105 @@ def sample_distribution(
             return np.full(n_samples, dist.params["value"])
         case _:
             raise ValueError(f"Unknown distribution type: {dist.distribution_type}")
+
+
+@dataclass
+class MonteCarloConfig:
+    """Configuration for Monte Carlo simulation.
+
+    Attributes:
+        valuation_function: Function that takes parameters and returns valuation
+        parameter_distributions: List of parameter distributions
+        n_simulations: Number of simulations to run
+        seed: Random seed for reproducibility
+    """
+
+    valuation_function: Callable[..., float]
+    parameter_distributions: list[ParameterDistribution]
+    n_simulations: int = 10000
+    seed: int | None = None
+
+
+@dataclass
+class MonteCarloResult:
+    """Result of Monte Carlo simulation.
+
+    Attributes:
+        valuations: All simulated valuations
+        mean: Mean valuation
+        std: Standard deviation
+        min: Minimum valuation
+        max: Maximum valuation
+        percentile_10: 10th percentile (pessimistic)
+        percentile_25: 25th percentile
+        percentile_50: 50th percentile (median)
+        percentile_75: 75th percentile
+        percentile_90: 90th percentile (optimistic)
+        histogram_bins: Bin edges for histogram
+        histogram_counts: Counts per bin
+    """
+
+    valuations: np.ndarray
+    mean: float
+    std: float
+    min: float
+    max: float
+    percentile_10: float
+    percentile_25: float
+    percentile_50: float
+    percentile_75: float
+    percentile_90: float
+    histogram_bins: np.ndarray
+    histogram_counts: np.ndarray
+
+
+def run_monte_carlo_simulation(config: MonteCarloConfig) -> MonteCarloResult:
+    """Run Monte Carlo simulation on a valuation function.
+
+    Args:
+        config: Simulation configuration
+
+    Returns:
+        MonteCarloResult with distribution statistics
+    """
+    # Sample all parameters
+    param_samples: dict[str, np.ndarray] = {}
+    for dist in config.parameter_distributions:
+        param_samples[dist.name] = sample_distribution(
+            dist,
+            n_samples=config.n_simulations,
+            seed=config.seed,
+        )
+
+    # Run simulations
+    valuations = np.zeros(config.n_simulations)
+    for i in range(config.n_simulations):
+        params = {name: samples[i] for name, samples in param_samples.items()}
+        # Convert numpy types to Python types for function compatibility
+        params = {
+            k: float(v)
+            if isinstance(v, np.floating)
+            else int(v)
+            if isinstance(v, np.integer)
+            else v
+            for k, v in params.items()
+        }
+        valuations[i] = config.valuation_function(**params)
+
+    # Calculate statistics
+    histogram_counts, histogram_bins = np.histogram(valuations, bins=50)
+
+    return MonteCarloResult(
+        valuations=valuations,
+        mean=float(np.mean(valuations)),
+        std=float(np.std(valuations)),
+        min=float(np.min(valuations)),
+        max=float(np.max(valuations)),
+        percentile_10=float(np.percentile(valuations, 10)),
+        percentile_25=float(np.percentile(valuations, 25)),
+        percentile_50=float(np.percentile(valuations, 50)),
+        percentile_75=float(np.percentile(valuations, 75)),
+        percentile_90=float(np.percentile(valuations, 90)),
+        histogram_bins=histogram_bins,
+        histogram_counts=histogram_counts,
+    )
