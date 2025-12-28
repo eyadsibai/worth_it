@@ -799,3 +799,146 @@ class TestCalculateScorecard:
         result = calculate_scorecard(params)
         # Weighted sum < 1.0, so valuation < base
         assert result.valuation < 2_000_000
+
+
+# ============================================================================
+# Risk Factor Summation Method Tests
+# ============================================================================
+
+
+class TestRiskFactorSummation:
+    """Tests for Risk Factor Summation Method."""
+
+    def test_risk_factor_creation(self) -> None:
+        """Test creating a risk factor with adjustment."""
+        from worth_it.calculations.valuation import RiskFactor
+
+        factor = RiskFactor(
+            name="Management Risk",
+            adjustment=250_000,  # Positive = reduces risk, adds value
+        )
+        assert factor.name == "Management Risk"
+        assert factor.adjustment == 250_000
+
+    def test_params_with_12_factors(self) -> None:
+        """Test creating params with standard 12 factors."""
+        from worth_it.calculations.valuation import RiskFactor, RiskFactorSummationParams
+
+        factors = [
+            RiskFactor("Management", 250_000),
+            RiskFactor("Stage of Business", 0),
+            RiskFactor("Legislation/Political", -250_000),
+            RiskFactor("Manufacturing", 0),
+            RiskFactor("Sales and Marketing", 250_000),
+            RiskFactor("Funding/Capital", 0),
+            RiskFactor("Competition", -500_000),
+            RiskFactor("Technology", 250_000),
+            RiskFactor("Litigation", 0),
+            RiskFactor("International", 0),
+            RiskFactor("Reputation", 250_000),
+            RiskFactor("Lucrative Exit", 500_000),
+        ]
+        params = RiskFactorSummationParams(
+            base_valuation=2_000_000,
+            factors=factors,
+        )
+        assert len(params.factors) == 12
+
+
+class TestCalculateRiskFactorSummation:
+    """Tests for calculate_risk_factor_summation function."""
+
+    def test_neutral_factors(self) -> None:
+        """Test with all neutral (0) adjustments."""
+        from worth_it.calculations.valuation import (
+            RiskFactor,
+            RiskFactorSummationParams,
+            calculate_risk_factor_summation,
+        )
+
+        params = RiskFactorSummationParams(
+            base_valuation=2_000_000,
+            factors=[
+                RiskFactor("Management", 0),
+                RiskFactor("Stage", 0),
+                RiskFactor("Competition", 0),
+            ],
+        )
+        result = calculate_risk_factor_summation(params)
+        assert result.valuation == 2_000_000
+
+    def test_positive_adjustments(self) -> None:
+        """Test with positive adjustments (risk reducers)."""
+        from worth_it.calculations.valuation import (
+            RiskFactor,
+            RiskFactorSummationParams,
+            calculate_risk_factor_summation,
+        )
+
+        params = RiskFactorSummationParams(
+            base_valuation=2_000_000,
+            factors=[
+                RiskFactor("Management", 500_000),  # Very strong team
+                RiskFactor("Technology", 250_000),  # Strong tech
+            ],
+        )
+        result = calculate_risk_factor_summation(params)
+        assert result.valuation == 2_750_000
+
+    def test_negative_adjustments(self) -> None:
+        """Test with negative adjustments (risk increasers)."""
+        from worth_it.calculations.valuation import (
+            RiskFactor,
+            RiskFactorSummationParams,
+            calculate_risk_factor_summation,
+        )
+
+        params = RiskFactorSummationParams(
+            base_valuation=2_000_000,
+            factors=[
+                RiskFactor("Competition", -500_000),  # High competition
+                RiskFactor("Funding", -250_000),  # Funding challenges
+            ],
+        )
+        result = calculate_risk_factor_summation(params)
+        assert result.valuation == 1_250_000
+
+    def test_mixed_adjustments(self) -> None:
+        """Test with mixed positive and negative adjustments."""
+        from worth_it.calculations.valuation import (
+            RiskFactor,
+            RiskFactorSummationParams,
+            calculate_risk_factor_summation,
+        )
+
+        params = RiskFactorSummationParams(
+            base_valuation=2_000_000,
+            factors=[
+                RiskFactor("Management", 500_000),
+                RiskFactor("Competition", -500_000),
+                RiskFactor("Technology", 250_000),
+            ],
+        )
+        result = calculate_risk_factor_summation(params)
+        # 2M + 500K - 500K + 250K = 2.25M
+        assert result.valuation == 2_250_000
+
+    def test_minimum_valuation_floor(self) -> None:
+        """Test that valuation doesn't go negative."""
+        from worth_it.calculations.valuation import (
+            RiskFactor,
+            RiskFactorSummationParams,
+            calculate_risk_factor_summation,
+        )
+
+        params = RiskFactorSummationParams(
+            base_valuation=1_000_000,
+            factors=[
+                RiskFactor("Risk1", -500_000),
+                RiskFactor("Risk2", -500_000),
+                RiskFactor("Risk3", -500_000),
+            ],
+        )
+        result = calculate_risk_factor_summation(params)
+        # Should floor at 0, not go negative
+        assert result.valuation >= 0
