@@ -388,10 +388,26 @@ export function ValuationCalculator() {
 
     // Build distributions from form data + user configured distributions
     const distributions = [
-      { name: "best_prob", distribution_type: "fixed", params: { value: formData.scenarios[0].probability / 100 } },
-      { name: "base_prob", distribution_type: "fixed", params: { value: formData.scenarios[1].probability / 100 } },
-      { name: "worst_prob", distribution_type: "fixed", params: { value: formData.scenarios[2].probability / 100 } },
-      { name: "years", distribution_type: "fixed", params: { value: formData.scenarios[0].yearsToExit } },
+      {
+        name: "best_prob",
+        distribution_type: "fixed",
+        params: { value: formData.scenarios[0].probability / 100 },
+      },
+      {
+        name: "base_prob",
+        distribution_type: "fixed",
+        params: { value: formData.scenarios[1].probability / 100 },
+      },
+      {
+        name: "worst_prob",
+        distribution_type: "fixed",
+        params: { value: formData.scenarios[2].probability / 100 },
+      },
+      {
+        name: "years",
+        distribution_type: "fixed",
+        params: { value: formData.scenarios[0].yearsToExit },
+      },
       ...distributionsToApiFormat(mcDistributions),
     ];
 
@@ -452,7 +468,7 @@ export function ValuationCalculator() {
           data.returnType === "multiple" ? data.targetReturnMultiple : undefined,
         target_irr: data.returnType === "irr" && data.targetIRR ? data.targetIRR / 100 : undefined,
         expected_dilution: data.expectedDilution / 100,
-        exit_probability: data.exitProbability ? data.exitProbability / 100 : undefined,
+        exit_probability: data.exitProbability ? data.exitProbability / 100 : 1,
         investment_amount: data.investmentAmount,
       });
       const result = transformValuationResult(response);
@@ -597,49 +613,34 @@ export function ValuationCalculator() {
       const vcMethodData = vcMethodForm.getValues();
 
       const response = await compareMutation.mutateAsync({
-        methods: [
-          {
-            method: "revenue_multiple",
-            params: {
-              annual_revenue: revenueMultipleData.annualRevenue,
-              revenue_multiple: revenueMultipleData.revenueMultiple,
-              growth_rate: revenueMultipleData.growthRate
-                ? revenueMultipleData.growthRate / 100
-                : undefined,
-              industry_benchmark_multiple: revenueMultipleData.industryBenchmarkMultiple,
-            },
-          },
-          {
-            method: "dcf",
-            params: {
-              projected_cash_flows: dcfData.projectedCashFlows.map((cf) => cf.value),
-              discount_rate: dcfData.discountRate / 100,
-              terminal_growth_rate: dcfData.terminalGrowthRate
-                ? dcfData.terminalGrowthRate / 100
-                : undefined,
-            },
-          },
-          {
-            method: "vc_method",
-            params: {
-              projected_exit_value: vcMethodData.projectedExitValue,
-              exit_year: vcMethodData.exitYear,
-              target_return_multiple:
-                vcMethodData.returnType === "multiple"
-                  ? vcMethodData.targetReturnMultiple
-                  : undefined,
-              target_irr:
-                vcMethodData.returnType === "irr" && vcMethodData.targetIRR
-                  ? vcMethodData.targetIRR / 100
-                  : undefined,
-              expected_dilution: vcMethodData.expectedDilution / 100,
-              exit_probability: vcMethodData.exitProbability
-                ? vcMethodData.exitProbability / 100
-                : undefined,
-              investment_amount: vcMethodData.investmentAmount,
-            },
-          },
-        ],
+        revenue_multiple: {
+          annual_revenue: revenueMultipleData.annualRevenue,
+          revenue_multiple: revenueMultipleData.revenueMultiple,
+          growth_rate: revenueMultipleData.growthRate
+            ? revenueMultipleData.growthRate / 100
+            : undefined,
+          industry_benchmark_multiple: revenueMultipleData.industryBenchmarkMultiple,
+        },
+        dcf: {
+          projected_cash_flows: dcfData.projectedCashFlows.map((cf) => cf.value),
+          discount_rate: dcfData.discountRate / 100,
+          terminal_growth_rate: dcfData.terminalGrowthRate
+            ? dcfData.terminalGrowthRate / 100
+            : undefined,
+        },
+        vc_method: {
+          projected_exit_value: vcMethodData.projectedExitValue,
+          exit_year: vcMethodData.exitYear,
+          target_return_multiple:
+            vcMethodData.returnType === "multiple" ? vcMethodData.targetReturnMultiple : undefined,
+          target_irr:
+            vcMethodData.returnType === "irr" && vcMethodData.targetIRR
+              ? vcMethodData.targetIRR / 100
+              : undefined,
+          expected_dilution: vcMethodData.expectedDilution / 100,
+          exit_probability: vcMethodData.exitProbability ? vcMethodData.exitProbability / 100 : 1,
+          investment_amount: vcMethodData.investmentAmount,
+        },
       });
       const result = transformValuationComparison(response);
       setComparison(result);
