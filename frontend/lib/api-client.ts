@@ -41,6 +41,13 @@ import type {
   ValuationCompareResponse,
   FirstChicagoRequest,
   FirstChicagoResponse,
+  // Pre-revenue valuation types (Phase 2)
+  BerkusRequest,
+  BerkusResponse,
+  ScorecardRequest,
+  ScorecardResponse,
+  RiskFactorSummationRequest,
+  RiskFactorSummationResponse,
   ErrorCode,
   FieldError,
 } from "./schemas";
@@ -373,6 +380,33 @@ class APIClient {
     return data;
   }
 
+  // ============================================================================
+  // Pre-Revenue Valuation Methods (Phase 2)
+  // ============================================================================
+
+  // Berkus Method Valuation
+  async calculateBerkus(request: BerkusRequest): Promise<BerkusResponse> {
+    const { data } = await this.client.post<BerkusResponse>("/api/valuation/berkus", request);
+    return data;
+  }
+
+  // Scorecard Method Valuation
+  async calculateScorecard(request: ScorecardRequest): Promise<ScorecardResponse> {
+    const { data } = await this.client.post<ScorecardResponse>("/api/valuation/scorecard", request);
+    return data;
+  }
+
+  // Risk Factor Summation Method Valuation
+  async calculateRiskFactorSummation(
+    request: RiskFactorSummationRequest
+  ): Promise<RiskFactorSummationResponse> {
+    const { data } = await this.client.post<RiskFactorSummationResponse>(
+      "/api/valuation/risk-factor-summation",
+      request
+    );
+    return data;
+  }
+
   // WebSocket URL for Monte Carlo
   getMonteCarloWebSocketURL(): string {
     return `${this.wsURL}/ws/monte-carlo`;
@@ -515,6 +549,32 @@ export function useCompareValuations() {
 export function useCalculateFirstChicago() {
   return useMutation({
     mutationFn: (request: FirstChicagoRequest) => apiClient.calculateFirstChicago(request),
+  });
+}
+
+// ============================================================================
+// Pre-Revenue Valuation Hooks (Phase 2)
+// ============================================================================
+
+// Berkus Method Valuation
+export function useCalculateBerkus() {
+  return useMutation({
+    mutationFn: (request: BerkusRequest) => apiClient.calculateBerkus(request),
+  });
+}
+
+// Scorecard Method Valuation
+export function useCalculateScorecard() {
+  return useMutation({
+    mutationFn: (request: ScorecardRequest) => apiClient.calculateScorecard(request),
+  });
+}
+
+// Risk Factor Summation Method Valuation
+export function useCalculateRiskFactorSummation() {
+  return useMutation({
+    mutationFn: (request: RiskFactorSummationRequest) =>
+      apiClient.calculateRiskFactorSummation(request),
   });
 }
 
