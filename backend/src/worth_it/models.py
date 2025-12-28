@@ -893,3 +893,99 @@ class FirstChicagoResponse(BaseModel):
             }
         }
     }
+
+
+# --- Pre-Revenue Valuation Methods (Phase 2) ---
+
+
+class BerkusRequest(BaseModel):
+    """API request for Berkus Method valuation.
+
+    Each criterion is scored from $0 to $500K (default max).
+    Total valuation = sum of all criteria.
+    """
+
+    sound_idea: float = Field(..., ge=0, le=500_000, description="Value for basic value/idea")
+    prototype: float = Field(..., ge=0, le=500_000, description="Value for technology/prototype")
+    quality_team: float = Field(
+        ..., ge=0, le=500_000, description="Value for execution/management team"
+    )
+    strategic_relationships: float = Field(
+        ..., ge=0, le=500_000, description="Value for strategic relationships"
+    )
+    product_rollout: float = Field(
+        ..., ge=0, le=500_000, description="Value for product rollout/sales"
+    )
+    max_per_criterion: float = Field(
+        default=500_000, ge=0, description="Maximum value per criterion"
+    )
+
+
+class BerkusResponse(BaseModel):
+    """API response for Berkus Method valuation."""
+
+    valuation: float
+    breakdown: dict[str, float]
+    method: Literal["berkus"] = "berkus"
+
+
+class ScorecardFactorRequest(BaseModel):
+    """A single factor for Scorecard Method."""
+
+    name: str = Field(..., min_length=1, max_length=50)
+    weight: float = Field(..., ge=0, le=1, description="Weight of this factor (sum should be 1.0)")
+    score: float = Field(
+        ..., ge=0, le=2, description="Score relative to average (1.0 = average, 1.5 = 50% better)"
+    )
+
+
+class ScorecardRequest(BaseModel):
+    """API request for Scorecard Method valuation."""
+
+    base_valuation: float = Field(
+        ..., gt=0, description="Average pre-money valuation for comparable companies"
+    )
+    factors: list[ScorecardFactorRequest] = Field(
+        ..., min_length=1, description="Weighted scoring factors"
+    )
+
+
+class ScorecardResponse(BaseModel):
+    """API response for Scorecard Method valuation."""
+
+    valuation: float
+    adjustment_factor: float
+    factor_contributions: dict[str, float]
+    method: Literal["scorecard"] = "scorecard"
+
+
+class RiskFactorRequest(BaseModel):
+    """A single risk factor for Risk Factor Summation."""
+
+    name: str = Field(..., min_length=1, max_length=50)
+    adjustment: float = Field(
+        ...,
+        ge=-500_000,
+        le=500_000,
+        description="Dollar adjustment (+500K to -500K). Positive = reduces risk, adds value.",
+    )
+
+
+class RiskFactorSummationRequest(BaseModel):
+    """API request for Risk Factor Summation valuation."""
+
+    base_valuation: float = Field(
+        ..., gt=0, description="Starting valuation (average for stage/region)"
+    )
+    factors: list[RiskFactorRequest] = Field(
+        ..., min_length=1, description="Risk factors with adjustments"
+    )
+
+
+class RiskFactorSummationResponse(BaseModel):
+    """API response for Risk Factor Summation valuation."""
+
+    valuation: float
+    total_adjustment: float
+    factor_adjustments: dict[str, float]
+    method: Literal["risk_factor_summation"] = "risk_factor_summation"
