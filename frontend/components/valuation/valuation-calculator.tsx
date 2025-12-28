@@ -7,33 +7,40 @@ import { Form } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calculator, TrendingUp, DollarSign, Target, Loader2 } from "lucide-react";
+import { Calculator, TrendingUp, DollarSign, Target, Loader2, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { RevenueMultipleForm } from "./revenue-multiple-form";
 import { DCFForm } from "./dcf-form";
 import { VCMethodForm } from "./vc-method-form";
+import { FirstChicagoForm, DEFAULT_SCENARIOS } from "./first-chicago-form";
 import { ValuationResult } from "./valuation-result";
 import { ValuationComparison } from "./valuation-comparison";
+import { FirstChicagoResults } from "./first-chicago-results";
 import {
   useCalculateRevenueMultiple,
   useCalculateDCF,
   useCalculateVCMethod,
+  useCalculateFirstChicago,
   useCompareValuations,
 } from "@/lib/api-client";
 import {
   RevenueMultipleFormSchema,
   DCFFormSchema,
   VCMethodFormSchema,
+  FirstChicagoFormSchema,
   transformValuationResult,
   transformValuationComparison,
+  transformFirstChicagoResponse,
   type RevenueMultipleFormData,
   type DCFFormData,
   type VCMethodFormData,
+  type FirstChicagoFormData,
   type FrontendValuationResult,
   type FrontendValuationComparison,
+  type FrontendFirstChicagoResult,
 } from "@/lib/schemas";
 
-type ValuationMethod = "revenue_multiple" | "dcf" | "vc_method";
+type ValuationMethod = "revenue_multiple" | "dcf" | "vc_method" | "first_chicago";
 
 interface MethodResult {
   method: ValuationMethod;
@@ -71,15 +78,25 @@ const defaultVCMethodValues: VCMethodFormData = {
   investmentAmount: undefined,
 };
 
+const defaultFirstChicagoValues: FirstChicagoFormData = {
+  scenarios: DEFAULT_SCENARIOS,
+  discountRate: 25,
+  currentInvestment: undefined,
+};
+
 export function ValuationCalculator() {
   const [activeMethod, setActiveMethod] = React.useState<ValuationMethod>("revenue_multiple");
   const [methodResults, setMethodResults] = React.useState<MethodResult[]>([]);
   const [comparison, setComparison] = React.useState<FrontendValuationComparison | null>(null);
+  const [firstChicagoResult, setFirstChicagoResult] =
+    React.useState<FrontendFirstChicagoResult | null>(null);
+  const [firstChicagoError, setFirstChicagoError] = React.useState<string | null>(null);
 
   // API mutations
   const revenueMultipleMutation = useCalculateRevenueMultiple();
   const dcfMutation = useCalculateDCF();
   const vcMethodMutation = useCalculateVCMethod();
+  const firstChicagoMutation = useCalculateFirstChicago();
   const compareMutation = useCompareValuations();
 
   // Forms
@@ -98,10 +115,16 @@ export function ValuationCalculator() {
     defaultValues: defaultVCMethodValues,
   });
 
+  const firstChicagoForm = useForm<FirstChicagoFormData>({
+    resolver: zodResolver(FirstChicagoFormSchema),
+    defaultValues: defaultFirstChicagoValues,
+  });
+
   const isLoading =
     revenueMultipleMutation.isPending ||
     dcfMutation.isPending ||
     vcMethodMutation.isPending ||
+    firstChicagoMutation.isPending ||
     compareMutation.isPending;
 
   // Handle Revenue Multiple submission
@@ -157,6 +180,38 @@ export function ValuationCalculator() {
     } catch (error) {
       const message = (error as Error).message;
       updateMethodResult("vc_method", null, message);
+      toast.error("Calculation failed", { description: message });
+    }
+  };
+
+  // Handle First Chicago submission
+  const handleFirstChicago = async (data: FirstChicagoFormData) => {
+    // Validate probabilities sum to 100%
+    const totalProbability = data.scenarios.reduce((sum, s) => sum + s.probability, 0);
+    if (Math.abs(totalProbability - 100) > 0.01) {
+      setFirstChicagoError("Scenario probabilities must sum to 100%");
+      toast.error("Validation error", { description: "Probabilities must sum to 100%" });
+      return;
+    }
+
+    try {
+      const response = await firstChicagoMutation.mutateAsync({
+        scenarios: data.scenarios.map((s) => ({
+          name: s.name,
+          probability: s.probability / 100, // Convert to decimal
+          exit_value: s.exitValue,
+          years_to_exit: s.yearsToExit,
+        })),
+        discount_rate: data.discountRate / 100, // Convert to decimal
+        current_investment: data.currentInvestment,
+      });
+      const result = transformFirstChicagoResponse(response);
+      setFirstChicagoResult(result);
+      setFirstChicagoError(null);
+    } catch (error) {
+      const message = (error as Error).message;
+      setFirstChicagoResult(null);
+      setFirstChicagoError(message);
       toast.error("Calculation failed", { description: message });
     }
   };
@@ -238,6 +293,9 @@ export function ValuationCalculator() {
       case "vc_method":
         vcMethodForm.handleSubmit(handleVCMethod)();
         break;
+      case "first_chicago":
+        firstChicagoForm.handleSubmit(handleFirstChicago)();
+        break;
     }
   };
 
@@ -257,7 +315,7 @@ export function ValuationCalculator() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeMethod} onValueChange={(v) => setActiveMethod(v as ValuationMethod)}>
-            <TabsList className="mb-6 grid w-full grid-cols-3">
+            <TabsList className="mb-6 grid w-full grid-cols-4">
               <TabsTrigger value="revenue_multiple" className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
                 <span className="hidden sm:inline">Revenue Multiple</span>
@@ -272,6 +330,11 @@ export function ValuationCalculator() {
                 <Target className="h-4 w-4" />
                 <span className="hidden sm:inline">VC Method</span>
                 <span className="sm:hidden">VC</span>
+              </TabsTrigger>
+              <TabsTrigger value="first_chicago" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden sm:inline">First Chicago</span>
+                <span className="sm:hidden">Chicago</span>
               </TabsTrigger>
             </TabsList>
 
@@ -298,6 +361,14 @@ export function ValuationCalculator() {
                 </form>
               </Form>
             </TabsContent>
+
+            <TabsContent value="first_chicago">
+              <Form {...firstChicagoForm}>
+                <form onSubmit={firstChicagoForm.handleSubmit(handleFirstChicago)}>
+                  <FirstChicagoForm form={firstChicagoForm} />
+                </form>
+              </Form>
+            </TabsContent>
           </Tabs>
 
           <div className="border-border mt-6 flex gap-3 border-t pt-4">
@@ -317,12 +388,27 @@ export function ValuationCalculator() {
       </Card>
 
       {/* Individual Result */}
-      {currentResult?.result && <ValuationResult result={currentResult.result} />}
+      {activeMethod !== "first_chicago" && currentResult?.result && (
+        <ValuationResult result={currentResult.result} />
+      )}
 
-      {currentResult?.error && (
+      {activeMethod !== "first_chicago" && currentResult?.error && (
         <Card className="border-destructive bg-destructive/10">
           <CardContent className="pt-6">
             <p className="text-destructive">{currentResult.error}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* First Chicago Result (has different structure) */}
+      {activeMethod === "first_chicago" && firstChicagoResult && (
+        <FirstChicagoResults result={firstChicagoResult} />
+      )}
+
+      {activeMethod === "first_chicago" && firstChicagoError && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardContent className="pt-6">
+            <p className="text-destructive">{firstChicagoError}</p>
           </CardContent>
         </Card>
       )}
