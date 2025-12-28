@@ -391,6 +391,54 @@ def calculate_vc_method(params: VCMethodParams) -> ValuationResult:
 
 
 # ============================================================================
+# First Chicago Method Valuation
+# ============================================================================
+
+
+def calculate_first_chicago(params: FirstChicagoParams) -> FirstChicagoResult:
+    """Calculate valuation using the First Chicago Method.
+
+    The First Chicago Method values a company by:
+    1. Defining multiple scenarios (typically Best/Base/Worst)
+    2. Assigning probability weights to each scenario
+    3. Calculating present value for each scenario
+    4. Computing probability-weighted present value
+
+    Args:
+        params: FirstChicagoParams with scenarios and discount rate
+
+    Returns:
+        FirstChicagoResult with weighted and present values
+    """
+    scenario_values: dict[str, float] = {}
+    scenario_present_values: dict[str, float] = {}
+
+    weighted_exit_value = 0.0
+    weighted_present_value = 0.0
+
+    for scenario in params.scenarios:
+        # Store raw exit value
+        scenario_values[scenario.name] = scenario.exit_value
+
+        # Calculate present value for this scenario
+        discount_factor = (1 + params.discount_rate) ** scenario.years_to_exit
+        pv = scenario.exit_value / discount_factor
+        scenario_present_values[scenario.name] = pv
+
+        # Accumulate weighted values
+        weighted_exit_value += scenario.probability * scenario.exit_value
+        weighted_present_value += scenario.probability * pv
+
+    return FirstChicagoResult(
+        weighted_value=weighted_exit_value,
+        present_value=weighted_present_value,
+        scenario_values=scenario_values,
+        scenario_present_values=scenario_present_values,
+        method="first_chicago",
+    )
+
+
+# ============================================================================
 # Valuation Comparison
 # ============================================================================
 
