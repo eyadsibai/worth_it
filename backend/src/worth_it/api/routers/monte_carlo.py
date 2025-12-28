@@ -10,10 +10,25 @@ import asyncio
 import json
 import logging
 from functools import partial
+from typing import Any
 
+import numpy as np
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from pydantic import ValidationError as PydanticValidationError
 
+from worth_it.calculations.monte_carlo_valuation import (
+    DistributionType,
+    MonteCarloConfig,
+    ParameterDistribution,
+)
+from worth_it.calculations.monte_carlo_valuation import (
+    run_monte_carlo_simulation as run_valuation_mc,
+)
+from worth_it.calculations.valuation import (
+    FirstChicagoParams,
+    FirstChicagoScenario,
+    calculate_first_chicago,
+)
 from worth_it.config import settings
 from worth_it.exceptions import CalculationError
 from worth_it.models import (
@@ -320,6 +335,187 @@ async def websocket_monte_carlo(websocket: WebSocket):
                 )
             except Exception:
                 logger.error("Failed to send error message to WebSocket client")
+        finally:
+            try:
+                await websocket.close()
+            except Exception:
+                logger.debug("WebSocket already closed")
+
+
+# =============================================================================
+# Valuation Monte Carlo WebSocket Endpoint
+# =============================================================================
+
+
+def _get_valuation_function(method: str) -> Any:
+    """Get valuation function based on method name.
+
+    Args:
+        method: Valuation method name
+
+    Returns:
+        Callable valuation function wrapper
+    """
+    if method == "first_chicago":
+
+        def first_chicago_wrapper(
+            best_prob: float,
+            best_value: float,
+            base_prob: float,
+            base_value: float,
+            worst_prob: float,
+            worst_value: float,
+            discount_rate: float,
+            years: int,
+        ) -> float:
+            total_prob = best_prob + base_prob + worst_prob
+            params = FirstChicagoParams(
+                scenarios=[
+                    FirstChicagoScenario("Best", best_prob / total_prob, best_value, years),
+                    FirstChicagoScenario("Base", base_prob / total_prob, base_value, years),
+                    FirstChicagoScenario("Worst", worst_prob / total_prob, worst_value, years),
+                ],
+                discount_rate=discount_rate,
+            )
+            result = calculate_first_chicago(params)
+            return result.present_value
+
+        return first_chicago_wrapper
+
+    raise ValueError(f"Unknown valuation method: {method}")
+
+
+@ws_router.websocket("/ws/valuation-monte-carlo")
+async def websocket_valuation_monte_carlo(websocket: WebSocket) -> None:
+    """WebSocket endpoint for streaming valuation Monte Carlo results.
+
+    Accepts configuration, runs simulation in batches, streams progress updates.
+
+    Message format:
+    - Input (JSON):
+        {
+            "method": "first_chicago",
+            "distributions": [
+                {"name": "param_name", "distribution_type": "normal", "params": {"mean": 0.25, "std": 0.05}}
+            ],
+            "n_simulations": 10000,
+            "batch_size": 1000
+        }
+    - Output (JSON):
+        - {"type": "progress", "progress": 0.5, "completed": 5000, "total": 10000}
+        - {"type": "complete", "result": {...statistics...}}
+        - {"type": "error", "message": "..."}
+    """
+    client_ip = get_client_ip(websocket)
+
+    async with track_websocket_connection(ws_connection_tracker, client_ip) as registered:
+        if not registered:
+            logger.warning(f"WebSocket rate limit exceeded for IP {client_ip}")
+            await websocket.accept()
+            await websocket.send_json(
+                create_ws_error_message(
+                    code=ErrorCode.RATE_LIMIT_ERROR,
+                    message="Rate limit exceeded. Try again later.",
+                )
+            )
+            await websocket.close(code=1008, reason="Rate limit exceeded")
+            return
+
+        await websocket.accept()
+        logger.debug(f"Valuation Monte Carlo WebSocket accepted for IP {client_ip}")
+
+        try:
+            # Receive configuration
+            data = await websocket.receive_text()
+            config_data = json.loads(data)
+
+            # Parse configuration
+            method = config_data.get("method", "first_chicago")
+            distributions = config_data.get("distributions", [])
+            n_simulations = min(config_data.get("n_simulations", 10000), 100000)
+            batch_size = min(config_data.get("batch_size", 1000), 5000)
+
+            # Get valuation function based on method
+            try:
+                valuation_fn = _get_valuation_function(method)
+            except ValueError as e:
+                await websocket.send_json({"type": "error", "message": str(e)})
+                return
+
+            # Convert distributions to ParameterDistribution objects
+            param_dists = [
+                ParameterDistribution(
+                    name=d["name"],
+                    distribution_type=DistributionType(d["distribution_type"]),
+                    params=d["params"],
+                )
+                for d in distributions
+            ]
+
+            # Run simulation in batches
+            all_valuations: list[float] = []
+            for batch_start in range(0, n_simulations, batch_size):
+                batch_end = min(batch_start + batch_size, n_simulations)
+                batch_count = batch_end - batch_start
+
+                # Run batch in thread pool (CPU-bound)
+                loop = asyncio.get_event_loop()
+                config = MonteCarloConfig(
+                    valuation_function=valuation_fn,
+                    parameter_distributions=param_dists,
+                    n_simulations=batch_count,
+                )
+                result = await loop.run_in_executor(None, run_valuation_mc, config)
+                all_valuations.extend(result.valuations.tolist())
+
+                # Send progress update
+                progress = batch_end / n_simulations
+                await websocket.send_json(
+                    {
+                        "type": "progress",
+                        "progress": progress,
+                        "completed": batch_end,
+                        "total": n_simulations,
+                    }
+                )
+
+            # Calculate final statistics
+            valuations = np.array(all_valuations)
+            histogram_counts, histogram_bins = np.histogram(valuations, bins=50)
+
+            await websocket.send_json(
+                {
+                    "type": "complete",
+                    "result": {
+                        "mean": float(np.mean(valuations)),
+                        "std": float(np.std(valuations)),
+                        "min": float(np.min(valuations)),
+                        "max": float(np.max(valuations)),
+                        "percentile_10": float(np.percentile(valuations, 10)),
+                        "percentile_25": float(np.percentile(valuations, 25)),
+                        "percentile_50": float(np.percentile(valuations, 50)),
+                        "percentile_75": float(np.percentile(valuations, 75)),
+                        "percentile_90": float(np.percentile(valuations, 90)),
+                        "histogram_bins": histogram_bins.tolist(),
+                        "histogram_counts": histogram_counts.tolist(),
+                    },
+                }
+            )
+
+        except WebSocketDisconnect:
+            logger.info(f"Valuation Monte Carlo WebSocket client {client_ip} disconnected")
+        except json.JSONDecodeError:
+            logger.warning(f"Invalid JSON from {client_ip}")
+            try:
+                await websocket.send_json({"type": "error", "message": "Invalid JSON"})
+            except Exception:
+                logger.debug("Failed to send JSON error to client")
+        except Exception as e:
+            logger.exception(f"Error in valuation Monte Carlo from {client_ip}: {e}")
+            try:
+                await websocket.send_json({"type": "error", "message": str(e)})
+            except Exception:
+                logger.debug("Failed to send error message to client")
         finally:
             try:
                 await websocket.close()
