@@ -13,10 +13,16 @@ from worth_it import calculations
 from worth_it.config import settings
 from worth_it.exceptions import CalculationError
 from worth_it.models import (
+    BerkusRequest,
+    BerkusResponse,
     DCFRequest,
     FirstChicagoRequest,
     FirstChicagoResponse,
     RevenueMultipleRequest,
+    RiskFactorSummationRequest,
+    RiskFactorSummationResponse,
+    ScorecardRequest,
+    ScorecardResponse,
     ValuationCompareRequest,
     ValuationCompareResponse,
     ValuationResultResponse,
@@ -239,3 +245,97 @@ async def calculate_first_chicago_valuation(request: Request, body: FirstChicago
         )
     except (ValueError, TypeError) as e:
         raise CalculationError("Invalid parameters for First Chicago valuation") from e
+
+
+# --- Pre-Revenue Valuation Methods (Phase 2) ---
+
+
+@router.post("/berkus", response_model=BerkusResponse)
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def calculate_berkus_valuation(request: Request, body: BerkusRequest):
+    """Calculate valuation using the Berkus Method.
+
+    The Berkus Method assigns value to five key risk-reducing elements,
+    each worth $0 to $500K. Maximum total valuation is $2.5M.
+
+    Ideal for pre-seed startups with idea/prototype stage.
+    """
+    try:
+        params = calculations.BerkusParams(
+            sound_idea=body.sound_idea,
+            prototype=body.prototype,
+            quality_team=body.quality_team,
+            strategic_relationships=body.strategic_relationships,
+            product_rollout=body.product_rollout,
+            max_per_criterion=body.max_per_criterion,
+        )
+        result = calculations.calculate_berkus(params)
+
+        return BerkusResponse(
+            valuation=result.valuation,
+            breakdown=result.breakdown,
+        )
+    except (ValueError, TypeError) as e:
+        raise CalculationError("Invalid parameters for Berkus valuation") from e
+
+
+@router.post("/scorecard", response_model=ScorecardResponse)
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def calculate_scorecard_valuation(request: Request, body: ScorecardRequest):
+    """Calculate valuation using the Scorecard Method.
+
+    The Scorecard Method compares a startup to average companies in the region/stage
+    using weighted factors. A score of 1.0 equals average.
+
+    Ideal for seed-stage startups with comparable companies in the market.
+    """
+    try:
+        factors = [
+            calculations.ScorecardFactor(name=f.name, weight=f.weight, score=f.score)
+            for f in body.factors
+        ]
+        params = calculations.ScorecardParams(
+            base_valuation=body.base_valuation,
+            factors=factors,
+        )
+        result = calculations.calculate_scorecard(params)
+
+        return ScorecardResponse(
+            valuation=result.valuation,
+            adjustment_factor=result.adjustment_factor,
+            factor_contributions=result.factor_contributions,
+        )
+    except (ValueError, TypeError) as e:
+        raise CalculationError("Invalid parameters for Scorecard valuation") from e
+
+
+@router.post("/risk-factor-summation", response_model=RiskFactorSummationResponse)
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def calculate_risk_factor_summation_valuation(
+    request: Request, body: RiskFactorSummationRequest
+):
+    """Calculate valuation using the Risk Factor Summation Method.
+
+    Starts with a base valuation and adjusts by +/- amounts for 12 standard risk factors.
+    Each factor can add or subtract up to $500K from the base.
+
+    Standard factors: Management, Stage, Legislation, Manufacturing, Sales/Marketing,
+    Funding, Competition, Technology, Litigation, International, Reputation, Exit Potential.
+    """
+    try:
+        factors = [
+            calculations.RiskFactor(name=f.name, adjustment=f.adjustment) for f in body.factors
+        ]
+        params = calculations.RiskFactorSummationParams(
+            base_valuation=body.base_valuation,
+            factors=factors,
+        )
+        result = calculations.calculate_risk_factor_summation(params)
+
+        return RiskFactorSummationResponse(
+            valuation=result.valuation,
+            total_adjustment=result.total_adjustment,
+            factor_adjustments=result.factor_adjustments,
+        )
+    except (ValueError, TypeError) as e:
+        raise CalculationError("Invalid parameters for Risk Factor Summation valuation") from e

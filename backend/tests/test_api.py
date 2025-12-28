@@ -2217,3 +2217,194 @@ class TestFirstChicagoEndpoint:
             },
         )
         assert response.status_code == 400
+
+
+class TestPreRevenueValuationAPI:
+    """Test pre-revenue valuation API endpoints (Phase 2)."""
+
+    def test_berkus_valuation_endpoint(self):
+        """Test Berkus Method valuation calculation."""
+        request_data = {
+            "sound_idea": 400_000,
+            "prototype": 350_000,
+            "quality_team": 500_000,
+            "strategic_relationships": 250_000,
+            "product_rollout": 200_000,
+        }
+        response = client.post("/api/valuation/berkus", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["method"] == "berkus"
+        assert data["valuation"] == 1_700_000  # Sum of all criteria
+        assert "breakdown" in data
+        assert len(data["breakdown"]) == 5
+
+    def test_berkus_with_custom_max_per_criterion(self):
+        """Test Berkus Method with custom max value per criterion."""
+        request_data = {
+            "sound_idea": 300_000,
+            "prototype": 300_000,
+            "quality_team": 300_000,
+            "strategic_relationships": 300_000,
+            "product_rollout": 300_000,
+            "max_per_criterion": 300_000,
+        }
+        response = client.post("/api/valuation/berkus", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["valuation"] == 1_500_000  # 5 * 300K
+
+    def test_berkus_max_valuation(self):
+        """Test that Berkus maximum possible valuation is $2.5M (5 * $500K)."""
+        request_data = {
+            "sound_idea": 500_000,
+            "prototype": 500_000,
+            "quality_team": 500_000,
+            "strategic_relationships": 500_000,
+            "product_rollout": 500_000,
+        }
+        response = client.post("/api/valuation/berkus", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        # All criteria at maximum
+        assert data["valuation"] == 2_500_000  # Max possible
+        for key in data["breakdown"]:
+            assert data["breakdown"][key] == 500_000
+
+    def test_scorecard_valuation_endpoint(self):
+        """Test Scorecard Method valuation calculation."""
+        request_data = {
+            "base_valuation": 2_000_000,
+            "factors": [
+                {"name": "Team", "weight": 0.30, "score": 1.2},
+                {"name": "Market Size", "weight": 0.25, "score": 1.0},
+                {"name": "Product", "weight": 0.20, "score": 0.8},
+                {"name": "Competition", "weight": 0.15, "score": 1.1},
+                {"name": "Sales Channels", "weight": 0.10, "score": 0.9},
+            ],
+        }
+        response = client.post("/api/valuation/scorecard", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["method"] == "scorecard"
+        assert "valuation" in data
+        assert "adjustment_factor" in data
+        assert "factor_contributions" in data
+        assert len(data["factor_contributions"]) == 5
+
+    def test_scorecard_above_average_team(self):
+        """Test Scorecard with above-average team score."""
+        request_data = {
+            "base_valuation": 1_000_000,
+            "factors": [
+                {"name": "Team", "weight": 1.0, "score": 1.5},  # 50% above average
+            ],
+        }
+        response = client.post("/api/valuation/scorecard", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["valuation"] == pytest.approx(1_500_000)
+        assert data["adjustment_factor"] == pytest.approx(1.5)
+
+    def test_scorecard_below_average(self):
+        """Test Scorecard with below-average score."""
+        request_data = {
+            "base_valuation": 1_000_000,
+            "factors": [
+                {"name": "Team", "weight": 1.0, "score": 0.5},  # 50% below average
+            ],
+        }
+        response = client.post("/api/valuation/scorecard", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["valuation"] == pytest.approx(500_000)
+        assert data["adjustment_factor"] == pytest.approx(0.5)
+
+    def test_risk_factor_summation_endpoint(self):
+        """Test Risk Factor Summation valuation calculation."""
+        request_data = {
+            "base_valuation": 2_000_000,
+            "factors": [
+                {"name": "Management", "adjustment": 250_000},
+                {"name": "Stage", "adjustment": -125_000},
+                {"name": "Competition", "adjustment": -250_000},
+                {"name": "Technology", "adjustment": 500_000},
+            ],
+        }
+        response = client.post("/api/valuation/risk-factor-summation", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["method"] == "risk_factor_summation"
+        assert data["valuation"] == 2_375_000  # 2M + 375K adjustment
+        assert data["total_adjustment"] == 375_000
+        assert len(data["factor_adjustments"]) == 4
+
+    def test_risk_factor_positive_adjustments(self):
+        """Test Risk Factor Summation with all positive adjustments."""
+        request_data = {
+            "base_valuation": 1_000_000,
+            "factors": [
+                {"name": "Strong Management", "adjustment": 500_000},
+                {"name": "Proven Technology", "adjustment": 500_000},
+            ],
+        }
+        response = client.post("/api/valuation/risk-factor-summation", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["valuation"] == 2_000_000
+        assert data["total_adjustment"] == 1_000_000
+
+    def test_risk_factor_negative_adjustments_floor_at_zero(self):
+        """Test that valuation doesn't go negative with extreme negative adjustments."""
+        request_data = {
+            "base_valuation": 500_000,
+            "factors": [
+                {"name": "High Risk", "adjustment": -400_000},
+                {"name": "Very High Risk", "adjustment": -500_000},
+            ],
+        }
+        response = client.post("/api/valuation/risk-factor-summation", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        # Valuation should floor at 0, not go negative
+        assert data["valuation"] == 0
+        assert data["total_adjustment"] == -900_000
+
+    def test_berkus_validation_error(self):
+        """Test that invalid Berkus inputs are rejected."""
+        request_data = {
+            "sound_idea": -100_000,  # Invalid - negative
+            "prototype": 350_000,
+            "quality_team": 500_000,
+            "strategic_relationships": 250_000,
+            "product_rollout": 200_000,
+        }
+        response = client.post("/api/valuation/berkus", json=request_data)
+        assert response.status_code == 400
+
+    def test_scorecard_validation_empty_factors(self):
+        """Test that Scorecard requires at least one factor."""
+        request_data = {
+            "base_valuation": 2_000_000,
+            "factors": [],  # Invalid - empty
+        }
+        response = client.post("/api/valuation/scorecard", json=request_data)
+        assert response.status_code == 400
+
+    def test_risk_factor_validation_empty_factors(self):
+        """Test that Risk Factor requires at least one factor."""
+        request_data = {
+            "base_valuation": 2_000_000,
+            "factors": [],  # Invalid - empty
+        }
+        response = client.post("/api/valuation/risk-factor-summation", json=request_data)
+        assert response.status_code == 400

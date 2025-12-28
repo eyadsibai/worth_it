@@ -93,17 +93,30 @@ from worth_it.calculations.startup_scenario import (
 
 # Valuation methods
 from worth_it.calculations.valuation import (
+    # Pre-revenue methods (Phase 2)
+    BerkusParams,
+    BerkusResult,
+    # Core valuation
     DCFParams,
     FirstChicagoParams,
     FirstChicagoResult,
     FirstChicagoScenario,
     RevenueMultipleParams,
+    RiskFactor,
+    RiskFactorSummationParams,
+    RiskFactorSummationResult,
+    ScorecardFactor,
+    ScorecardParams,
+    ScorecardResult,
     ValuationComparison,
     ValuationResult,
     VCMethodParams,
+    calculate_berkus,
     calculate_dcf,
     calculate_first_chicago,
     calculate_revenue_multiple,
+    calculate_risk_factor_summation,
+    calculate_scorecard,
     calculate_vc_method,
     compare_valuations,
 )
@@ -174,7 +187,7 @@ __all__ = [
     "run_monte_carlo_simulation_iterative",
     "run_monte_carlo_simulation_vectorized",
     "run_sensitivity_analysis",
-    # Valuation methods
+    # Valuation methods (revenue-based)
     "calculate_revenue_multiple",
     "calculate_dcf",
     "calculate_vc_method",
@@ -188,6 +201,18 @@ __all__ = [
     "FirstChicagoResult",
     "ValuationResult",
     "ValuationComparison",
+    # Pre-revenue valuation methods (Phase 2)
+    "BerkusParams",
+    "BerkusResult",
+    "calculate_berkus",
+    "ScorecardFactor",
+    "ScorecardParams",
+    "ScorecardResult",
+    "calculate_scorecard",
+    "RiskFactor",
+    "RiskFactorSummationParams",
+    "RiskFactorSummationResult",
+    "calculate_risk_factor_summation",
     # Investment frequency strategies (Strategy Pattern)
     "InvestmentFrequencyStrategy",
     "MonthlyInvestmentStrategy",
