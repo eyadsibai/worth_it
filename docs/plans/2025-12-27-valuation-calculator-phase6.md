@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.13/NumPy/SciPy (backend), TypeScript/React/Zod (frontend), Playwright (E2E)
 
-**Prerequisites:** Phases 1-5 complete (First Chicago, Pre-Revenue, Monte Carlo, Benchmarks, Exports). Phase 2 patterns: frozen dataclasses for all params/results, Pydantic for API validation.
+**Prerequisites:** Phases 1-5 complete (First Chicago, Pre-Revenue, Monte Carlo, Benchmarks, Exports). Phase 2 patterns: frozen dataclasses for all params/results, Pydantic for API validation. Phase 3 patterns: ParameterDistribution with DistributionType enum, MonteCarloResult for simulation outputs.
 
 **Branch:** Create from `master` (after Phase 5 merge) as `feature/valuation-phase6`
 

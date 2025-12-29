@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python/FastAPI (backend), TypeScript/React (frontend), JSON data files for benchmarks, TDD throughout.
 
-**Prerequisites:** Phases 1-3 complete (First Chicago, Pre-Revenue methods, Monte Carlo working). Phase 2 patterns: frozen dataclasses for all params/results, Pydantic for API validation.
+**Prerequisites:** Phases 1-3 complete (First Chicago, Pre-Revenue methods, Monte Carlo working). Phase 2 patterns: frozen dataclasses for all params/results, Pydantic for API validation. Phase 3 patterns: ParameterDistribution with DistributionType enum, MonteCarloResult for simulation outputs.
 
 **Branch:** Create from `master` (after Phase 3 merge) as `feature/valuation-phase4`
 
