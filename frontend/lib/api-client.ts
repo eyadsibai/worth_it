@@ -50,6 +50,11 @@ import type {
   RiskFactorSummationResponse,
   ErrorCode,
   FieldError,
+  // Industry Benchmark types (Phase 4)
+  IndustryListItem,
+  IndustryBenchmarkResponse,
+  BenchmarkValidationRequest,
+  BenchmarkValidationResponse,
 } from "./schemas";
 import { APIErrorResponseSchema } from "./schemas";
 
@@ -407,6 +412,37 @@ class APIClient {
     return data;
   }
 
+  // ============================================================================
+  // Industry Benchmark Methods (Phase 4)
+  // ============================================================================
+
+  // List all available industries
+  async listIndustries(): Promise<IndustryListItem[]> {
+    const { data } = await this.client.get<IndustryListItem[]>(
+      "/api/valuation/benchmarks/industries"
+    );
+    return data;
+  }
+
+  // Get benchmark data for a specific industry
+  async getIndustryBenchmark(industryCode: string): Promise<IndustryBenchmarkResponse> {
+    const { data } = await this.client.get<IndustryBenchmarkResponse>(
+      `/api/valuation/benchmarks/${industryCode}`
+    );
+    return data;
+  }
+
+  // Validate a value against industry benchmarks
+  async validateBenchmark(
+    request: BenchmarkValidationRequest
+  ): Promise<BenchmarkValidationResponse> {
+    const { data } = await this.client.post<BenchmarkValidationResponse>(
+      "/api/valuation/benchmarks/validate",
+      request
+    );
+    return data;
+  }
+
   // WebSocket URL for Monte Carlo
   getMonteCarloWebSocketURL(): string {
     return `${this.wsURL}/ws/monte-carlo`;
@@ -575,6 +611,51 @@ export function useCalculateRiskFactorSummation() {
   return useMutation({
     mutationFn: (request: RiskFactorSummationRequest) =>
       apiClient.calculateRiskFactorSummation(request),
+  });
+}
+
+// ============================================================================
+// Industry Benchmark Hooks (Phase 4)
+// ============================================================================
+
+/**
+ * Query hook for listing all available industries.
+ * Industries are relatively static, so we use a longer stale time.
+ */
+export function useListIndustries() {
+  return useQuery({
+    queryKey: ["industries"],
+    queryFn: () => apiClient.listIndustries(),
+    staleTime: 5 * 60 * 1000, // 5 minutes - industries rarely change
+  });
+}
+
+/**
+ * Query hook for getting benchmark data for a specific industry.
+ * Uses the industry code as part of the query key.
+ *
+ * @param industryCode - The industry code (e.g., "saas", "fintech")
+ * @param enabled - Whether to enable the query (default: true)
+ */
+export function useIndustryBenchmark(industryCode: string | null, enabled: boolean = true) {
+  return useQuery({
+    queryKey: ["industryBenchmark", industryCode],
+    queryFn: () => {
+      if (!industryCode) throw new Error("Industry code is required");
+      return apiClient.getIndustryBenchmark(industryCode);
+    },
+    enabled: enabled && industryCode !== null,
+    staleTime: 5 * 60 * 1000, // 5 minutes - benchmarks rarely change
+  });
+}
+
+/**
+ * Mutation hook for validating a value against industry benchmarks.
+ * Returns validation result with severity and suggested range.
+ */
+export function useValidateBenchmark() {
+  return useMutation({
+    mutationFn: (request: BenchmarkValidationRequest) => apiClient.validateBenchmark(request),
   });
 }
 
