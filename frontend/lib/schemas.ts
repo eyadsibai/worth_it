@@ -1039,6 +1039,75 @@ export const ValuationCompareResponseSchema = z.object({
 export type ValuationCompareResponse = z.infer<typeof ValuationCompareResponseSchema>;
 
 // ============================================================================
+// Industry Benchmark Schemas (Phase 4)
+// ============================================================================
+
+/**
+ * Severity levels for benchmark validation.
+ * - ok: Value is within typical range
+ * - warning: Value is outside typical but within acceptable range
+ * - error: Value is outside acceptable range
+ */
+export const BenchmarkSeverityEnum = z.enum(["ok", "warning", "error"]);
+export type BenchmarkSeverity = z.infer<typeof BenchmarkSeverityEnum>;
+
+/**
+ * Industry list item (code and display name).
+ */
+export const IndustryListItemSchema = z.object({
+  code: z.string(),
+  name: z.string(),
+});
+export type IndustryListItem = z.infer<typeof IndustryListItemSchema>;
+
+/**
+ * A single benchmark metric with range values.
+ */
+export const BenchmarkMetricSchema = z.object({
+  name: z.string(),
+  min_value: z.number(),
+  typical_low: z.number(),
+  median: z.number(),
+  typical_high: z.number(),
+  max_value: z.number(),
+  unit: z.string(),
+});
+export type BenchmarkMetric = z.infer<typeof BenchmarkMetricSchema>;
+
+/**
+ * Full industry benchmark response with all metrics.
+ */
+export const IndustryBenchmarkResponseSchema = z.object({
+  code: z.string(),
+  name: z.string(),
+  description: z.string(),
+  metrics: z.record(z.string(), BenchmarkMetricSchema),
+});
+export type IndustryBenchmarkResponse = z.infer<typeof IndustryBenchmarkResponseSchema>;
+
+/**
+ * Request to validate a value against industry benchmarks.
+ */
+export const BenchmarkValidationRequestSchema = z.object({
+  industry_code: z.string(),
+  metric_name: z.string(),
+  value: z.number(),
+});
+export type BenchmarkValidationRequest = z.infer<typeof BenchmarkValidationRequestSchema>;
+
+/**
+ * Response from benchmark validation.
+ */
+export const BenchmarkValidationResponseSchema = z.object({
+  is_valid: z.boolean(),
+  severity: BenchmarkSeverityEnum,
+  message: z.string(),
+  benchmark_median: z.number(),
+  suggested_range: z.tuple([z.number(), z.number()]).nullable(),
+});
+export type BenchmarkValidationResponse = z.infer<typeof BenchmarkValidationResponseSchema>;
+
+// ============================================================================
 // Valuation Calculator Frontend Types (camelCase)
 // ============================================================================
 
