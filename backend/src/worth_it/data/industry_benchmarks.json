@@ -1,0 +1,169 @@
+{
+  "industries": [
+    {
+      "code": "saas",
+      "name": "SaaS / Software",
+      "description": "Software-as-a-Service and enterprise software companies",
+      "metrics": [
+        {"name": "revenue_multiple", "min_value": 1.0, "typical_low": 4.0, "median": 6.0, "typical_high": 12.0, "max_value": 25.0, "unit": "x"},
+        {"name": "discount_rate", "min_value": 0.12, "typical_low": 0.18, "median": 0.25, "typical_high": 0.35, "max_value": 0.50, "unit": ""},
+        {"name": "growth_rate", "min_value": 0.10, "typical_low": 0.30, "median": 0.50, "typical_high": 1.00, "max_value": 3.00, "unit": ""},
+        {"name": "gross_margin", "min_value": 0.50, "typical_low": 0.70, "median": 0.80, "typical_high": 0.90, "max_value": 0.95, "unit": ""}
+      ]
+    },
+    {
+      "code": "fintech",
+      "name": "Fintech",
+      "description": "Financial technology and payments companies",
+      "metrics": [
+        {"name": "revenue_multiple", "min_value": 2.0, "typical_low": 5.0, "median": 8.0, "typical_high": 15.0, "max_value": 30.0, "unit": "x"},
+        {"name": "discount_rate", "min_value": 0.15, "typical_low": 0.20, "median": 0.28, "typical_high": 0.38, "max_value": 0.50, "unit": ""},
+        {"name": "growth_rate", "min_value": 0.15, "typical_low": 0.35, "median": 0.60, "typical_high": 1.20, "max_value": 3.00, "unit": ""},
+        {"name": "gross_margin", "min_value": 0.40, "typical_low": 0.55, "median": 0.65, "typical_high": 0.80, "max_value": 0.90, "unit": ""}
+      ]
+    },
+    {
+      "code": "ecommerce",
+      "name": "E-Commerce / Retail",
+      "description": "Online retail and marketplace companies",
+      "metrics": [
+        {"name": "revenue_multiple", "min_value": 0.5, "typical_low": 1.0, "median": 2.0, "typical_high": 4.0, "max_value": 8.0, "unit": "x"},
+        {"name": "discount_rate", "min_value": 0.10, "typical_low": 0.15, "median": 0.20, "typical_high": 0.30, "max_value": 0.45, "unit": ""},
+        {"name": "growth_rate", "min_value": 0.05, "typical_low": 0.15, "median": 0.30, "typical_high": 0.60, "max_value": 2.00, "unit": ""},
+        {"name": "gross_margin", "min_value": 0.15, "typical_low": 0.25, "median": 0.35, "typical_high": 0.50, "max_value": 0.70, "unit": ""}
+      ]
+    },
+    {
+      "code": "healthcare",
+      "name": "Healthcare / Biotech",
+      "description": "Healthcare technology and biotechnology companies",
+      "metrics": [
+        {"name": "revenue_multiple", "min_value": 2.0, "typical_low": 4.0, "median": 7.0, "typical_high": 12.0, "max_value": 25.0, "unit": "x"},
+        {"name": "discount_rate", "min_value": 0.18, "typical_low": 0.25, "median": 0.35, "typical_high": 0.45, "max_value": 0.60, "unit": ""},
+        {"name": "growth_rate", "min_value": 0.10, "typical_low": 0.25, "median": 0.45, "typical_high": 0.80, "max_value": 2.50, "unit": ""},
+        {"name": "gross_margin", "min_value": 0.50, "typical_low": 0.65, "median": 0.75, "typical_high": 0.85, "max_value": 0.95, "unit": ""}
+      ]
+    },
+    {
+      "code": "marketplace",
+      "name": "Marketplace",
+      "description": "Two-sided marketplace platforms",
+      "metrics": [
+        {"name": "revenue_multiple", "min_value": 1.0, "typical_low": 3.0, "median": 5.0, "typical_high": 10.0, "max_value": 20.0, "unit": "x"},
+        {"name": "discount_rate", "min_value": 0.12, "typical_low": 0.18, "median": 0.25, "typical_high": 0.35, "max_value": 0.50, "unit": ""},
+        {"name": "growth_rate", "min_value": 0.15, "typical_low": 0.35, "median": 0.55, "typical_high": 1.00, "max_value": 3.00, "unit": ""},
+        {"name": "gross_margin", "min_value": 0.30, "typical_low": 0.50, "median": 0.65, "typical_high": 0.80, "max_value": 0.95, "unit": ""}
+      ]
+    },
+    {
+      "code": "edtech",
+      "name": "EdTech",
+      "description": "Education technology companies",
+      "metrics": [
+        {"name": "revenue_multiple", "min_value": 1.0, "typical_low": 2.0, "median": 4.0, "typical_high": 8.0, "max_value": 15.0, "unit": "x"},
+        {"name": "discount_rate", "min_value": 0.15, "typical_low": 0.20, "median": 0.28, "typical_high": 0.38, "max_value": 0.50, "unit": ""},
+        {"name": "growth_rate", "min_value": 0.10, "typical_low": 0.25, "median": 0.40, "typical_high": 0.70, "max_value": 2.00, "unit": ""},
+        {"name": "gross_margin", "min_value": 0.50, "typical_low": 0.60, "median": 0.70, "typical_high": 0.80, "max_value": 0.90, "unit": ""}
+      ]
+    },
+    {
+      "code": "proptech",
+      "name": "PropTech / Real Estate",
+      "description": "Real estate technology companies",
+      "metrics": [
+        {"name": "revenue_multiple", "min_value": 1.0, "typical_low": 2.0, "median": 4.0, "typical_high": 7.0, "max_value": 12.0, "unit": "x"},
+        {"name": "discount_rate", "min_value": 0.12, "typical_low": 0.18, "median": 0.25, "typical_high": 0.35, "max_value": 0.50, "unit": ""},
+        {"name": "growth_rate", "min_value": 0.08, "typical_low": 0.20, "median": 0.35, "typical_high": 0.60, "max_value": 1.50, "unit": ""},
+        {"name": "gross_margin", "min_value": 0.30, "typical_low": 0.45, "median": 0.55, "typical_high": 0.70, "max_value": 0.85, "unit": ""}
+      ]
+    },
+    {
+      "code": "cleantech",
+      "name": "CleanTech / Energy",
+      "description": "Clean technology and renewable energy companies",
+      "metrics": [
+        {"name": "revenue_multiple", "min_value": 1.0, "typical_low": 3.0, "median": 5.0, "typical_high": 10.0, "max_value": 20.0, "unit": "x"},
+        {"name": "discount_rate", "min_value": 0.12, "typical_low": 0.18, "median": 0.25, "typical_high": 0.35, "max_value": 0.50, "unit": ""},
+        {"name": "growth_rate", "min_value": 0.10, "typical_low": 0.25, "median": 0.45, "typical_high": 0.80, "max_value": 2.00, "unit": ""},
+        {"name": "gross_margin", "min_value": 0.20, "typical_low": 0.35, "median": 0.50, "typical_high": 0.65, "max_value": 0.80, "unit": ""}
+      ]
+    },
+    {
+      "code": "gaming",
+      "name": "Gaming / Entertainment",
+      "description": "Video gaming and entertainment companies",
+      "metrics": [
+        {"name": "revenue_multiple", "min_value": 1.0, "typical_low": 2.0, "median": 4.0, "typical_high": 8.0, "max_value": 15.0, "unit": "x"},
+        {"name": "discount_rate", "min_value": 0.15, "typical_low": 0.22, "median": 0.30, "typical_high": 0.40, "max_value": 0.55, "unit": ""},
+        {"name": "growth_rate", "min_value": 0.05, "typical_low": 0.15, "median": 0.35, "typical_high": 0.70, "max_value": 2.50, "unit": ""},
+        {"name": "gross_margin", "min_value": 0.50, "typical_low": 0.65, "median": 0.75, "typical_high": 0.85, "max_value": 0.95, "unit": ""}
+      ]
+    },
+    {
+      "code": "logistics",
+      "name": "Logistics / Supply Chain",
+      "description": "Logistics and supply chain technology companies",
+      "metrics": [
+        {"name": "revenue_multiple", "min_value": 0.5, "typical_low": 1.5, "median": 3.0, "typical_high": 6.0, "max_value": 10.0, "unit": "x"},
+        {"name": "discount_rate", "min_value": 0.10, "typical_low": 0.15, "median": 0.22, "typical_high": 0.32, "max_value": 0.45, "unit": ""},
+        {"name": "growth_rate", "min_value": 0.08, "typical_low": 0.18, "median": 0.30, "typical_high": 0.55, "max_value": 1.50, "unit": ""},
+        {"name": "gross_margin", "min_value": 0.15, "typical_low": 0.25, "median": 0.35, "typical_high": 0.50, "max_value": 0.70, "unit": ""}
+      ]
+    },
+    {
+      "code": "adtech",
+      "name": "AdTech / Marketing",
+      "description": "Advertising technology and marketing companies",
+      "metrics": [
+        {"name": "revenue_multiple", "min_value": 1.0, "typical_low": 2.0, "median": 4.0, "typical_high": 8.0, "max_value": 15.0, "unit": "x"},
+        {"name": "discount_rate", "min_value": 0.15, "typical_low": 0.20, "median": 0.28, "typical_high": 0.38, "max_value": 0.50, "unit": ""},
+        {"name": "growth_rate", "min_value": 0.10, "typical_low": 0.22, "median": 0.38, "typical_high": 0.65, "max_value": 1.80, "unit": ""},
+        {"name": "gross_margin", "min_value": 0.40, "typical_low": 0.55, "median": 0.65, "typical_high": 0.78, "max_value": 0.90, "unit": ""}
+      ]
+    },
+    {
+      "code": "cybersecurity",
+      "name": "Cybersecurity",
+      "description": "Cybersecurity and data protection companies",
+      "metrics": [
+        {"name": "revenue_multiple", "min_value": 3.0, "typical_low": 6.0, "median": 10.0, "typical_high": 18.0, "max_value": 30.0, "unit": "x"},
+        {"name": "discount_rate", "min_value": 0.12, "typical_low": 0.18, "median": 0.25, "typical_high": 0.35, "max_value": 0.50, "unit": ""},
+        {"name": "growth_rate", "min_value": 0.15, "typical_low": 0.30, "median": 0.50, "typical_high": 0.90, "max_value": 2.50, "unit": ""},
+        {"name": "gross_margin", "min_value": 0.60, "typical_low": 0.72, "median": 0.80, "typical_high": 0.88, "max_value": 0.95, "unit": ""}
+      ]
+    },
+    {
+      "code": "ai_ml",
+      "name": "AI / Machine Learning",
+      "description": "Artificial intelligence and machine learning companies",
+      "metrics": [
+        {"name": "revenue_multiple", "min_value": 5.0, "typical_low": 10.0, "median": 15.0, "typical_high": 25.0, "max_value": 50.0, "unit": "x"},
+        {"name": "discount_rate", "min_value": 0.15, "typical_low": 0.22, "median": 0.30, "typical_high": 0.42, "max_value": 0.60, "unit": ""},
+        {"name": "growth_rate", "min_value": 0.25, "typical_low": 0.50, "median": 0.80, "typical_high": 1.50, "max_value": 5.00, "unit": ""},
+        {"name": "gross_margin", "min_value": 0.55, "typical_low": 0.68, "median": 0.78, "typical_high": 0.88, "max_value": 0.95, "unit": ""}
+      ]
+    },
+    {
+      "code": "consumer",
+      "name": "Consumer Apps",
+      "description": "Consumer-facing mobile and web applications",
+      "metrics": [
+        {"name": "revenue_multiple", "min_value": 0.5, "typical_low": 1.5, "median": 3.0, "typical_high": 6.0, "max_value": 12.0, "unit": "x"},
+        {"name": "discount_rate", "min_value": 0.18, "typical_low": 0.25, "median": 0.35, "typical_high": 0.48, "max_value": 0.65, "unit": ""},
+        {"name": "growth_rate", "min_value": 0.10, "typical_low": 0.30, "median": 0.55, "typical_high": 1.00, "max_value": 3.00, "unit": ""},
+        {"name": "gross_margin", "min_value": 0.50, "typical_low": 0.65, "median": 0.75, "typical_high": 0.85, "max_value": 0.95, "unit": ""}
+      ]
+    },
+    {
+      "code": "b2b_services",
+      "name": "B2B Services",
+      "description": "Business-to-business service companies",
+      "metrics": [
+        {"name": "revenue_multiple", "min_value": 1.0, "typical_low": 2.0, "median": 3.5, "typical_high": 6.0, "max_value": 10.0, "unit": "x"},
+        {"name": "discount_rate", "min_value": 0.12, "typical_low": 0.18, "median": 0.25, "typical_high": 0.35, "max_value": 0.50, "unit": ""},
+        {"name": "growth_rate", "min_value": 0.08, "typical_low": 0.18, "median": 0.30, "typical_high": 0.55, "max_value": 1.50, "unit": ""},
+        {"name": "gross_margin", "min_value": 0.35, "typical_low": 0.50, "median": 0.60, "typical_high": 0.72, "max_value": 0.85, "unit": ""}
+      ]
+    }
+  ]
+}
