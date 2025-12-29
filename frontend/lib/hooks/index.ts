@@ -42,3 +42,4 @@ export {
   type MobileView,
 } from "./use-mobile-view";
 export { useValuationMonteCarlo, distributionsToApiFormat } from "./use-valuation-monte-carlo";
+export { useBenchmarkValidation } from "./use-benchmark-validation";
