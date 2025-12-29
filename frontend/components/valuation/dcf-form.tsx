@@ -4,22 +4,51 @@ import * as React from "react";
 import { UseFormReturn, useFieldArray } from "react-hook-form";
 import { NumberInputField } from "@/components/forms/form-fields";
 import { Button } from "@/components/ui/button";
+import { BenchmarkWarning } from "./benchmark-warning";
+import { useBenchmarkValidation } from "@/lib/hooks";
 import { Plus, Trash2 } from "lucide-react";
-import type { DCFFormData } from "@/lib/schemas";
+import type { DCFFormData, BenchmarkMetric } from "@/lib/schemas";
 
 interface DCFFormProps {
   form: UseFormReturn<DCFFormData>;
+  /** Selected industry code for benchmark validation */
+  industryCode?: string | null;
+  /** Loaded benchmark metrics from the selected industry */
+  benchmarks?: Record<string, BenchmarkMetric>;
 }
 
-export function DCFForm({ form }: DCFFormProps) {
+export function DCFForm({ form, industryCode, benchmarks }: DCFFormProps) {
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "projectedCashFlows",
   });
 
+  const { validations, validateField } = useBenchmarkValidation(industryCode ?? null);
+
+  // Watch the discount rate field to validate on change
+  const discountRate = form.watch("discountRate");
+
+  // Validate discount rate when it changes (convert from percentage to decimal)
+  React.useEffect(() => {
+    if (discountRate !== undefined && industryCode) {
+      validateField("discount_rate", discountRate / 100);
+    }
+  }, [discountRate, industryCode, validateField]);
+
+  const discountRateValidation = validations["discount_rate"];
+  const discountRateBenchmark = benchmarks?.["discount_rate"];
+
   const addYear = () => {
     append({ value: 0 });
   };
+
+  // Format benchmark values for display (convert from decimal to percentage)
+  const discountRateMedianDisplay = discountRateBenchmark
+    ? `${Math.round(discountRateBenchmark.median * 100)}%`
+    : undefined;
+  const discountRateRangeDisplay = discountRateBenchmark
+    ? `${Math.round(discountRateBenchmark.typical_low * 100)}% - ${Math.round(discountRateBenchmark.typical_high * 100)}%`
+    : undefined;
 
   return (
     <div className="space-y-4">
@@ -64,24 +93,56 @@ export function DCFForm({ form }: DCFFormProps) {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <NumberInputField
-          form={form}
-          name="discountRate"
-          label="Discount Rate (WACC)"
-          description="Required rate of return"
-          suffix="%"
-          min={1}
-          max={100}
-          step={0.5}
-          placeholder="12"
-          tooltip="Weighted Average Cost of Capital or required rate of return. Typically 10-20% for startups."
-        />
+        <div className="space-y-2">
+          <NumberInputField
+            form={form}
+            name="discountRate"
+            label="Discount Rate (WACC)"
+            description={
+              discountRateMedianDisplay
+                ? `Industry median: ${discountRateMedianDisplay}`
+                : "Required rate of return"
+            }
+            suffix="%"
+            min={1}
+            max={100}
+            step={0.5}
+            placeholder={
+              discountRateBenchmark ? String(Math.round(discountRateBenchmark.median * 100)) : "12"
+            }
+            tooltip="Weighted Average Cost of Capital or required rate of return. Typically 10-20% for startups."
+          />
+          {discountRateValidation && discountRateValidation.severity !== "ok" && (
+            <BenchmarkWarning
+              severity={discountRateValidation.severity}
+              message={discountRateValidation.message}
+              median={
+                discountRateValidation.benchmark_median
+                  ? Math.round(discountRateValidation.benchmark_median * 100)
+                  : undefined
+              }
+              suggestedRange={
+                discountRateValidation.suggested_range
+                  ? [
+                      Math.round(discountRateValidation.suggested_range[0] * 100),
+                      Math.round(discountRateValidation.suggested_range[1] * 100),
+                    ]
+                  : undefined
+              }
+              unit="%"
+            />
+          )}
+        </div>
 
         <NumberInputField
           form={form}
           name="terminalGrowthRate"
           label="Terminal Growth Rate"
-          description="Perpetual growth (optional)"
+          description={
+            discountRateRangeDisplay
+              ? `Discount range: ${discountRateRangeDisplay}`
+              : "Perpetual growth (optional)"
+          }
           suffix="%"
           min={0}
           max={10}
