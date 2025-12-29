@@ -5,19 +5,30 @@ This router handles company valuation methods:
 - Discounted Cash Flow (DCF) valuation
 - VC Method valuation
 - Multi-method comparison
+- Industry benchmarks (Phase 4)
 """
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 
 from worth_it import calculations
+from worth_it.calculations.benchmarks import (
+    get_all_industries,
+    get_benchmark,
+    validate_against_benchmark,
+)
 from worth_it.config import settings
 from worth_it.exceptions import CalculationError
 from worth_it.models import (
+    BenchmarkMetricResponse,
+    BenchmarkValidationRequest,
+    BenchmarkValidationResponse,
     BerkusRequest,
     BerkusResponse,
     DCFRequest,
     FirstChicagoRequest,
     FirstChicagoResponse,
+    IndustryBenchmarkResponse,
+    IndustryListItem,
     RevenueMultipleRequest,
     RiskFactorSummationRequest,
     RiskFactorSummationResponse,
@@ -339,3 +350,70 @@ async def calculate_risk_factor_summation_valuation(
         )
     except (ValueError, TypeError) as e:
         raise CalculationError("Invalid parameters for Risk Factor Summation valuation") from e
+
+
+# --- Industry Benchmark Endpoints (Phase 4) ---
+
+
+@router.get("/benchmarks/industries", response_model=list[IndustryListItem])
+async def list_industries() -> list[IndustryListItem]:
+    """List all available industries with benchmarks.
+
+    Returns a list of industry codes and names that can be used
+    to retrieve detailed benchmark data.
+    """
+    industries = get_all_industries()
+    return [IndustryListItem(code=i.code, name=i.name) for i in industries]
+
+
+@router.get("/benchmarks/{industry_code}", response_model=IndustryBenchmarkResponse)
+async def get_industry_benchmark(industry_code: str) -> IndustryBenchmarkResponse:
+    """Get benchmark data for a specific industry.
+
+    Returns detailed benchmark metrics including revenue multiples,
+    discount rates, growth rates, and margins typical for the industry.
+    """
+    benchmark = get_benchmark(industry_code)
+    if not benchmark:
+        raise HTTPException(status_code=404, detail=f"Industry '{industry_code}' not found")
+
+    return IndustryBenchmarkResponse(
+        code=benchmark.code,
+        name=benchmark.name,
+        description=benchmark.description,
+        metrics={
+            name: BenchmarkMetricResponse(
+                name=m.name,
+                min_value=m.min_value,
+                typical_low=m.typical_low,
+                median=m.median,
+                typical_high=m.typical_high,
+                max_value=m.max_value,
+                unit=m.unit,
+            )
+            for name, m in benchmark.metrics.items()
+        },
+    )
+
+
+@router.post("/benchmarks/validate", response_model=BenchmarkValidationResponse)
+async def validate_benchmark(
+    request: BenchmarkValidationRequest,
+) -> BenchmarkValidationResponse:
+    """Validate a value against industry benchmarks.
+
+    Returns validation result indicating whether the value is within
+    typical range, with suggestions for appropriate values.
+    """
+    result = validate_against_benchmark(
+        industry_code=request.industry_code,
+        metric_name=request.metric_name,
+        value=request.value,
+    )
+    return BenchmarkValidationResponse(
+        is_valid=result.is_valid,
+        severity=result.severity,
+        message=result.message,
+        benchmark_median=result.benchmark_median,
+        suggested_range=result.suggested_range,
+    )
