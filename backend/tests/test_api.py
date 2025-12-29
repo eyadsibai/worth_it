@@ -2408,3 +2408,179 @@ class TestPreRevenueValuationAPI:
         }
         response = client.post("/api/valuation/risk-factor-summation", json=request_data)
         assert response.status_code == 400
+
+
+# --- Benchmark API Tests (Phase 4) ---
+
+
+class TestBenchmarkAPI:
+    """Tests for industry benchmark API endpoints."""
+
+    def test_list_industries(self):
+        """Test listing all available industries."""
+        response = client.get("/api/valuation/benchmarks/industries")
+        assert response.status_code == 200
+        industries = response.json()
+
+        # Should have at least 15 industries
+        assert len(industries) >= 15
+
+        # Each industry should have code and name
+        for industry in industries:
+            assert "code" in industry
+            assert "name" in industry
+
+        # Verify some expected industries exist
+        codes = [i["code"] for i in industries]
+        assert "saas" in codes
+        assert "fintech" in codes
+        assert "ai_ml" in codes
+
+    def test_get_industry_benchmark(self):
+        """Test retrieving benchmark data for a specific industry."""
+        response = client.get("/api/valuation/benchmarks/saas")
+        assert response.status_code == 200
+        data = response.json()
+
+        # Check structure
+        assert data["code"] == "saas"
+        assert data["name"] == "SaaS / Software"
+        assert "description" in data
+        assert "metrics" in data
+
+        # Check metrics
+        assert "revenue_multiple" in data["metrics"]
+        rm = data["metrics"]["revenue_multiple"]
+        assert rm["name"] == "revenue_multiple"
+        assert "min_value" in rm
+        assert "typical_low" in rm
+        assert "median" in rm
+        assert "typical_high" in rm
+        assert "max_value" in rm
+        assert rm["unit"] == "x"
+
+        # Verify expected metrics exist
+        assert "discount_rate" in data["metrics"]
+        assert "growth_rate" in data["metrics"]
+        assert "gross_margin" in data["metrics"]
+
+    def test_get_unknown_industry_returns_404(self):
+        """Test that unknown industry returns 404."""
+        response = client.get("/api/valuation/benchmarks/unknown_industry_xyz")
+        assert response.status_code == 404
+
+    def test_validate_value_within_typical_range(self):
+        """Test validating a value within typical range returns ok."""
+        response = client.post(
+            "/api/valuation/benchmarks/validate",
+            json={
+                "industry_code": "saas",
+                "metric_name": "revenue_multiple",
+                "value": 6.0,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["is_valid"] is True
+        assert data["severity"] == "ok"
+        assert data["benchmark_median"] == pytest.approx(6.0)
+        assert data["suggested_range"] is not None
+
+    def test_validate_value_above_typical_returns_warning(self):
+        """Test validating a value above typical range returns warning."""
+        response = client.post(
+            "/api/valuation/benchmarks/validate",
+            json={
+                "industry_code": "saas",
+                "metric_name": "revenue_multiple",
+                "value": 15.0,  # Above typical (4-12) but within max (25)
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["is_valid"] is True
+        assert data["severity"] == "warning"
+        assert "above typical" in data["message"].lower()
+
+    def test_validate_value_below_typical_returns_warning(self):
+        """Test validating a value below typical range returns warning."""
+        response = client.post(
+            "/api/valuation/benchmarks/validate",
+            json={
+                "industry_code": "saas",
+                "metric_name": "revenue_multiple",
+                "value": 2.5,  # Below typical (4-12) but above min (1)
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["is_valid"] is True
+        assert data["severity"] == "warning"
+        assert "below typical" in data["message"].lower()
+
+    def test_validate_value_above_max_returns_error(self):
+        """Test validating a value above maximum returns error."""
+        response = client.post(
+            "/api/valuation/benchmarks/validate",
+            json={
+                "industry_code": "saas",
+                "metric_name": "revenue_multiple",
+                "value": 30.0,  # Above max (25)
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["is_valid"] is False
+        assert data["severity"] == "error"
+
+    def test_validate_value_below_min_returns_error(self):
+        """Test validating a value below minimum returns error."""
+        response = client.post(
+            "/api/valuation/benchmarks/validate",
+            json={
+                "industry_code": "saas",
+                "metric_name": "revenue_multiple",
+                "value": 0.5,  # Below min (1)
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["is_valid"] is False
+        assert data["severity"] == "error"
+
+    def test_validate_unknown_industry_returns_ok(self):
+        """Test validating against unknown industry returns ok (no benchmark)."""
+        response = client.post(
+            "/api/valuation/benchmarks/validate",
+            json={
+                "industry_code": "unknown_xyz",
+                "metric_name": "revenue_multiple",
+                "value": 100.0,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["is_valid"] is True
+        assert data["severity"] == "ok"
+
+    def test_validate_unknown_metric_returns_ok(self):
+        """Test validating unknown metric returns ok (no benchmark)."""
+        response = client.post(
+            "/api/valuation/benchmarks/validate",
+            json={
+                "industry_code": "saas",
+                "metric_name": "unknown_metric",
+                "value": 100.0,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["is_valid"] is True
+        assert data["severity"] == "ok"

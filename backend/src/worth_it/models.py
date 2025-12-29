@@ -989,3 +989,52 @@ class RiskFactorSummationResponse(BaseModel):
     total_adjustment: float
     factor_adjustments: dict[str, float]
     method: Literal["risk_factor_summation"] = "risk_factor_summation"
+
+
+# --- Industry Benchmark Models (Phase 4) ---
+
+
+class BenchmarkMetricResponse(BaseModel):
+    """API response for a single benchmark metric."""
+
+    name: str
+    min_value: float
+    typical_low: float
+    median: float
+    typical_high: float
+    max_value: float
+    unit: str
+
+
+class IndustryBenchmarkResponse(BaseModel):
+    """API response for industry benchmark data."""
+
+    code: str
+    name: str
+    description: str
+    metrics: dict[str, BenchmarkMetricResponse]
+
+
+class IndustryListItem(BaseModel):
+    """Summary item for industry list."""
+
+    code: str
+    name: str
+
+
+class BenchmarkValidationRequest(BaseModel):
+    """Request to validate a value against benchmarks."""
+
+    industry_code: str
+    metric_name: str
+    value: float
+
+
+class BenchmarkValidationResponse(BaseModel):
+    """Response from benchmark validation."""
+
+    is_valid: bool
+    severity: Literal["ok", "warning", "error"]
+    message: str
+    benchmark_median: float
+    suggested_range: tuple[float, float] | None = None
