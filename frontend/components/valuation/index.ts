@@ -5,3 +5,4 @@ export { RevenueMultipleForm } from "./revenue-multiple-form";
 export { DCFForm } from "./dcf-form";
 export { VCMethodForm } from "./vc-method-form";
 export { IndustrySelector } from "./industry-selector";
+export { BenchmarkWarning } from "./benchmark-warning";
