@@ -35,6 +35,7 @@ import { MonteCarloToggle } from "./monte-carlo-toggle";
 import { MonteCarloResults, type MonteCarloResultData } from "./monte-carlo-results";
 import { DistributionInput, type DistributionValue } from "./distribution-input";
 import { useValuationMonteCarlo, distributionsToApiFormat } from "@/lib/hooks";
+import { IndustrySelector } from "./industry-selector";
 import {
   useCalculateRevenueMultiple,
   useCalculateDCF,
@@ -72,6 +73,7 @@ import {
   type FrontendBerkusResult,
   type FrontendScorecardResult,
   type FrontendRiskFactorSummationResult,
+  type BenchmarkMetric,
 } from "@/lib/schemas";
 
 type ValuationMethod =
@@ -288,6 +290,8 @@ export function ValuationCalculator() {
   const [firstChicagoResult, setFirstChicagoResult] =
     React.useState<FrontendFirstChicagoResult | null>(null);
   const [firstChicagoError, setFirstChicagoError] = React.useState<string | null>(null);
+  const [selectedIndustry, setSelectedIndustry] = React.useState<string | null>(null);
+  const [benchmarks, setBenchmarks] = React.useState<Record<string, BenchmarkMetric>>({});
 
   // Monte Carlo state
   const [mcEnabled, setMcEnabled] = React.useState(false);
@@ -665,6 +669,16 @@ export function ValuationCalculator() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Industry Selector */}
+          <div className="mb-6">
+            <IndustrySelector
+              value={selectedIndustry}
+              onChange={setSelectedIndustry}
+              onBenchmarksLoaded={setBenchmarks}
+              showBenchmarkDetails
+            />
+          </div>
+
           <Tabs value={activeMethod} onValueChange={(v) => setActiveMethod(v as ValuationMethod)}>
             {/* Revenue-Based Methods */}
             <div className="mb-4">
@@ -723,7 +737,11 @@ export function ValuationCalculator() {
             <TabsContent value="revenue_multiple">
               <Form {...revenueMultipleForm}>
                 <form onSubmit={revenueMultipleForm.handleSubmit(handleRevenueMultiple)}>
-                  <RevenueMultipleForm form={revenueMultipleForm} />
+                  <RevenueMultipleForm
+                    form={revenueMultipleForm}
+                    industryCode={selectedIndustry}
+                    benchmarks={benchmarks}
+                  />
                 </form>
               </Form>
             </TabsContent>
@@ -731,7 +749,7 @@ export function ValuationCalculator() {
             <TabsContent value="dcf">
               <Form {...dcfForm}>
                 <form onSubmit={dcfForm.handleSubmit(handleDCF)}>
-                  <DCFForm form={dcfForm} />
+                  <DCFForm form={dcfForm} industryCode={selectedIndustry} benchmarks={benchmarks} />
                 </form>
               </Form>
             </TabsContent>
