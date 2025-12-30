@@ -259,7 +259,10 @@ export const AnimatedNumber = React.memo(function AnimatedNumber({
     }
   }, [isInView, value, motionValue, prefersReducedMotion]);
 
-  // Only subscribe to spring changes when in view to reduce CPU usage
+  // Only subscribe to spring changes when in view to reduce CPU usage.
+  // Note: `value` is intentionally excluded from deps - the springValue already
+  // tracks changes via motionValue, so including `value` would cause redundant
+  // subscription teardown/recreation on every value change.
   React.useEffect(() => {
     // Skip subscription if reduced motion preferred or not in view
     if (prefersReducedMotion) {
@@ -278,7 +281,8 @@ export const AnimatedNumber = React.memo(function AnimatedNumber({
       }
     });
     return unsubscribe;
-  }, [springValue, memoizedFormatter, isInView, prefersReducedMotion, value]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [springValue, memoizedFormatter, isInView, prefersReducedMotion]);
 
   // When reduced motion is preferred, render the final value immediately
   return (
@@ -369,7 +373,10 @@ export const AnimatedCurrencyDisplay = React.memo(function AnimatedCurrencyDispl
     }
   }, [isInView, value, motionValue, showDelta, prefersReducedMotion]);
 
-  // Only subscribe to spring changes when in view to reduce CPU usage
+  // Only subscribe to spring changes when in view to reduce CPU usage.
+  // Note: `value` is intentionally excluded from deps - the springValue already
+  // tracks changes via motionValue, so including `value` would cause redundant
+  // subscription teardown/recreation on every value change.
   React.useEffect(() => {
     if (prefersReducedMotion) {
       if (mainRef.current) {
@@ -388,7 +395,8 @@ export const AnimatedCurrencyDisplay = React.memo(function AnimatedCurrencyDispl
       }
     });
     return unsubscribe;
-  }, [springValue, isInView, prefersReducedMotion, value]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [springValue, isInView, prefersReducedMotion]);
 
   const initialMain = formatCurrencyWithDecimals(hasAnimated ? value : 0).main;
 
@@ -471,7 +479,10 @@ export const AnimatedPercentage = React.memo(function AnimatedPercentage({
     }
   }, [isInView, value, motionValue, prefersReducedMotion]);
 
-  // Only subscribe to spring changes when in view to reduce CPU usage
+  // Only subscribe to spring changes when in view to reduce CPU usage.
+  // Note: `value` is intentionally excluded from deps - the springValue already
+  // tracks changes via motionValue, so including `value` would cause redundant
+  // subscription teardown/recreation on every value change.
   React.useEffect(() => {
     if (prefersReducedMotion) {
       if (ref.current) {
@@ -491,7 +502,8 @@ export const AnimatedPercentage = React.memo(function AnimatedPercentage({
       }
     });
     return unsubscribe;
-  }, [springValue, formatPercentage, isInView, prefersReducedMotion, value]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [springValue, formatPercentage, isInView, prefersReducedMotion]);
 
   // Initial display value
   const initialValue = hasAnimated ? value : 0;
