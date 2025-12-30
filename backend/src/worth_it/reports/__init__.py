@@ -7,6 +7,7 @@ from .models import (
     ReportSection,
     ValuationReportData,
 )
+from .pdf_generator import generate_pdf_report
 
 __all__ = [
     "ChartData",
@@ -14,4 +15,5 @@ __all__ = [
     "ReportMetric",
     "ReportSection",
     "ValuationReportData",
+    "generate_pdf_report",
 ]
