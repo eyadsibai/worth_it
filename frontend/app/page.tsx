@@ -108,7 +108,7 @@ export default function Home() {
 
   return (
     <AppShell>
-      <div className="container space-y-8 py-8">
+      <div className="mx-auto max-w-7xl space-y-8 py-8">
         {/* Hero Section - Stable container, only text animates */}
         <div className="space-y-4">
           <h1 className="text-foreground text-3xl font-semibold tracking-tight md:text-4xl">

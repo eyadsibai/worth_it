@@ -92,6 +92,7 @@ export function CurrentJobFormComponent({
           description="If your startup salary is lower, the difference will be invested"
           variant="gradient"
           accentColor="chart-3"
+          borderless
           className="space-y-4"
         >
           <SliderField

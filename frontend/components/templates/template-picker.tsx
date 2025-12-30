@@ -91,7 +91,7 @@ export function TemplatePicker({ mode }: TemplatePickerProps) {
       </div>
 
       <motion.div
-        className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+        className="grid auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2"
         initial="hidden"
         animate="visible"
         variants={{
@@ -109,6 +109,7 @@ export function TemplatePicker({ mode }: TemplatePickerProps) {
               return (
                 <motion.div
                   key={scenario.id}
+                  className="h-full"
                   variants={{
                     hidden: { opacity: 0, y: 12 },
                     visible: { opacity: 1, y: 0 },
@@ -119,7 +120,7 @@ export function TemplatePicker({ mode }: TemplatePickerProps) {
                 >
                   <Button
                     variant="outline"
-                    className="hover:border-primary hover:bg-primary/5 h-auto w-full flex-col items-start gap-2 overflow-hidden p-4 text-left whitespace-normal transition-colors"
+                    className="hover:border-primary hover:bg-primary/5 h-full w-full flex-col items-start gap-2 overflow-hidden p-4 text-left whitespace-normal transition-colors"
                     onClick={() => handleEmployeeTemplate(scenario.id, scenario.name)}
                   >
                     <div className="flex w-full items-center gap-2">
@@ -148,6 +149,7 @@ export function TemplatePicker({ mode }: TemplatePickerProps) {
               return (
                 <motion.div
                   key={template.id}
+                  className="h-full"
                   variants={{
                     hidden: { opacity: 0, y: 12 },
                     visible: { opacity: 1, y: 0 },
@@ -158,7 +160,7 @@ export function TemplatePicker({ mode }: TemplatePickerProps) {
                 >
                   <Button
                     variant="outline"
-                    className="hover:border-primary hover:bg-primary/5 h-auto w-full flex-col items-start gap-2 overflow-hidden p-4 text-left whitespace-normal transition-colors"
+                    className="hover:border-primary hover:bg-primary/5 h-full w-full flex-col items-start gap-2 overflow-hidden p-4 text-left whitespace-normal transition-colors"
                     onClick={() => handleFounderTemplate(template.id, template.name)}
                   >
                     <div className="flex w-full items-center gap-2">
