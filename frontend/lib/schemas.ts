@@ -1582,3 +1582,173 @@ export const PreRevenueExportRequestSchema = ExportRequestSchema.extend({
   params: z.record(z.string(), z.unknown()),
 });
 export type PreRevenueExportRequest = z.infer<typeof PreRevenueExportRequestSchema>;
+
+// ============================================================================
+// Advanced Valuation Schemas (Phase 6)
+// ============================================================================
+
+// --- Enhanced DCF with Multi-Stage Growth ---
+
+/**
+ * A single growth stage for Enhanced DCF valuation.
+ * Each stage has its own growth rate and margin.
+ */
+export const DCFStageSchema = z.object({
+  name: z.string().min(1, "Stage name is required"),
+  years: z.number().int().min(1).max(20),
+  growth_rate: z.number().min(-0.5).max(2.0),
+  margin: z.number().min(-0.5).max(0.8),
+});
+export type DCFStage = z.infer<typeof DCFStageSchema>;
+
+/**
+ * Request schema for Enhanced DCF with multi-stage growth.
+ */
+export const EnhancedDCFRequestSchema = z.object({
+  base_revenue: z.number().positive("Base revenue must be positive"),
+  stages: z.array(DCFStageSchema).min(1).max(5),
+  discount_rate: z.number().positive().max(0.5),
+  terminal_growth_rate: z.number().min(0).max(0.1).nullable().optional(),
+});
+export type EnhancedDCFRequest = z.infer<typeof EnhancedDCFRequestSchema>;
+
+/**
+ * Response schema for Enhanced DCF valuation.
+ */
+export const EnhancedDCFResultSchema = z.object({
+  valuation: z.number(),
+  pv_cash_flows: z.number(),
+  terminal_value: z.number(),
+  pv_terminal_value: z.number(),
+  year_by_year: z.array(z.record(z.string(), z.unknown())),
+  total_projection_years: z.number().int(),
+  confidence: z.number(),
+});
+export type EnhancedDCFResult = z.infer<typeof EnhancedDCFResultSchema>;
+
+// --- WACC Calculator ---
+
+/**
+ * Request schema for WACC calculation (Weighted Average Cost of Capital).
+ * Uses CAPM for cost of equity calculation.
+ */
+export const WACCRequestSchema = z.object({
+  equity_value: z.number().min(0),
+  debt_value: z.number().min(0),
+  cost_of_equity: z.number().positive().max(0.5),
+  cost_of_debt: z.number().min(0).max(0.3),
+  tax_rate: z.number().min(0).max(0.5),
+});
+export type WACCRequest = z.infer<typeof WACCRequestSchema>;
+
+/**
+ * Response schema for WACC calculation.
+ */
+export const WACCResultSchema = z.object({
+  wacc: z.number(),
+  equity_weight: z.number(),
+  debt_weight: z.number(),
+  after_tax_cost_of_debt: z.number(),
+});
+export type WACCResult = z.infer<typeof WACCResultSchema>;
+
+// --- Comparable Transactions Method ---
+
+/**
+ * A single comparable transaction for valuation.
+ */
+export const ComparableTransactionSchema = z.object({
+  name: z.string().min(1, "Company name is required"),
+  deal_value: z.number().positive("Deal value must be positive"),
+  revenue: z.number().positive("Revenue must be positive"),
+  industry: z.string().min(1, "Industry is required"),
+  date: z.string().min(1, "Date is required"),
+});
+export type ComparableTransaction = z.infer<typeof ComparableTransactionSchema>;
+
+/**
+ * Request schema for Comparable Transactions valuation.
+ */
+export const ComparablesRequestSchema = z.object({
+  target_revenue: z.number().positive("Target revenue must be positive"),
+  comparables: z.array(ComparableTransactionSchema).min(1, "At least one comparable required"),
+});
+export type ComparablesRequest = z.infer<typeof ComparablesRequestSchema>;
+
+/**
+ * Response schema for Comparable Transactions valuation.
+ */
+export const ComparablesResultSchema = z.object({
+  implied_valuation: z.number(),
+  median_multiple: z.number(),
+  mean_multiple: z.number(),
+  low_valuation: z.number(),
+  high_valuation: z.number(),
+  multiples: z.array(z.number()),
+  comparable_count: z.number().int(),
+});
+export type ComparablesResult = z.infer<typeof ComparablesResultSchema>;
+
+// --- Real Options (Black-Scholes) ---
+
+/**
+ * Real option types for strategic flexibility valuation.
+ */
+export const OptionTypeSchema = z.enum(["growth", "abandonment", "delay", "switch"]);
+export type OptionType = z.infer<typeof OptionTypeSchema>;
+
+/**
+ * Request schema for Real Options valuation using Black-Scholes.
+ */
+export const RealOptionRequestSchema = z.object({
+  option_type: OptionTypeSchema,
+  underlying_value: z.number().positive("Underlying value must be positive"),
+  exercise_price: z.number().positive("Exercise price must be positive"),
+  time_to_expiry: z.number().positive().max(20),
+  volatility: z.number().positive().max(1.5),
+  risk_free_rate: z.number().min(0).max(0.2),
+});
+export type RealOptionRequest = z.infer<typeof RealOptionRequestSchema>;
+
+/**
+ * Response schema for Real Options valuation.
+ */
+export const RealOptionResultSchema = z.object({
+  option_value: z.number(),
+  total_value: z.number(),
+  d1: z.number(),
+  d2: z.number(),
+  method: z.literal("real_options"),
+});
+export type RealOptionResult = z.infer<typeof RealOptionResultSchema>;
+
+// --- Weighted Average Synthesis ---
+
+/**
+ * A single valuation input for weighted average synthesis.
+ */
+export const ValuationInputSchema = z.object({
+  method: z.string().min(1, "Method name is required"),
+  valuation: z.number().positive("Valuation must be positive"),
+  weight: z.number().positive("Weight must be positive"),
+});
+export type ValuationInput = z.infer<typeof ValuationInputSchema>;
+
+/**
+ * Request schema for weighted average valuation synthesis.
+ */
+export const WeightedAverageRequestSchema = z.object({
+  valuations: z.array(ValuationInputSchema).min(1, "At least one valuation required"),
+});
+export type WeightedAverageRequest = z.infer<typeof WeightedAverageRequestSchema>;
+
+/**
+ * Response schema for weighted average valuation synthesis.
+ */
+export const WeightedAverageResultSchema = z.object({
+  weighted_valuation: z.number(),
+  method_contributions: z.record(z.string(), z.number()),
+  normalized_weights: z.record(z.string(), z.number()),
+  method: z.literal("weighted_average"),
+});
+export type WeightedAverageResult = z.infer<typeof WeightedAverageResultSchema>;

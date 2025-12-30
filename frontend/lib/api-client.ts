@@ -58,6 +58,17 @@ import type {
   // Export types (Phase 5)
   FirstChicagoExportRequest,
   PreRevenueExportRequest,
+  // Advanced Valuation types (Phase 6)
+  EnhancedDCFRequest,
+  EnhancedDCFResult,
+  WACCRequest,
+  WACCResult,
+  ComparablesRequest,
+  ComparablesResult,
+  RealOptionRequest,
+  RealOptionResult,
+  WeightedAverageRequest,
+  WeightedAverageResult,
 } from "./schemas";
 import { APIErrorResponseSchema } from "./schemas";
 
@@ -472,6 +483,67 @@ class APIClient {
     return data;
   }
 
+  // ============================================================================
+  // Advanced Valuation Methods (Phase 6)
+  // ============================================================================
+
+  /**
+   * Calculate enhanced DCF with multi-stage growth projections.
+   * Supports distinct growth phases (e.g., hypergrowth → growth → mature).
+   */
+  async calculateEnhancedDCF(request: EnhancedDCFRequest): Promise<EnhancedDCFResult> {
+    const { data } = await this.client.post<EnhancedDCFResult>(
+      "/api/valuation/enhanced-dcf",
+      request
+    );
+    return data;
+  }
+
+  /**
+   * Calculate Weighted Average Cost of Capital (WACC).
+   * Formula: WACC = (E/V) × Re + (D/V) × Rd × (1 - T)
+   */
+  async calculateWACC(request: WACCRequest): Promise<WACCResult> {
+    const { data } = await this.client.post<WACCResult>("/api/valuation/wacc", request);
+    return data;
+  }
+
+  /**
+   * Calculate valuation using Comparable Transactions method.
+   * Uses median multiples from similar M&A transactions.
+   */
+  async calculateComparables(request: ComparablesRequest): Promise<ComparablesResult> {
+    const { data } = await this.client.post<ComparablesResult>(
+      "/api/valuation/comparables",
+      request
+    );
+    return data;
+  }
+
+  /**
+   * Calculate Real Options valuation using Black-Scholes framework.
+   * Values strategic flexibility (growth, abandonment, delay, switch options).
+   */
+  async calculateRealOptions(request: RealOptionRequest): Promise<RealOptionResult> {
+    const { data } = await this.client.post<RealOptionResult>(
+      "/api/valuation/real-options",
+      request
+    );
+    return data;
+  }
+
+  /**
+   * Synthesize multiple valuations into weighted average.
+   * Weights are automatically normalized to sum to 1.0.
+   */
+  async calculateWeightedAverage(request: WeightedAverageRequest): Promise<WeightedAverageResult> {
+    const { data } = await this.client.post<WeightedAverageResult>(
+      "/api/valuation/weighted-average",
+      request
+    );
+    return data;
+  }
+
   // WebSocket URL for Monte Carlo
   getMonteCarloWebSocketURL(): string {
     return `${this.wsURL}/ws/monte-carlo`;
@@ -709,6 +781,55 @@ export function useExportFirstChicago() {
 export function useExportPreRevenue() {
   return useMutation({
     mutationFn: (request: PreRevenueExportRequest) => apiClient.exportPreRevenue(request),
+  });
+}
+
+// ============================================================================
+// Advanced Valuation Hooks (Phase 6)
+// ============================================================================
+
+/**
+ * Calculate enhanced DCF with multi-stage growth projections.
+ */
+export function useCalculateEnhancedDCF() {
+  return useMutation({
+    mutationFn: (request: EnhancedDCFRequest) => apiClient.calculateEnhancedDCF(request),
+  });
+}
+
+/**
+ * Calculate Weighted Average Cost of Capital (WACC).
+ */
+export function useCalculateWACC() {
+  return useMutation({
+    mutationFn: (request: WACCRequest) => apiClient.calculateWACC(request),
+  });
+}
+
+/**
+ * Calculate valuation using Comparable Transactions method.
+ */
+export function useCalculateComparables() {
+  return useMutation({
+    mutationFn: (request: ComparablesRequest) => apiClient.calculateComparables(request),
+  });
+}
+
+/**
+ * Calculate Real Options valuation using Black-Scholes framework.
+ */
+export function useCalculateRealOptions() {
+  return useMutation({
+    mutationFn: (request: RealOptionRequest) => apiClient.calculateRealOptions(request),
+  });
+}
+
+/**
+ * Synthesize multiple valuations into weighted average.
+ */
+export function useCalculateWeightedAverage() {
+  return useMutation({
+    mutationFn: (request: WeightedAverageRequest) => apiClient.calculateWeightedAverage(request),
   });
 }
 
