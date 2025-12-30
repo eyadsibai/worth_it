@@ -942,3 +942,301 @@ class TestCalculateRiskFactorSummation:
         result = calculate_risk_factor_summation(params)
         # Should floor at 0, not go negative
         assert result.valuation >= 0
+
+
+# ============================================================================
+# Enhanced DCF (Multi-Stage Growth) Tests
+# ============================================================================
+
+
+class TestEnhancedDCF:
+    """Tests for Enhanced DCF with multi-stage growth modeling."""
+
+    def test_dcf_stage_creation(self):
+        """DCFStage is a frozen dataclass for growth stages."""
+        from worth_it.calculations.valuation import DCFStage
+
+        stage = DCFStage(
+            name="Hypergrowth",
+            years=3,
+            growth_rate=0.50,
+            margin=0.10,
+        )
+
+        assert stage.name == "Hypergrowth"
+        assert stage.years == 3
+        assert stage.growth_rate == 0.50
+        assert stage.margin == 0.10
+
+    def test_dcf_stage_is_frozen(self):
+        """DCFStage should be immutable."""
+        from dataclasses import FrozenInstanceError
+
+        from worth_it.calculations.valuation import DCFStage
+
+        stage = DCFStage(name="Growth", years=2, growth_rate=0.25, margin=0.15)
+
+        with pytest.raises(FrozenInstanceError):
+            stage.years = 5  # type: ignore
+
+    def test_enhanced_dcf_params_validation(self):
+        """EnhancedDCFParams validates input parameters."""
+        from worth_it.calculations.valuation import DCFStage, EnhancedDCFParams
+
+        stages = [
+            DCFStage(name="Hypergrowth", years=3, growth_rate=0.50, margin=0.10),
+            DCFStage(name="Growth", years=3, growth_rate=0.25, margin=0.20),
+            DCFStage(name="Mature", years=4, growth_rate=0.08, margin=0.25),
+        ]
+
+        params = EnhancedDCFParams(
+            base_revenue=1_000_000,
+            stages=stages,
+            discount_rate=0.12,
+            terminal_growth_rate=0.03,
+        )
+
+        assert params.base_revenue == 1_000_000
+        assert len(params.stages) == 3
+        assert params.discount_rate == 0.12
+
+    def test_enhanced_dcf_params_requires_stages(self):
+        """EnhancedDCFParams requires at least one growth stage."""
+        from worth_it.calculations.valuation import EnhancedDCFParams
+
+        with pytest.raises(ValidationError):
+            EnhancedDCFParams(
+                base_revenue=1_000_000,
+                stages=[],  # Empty stages
+                discount_rate=0.12,
+            )
+
+    def test_enhanced_dcf_params_terminal_growth_validation(self):
+        """Terminal growth must be less than discount rate."""
+        from worth_it.calculations.valuation import DCFStage, EnhancedDCFParams
+
+        stages = [DCFStage(name="Growth", years=5, growth_rate=0.20, margin=0.15)]
+
+        with pytest.raises(ValidationError, match="(?i)terminal.*discount"):
+            EnhancedDCFParams(
+                base_revenue=1_000_000,
+                stages=stages,
+                discount_rate=0.10,
+                terminal_growth_rate=0.12,  # Greater than discount
+            )
+
+    def test_enhanced_dcf_result_structure(self):
+        """EnhancedDCFResult is a frozen dataclass with proper structure."""
+        from worth_it.calculations.valuation import EnhancedDCFResult
+
+        result = EnhancedDCFResult(
+            valuation=10_000_000,
+            pv_cash_flows=6_000_000,
+            terminal_value=8_000_000,
+            pv_terminal_value=4_000_000,
+            year_by_year=[
+                {"year": 1, "revenue": 1_500_000, "cash_flow": 150_000, "pv": 133_929},
+            ],
+            total_projection_years=10,
+            confidence=0.7,
+        )
+
+        assert result.valuation == 10_000_000
+        assert result.pv_cash_flows == 6_000_000
+        assert len(result.year_by_year) == 1
+
+    def test_calculate_enhanced_dcf_single_stage(self):
+        """Calculate DCF with single growth stage."""
+        from worth_it.calculations.valuation import (
+            DCFStage,
+            EnhancedDCFParams,
+            calculate_enhanced_dcf,
+        )
+
+        stages = [DCFStage(name="Growth", years=5, growth_rate=0.20, margin=0.15)]
+
+        params = EnhancedDCFParams(
+            base_revenue=1_000_000,
+            stages=stages,
+            discount_rate=0.12,
+            terminal_growth_rate=0.03,
+        )
+
+        result = calculate_enhanced_dcf(params)
+
+        assert result.valuation > 0
+        assert result.total_projection_years == 5
+        assert len(result.year_by_year) == 5
+
+    def test_calculate_enhanced_dcf_multi_stage(self):
+        """Calculate DCF with multiple growth stages."""
+        from worth_it.calculations.valuation import (
+            DCFStage,
+            EnhancedDCFParams,
+            calculate_enhanced_dcf,
+        )
+
+        stages = [
+            DCFStage(name="Hypergrowth", years=2, growth_rate=0.50, margin=0.05),
+            DCFStage(name="Growth", years=3, growth_rate=0.25, margin=0.15),
+            DCFStage(name="Mature", years=5, growth_rate=0.08, margin=0.22),
+        ]
+
+        params = EnhancedDCFParams(
+            base_revenue=1_000_000,
+            stages=stages,
+            discount_rate=0.15,
+            terminal_growth_rate=0.03,
+        )
+
+        result = calculate_enhanced_dcf(params)
+
+        assert result.valuation > 0
+        assert result.total_projection_years == 10  # 2 + 3 + 5
+        assert len(result.year_by_year) == 10
+        # Verify year-by-year has correct structure
+        assert "year" in result.year_by_year[0]
+        assert "revenue" in result.year_by_year[0]
+        assert "cash_flow" in result.year_by_year[0]
+        assert "pv" in result.year_by_year[0]
+        assert "stage" in result.year_by_year[0]
+
+    def test_enhanced_dcf_revenue_grows_through_stages(self):
+        """Revenue should compound through each stage."""
+        from worth_it.calculations.valuation import (
+            DCFStage,
+            EnhancedDCFParams,
+            calculate_enhanced_dcf,
+        )
+
+        stages = [
+            DCFStage(name="Fast", years=2, growth_rate=1.0, margin=0.10),  # 100% growth
+            DCFStage(name="Slow", years=2, growth_rate=0.10, margin=0.20),  # 10% growth
+        ]
+
+        params = EnhancedDCFParams(
+            base_revenue=1_000_000,
+            stages=stages,
+            discount_rate=0.15,
+        )
+
+        result = calculate_enhanced_dcf(params)
+
+        # Year 1: 1M * 2.0 = 2M
+        # Year 2: 2M * 2.0 = 4M
+        # Year 3: 4M * 1.1 = 4.4M
+        # Year 4: 4.4M * 1.1 = 4.84M
+        assert result.year_by_year[0]["revenue"] == pytest.approx(2_000_000)
+        assert result.year_by_year[1]["revenue"] == pytest.approx(4_000_000)
+        assert result.year_by_year[2]["revenue"] == pytest.approx(4_400_000)
+        assert result.year_by_year[3]["revenue"] == pytest.approx(4_840_000)
+
+    def test_enhanced_dcf_margin_affects_cash_flow(self):
+        """Cash flow should be revenue × margin for each stage."""
+        from worth_it.calculations.valuation import (
+            DCFStage,
+            EnhancedDCFParams,
+            calculate_enhanced_dcf,
+        )
+
+        stages = [
+            DCFStage(name="Low Margin", years=2, growth_rate=0.10, margin=0.05),
+            DCFStage(name="High Margin", years=2, growth_rate=0.10, margin=0.25),
+        ]
+
+        params = EnhancedDCFParams(
+            base_revenue=1_000_000,
+            stages=stages,
+            discount_rate=0.12,
+        )
+
+        result = calculate_enhanced_dcf(params)
+
+        # Year 1: 1.1M revenue * 5% margin = 55k cash flow
+        # Year 3: ~1.33M revenue * 25% margin = ~333k cash flow
+        year1_cf = result.year_by_year[0]["cash_flow"]
+        year3_cf = result.year_by_year[2]["cash_flow"]
+
+        assert year3_cf > year1_cf * 4  # Higher margin should increase cash flow significantly
+
+    def test_enhanced_dcf_without_terminal_value(self):
+        """Enhanced DCF can work without terminal value."""
+        from worth_it.calculations.valuation import (
+            DCFStage,
+            EnhancedDCFParams,
+            calculate_enhanced_dcf,
+        )
+
+        stages = [DCFStage(name="Growth", years=5, growth_rate=0.15, margin=0.20)]
+
+        params = EnhancedDCFParams(
+            base_revenue=1_000_000,
+            stages=stages,
+            discount_rate=0.12,
+            terminal_growth_rate=None,  # No perpetuity
+        )
+
+        result = calculate_enhanced_dcf(params)
+
+        assert result.valuation > 0
+        assert result.terminal_value == 0
+        assert result.pv_terminal_value == 0
+        assert result.valuation == result.pv_cash_flows
+
+    def test_enhanced_dcf_higher_discount_lowers_valuation(self):
+        """Higher discount rate should lower valuation."""
+        from worth_it.calculations.valuation import (
+            DCFStage,
+            EnhancedDCFParams,
+            calculate_enhanced_dcf,
+        )
+
+        stages = [DCFStage(name="Growth", years=5, growth_rate=0.20, margin=0.15)]
+
+        params_low = EnhancedDCFParams(
+            base_revenue=1_000_000,
+            stages=stages,
+            discount_rate=0.10,
+            terminal_growth_rate=0.03,
+        )
+
+        params_high = EnhancedDCFParams(
+            base_revenue=1_000_000,
+            stages=stages,
+            discount_rate=0.20,
+            terminal_growth_rate=0.03,
+        )
+
+        result_low = calculate_enhanced_dcf(params_low)
+        result_high = calculate_enhanced_dcf(params_high)
+
+        assert result_low.valuation > result_high.valuation
+
+    def test_enhanced_dcf_confidence_calculation(self):
+        """Confidence should be based on projection quality."""
+        from worth_it.calculations.valuation import (
+            DCFStage,
+            EnhancedDCFParams,
+            calculate_enhanced_dcf,
+        )
+
+        # Short projection with positive cash flows should have higher confidence
+        short_stages = [DCFStage(name="Growth", years=3, growth_rate=0.10, margin=0.25)]
+        params_short = EnhancedDCFParams(
+            base_revenue=1_000_000,
+            stages=short_stages,
+            discount_rate=0.12,
+        )
+
+        # Long projection should have lower confidence (more uncertainty)
+        long_stages = [DCFStage(name="Growth", years=15, growth_rate=0.10, margin=0.25)]
+        params_long = EnhancedDCFParams(
+            base_revenue=1_000_000,
+            stages=long_stages,
+            discount_rate=0.12,
+        )
+
+        result_short = calculate_enhanced_dcf(params_short)
+        result_long = calculate_enhanced_dcf(params_long)
+
+        assert result_short.confidence >= result_long.confidence
