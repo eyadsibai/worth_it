@@ -12,6 +12,8 @@ export interface InformationBoxProps extends React.HTMLAttributes<HTMLDivElement
   accentColor?: "primary" | "chart-1" | "chart-2" | "chart-3" | "accent";
   /** Inner spacing variant */
   spacing?: "default" | "compact";
+  /** Remove border for use inside already-bordered containers */
+  borderless?: boolean;
 }
 
 const accentColorMap = {
@@ -59,12 +61,14 @@ export function InformationBox({
   variant = "muted",
   accentColor,
   spacing = "default",
+  borderless = false,
   ...props
 }: InformationBoxProps) {
   return (
     <div
       className={cn(
-        "border-border rounded-lg border",
+        "rounded-lg",
+        !borderless && "border-border border",
         spacing === "compact" ? "p-3" : "p-4",
         variantClassMap[variant],
         className

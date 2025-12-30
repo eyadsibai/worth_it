@@ -2,11 +2,9 @@
 
 import * as React from "react";
 import { UseFormReturn } from "react-hook-form";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Trash2, Settings } from "lucide-react";
 import { SliderField, CurrencySliderField, SelectField } from "./form-fields";
 import type { DilutionRoundForm } from "@/lib/schemas";
@@ -40,60 +38,53 @@ export function DilutionRoundFormComponent({
   };
 
   return (
-    <Card
-      className={`transition-all ${isEnabled ? "border-primary/20 bg-primary/5" : "border-border"}`}
+    <div
+      className={`border-input rounded-md border p-4 transition-colors ${
+        isEnabled ? "bg-muted/30" : "bg-transparent"
+      }`}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id={`round-${roundIndex}-enabled`}
-                checked={isEnabled}
-                onCheckedChange={handleEnabledChange}
-              />
-              <Label htmlFor={`round-${roundIndex}-enabled`}>
-                <CardTitle className="text-sm font-medium">{roundName}</CardTitle>
-              </Label>
-            </div>
-            {isEnabled && (
-              <Badge variant="secondary" className="text-xs">
-                Enabled
-              </Badge>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {isEnabled && (
-              <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <Settings className="h-4 w-4" />
-                    <span className="sr-only">Configure round</span>
-                  </Button>
-                </CollapsibleTrigger>
-              </Collapsible>
-            )}
-
-            {canRemove && onRemove && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:text-destructive h-8 w-8 p-0"
-                onClick={onRemove}
-              >
-                <Trash2 className="h-4 w-4" />
-                <span className="sr-only">Remove round</span>
-              </Button>
-            )}
-          </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <Switch
+            id={`round-${roundIndex}-enabled`}
+            checked={isEnabled}
+            onCheckedChange={handleEnabledChange}
+          />
+          <Label htmlFor={`round-${roundIndex}-enabled`} className="text-sm font-medium">
+            {roundName}
+          </Label>
         </div>
-      </CardHeader>
+
+        <div className="flex items-center gap-2">
+          {isEnabled && (
+            <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Settings className="h-4 w-4" />
+                  <span className="sr-only">Configure round</span>
+                </Button>
+              </CollapsibleTrigger>
+            </Collapsible>
+          )}
+
+          {canRemove && onRemove && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive h-8 w-8 p-0"
+              onClick={onRemove}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span className="sr-only">Remove round</span>
+            </Button>
+          )}
+        </div>
+      </div>
 
       {isEnabled && (
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleContent>
-            <CardContent className="space-y-4">
+            <div className="mt-4 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <SelectField
                   form={form}
@@ -164,10 +155,10 @@ export function DilutionRoundFormComponent({
                   step={500}
                 />
               </div>
-            </CardContent>
+            </div>
           </CollapsibleContent>
         </Collapsible>
       )}
-    </Card>
+    </div>
   );
 }

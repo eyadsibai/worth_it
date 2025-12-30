@@ -122,8 +122,9 @@
   /* Terminal/Success: Bright lime */
   --terminal: oklch(72% 0.18 115);
   --destructive: oklch(62% 0.22 25);
-  --border: oklch(25% 0.01 250);
-  --input: oklch(20% 0.01 250);
+  /* Visible borders - matches muted-foreground/50 for consistency */
+  --border: oklch(40% 0.01 250);
+  --input: oklch(40% 0.01 250);
   --ring: oklch(72% 0.18 115);
   /* Chart palette for dark mode */
   --chart-1: oklch(55% 0.12 155);
@@ -138,7 +139,7 @@
   --sidebar-primary-foreground: oklch(14% 0.02 155);
   --sidebar-accent: oklch(22% 0.01 250);
   --sidebar-accent-foreground: oklch(90% 0.005 250);
-  --sidebar-border: oklch(25% 0.01 250);
+  --sidebar-border: oklch(40% 0.01 250);
   --sidebar-ring: oklch(72% 0.18 115);
 }
 
@@ -266,14 +267,14 @@
     @apply bg-background;
   }
 
-  /* Gradient text - green spectrum */
+  /* Gradient text - green spectrum with dark mode support */
   .gradient-text {
-    @apply from-primary via-accent to-terminal bg-gradient-to-r bg-clip-text text-transparent;
+    @apply from-primary via-chart-4 to-terminal bg-gradient-to-r bg-clip-text text-transparent;
   }
 
   /* Success gradient for positive values */
   .gradient-gold {
-    @apply from-accent to-terminal bg-gradient-to-r bg-clip-text text-transparent;
+    @apply from-chart-3 to-terminal bg-gradient-to-r bg-clip-text text-transparent;
   }
 
   /* Section divider - subtle green */

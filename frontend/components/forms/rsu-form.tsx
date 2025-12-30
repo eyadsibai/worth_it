@@ -161,9 +161,9 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
           label="Total Equity Grant"
           tooltip={TOOLTIPS.totalEquityGrantPct}
           min={0}
-          max={10}
-          step={0.01}
-          formatValue={(value) => `${value.toFixed(2)}%`}
+          max={100}
+          step={0.1}
+          formatValue={(value) => `${value.toFixed(1)}%`}
           description={FIELD_HINTS.total_equity_grant_pct}
         />
 
@@ -208,7 +208,7 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
           control={form.control as any}
           name="simulate_dilution"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-y-0 space-x-3 rounded-md border p-4">
+            <FormItem className="border-input flex flex-row items-start space-y-0 space-x-3 rounded-md border p-4">
               <FormControl>
                 <Checkbox checked={field.value} onCheckedChange={field.onChange} />
               </FormControl>
@@ -227,10 +227,12 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
             {/* Company Stage Selector */}
             <CompanyStageSelector form={form} />
 
-            {/* Dilution Summary Card */}
+            {/* Dilution Summary Card with Total Dilution Slider */}
             <DilutionSummaryCard
               completedRounds={completedRounds}
               upcomingRounds={upcomingRounds}
+              form={form}
+              upcomingRoundIndices={upcomingRoundIndices}
             />
 
             {/* Completed Rounds (Historical) */}

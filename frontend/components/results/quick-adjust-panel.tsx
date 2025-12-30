@@ -297,7 +297,7 @@ export function QuickAdjustPanel({
                       Equity %
                     </Label>
                     <span className="text-accent text-sm tabular-nums">
-                      <AnimatedPercentage value={equityPct} decimals={2} />
+                      <AnimatedPercentage value={equityPct} decimals={1} />
                     </span>
                   </div>
                   <Slider
@@ -305,14 +305,14 @@ export function QuickAdjustPanel({
                     aria-label="Equity percentage"
                     value={[equityPct]}
                     onValueChange={([value]) => setEquityPct(value)}
-                    min={0.01}
-                    max={10}
-                    step={0.01}
+                    min={0.1}
+                    max={100}
+                    step={0.1}
                     className="cursor-pointer"
                   />
                   <div className="text-muted-foreground flex justify-between text-xs">
-                    <span>0.01%</span>
-                    <span>10%</span>
+                    <span>0.1%</span>
+                    <span>100%</span>
                   </div>
                 </div>
               </>

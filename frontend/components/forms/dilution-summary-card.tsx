@@ -1,14 +1,22 @@
 "use client";
 
 import * as React from "react";
+import { UseFormReturn } from "react-hook-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, TrendingDown, Clock, Target } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
+import { PieChart, TrendingDown, Clock, Target, SlidersHorizontal } from "lucide-react";
 import type { DilutionRoundForm } from "@/lib/schemas";
 import { AnimatedNumber } from "@/lib/motion";
 
 interface DilutionSummaryCardProps {
   completedRounds: DilutionRoundForm[];
   upcomingRounds: DilutionRoundForm[];
+  /** Form instance for updating dilution rounds */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  form?: UseFormReturn<any>;
+  /** Indices of upcoming rounds in the full dilution_rounds array */
+  upcomingRoundIndices?: number[];
 }
 
 /**
@@ -42,7 +50,66 @@ function calculateDilutionFactor(rounds: DilutionRoundForm[]): number {
  * - Large percentage display with muted suffix
  * - Progress bar visualization
  */
-export function DilutionSummaryCard({ completedRounds, upcomingRounds }: DilutionSummaryCardProps) {
+export function DilutionSummaryCard({
+  completedRounds,
+  upcomingRounds,
+  form,
+  upcomingRoundIndices,
+}: DilutionSummaryCardProps) {
+  // Store the initial dilution ratios when rounds are first loaded
+  const [baseRatios, setBaseRatios] = React.useState<number[] | null>(null);
+
+  // Calculate enabled upcoming rounds for the slider (must be before hooks that depend on it)
+  const enabledUpcomingRounds = React.useMemo(
+    () => upcomingRounds.filter((r) => r.enabled),
+    [upcomingRounds]
+  );
+  const hasEnabledUpcoming = enabledUpcomingRounds.length > 0;
+  const enabledCount = enabledUpcomingRounds.length;
+
+  // Initialize base ratios when we have enabled rounds
+  React.useEffect(() => {
+    if (hasEnabledUpcoming && baseRatios === null) {
+      // Store the initial dilution percentages as ratios
+      const totalDilutionPct = enabledUpcomingRounds.reduce((sum, r) => sum + r.dilution_pct, 0);
+      if (totalDilutionPct > 0) {
+        const ratios = enabledUpcomingRounds.map((r) => r.dilution_pct / totalDilutionPct);
+        setBaseRatios(ratios);
+      }
+    }
+  }, [hasEnabledUpcoming, enabledUpcomingRounds, baseRatios]);
+
+  // Reset base ratios when enabled round count changes (e.g., stage selection or toggling)
+  React.useEffect(() => {
+    setBaseRatios(null);
+  }, [enabledCount]);
+
+  // Handle slider change - scale all enabled upcoming rounds proportionally
+  const handleTotalDilutionChange = React.useCallback(
+    (values: number[]) => {
+      if (!form || !upcomingRoundIndices || !baseRatios) return;
+
+      const newTotalDilution = values[0];
+
+      // Get enabled round indices
+      const enabledIndices = upcomingRoundIndices.filter((idx) => {
+        const round = form.getValues(`dilution_rounds.${idx}`) as DilutionRoundForm;
+        return round?.enabled;
+      });
+
+      // Distribute the new total dilution according to base ratios
+      enabledIndices.forEach((originalIdx, i) => {
+        if (i < baseRatios.length) {
+          const newDilution = Math.round(newTotalDilution * baseRatios[i] * 10) / 10;
+          // Clamp to valid range
+          const clampedDilution = Math.max(0, Math.min(50, newDilution));
+          form.setValue(`dilution_rounds.${originalIdx}.dilution_pct`, clampedDilution);
+        }
+      });
+    },
+    [form, upcomingRoundIndices, baseRatios]
+  );
+
   // Don't render if no rounds at all
   if (completedRounds.length === 0 && upcomingRounds.length === 0) {
     return null;
@@ -64,6 +131,9 @@ export function DilutionSummaryCard({ completedRounds, upcomingRounds }: Dilutio
   const projectedBarWidth = historicalFactor * (1 - projectedFactor) * 100;
   const remainingBarWidth = totalFactor * 100;
 
+  // Calculate total projected dilution percentage for slider
+  const projectedDilutionPct = (1 - projectedFactor) * 100;
+
   return (
     <Card className="terminal-card">
       <CardHeader className="pb-2">
@@ -84,6 +154,32 @@ export function DilutionSummaryCard({ completedRounds, upcomingRounds }: Dilutio
             <span className="text-muted-foreground text-xl">%</span>
           </p>
         </div>
+
+        {/* Total Projected Dilution Slider */}
+        {form && upcomingRoundIndices && hasEnabledUpcoming && (
+          <div className="border-input space-y-3 rounded-md border p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="text-muted-foreground h-4 w-4" />
+                <Label className="text-sm font-medium">Total Projected Dilution</Label>
+              </div>
+              <span className="text-chart-3 text-lg font-semibold tabular-nums">
+                {formatPct(projectedDilutionPct)}%
+              </span>
+            </div>
+            <Slider
+              value={[projectedDilutionPct]}
+              onValueChange={handleTotalDilutionChange}
+              min={0}
+              max={80}
+              step={1}
+              className="w-full"
+            />
+            <p className="text-muted-foreground text-xs">
+              Adjusts all enabled future rounds proportionally
+            </p>
+          </div>
+        )}
 
         {/* Visual progress bar */}
         <div className="space-y-2">

@@ -119,7 +119,7 @@ export default function DashboardPage() {
 
   return (
     <AppShell>
-      <div className="container mx-auto max-w-6xl space-y-8 p-6">
+      <div className="mx-auto max-w-6xl space-y-8 p-6">
         {/* Welcome Header */}
         <div className="space-y-2">
           <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
