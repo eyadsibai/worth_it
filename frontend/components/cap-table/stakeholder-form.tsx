@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,12 @@ export function StakeholderForm({
     },
   });
 
-  const hasVesting = form.watch("has_vesting");
+  // useWatch is the hook-based API for subscribing to form values
+  const hasVesting = useWatch({
+    control: form.control,
+    name: "has_vesting",
+    defaultValue: false,
+  });
 
   const handleSubmit = (data: StakeholderFormData) => {
     onSubmit(data);

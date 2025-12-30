@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
@@ -54,11 +54,22 @@ export function PricedRoundForm({
   };
 
   // Calculate round metrics in real-time
-  const preMoney = form.watch("pre_money_valuation") || 0;
-  const amountRaised = form.watch("amount_raised") || 0;
-  const participating = form.watch("participating");
-  const liquidationMult = form.watch("liquidation_multiplier") || 1;
-  const leadInvestor = form.watch("lead_investor") || "";
+  // useWatch is the hook-based API for subscribing to form values
+  const watchedValues = useWatch({
+    control: form.control,
+    name: [
+      "pre_money_valuation",
+      "amount_raised",
+      "participating",
+      "liquidation_multiplier",
+      "lead_investor",
+    ] as const,
+  });
+  const preMoney = (watchedValues[0] as number) ?? 0;
+  const amountRaised = (watchedValues[1] as number) ?? 0;
+  const participating = (watchedValues[2] as boolean) ?? false;
+  const liquidationMult = (watchedValues[3] as number) ?? 1;
+  const leadInvestor = (watchedValues[4] as string) ?? "";
 
   const postMoney = preMoney + amountRaised;
   const dilutionPct = postMoney > 0 ? (amountRaised / postMoney) * 100 : 0;

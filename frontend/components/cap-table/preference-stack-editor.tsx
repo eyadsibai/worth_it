@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,13 @@ export function PreferenceStackEditor({
       participating: false,
       participation_cap: undefined,
     },
+  });
+
+  // useWatch is the hook-based API for subscribing to form values
+  const isParticipating = useWatch({
+    control: form.control,
+    name: "participating",
+    defaultValue: false,
   });
 
   const onSubmit = (data: PreferenceTierFormData) => {
@@ -236,7 +243,7 @@ export function PreferenceStackEditor({
                 />
               </div>
 
-              {form.watch("participating") && (
+              {isParticipating && (
                 <FormField
                   control={form.control}
                   name="participation_cap"

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
@@ -45,10 +45,15 @@ export function ConvertibleNoteForm({
   };
 
   // Calculate accrued interest preview (simple or compound)
-  const principal = form.watch("principal_amount") || 0;
-  const rate = form.watch("interest_rate") || 0;
-  const months = form.watch("maturity_months") || 24;
-  const interestType = form.watch("interest_type") || "simple";
+  // useWatch is the hook-based API for subscribing to form values
+  const watchedValues = useWatch({
+    control: form.control,
+    name: ["principal_amount", "interest_rate", "maturity_months", "interest_type"] as const,
+  });
+  const principal = (watchedValues[0] as number) ?? 0;
+  const rate = (watchedValues[1] as number) ?? 0;
+  const months = (watchedValues[2] as number) ?? 24;
+  const interestType = (watchedValues[3] as string) ?? "simple";
 
   const years = months / 12;
   const annualRate = rate / 100;

@@ -190,7 +190,7 @@ export function MonteCarloVisualizations({
       { name: "P90", value: stats.p90 },
       { name: "Max", value: stats.max },
     ];
-  }, [stats]);
+  }, [stats, netOutcomes.length]);
 
   // Early return for empty data - show helpful empty state
   // This MUST come AFTER all hooks to satisfy Rules of Hooks
