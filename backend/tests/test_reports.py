@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+from worth_it.reports.builder import (
+    build_first_chicago_report,
+    build_pre_revenue_report,
+    format_currency,
+    format_percentage,
+)
 from worth_it.reports.models import (
     ChartData,
     ReportFormat,
@@ -10,6 +16,109 @@ from worth_it.reports.models import (
     ValuationReportData,
 )
 from worth_it.reports.pdf_generator import generate_pdf_report
+
+
+class TestReportBuilder:
+    """Tests for report builder service."""
+
+    def test_format_currency_millions(self) -> None:
+        """Test formatting large values."""
+        assert format_currency(7_500_000) == "$7.5M"
+        assert format_currency(10_000_000) == "$10.0M"
+
+    def test_format_currency_thousands(self) -> None:
+        """Test formatting medium values."""
+        assert format_currency(500_000) == "$500.0K"
+        assert format_currency(1_000) == "$1.0K"
+
+    def test_format_currency_small(self) -> None:
+        """Test formatting small values."""
+        assert format_currency(500) == "$500"
+
+    def test_format_percentage(self) -> None:
+        """Test percentage formatting."""
+        assert format_percentage(0.25) == "25%"
+        assert format_percentage(0.10) == "10%"
+        assert format_percentage(0.075) == "8%"  # Rounds to nearest
+
+    def test_build_first_chicago_report(self) -> None:
+        """Test building First Chicago report."""
+        result = {
+            "weighted_value": 10_000_000,
+            "present_value": 7_500_000,
+            "scenario_values": {
+                "Best": 15_000_000,
+                "Base": 10_000_000,
+                "Worst": 5_000_000,
+            },
+            "scenario_present_values": {
+                "Best": 11_000_000,
+                "Base": 7_500_000,
+                "Worst": 3_800_000,
+            },
+        }
+        params = {"discount_rate": 0.25}
+
+        report = build_first_chicago_report(
+            company_name="TestCo",
+            result=result,
+            params=params,
+        )
+
+        assert report.company_name == "TestCo"
+        assert report.valuation_method == "First Chicago Method"
+        assert len(report.sections) >= 2
+        assert any("Summary" in s.title for s in report.sections)
+
+    def test_first_chicago_with_monte_carlo(self) -> None:
+        """Test First Chicago with Monte Carlo results."""
+        result = {
+            "weighted_value": 10_000_000,
+            "present_value": 7_500_000,
+            "scenario_values": {"Base": 10_000_000},
+            "scenario_present_values": {"Base": 7_500_000},
+        }
+        monte_carlo = {
+            "mean": 8_000_000,
+            "num_simulations": 10000,
+            "percentiles": {"p5": 4_000_000, "p50": 7_800_000, "p95": 14_000_000},
+        }
+
+        report = build_first_chicago_report(
+            company_name="MCCo",
+            result=result,
+            params={},
+            monte_carlo_result=monte_carlo,
+        )
+
+        assert report.monte_carlo_enabled is True
+        assert any("Monte Carlo" in s.title for s in report.sections)
+
+    def test_build_pre_revenue_report(self) -> None:
+        """Test building pre-revenue valuation report."""
+        result = {
+            "valuation": 2_500_000,
+            "factors": [
+                {"name": "Sound Idea", "value": 500_000},
+                {"name": "Prototype", "value": 500_000},
+                {"name": "Team", "value": 500_000},
+                {"name": "Strategic Relationships", "value": 500_000},
+                {"name": "Product Rollout", "value": 500_000},
+            ],
+        }
+
+        report = build_pre_revenue_report(
+            company_name="StartupCo",
+            method_name="Berkus Method",
+            result=result,
+            params={},
+            industry="SaaS",
+        )
+
+        assert report.company_name == "StartupCo"
+        assert report.valuation_method == "Berkus Method"
+        assert report.industry == "SaaS"
+        assert len(report.sections) >= 1
 
 
 class TestPDFGenerator:
