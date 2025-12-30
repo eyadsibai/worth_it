@@ -9,6 +9,81 @@ from worth_it.reports.models import (
     ReportSection,
     ValuationReportData,
 )
+from worth_it.reports.pdf_generator import generate_pdf_report
+
+
+class TestPDFGenerator:
+    """Tests for PDF report generation."""
+
+    def test_generate_simple_pdf(self) -> None:
+        """Test generating a simple PDF report."""
+        report_data = ValuationReportData(
+            title="Test Valuation Report",
+            company_name="Test Company",
+            report_date="2024-01-15",
+            prepared_by="Worth It",
+            valuation_method="First Chicago",
+            sections=[
+                ReportSection(
+                    title="Summary",
+                    content="This is a test summary.",
+                    metrics=[
+                        ReportMetric("Valuation", 10_000_000, "$10M", "Primary value"),
+                    ],
+                ),
+            ],
+        )
+        pdf_bytes = generate_pdf_report(report_data)
+        assert pdf_bytes.startswith(b"%PDF")
+        assert len(pdf_bytes) > 100  # Should have substantial content
+
+    def test_pdf_with_multiple_sections(self) -> None:
+        """Test PDF with multiple sections and metrics."""
+        report_data = ValuationReportData(
+            title="Full Valuation Report",
+            company_name="Acme Corp",
+            report_date="2024-01-20",
+            prepared_by="Worth It Valuation Tool",
+            valuation_method="DCF Analysis",
+            sections=[
+                ReportSection(
+                    title="Executive Summary",
+                    content="Acme Corp is valued at $15M.",
+                    metrics=[
+                        ReportMetric("Present Value", 15_000_000, "$15M", "NPV"),
+                    ],
+                ),
+                ReportSection(
+                    title="Scenario Analysis",
+                    content="Three scenarios were analyzed.",
+                    metrics=[
+                        ReportMetric("Best Case", 25_000_000, "$25M", "Optimistic"),
+                        ReportMetric("Base Case", 15_000_000, "$15M", "Expected"),
+                        ReportMetric("Worst Case", 5_000_000, "$5M", "Conservative"),
+                    ],
+                ),
+            ],
+            assumptions=["5-year timeline", "25% discount rate"],
+            disclaimers=["This is not financial advice."],
+        )
+        pdf_bytes = generate_pdf_report(report_data)
+        assert pdf_bytes.startswith(b"%PDF")
+        assert len(pdf_bytes) > 500  # Multi-section should be larger
+
+    def test_pdf_with_industry_and_monte_carlo(self) -> None:
+        """Test PDF includes optional fields."""
+        report_data = ValuationReportData(
+            title="SaaS Valuation",
+            company_name="CloudCo",
+            report_date="2024-02-01",
+            prepared_by="Worth It",
+            valuation_method="Revenue Multiple",
+            sections=[],
+            industry="SaaS",
+            monte_carlo_enabled=True,
+        )
+        pdf_bytes = generate_pdf_report(report_data)
+        assert pdf_bytes.startswith(b"%PDF")
 
 
 class TestReportModels:
