@@ -28,7 +28,7 @@ from .dependencies import create_error_response, limiter
 from .dependencies import startup_service as startup_service
 from .dependencies import track_websocket_connection as track_websocket_connection
 from .dependencies import ws_connection_tracker as ws_connection_tracker
-from .routers import cap_table, monte_carlo, scenarios, valuation
+from .routers import cap_table, export, monte_carlo, scenarios, valuation
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -157,6 +157,9 @@ app.include_router(cap_table.router)
 
 # Valuation calculator endpoints
 app.include_router(valuation.router)
+
+# Export endpoints for generating PDF/JSON/CSV reports
+app.include_router(export.router)
 
 
 # =============================================================================
