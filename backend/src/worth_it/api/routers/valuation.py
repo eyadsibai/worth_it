@@ -6,7 +6,10 @@ This router handles company valuation methods:
 - VC Method valuation
 - Multi-method comparison
 - Industry benchmarks (Phase 4)
+- Advanced methods (Phase 6): Enhanced DCF, WACC, Comparables, Real Options
 """
+
+from dataclasses import asdict
 
 from fastapi import APIRouter, HTTPException, Request
 
@@ -16,6 +19,30 @@ from worth_it.calculations.benchmarks import (
     get_benchmark,
     validate_against_benchmark,
 )
+from worth_it.calculations.comparables import (
+    ComparablesParams,
+    ComparableTransaction,
+    calculate_comparable_valuation,
+)
+from worth_it.calculations.real_options import (
+    OptionType,
+    RealOptionParams,
+    calculate_real_option_value,
+)
+from worth_it.calculations.valuation import (
+    DCFStage,
+    EnhancedDCFParams,
+    calculate_enhanced_dcf,
+)
+from worth_it.calculations.wacc import (
+    WACCParams,
+    calculate_wacc,
+)
+from worth_it.calculations.weighted_average import (
+    ValuationInput,
+    WeightedAverageParams,
+    calculate_weighted_average,
+)
 from worth_it.config import settings
 from worth_it.exceptions import CalculationError
 from worth_it.models import (
@@ -24,11 +51,17 @@ from worth_it.models import (
     BenchmarkValidationResponse,
     BerkusRequest,
     BerkusResponse,
+    ComparablesRequest,
+    ComparablesResponse,
     DCFRequest,
+    EnhancedDCFRequest,
+    EnhancedDCFResponse,
     FirstChicagoRequest,
     FirstChicagoResponse,
     IndustryBenchmarkResponse,
     IndustryListItem,
+    RealOptionRequest,
+    RealOptionResponse,
     RevenueMultipleRequest,
     RiskFactorSummationRequest,
     RiskFactorSummationResponse,
@@ -38,6 +71,10 @@ from worth_it.models import (
     ValuationCompareResponse,
     ValuationResultResponse,
     VCMethodRequest,
+    WACCRequest,
+    WACCResponse,
+    WeightedAverageRequest,
+    WeightedAverageResponse,
 )
 
 from ..dependencies import limiter
@@ -417,3 +454,152 @@ async def validate_benchmark(
         benchmark_median=result.benchmark_median,
         suggested_range=result.suggested_range,
     )
+
+
+# --- Advanced Valuation Endpoints (Phase 6) ---
+
+
+@router.post("/enhanced-dcf", response_model=EnhancedDCFResponse)
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def enhanced_dcf_valuation(request: Request, body: EnhancedDCFRequest) -> EnhancedDCFResponse:
+    """Calculate enhanced multi-stage DCF valuation.
+
+    Projects cash flows through multiple growth stages (e.g., hypergrowth,
+    growth, mature), then calculates terminal value and present value.
+
+    This is more realistic than simple DCF for high-growth startups
+    that will transition through different growth phases.
+    """
+    try:
+        stages = [
+            DCFStage(
+                name=s.name,
+                years=s.years,
+                growth_rate=s.growth_rate,
+                margin=s.margin,
+            )
+            for s in body.stages
+        ]
+        params = EnhancedDCFParams(
+            base_revenue=body.base_revenue,
+            stages=stages,
+            discount_rate=body.discount_rate,
+            terminal_growth_rate=body.terminal_growth_rate,
+        )
+        result = calculate_enhanced_dcf(params)
+        return EnhancedDCFResponse(**asdict(result))
+    except (ValueError, TypeError) as e:
+        raise CalculationError("Invalid parameters for enhanced DCF valuation") from e
+
+
+@router.post("/wacc", response_model=WACCResponse)
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def wacc_calculation(request: Request, body: WACCRequest) -> WACCResponse:
+    """Calculate Weighted Average Cost of Capital (WACC).
+
+    WACC = (E/V) × Re + (D/V) × Rd × (1 - T)
+
+    This provides the discount rate for DCF valuations based on
+    the company's capital structure and required returns.
+    """
+    try:
+        params = WACCParams(
+            equity_value=body.equity_value,
+            debt_value=body.debt_value,
+            cost_of_equity=body.cost_of_equity,
+            cost_of_debt=body.cost_of_debt,
+            tax_rate=body.tax_rate,
+        )
+        result = calculate_wacc(params)
+        return WACCResponse(**asdict(result))
+    except (ValueError, TypeError) as e:
+        raise CalculationError("Invalid parameters for WACC calculation") from e
+
+
+@router.post("/comparables", response_model=ComparablesResponse)
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def comparables_valuation(request: Request, body: ComparablesRequest) -> ComparablesResponse:
+    """Calculate valuation using Comparable Transactions method.
+
+    Values a company based on revenue multiples from similar
+    M&A transactions or public company valuations.
+
+    Returns median and mean multiples, plus 25th/75th percentile range.
+    """
+    try:
+        comparables = [
+            ComparableTransaction(
+                name=c.name,
+                deal_value=c.deal_value,
+                revenue=c.revenue,
+                industry=c.industry,
+                date=c.date,
+            )
+            for c in body.comparables
+        ]
+        params = ComparablesParams(
+            target_revenue=body.target_revenue,
+            comparables=comparables,
+        )
+        result = calculate_comparable_valuation(params)
+        return ComparablesResponse(**asdict(result))
+    except (ValueError, TypeError) as e:
+        raise CalculationError("Invalid parameters for comparables valuation") from e
+
+
+@router.post("/real-options", response_model=RealOptionResponse)
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def real_options_valuation(request: Request, body: RealOptionRequest) -> RealOptionResponse:
+    """Calculate Real Options valuation using Black-Scholes framework.
+
+    Values strategic flexibility as options:
+    - GROWTH: Option to expand/invest (call-like)
+    - ABANDONMENT: Option to exit/sell (put-like)
+    - DELAY: Option to wait before investing
+    - SWITCH: Option to change strategy
+
+    Uses Black-Scholes option pricing adapted for real assets.
+    """
+    try:
+        option_type = OptionType(body.option_type)
+        params = RealOptionParams(
+            option_type=option_type,
+            underlying_value=body.underlying_value,
+            exercise_price=body.exercise_price,
+            time_to_expiry=body.time_to_expiry,
+            volatility=body.volatility,
+            risk_free_rate=body.risk_free_rate,
+        )
+        result = calculate_real_option_value(params)
+        return RealOptionResponse(**asdict(result))
+    except (ValueError, TypeError) as e:
+        raise CalculationError("Invalid parameters for real options valuation") from e
+
+
+@router.post("/weighted-average", response_model=WeightedAverageResponse)
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
+async def weighted_average_valuation(
+    request: Request, body: WeightedAverageRequest
+) -> WeightedAverageResponse:
+    """Synthesize multiple valuation methods into weighted average.
+
+    Combines valuations from different methods using confidence weights.
+    Weights are automatically normalized to sum to 1.0.
+
+    This is standard practice in professional valuations - triangulating
+    from multiple methods provides a more robust estimate.
+    """
+    try:
+        valuations = [
+            ValuationInput(
+                method=v.method,
+                valuation=v.valuation,
+                weight=v.weight,
+            )
+            for v in body.valuations
+        ]
+        params = WeightedAverageParams(valuations=valuations)
+        result = calculate_weighted_average(params)
+        return WeightedAverageResponse(**asdict(result))
+    except (ValueError, TypeError) as e:
+        raise CalculationError("Invalid parameters for weighted average") from e

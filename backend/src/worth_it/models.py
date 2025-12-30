@@ -1077,3 +1077,142 @@ class NegotiationRangeRequest(BaseModel):
         default=None,
         description="Monte Carlo percentiles (p10, p25, p50, p75, p90) for data-driven range",
     )
+
+
+# --- Advanced Valuation Models (Phase 6) ---
+
+
+class DCFStageAPI(BaseModel):
+    """API model for a DCF growth stage."""
+
+    name: str = Field(..., min_length=1, description="Stage name (e.g., Hypergrowth, Growth)")
+    years: int = Field(..., ge=1, le=20, description="Stage duration in years")
+    growth_rate: float = Field(
+        ..., ge=-0.5, le=2.0, description="Annual revenue growth rate (e.g., 0.25 = 25%)"
+    )
+    margin: float = Field(
+        ..., ge=-0.5, le=0.8, description="Free cash flow margin (e.g., 0.15 = 15%)"
+    )
+
+
+class EnhancedDCFRequest(BaseModel):
+    """API request for enhanced multi-stage DCF valuation."""
+
+    base_revenue: float = Field(..., gt=0, description="Current annual revenue")
+    stages: list[DCFStageAPI] = Field(..., min_length=1, max_length=5, description="Growth stages")
+    discount_rate: float = Field(..., gt=0, le=0.5, description="WACC or discount rate")
+    terminal_growth_rate: float | None = Field(
+        default=None, ge=0, lt=0.1, description="Terminal growth rate (perpetuity)"
+    )
+
+
+class EnhancedDCFResponse(BaseModel):
+    """API response for enhanced multi-stage DCF valuation."""
+
+    valuation: float
+    pv_cash_flows: float
+    terminal_value: float
+    pv_terminal_value: float
+    year_by_year: list[dict[str, Any]]
+    total_projection_years: int
+    confidence: float
+
+
+class WACCRequest(BaseModel):
+    """API request for WACC calculation."""
+
+    equity_value: float = Field(..., ge=0, description="Market value of equity")
+    debt_value: float = Field(..., ge=0, description="Market value of debt")
+    cost_of_equity: float = Field(
+        ..., gt=0, le=0.5, description="Required return on equity (from CAPM)"
+    )
+    cost_of_debt: float = Field(..., ge=0, le=0.3, description="Interest rate on debt (pre-tax)")
+    tax_rate: float = Field(..., ge=0, le=0.5, description="Corporate tax rate")
+
+
+class WACCResponse(BaseModel):
+    """API response for WACC calculation."""
+
+    wacc: float
+    equity_weight: float
+    debt_weight: float
+    after_tax_cost_of_debt: float
+
+
+class ComparableTransactionAPI(BaseModel):
+    """API model for a comparable transaction."""
+
+    name: str = Field(..., min_length=1, description="Company or deal name")
+    deal_value: float = Field(..., gt=0, description="Transaction value (enterprise or equity)")
+    revenue: float = Field(..., gt=0, description="Revenue at time of transaction")
+    industry: str = Field(..., min_length=1, description="Industry category")
+    date: str = Field(..., description="Transaction date (YYYY-MM-DD or YYYY-MM)")
+
+
+class ComparablesRequest(BaseModel):
+    """API request for Comparable Transactions valuation."""
+
+    target_revenue: float = Field(..., gt=0, description="Target company's current revenue")
+    comparables: list[ComparableTransactionAPI] = Field(
+        ..., min_length=1, description="List of comparable transactions"
+    )
+
+
+class ComparablesResponse(BaseModel):
+    """API response for Comparable Transactions valuation."""
+
+    implied_valuation: float
+    median_multiple: float
+    mean_multiple: float
+    low_valuation: float
+    high_valuation: float
+    multiples: list[float]
+    comparable_count: int
+
+
+class RealOptionRequest(BaseModel):
+    """API request for Real Options valuation."""
+
+    option_type: Literal["growth", "abandonment", "delay", "switch"] = Field(
+        ..., description="Type of real option"
+    )
+    underlying_value: float = Field(..., gt=0, description="Current project/asset value (S)")
+    exercise_price: float = Field(..., gt=0, description="Investment required/exit value (K)")
+    time_to_expiry: float = Field(..., gt=0, le=20, description="Years until decision (T)")
+    volatility: float = Field(..., gt=0, le=1.5, description="Annual volatility (σ)")
+    risk_free_rate: float = Field(..., ge=0, le=0.2, description="Risk-free rate (r)")
+
+
+class RealOptionResponse(BaseModel):
+    """API response for Real Options valuation."""
+
+    option_value: float
+    total_value: float
+    d1: float
+    d2: float
+    method: str = "real_options"
+
+
+class ValuationInputAPI(BaseModel):
+    """API model for a single valuation input to weighted average."""
+
+    method: str = Field(..., min_length=1, description="Valuation method name")
+    valuation: float = Field(..., gt=0, description="Valuation from this method")
+    weight: float = Field(..., gt=0, description="Confidence weight (will be normalized)")
+
+
+class WeightedAverageRequest(BaseModel):
+    """API request for weighted average valuation synthesis."""
+
+    valuations: list[ValuationInputAPI] = Field(
+        ..., min_length=1, description="List of valuations with weights"
+    )
+
+
+class WeightedAverageResponse(BaseModel):
+    """API response for weighted average valuation synthesis."""
+
+    weighted_valuation: float
+    method_contributions: dict[str, float]
+    normalized_weights: dict[str, float]
+    method: str = "weighted_average"

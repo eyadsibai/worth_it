@@ -2717,3 +2717,236 @@ class TestExportAPI:
         assert error_data["error"]["code"] == "VALIDATION_ERROR"
         # Error details should mention the format field
         assert any("format" in str(detail).lower() for detail in error_data["error"]["details"])
+
+
+# --- Advanced Valuation API Tests (Phase 6) ---
+
+
+class TestAdvancedValuationAPI:
+    """Tests for Phase 6 advanced valuation API endpoints."""
+
+    def test_enhanced_dcf_endpoint(self):
+        """Test enhanced DCF with multi-stage growth."""
+        response = client.post(
+            "/api/valuation/enhanced-dcf",
+            json={
+                "base_revenue": 10_000_000,
+                "stages": [
+                    {"name": "Hypergrowth", "years": 3, "growth_rate": 0.50, "margin": 0.10},
+                    {"name": "Growth", "years": 4, "growth_rate": 0.25, "margin": 0.15},
+                    {"name": "Mature", "years": 3, "growth_rate": 0.05, "margin": 0.20},
+                ],
+                "discount_rate": 0.15,
+                "terminal_growth_rate": 0.03,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["valuation"] > 0
+        assert data["pv_cash_flows"] > 0
+        assert data["terminal_value"] > 0
+        assert data["total_projection_years"] == 10
+
+    def test_enhanced_dcf_single_stage(self):
+        """Test enhanced DCF with single growth stage."""
+        response = client.post(
+            "/api/valuation/enhanced-dcf",
+            json={
+                "base_revenue": 5_000_000,
+                "stages": [
+                    {"name": "Growth", "years": 5, "growth_rate": 0.20, "margin": 0.15},
+                ],
+                "discount_rate": 0.12,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["valuation"] > 0
+        assert len(data["year_by_year"]) == 5
+
+    def test_wacc_endpoint(self):
+        """Test WACC calculation with equal debt/equity."""
+        response = client.post(
+            "/api/valuation/wacc",
+            json={
+                "equity_value": 50_000_000,
+                "debt_value": 50_000_000,
+                "cost_of_equity": 0.12,
+                "cost_of_debt": 0.06,
+                "tax_rate": 0.25,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        # WACC = 0.5 * 0.12 + 0.5 * 0.06 * 0.75 = 0.06 + 0.0225 = 0.0825
+        assert data["wacc"] == pytest.approx(0.0825, rel=0.01)
+        assert data["equity_weight"] == pytest.approx(0.5, rel=0.01)
+        assert data["debt_weight"] == pytest.approx(0.5, rel=0.01)
+
+    def test_wacc_all_equity(self):
+        """Test WACC for all-equity company (typical startup)."""
+        response = client.post(
+            "/api/valuation/wacc",
+            json={
+                "equity_value": 100_000_000,
+                "debt_value": 0,
+                "cost_of_equity": 0.15,
+                "cost_of_debt": 0.06,
+                "tax_rate": 0.25,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["wacc"] == pytest.approx(0.15, rel=0.01)
+        assert data["equity_weight"] == 1.0
+
+    def test_comparables_endpoint(self):
+        """Test Comparable Transactions valuation."""
+        response = client.post(
+            "/api/valuation/comparables",
+            json={
+                "target_revenue": 5_000_000,
+                "comparables": [
+                    {
+                        "name": "Company A",
+                        "deal_value": 40_000_000,
+                        "revenue": 10_000_000,
+                        "industry": "saas",
+                        "date": "2024-01",
+                    },
+                    {
+                        "name": "Company B",
+                        "deal_value": 60_000_000,
+                        "revenue": 10_000_000,
+                        "industry": "saas",
+                        "date": "2024-02",
+                    },
+                ],
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        # Multiples: 4x, 6x -> Median = 5x -> Valuation = 5M * 5 = 25M
+        assert data["median_multiple"] == pytest.approx(5.0, rel=0.01)
+        assert data["implied_valuation"] == pytest.approx(25_000_000, rel=0.01)
+        assert data["comparable_count"] == 2
+
+    def test_comparables_with_outlier(self):
+        """Test comparables with outlier showing median robustness."""
+        response = client.post(
+            "/api/valuation/comparables",
+            json={
+                "target_revenue": 10_000_000,
+                "comparables": [
+                    {
+                        "name": "A",
+                        "deal_value": 40_000_000,
+                        "revenue": 10_000_000,
+                        "industry": "tech",
+                        "date": "2024-01",
+                    },
+                    {
+                        "name": "B",
+                        "deal_value": 50_000_000,
+                        "revenue": 10_000_000,
+                        "industry": "tech",
+                        "date": "2024-02",
+                    },
+                    {
+                        "name": "C",
+                        "deal_value": 60_000_000,
+                        "revenue": 10_000_000,
+                        "industry": "tech",
+                        "date": "2024-03",
+                    },
+                    {
+                        "name": "Outlier",
+                        "deal_value": 200_000_000,
+                        "revenue": 10_000_000,
+                        "industry": "tech",
+                        "date": "2024-04",
+                    },
+                ],
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        # Multiples: 4x, 5x, 6x, 20x -> Median = 5.5x
+        assert data["median_multiple"] == pytest.approx(5.5, rel=0.01)
+        # Mean is inflated by outlier
+        assert data["mean_multiple"] > data["median_multiple"]
+
+    def test_real_options_growth(self):
+        """Test Real Options growth option (call-like)."""
+        response = client.post(
+            "/api/valuation/real-options",
+            json={
+                "option_type": "growth",
+                "underlying_value": 10_000_000,
+                "exercise_price": 8_000_000,
+                "time_to_expiry": 3.0,
+                "volatility": 0.40,
+                "risk_free_rate": 0.05,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["option_value"] > 0
+        assert data["total_value"] >= 10_000_000
+        assert data["method"] == "real_options"
+
+    def test_real_options_abandonment(self):
+        """Test Real Options abandonment option (put-like)."""
+        response = client.post(
+            "/api/valuation/real-options",
+            json={
+                "option_type": "abandonment",
+                "underlying_value": 5_000_000,  # Low continuing value
+                "exercise_price": 8_000_000,  # High exit value
+                "time_to_expiry": 2.0,
+                "volatility": 0.35,
+                "risk_free_rate": 0.05,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["option_value"] > 0  # Abandonment option has value
+
+    def test_weighted_average_endpoint(self):
+        """Test weighted average synthesis of valuations."""
+        response = client.post(
+            "/api/valuation/weighted-average",
+            json={
+                "valuations": [
+                    {"method": "DCF", "valuation": 10_000_000, "weight": 0.4},
+                    {"method": "Comparables", "valuation": 12_000_000, "weight": 0.4},
+                    {"method": "First Chicago", "valuation": 11_000_000, "weight": 0.2},
+                ],
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        # Weighted avg = 10M*0.4 + 12M*0.4 + 11M*0.2 = 4M + 4.8M + 2.2M = 11M
+        assert data["weighted_valuation"] == pytest.approx(11_000_000, rel=0.01)
+        assert data["method"] == "weighted_average"
+        assert len(data["normalized_weights"]) == 3
+        assert len(data["method_contributions"]) == 3
+
+    def test_weighted_average_normalizes_weights(self):
+        """Test that weights are normalized even if not summing to 1."""
+        response = client.post(
+            "/api/valuation/weighted-average",
+            json={
+                "valuations": [
+                    {"method": "A", "valuation": 10_000_000, "weight": 2.0},
+                    {"method": "B", "valuation": 20_000_000, "weight": 3.0},
+                ],
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        # Normalized weights: 2/5=0.4, 3/5=0.6
+        assert data["normalized_weights"]["A"] == pytest.approx(0.4, rel=0.01)
+        assert data["normalized_weights"]["B"] == pytest.approx(0.6, rel=0.01)
+        # Valuation = 10M*0.4 + 20M*0.6 = 16M
+        assert data["weighted_valuation"] == pytest.approx(16_000_000, rel=0.01)
