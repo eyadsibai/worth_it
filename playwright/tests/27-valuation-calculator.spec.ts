@@ -609,4 +609,152 @@ test.describe('Valuation Calculator', () => {
       expect(validationResult.benchmark_median).toBeGreaterThan(0);
     });
   });
+
+  test.describe('Export Functionality', () => {
+    test('should show export button after completing First Chicago valuation', async ({ page }) => {
+      // Navigate to valuation page and wait for load
+      await page.waitForLoadState('networkidle');
+
+      // Fill in Revenue Multiple form to complete a basic valuation
+      await page.locator('input[name="annualRevenue"]').fill('1000000');
+      await page.locator('input[name="revenueMultiple"]').fill('10');
+
+      // Click calculate button
+      await page.getByRole('button', { name: /Calculate Valuation/i }).click();
+
+      // Wait for valuation result to appear
+      await expect(page.getByText(/\$10,000,000/)).toBeVisible({ timeout: 10000 });
+
+      // Export button should be visible after valuation is complete
+      await expect(page.getByRole('button', { name: /export/i })).toBeVisible({ timeout: 5000 });
+    });
+
+    test('should display export format options when clicked', async ({ page }) => {
+      await page.waitForLoadState('networkidle');
+
+      // Complete a valuation first
+      await page.locator('input[name="annualRevenue"]').fill('2000000');
+      await page.locator('input[name="revenueMultiple"]').fill('8');
+      await page.getByRole('button', { name: /Calculate Valuation/i }).click();
+      await expect(page.getByText(/\$16,000,000/)).toBeVisible({ timeout: 10000 });
+
+      // Click export button to open dropdown
+      await page.getByRole('button', { name: /export/i }).click();
+
+      // Should show format options (PDF, JSON, CSV)
+      await expect(page.getByText(/PDF/i)).toBeVisible({ timeout: 3000 });
+      await expect(page.getByText(/JSON/i)).toBeVisible({ timeout: 3000 });
+    });
+  });
+
+  test.describe('Export API Endpoints', () => {
+    test('should generate First Chicago report PDF', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/export/first-chicago', {
+        data: {
+          company_name: 'TestCo',
+          result: {
+            weighted_value: 10000000,
+            present_value: 7500000,
+            scenario_values: { Best: 15000000, Base: 10000000, Worst: 5000000 },
+            scenario_present_values: { Best: 11000000, Base: 7500000, Worst: 3800000 },
+          },
+          params: { discount_rate: 0.25 },
+          format: 'pdf',
+        },
+      });
+
+      expect(response.ok()).toBeTruthy();
+      const contentType = response.headers()['content-type'];
+      expect(contentType).toContain('application/pdf');
+    });
+
+    test('should generate First Chicago report JSON', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/export/first-chicago', {
+        data: {
+          company_name: 'JsonTestCo',
+          result: {
+            weighted_value: 8000000,
+            present_value: 6000000,
+            scenario_values: { Best: 12000000, Base: 8000000, Worst: 4000000 },
+            scenario_present_values: { Best: 9000000, Base: 6000000, Worst: 3000000 },
+          },
+          params: { discount_rate: 0.20 },
+          format: 'json',
+        },
+      });
+
+      expect(response.ok()).toBeTruthy();
+      const data = await response.json();
+      expect(data.company_name).toBe('JsonTestCo');
+      expect(data.valuation_method).toBe('First Chicago Method');
+      expect(data.sections).toBeDefined();
+    });
+
+    test('should generate pre-revenue report', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/export/pre-revenue', {
+        data: {
+          company_name: 'StartupCo',
+          method_name: 'Berkus Method',
+          result: {
+            valuation: 2500000,
+            factors: [
+              { name: 'Sound Idea', value: 500000 },
+              { name: 'Prototype', value: 500000 },
+              { name: 'Team', value: 500000 },
+              { name: 'Strategic Relationships', value: 500000 },
+              { name: 'Product Rollout', value: 500000 },
+            ],
+          },
+          params: {},
+          industry: 'SaaS',
+          format: 'json',
+        },
+      });
+
+      expect(response.ok()).toBeTruthy();
+      const data = await response.json();
+      expect(data.company_name).toBe('StartupCo');
+      expect(data.valuation_method).toBe('Berkus Method');
+      expect(data.industry).toBe('SaaS');
+    });
+
+    test('should calculate negotiation range', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/export/negotiation-range', {
+        data: {
+          valuation: 10000000,
+        },
+      });
+
+      expect(response.ok()).toBeTruthy();
+      const data = await response.json();
+      expect(data.floor).toBe(7000000);
+      expect(data.conservative).toBe(8500000);
+      expect(data.target).toBe(10000000);
+      expect(data.aggressive).toBe(12000000);
+      expect(data.ceiling).toBe(15000000);
+    });
+
+    test('should calculate negotiation range with Monte Carlo percentiles', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/export/negotiation-range', {
+        data: {
+          valuation: 10000000,
+          monte_carlo_percentiles: {
+            p10: 6000000,
+            p25: 8000000,
+            p50: 10000000,
+            p75: 13000000,
+            p90: 18000000,
+          },
+        },
+      });
+
+      expect(response.ok()).toBeTruthy();
+      const data = await response.json();
+      expect(data.floor).toBe(6000000);
+      expect(data.conservative).toBe(8000000);
+      expect(data.target).toBe(10000000);
+      expect(data.aggressive).toBe(13000000);
+      expect(data.ceiling).toBe(18000000);
+    });
+  });
 });

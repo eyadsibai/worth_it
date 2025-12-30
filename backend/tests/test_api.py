@@ -2629,7 +2629,8 @@ class TestExportAPI:
         assert response.headers["content-type"] == "application/json"
         data = response.json()
         assert data["company_name"] == "TestCo"
-        assert data["method"] == "First Chicago"
+        assert data["valuation_method"] == "First Chicago Method"
+        assert "sections" in data
 
     def test_export_first_chicago_csv(self):
         """Test exporting First Chicago as CSV."""
