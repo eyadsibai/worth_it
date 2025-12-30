@@ -8,6 +8,8 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./__tests__/setup.tsx"],
     include: ["__tests__/**/*.test.{ts,tsx}"],
+    // Use threads pool for faster parallelization (lower overhead than forks)
+    pool: "threads",
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "json"],
