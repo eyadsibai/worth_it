@@ -224,8 +224,11 @@ const defaultNumberFormatter = (v: number) => v.toLocaleString();
  *
  * Respects reduced motion preference for accessibility - when enabled,
  * renders the final value immediately without animation.
+ *
+ * Performance optimization: Only subscribes to spring value changes when
+ * the element is in view and animation is active, reducing CPU usage.
  */
-export function AnimatedNumber({
+export const AnimatedNumber = React.memo(function AnimatedNumber({
   value,
   duration = 0.8,
   formatValue,
@@ -238,7 +241,10 @@ export function AnimatedNumber({
     duration: duration * 1000,
     bounce: 0,
   });
-  const isInView = useInView(ref, { once: true, margin: "-50px" });
+  // Use continuous visibility tracking (not once: true) to pause when scrolled away
+  const isInView = useInView(ref, { margin: "-50px" });
+  // Track initial animation state - use state to avoid ref access during render
+  const [hasAnimated, setHasAnimated] = React.useState(prefersReducedMotion);
 
   // Memoize the formatter to prevent unnecessary effect re-runs
   const memoizedFormatter = React.useCallback(
@@ -249,25 +255,38 @@ export function AnimatedNumber({
   React.useEffect(() => {
     if (isInView || prefersReducedMotion) {
       motionValue.set(value);
+      setHasAnimated(true);
     }
   }, [isInView, value, motionValue, prefersReducedMotion]);
 
+  // Only subscribe to spring changes when in view to reduce CPU usage
   React.useEffect(() => {
+    // Skip subscription if reduced motion preferred or not in view
+    if (prefersReducedMotion) {
+      if (ref.current) {
+        ref.current.textContent = memoizedFormatter(value);
+      }
+      return;
+    }
+
+    // Only subscribe when in view
+    if (!isInView) return;
+
     const unsubscribe = springValue.on("change", (latest) => {
       if (ref.current) {
         ref.current.textContent = memoizedFormatter(Math.round(latest));
       }
     });
     return unsubscribe;
-  }, [springValue, memoizedFormatter]);
+  }, [springValue, memoizedFormatter, isInView, prefersReducedMotion, value]);
 
   // When reduced motion is preferred, render the final value immediately
   return (
     <span ref={ref} className={className}>
-      {memoizedFormatter(prefersReducedMotion ? value : 0)}
+      {memoizedFormatter(hasAnimated ? value : 0)}
     </span>
   );
-}
+});
 
 /**
  * Animated currency display
@@ -298,8 +317,11 @@ export function AnimatedCurrency({
  *
  * When responsive=true, shows compact format ($123K) at tablet/mobile
  * to prevent text truncation in tight layouts
+ *
+ * Performance optimization: Only subscribes to spring value changes when
+ * the element is in view, reducing CPU usage for off-screen elements.
  */
-export function AnimatedCurrencyDisplay({
+export const AnimatedCurrencyDisplay = React.memo(function AnimatedCurrencyDisplay({
   value,
   showDelta = true,
   responsive = false,
@@ -313,12 +335,15 @@ export function AnimatedCurrencyDisplay({
 }) {
   const prefersReducedMotion = useReducedMotion();
   const mainRef = React.useRef<HTMLSpanElement>(null);
-  const motionValue = useMotionValue(0);
+  const motionValue = useMotionValue(prefersReducedMotion ? value : 0);
   const springValue = useSpring(motionValue, {
     duration: prefersReducedMotion ? 0 : 800,
     bounce: 0,
   });
-  const isInView = useInView(mainRef, { once: true, margin: "-50px" });
+  // Use continuous visibility tracking to pause when scrolled away
+  const isInView = useInView(mainRef, { margin: "-50px" });
+  // Track initial animation state - use state to avoid ref access during render
+  const [hasAnimated, setHasAnimated] = React.useState(prefersReducedMotion);
 
   // Track previous value for delta calculation
   const previousValue = React.useRef<number | null>(null);
@@ -326,7 +351,7 @@ export function AnimatedCurrencyDisplay({
   const isFirstRender = React.useRef(true);
 
   React.useEffect(() => {
-    if (isInView) {
+    if (isInView || prefersReducedMotion) {
       // Calculate delta (skip on first render)
       if (!isFirstRender.current && previousValue.current !== null && showDelta) {
         const diff = value - previousValue.current;
@@ -340,12 +365,22 @@ export function AnimatedCurrencyDisplay({
       isFirstRender.current = false;
       previousValue.current = value;
       motionValue.set(value);
+      setHasAnimated(true);
     }
-  }, [isInView, value, motionValue, showDelta]);
+  }, [isInView, value, motionValue, showDelta, prefersReducedMotion]);
 
-  // Format and update display using textContent (safe)
-  // No decimals - just show main currency value
+  // Only subscribe to spring changes when in view to reduce CPU usage
   React.useEffect(() => {
+    if (prefersReducedMotion) {
+      if (mainRef.current) {
+        mainRef.current.textContent = formatCurrencyWithDecimals(value).main;
+      }
+      return;
+    }
+
+    // Only subscribe when in view
+    if (!isInView) return;
+
     const unsubscribe = springValue.on("change", (latest) => {
       const { main } = formatCurrencyWithDecimals(Math.round(latest));
       if (mainRef.current) {
@@ -353,15 +388,15 @@ export function AnimatedCurrencyDisplay({
       }
     });
     return unsubscribe;
-  }, [springValue]);
+  }, [springValue, isInView, prefersReducedMotion, value]);
 
-  const { main } = formatCurrencyWithDecimals(0);
+  const initialMain = formatCurrencyWithDecimals(hasAnimated ? value : 0).main;
 
   return (
     <span className={`relative inline-block ${className ?? ""}`}>
       {/* Full format shown on lg+ screens, compact on smaller when responsive */}
       <span className={`tabular-nums ${responsive ? "hidden lg:inline" : ""}`}>
-        <span ref={mainRef}>{main}</span>
+        <span ref={mainRef}>{initialMain}</span>
       </span>
       {/* Compact format shown only on smaller screens when responsive */}
       {responsive && <span className="tabular-nums lg:hidden">{formatCurrencyCompact(value)}</span>}
@@ -384,7 +419,7 @@ export function AnimatedCurrencyDisplay({
       </AnimatePresence>
     </span>
   );
-}
+});
 
 /**
  * Animated percentage display
@@ -392,8 +427,11 @@ export function AnimatedCurrencyDisplay({
  * Note: Trailing zeros are only removed when the animation completes (value stabilizes).
  * During animation, we show consistent decimal places to avoid visual "jumping"
  * between formats (e.g., "28" → "28.1" → "28.5" → "28.50").
+ *
+ * Performance optimization: Only subscribes to spring value changes when
+ * the element is in view, reducing CPU usage for off-screen elements.
  */
-export function AnimatedPercentage({
+export const AnimatedPercentage = React.memo(function AnimatedPercentage({
   value,
   decimals = 2,
   className,
@@ -402,44 +440,69 @@ export function AnimatedPercentage({
   decimals?: number;
   className?: string;
 }) {
+  const prefersReducedMotion = useReducedMotion();
   const ref = React.useRef<HTMLSpanElement>(null);
-  const motionValue = useMotionValue(0);
+  const motionValue = useMotionValue(prefersReducedMotion ? value : 0);
   const springValue = useSpring(motionValue, { duration: 800, bounce: 0 });
-  const isInView = useInView(ref, { once: true, margin: "-50px" });
+  // Use continuous visibility tracking to pause when scrolled away
+  const isInView = useInView(ref, { margin: "-50px" });
   const targetValue = React.useRef(value);
+  // Track initial animation state - use state to avoid ref access during render
+  const [hasAnimated, setHasAnimated] = React.useState(prefersReducedMotion);
+
+  // Memoize the formatter to prevent unnecessary effect re-runs
+  const formatPercentage = React.useCallback(
+    (v: number, isComplete: boolean, target: number) => {
+      if (isComplete) {
+        // Animation complete: use the exact target value and remove trailing zeros
+        return target.toFixed(decimals).replace(/\.?0+$/, "") + "%";
+      }
+      // During animation: show consistent decimal places to avoid visual jumping
+      return v.toFixed(decimals) + "%";
+    },
+    [decimals]
+  );
 
   React.useEffect(() => {
-    if (isInView) {
+    if (isInView || prefersReducedMotion) {
       targetValue.current = value;
       motionValue.set(value);
+      setHasAnimated(true);
     }
-  }, [isInView, value, motionValue]);
+  }, [isInView, value, motionValue, prefersReducedMotion]);
 
+  // Only subscribe to spring changes when in view to reduce CPU usage
   React.useEffect(() => {
+    if (prefersReducedMotion) {
+      if (ref.current) {
+        ref.current.textContent = formatPercentage(value, true, value);
+      }
+      return;
+    }
+
+    // Only subscribe when in view
+    if (!isInView) return;
+
     const unsubscribe = springValue.on("change", (latest) => {
       if (ref.current) {
         // Check if animation is close to complete (within 0.01 of target)
         const isComplete = Math.abs(latest - targetValue.current) < 0.01;
-
-        if (isComplete) {
-          // Animation complete: use the exact target value and remove trailing zeros
-          const formatted = targetValue.current.toFixed(decimals).replace(/\.?0+$/, "");
-          ref.current.textContent = formatted + "%";
-        } else {
-          // During animation: show consistent decimal places to avoid visual jumping
-          ref.current.textContent = latest.toFixed(decimals) + "%";
-        }
+        ref.current.textContent = formatPercentage(latest, isComplete, targetValue.current);
       }
     });
     return unsubscribe;
-  }, [springValue, decimals]);
+  }, [springValue, formatPercentage, isInView, prefersReducedMotion, value]);
+
+  // Initial display value
+  const initialValue = hasAnimated ? value : 0;
+  const initialFormatted = formatPercentage(initialValue, hasAnimated, value);
 
   return (
     <span ref={ref} className={className}>
-      0%
+      {initialFormatted}
     </span>
   );
-}
+});
 
 // ============================================================================
 // Progress Indicators
@@ -481,25 +544,40 @@ export function AnimatedProgress({
 
 /**
  * Pulsing dot indicator
+ *
+ * Performance optimization: Only animates when in view to reduce CPU usage.
+ * Uses React.memo to prevent unnecessary re-renders.
  */
-export function PulsingDot({
+export const PulsingDot = React.memo(function PulsingDot({
   className,
   color = "bg-terminal",
 }: {
   className?: string;
   color?: string;
 }) {
+  const ref = React.useRef<HTMLSpanElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+  // Continuous visibility tracking to pause when scrolled away
+  const isInView = useInView(ref, { margin: "-50px" });
+
+  // Don't animate if user prefers reduced motion or element is off-screen
+  const shouldAnimate = isInView && !prefersReducedMotion;
+
   return (
-    <span className={`relative flex h-2 w-2 ${className}`}>
-      <motion.span
-        className={`absolute inline-flex h-full w-full rounded-full ${color} opacity-75`}
-        animate={{ scale: [1, 1.5, 1], opacity: [0.75, 0, 0.75] }}
-        transition={{ duration: 1.5, repeat: Infinity }}
-      />
+    <span ref={ref} className={`relative flex h-2 w-2 ${className}`}>
+      {shouldAnimate ? (
+        <motion.span
+          className={`absolute inline-flex h-full w-full rounded-full ${color} opacity-75`}
+          animate={{ scale: [1, 1.5, 1], opacity: [0.75, 0, 0.75] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+        />
+      ) : (
+        <span className={`absolute inline-flex h-full w-full rounded-full ${color} opacity-75`} />
+      )}
       <span className={`relative inline-flex h-2 w-2 rounded-full ${color}`} />
     </span>
   );
-}
+});
 
 // ============================================================================
 // Skeleton Loading
@@ -511,16 +589,33 @@ interface SkeletonProps {
 
 /**
  * Animated skeleton loader
+ *
+ * Performance optimization: Only animates when in view to reduce CPU usage.
+ * Uses React.memo to prevent unnecessary re-renders.
  */
-export function Skeleton({ className }: SkeletonProps) {
-  return (
-    <motion.div
-      className={`bg-muted rounded ${className}`}
-      animate={{ opacity: [0.5, 1, 0.5] }}
-      transition={{ duration: 1.5, repeat: Infinity }}
-    />
-  );
-}
+export const Skeleton = React.memo(function Skeleton({ className }: SkeletonProps) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+  // Continuous visibility tracking to pause when scrolled away
+  const isInView = useInView(ref, { margin: "-50px" });
+
+  // Don't animate if user prefers reduced motion or element is off-screen
+  const shouldAnimate = isInView && !prefersReducedMotion;
+
+  if (shouldAnimate) {
+    return (
+      <motion.div
+        ref={ref}
+        className={`bg-muted rounded ${className}`}
+        animate={{ opacity: [0.5, 1, 0.5] }}
+        transition={{ duration: 1.5, repeat: Infinity }}
+      />
+    );
+  }
+
+  // Static skeleton when not animating
+  return <div ref={ref} className={`bg-muted rounded opacity-75 ${className}`} />;
+});
 
 // ============================================================================
 // Smart Highlight Effect
