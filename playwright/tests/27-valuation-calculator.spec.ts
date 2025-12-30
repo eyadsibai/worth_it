@@ -758,4 +758,199 @@ test.describe('Valuation Calculator', () => {
       expect(data.ceiling).toBe(18000000);
     });
   });
+
+});
+
+// ============================================================================
+// Advanced Valuation Methods API (Phase 6)
+// These tests only use the request fixture, so they're outside the main
+// describe block to avoid the beforeEach that navigates to /valuation
+// ============================================================================
+test.describe('Advanced Valuation Methods API', () => {
+    test('should calculate enhanced DCF with multi-stage growth', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/valuation/enhanced-dcf', {
+        data: {
+          base_revenue: 5000000,
+          stages: [
+            { name: 'Hypergrowth', years: 3, growth_rate: 0.5, margin: 0.1 },
+            { name: 'Growth', years: 3, growth_rate: 0.25, margin: 0.15 },
+            { name: 'Mature', years: 4, growth_rate: 0.1, margin: 0.2 },
+          ],
+          discount_rate: 0.12,
+          terminal_growth_rate: 0.03,
+        },
+      });
+
+      expect(response.ok()).toBeTruthy();
+      const data = await response.json();
+      expect(data.valuation).toBeGreaterThan(0);
+      expect(data.pv_cash_flows).toBeGreaterThan(0);
+      expect(data.terminal_value).toBeGreaterThan(0);
+      expect(data.pv_terminal_value).toBeGreaterThan(0);
+      expect(data.total_projection_years).toBe(10);
+      expect(data.year_by_year).toHaveLength(10);
+    });
+
+    test('should calculate WACC with CAPM inputs', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/valuation/wacc', {
+        data: {
+          equity_value: 80000000,
+          debt_value: 20000000,
+          cost_of_equity: 0.12,
+          cost_of_debt: 0.06,
+          tax_rate: 0.25,
+        },
+      });
+
+      expect(response.ok()).toBeTruthy();
+      const data = await response.json();
+      // WACC = (80/100)*0.12 + (20/100)*0.06*(1-0.25) = 0.096 + 0.009 = 0.105
+      expect(data.wacc).toBeCloseTo(0.105, 3);
+      expect(data.equity_weight).toBeCloseTo(0.8, 2);
+      expect(data.debt_weight).toBeCloseTo(0.2, 2);
+      expect(data.after_tax_cost_of_debt).toBeCloseTo(0.045, 3);
+    });
+
+    test('should calculate Comparable Transactions valuation', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/valuation/comparables', {
+        data: {
+          target_revenue: 5000000,
+          comparables: [
+            { name: 'TechCo A', deal_value: 50000000, revenue: 10000000, industry: 'SaaS', date: '2024-01' },
+            { name: 'TechCo B', deal_value: 30000000, revenue: 5000000, industry: 'SaaS', date: '2024-03' },
+            { name: 'TechCo C', deal_value: 40000000, revenue: 8000000, industry: 'SaaS', date: '2024-02' },
+          ],
+        },
+      });
+
+      expect(response.ok()).toBeTruthy();
+      const data = await response.json();
+      expect(data.implied_valuation).toBeGreaterThan(0);
+      expect(data.median_multiple).toBeGreaterThan(0);
+      expect(data.mean_multiple).toBeGreaterThan(0);
+      expect(data.low_valuation).toBeLessThanOrEqual(data.implied_valuation);
+      expect(data.high_valuation).toBeGreaterThanOrEqual(data.implied_valuation);
+      expect(data.comparable_count).toBe(3);
+    });
+
+    test('should calculate Real Options valuation (growth option)', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/valuation/real-options', {
+        data: {
+          option_type: 'growth',
+          underlying_value: 10000000,
+          exercise_price: 8000000,
+          time_to_expiry: 3,
+          volatility: 0.4,
+          risk_free_rate: 0.05,
+        },
+      });
+
+      expect(response.ok()).toBeTruthy();
+      const data = await response.json();
+      expect(data.option_value).toBeGreaterThan(0);
+      // total_value = underlying (10M) + option_value
+      expect(data.total_value).toBeGreaterThan(10000000);
+      expect(data.total_value).toBeCloseTo(10000000 + data.option_value, -2);
+      expect(data.d1).toBeDefined();
+      expect(data.d2).toBeDefined();
+      expect(data.method).toBe('real_options');
+    });
+
+    test('should calculate Real Options valuation (abandonment option)', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/valuation/real-options', {
+        data: {
+          option_type: 'abandonment',
+          underlying_value: 5000000,
+          exercise_price: 6000000,
+          time_to_expiry: 2,
+          volatility: 0.5,
+          risk_free_rate: 0.04,
+        },
+      });
+
+      expect(response.ok()).toBeTruthy();
+      const data = await response.json();
+      expect(data.option_value).toBeGreaterThan(0);
+      expect(data.method).toBe('real_options');
+    });
+
+    test('should calculate Weighted Average valuation synthesis', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/valuation/weighted-average', {
+        data: {
+          valuations: [
+            { method: 'DCF', valuation: 10000000, weight: 0.4 },
+            { method: 'Comparables', valuation: 12000000, weight: 0.35 },
+            { method: 'Revenue Multiple', valuation: 8000000, weight: 0.25 },
+          ],
+        },
+      });
+
+      expect(response.ok()).toBeTruthy();
+      const data = await response.json();
+      // Weighted avg = 10M*0.4 + 12M*0.35 + 8M*0.25 = 4M + 4.2M + 2M = 10.2M
+      expect(data.weighted_valuation).toBeCloseTo(10200000, -4);
+      expect(data.method_contributions['DCF']).toBeCloseTo(4000000, -4);
+      expect(data.method_contributions['Comparables']).toBeCloseTo(4200000, -4);
+      expect(data.method_contributions['Revenue Multiple']).toBeCloseTo(2000000, -4);
+      expect(data.normalized_weights['DCF']).toBeCloseTo(0.4, 2);
+      expect(data.method).toBe('weighted_average');
+    });
+
+    test('should normalize weights to sum to 1.0', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/valuation/weighted-average', {
+        data: {
+          valuations: [
+            { method: 'A', valuation: 10000000, weight: 2.0 },
+            { method: 'B', valuation: 20000000, weight: 3.0 },
+          ],
+        },
+      });
+
+      expect(response.ok()).toBeTruthy();
+      const data = await response.json();
+      // Normalized: A=0.4, B=0.6
+      // Weighted = 10M*0.4 + 20M*0.6 = 4M + 12M = 16M
+      expect(data.weighted_valuation).toBeCloseTo(16000000, -4);
+      expect(data.normalized_weights['A']).toBeCloseTo(0.4, 2);
+      expect(data.normalized_weights['B']).toBeCloseTo(0.6, 2);
+    });
+
+    test('should reject enhanced DCF with invalid discount rate', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/valuation/enhanced-dcf', {
+        data: {
+          base_revenue: 5000000,
+          stages: [{ name: 'Growth', years: 5, growth_rate: 0.2, margin: 0.15 }],
+          discount_rate: 0.6, // Above max 0.5
+          terminal_growth_rate: 0.03,
+        },
+      });
+
+      // API returns 400 for validation errors (HTTPException) or 422 (Pydantic)
+      expect([400, 422]).toContain(response.status());
+    });
+
+    test('should reject real options with invalid volatility', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/valuation/real-options', {
+        data: {
+          option_type: 'growth',
+          underlying_value: 10000000,
+          exercise_price: 8000000,
+          time_to_expiry: 3,
+          volatility: 2.0, // Above max 1.5
+          risk_free_rate: 0.05,
+        },
+      });
+
+      expect([400, 422]).toContain(response.status());
+    });
+
+    test('should reject weighted average with empty valuations', async ({ request }) => {
+      const response = await request.post('http://localhost:8000/api/valuation/weighted-average', {
+        data: {
+          valuations: [],
+        },
+      });
+
+      expect([400, 422]).toContain(response.status());
+    });
 });
