@@ -1,69 +1,119 @@
 import * as React from "react";
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
-import { afterEach, vi } from "vitest";
+import { afterEach, beforeAll, afterAll, vi } from "vitest";
+
+// Suppress expected console.error/warn messages from error handling tests
+// These patterns match expected error messages that verify error handling works correctly
+const EXPECTED_ERROR_PATTERNS = [
+  /Failed to retrieve scenarios from localStorage/,
+  /WebSocket error/,
+  /Invalid JSON from server/,
+  /should handle invalid JSON/,
+  /Failed to parse/,
+  /Failed to load version history from localStorage/,
+  // React act() warnings from Zustand store updates in tests
+  // These are expected when testing hooks that use Zustand for state management
+  /not wrapped in act/,
+  // Recharts warnings when testing chart components without real DOM dimensions
+  /The width\(-?\d+\) and height\(-?\d+\) of chart should be greater than 0/,
+  // React warnings about Framer Motion props passed through mocked components
+  // These occur because our simplified framer-motion mock passes all props to DOM elements
+  /React does not recognize the `while(Hover|InView|Tap)` prop/,
+];
+
+const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
+
+beforeAll(() => {
+  console.error = (...args: unknown[]) => {
+    const message = args.join(" ");
+    const isExpected = EXPECTED_ERROR_PATTERNS.some((pattern) => pattern.test(message));
+    if (!isExpected) {
+      originalConsoleError(...args);
+    }
+  };
+  console.warn = (...args: unknown[]) => {
+    const message = args.join(" ");
+    const isExpected = EXPECTED_ERROR_PATTERNS.some((pattern) => pattern.test(message));
+    if (!isExpected) {
+      originalConsoleWarn(...args);
+    }
+  };
+});
+
+afterAll(() => {
+  console.error = originalConsoleError;
+  console.warn = originalConsoleWarn;
+});
 
 // Cleanup after each test case
 afterEach(() => {
   cleanup();
 });
 
+// Helper function to filter motion-specific props from DOM elements
+const filterMotionProps = (props: Record<string, unknown>): Record<string, unknown> => {
+  const motionProps = new Set([
+    "initial",
+    "animate",
+    "exit",
+    "variants",
+    "whileHover",
+    "whileTap",
+    "whileInView",
+    "whileFocus",
+    "whileDrag",
+    "transition",
+    "layout",
+    "layoutId",
+    "drag",
+    "dragConstraints",
+    "onAnimationComplete",
+    "onAnimationStart",
+    "style", // Sometimes contains motion values
+  ]);
+  const filtered: Record<string, unknown> = {};
+  for (const key of Object.keys(props)) {
+    if (!motionProps.has(key)) {
+      filtered[key] = props[key];
+    }
+  }
+  return filtered;
+};
+
 // Mock framer-motion to skip animations in tests
 // This ensures elements are immediately visible without waiting for animations
 vi.mock("framer-motion", async () => {
   const actual = await vi.importActual("framer-motion");
+
+  // Create a motion mock that filters props before passing to DOM
+  const createMotionMock = (Tag: string) => {
+    return function MotionMock({
+      children,
+      ...props
+    }: React.PropsWithChildren<Record<string, unknown>>) {
+      return React.createElement(Tag, filterMotionProps(props), children);
+    };
+  };
+
   return {
     ...actual,
     motion: {
-      div: ({
-        children,
-        initial: _initial,
-        animate: _animate,
-        variants: _variants,
-        whileHover: _whileHover,
-        whileTap: _whileTap,
-        transition: _transition,
-        ...props
-      }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>) => {
-        // Filter out motion-specific props and render as regular div
-        return <div {...props}>{children}</div>;
-      },
-      button: ({
-        children,
-        initial: _initial,
-        animate: _animate,
-        variants: _variants,
-        whileHover: _whileHover,
-        whileTap: _whileTap,
-        transition: _transition,
-        ...props
-      }: React.ButtonHTMLAttributes<HTMLButtonElement> & Record<string, unknown>) => {
-        return <button {...props}>{children}</button>;
-      },
-      tr: ({
-        children,
-        initial: _initial,
-        animate: _animate,
-        variants: _variants,
-        whileHover: _whileHover,
-        whileTap: _whileTap,
-        transition: _transition,
-        ...props
-      }: React.HTMLAttributes<HTMLTableRowElement> & Record<string, unknown>) => {
-        return <tr {...props}>{children}</tr>;
-      },
-      span: ({
-        children,
-        initial: _initial,
-        animate: _animate,
-        variants: _variants,
-        whileHover: _whileHover,
-        whileTap: _whileTap,
-        transition: _transition,
-        ...props
-      }: React.HTMLAttributes<HTMLSpanElement> & Record<string, unknown>) => {
-        return <span {...props}>{children}</span>;
-      },
+      div: createMotionMock("div"),
+      button: createMotionMock("button"),
+      span: createMotionMock("span"),
+      p: createMotionMock("p"),
+      tr: createMotionMock("tr"),
+      td: createMotionMock("td"),
+      section: createMotionMock("section"),
+      article: createMotionMock("article"),
+      a: createMotionMock("a"),
+      li: createMotionMock("li"),
+      ul: createMotionMock("ul"),
+      h1: createMotionMock("h1"),
+      h2: createMotionMock("h2"),
+      h3: createMotionMock("h3"),
     },
     AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
     useReducedMotion: () => true, // Simulate reduced motion preference in tests
@@ -97,6 +147,76 @@ vi.mock("framer-motion", async () => {
       on: (event: string, cb: (v: number) => void) => () => void;
     }) => {
       return value; // Pass through the motion value for immediate updates
+    },
+  };
+});
+
+// Also mock @/lib/motion since many components import from there
+// This ensures the motion components filter out motion-specific props
+vi.mock("@/lib/motion", async (importOriginal) => {
+  // Import the original to get the non-motion exports
+  const original = await importOriginal<typeof import("@/lib/motion")>();
+
+  // Create a motion mock that filters motion-specific props
+  // Note: We define filterMotionProps inline to avoid hoisting issues with vi.mock
+  const motionPropSet = new Set([
+    "initial",
+    "animate",
+    "exit",
+    "variants",
+    "whileHover",
+    "whileTap",
+    "whileInView",
+    "whileFocus",
+    "whileDrag",
+    "transition",
+    "layout",
+    "layoutId",
+    "drag",
+    "dragConstraints",
+    "onAnimationComplete",
+    "onAnimationStart",
+    "viewport",
+  ]);
+
+  const filterProps = (props: Record<string, unknown>): Record<string, unknown> => {
+    const filtered: Record<string, unknown> = {};
+    for (const key of Object.keys(props)) {
+      if (!motionPropSet.has(key)) {
+        filtered[key] = props[key];
+      }
+    }
+    return filtered;
+  };
+
+  const createMotionMock = (Tag: string) => {
+    const MotionMock = ({
+      children,
+      ...props
+    }: React.PropsWithChildren<Record<string, unknown>>) => {
+      return React.createElement(Tag, filterProps(props), children);
+    };
+    MotionMock.displayName = `motion.${Tag}`;
+    return MotionMock;
+  };
+
+  return {
+    ...original,
+    motion: {
+      div: createMotionMock("div"),
+      button: createMotionMock("button"),
+      span: createMotionMock("span"),
+      p: createMotionMock("p"),
+      tr: createMotionMock("tr"),
+      td: createMotionMock("td"),
+      section: createMotionMock("section"),
+      article: createMotionMock("article"),
+      a: createMotionMock("a"),
+      li: createMotionMock("li"),
+      ul: createMotionMock("ul"),
+      h1: createMotionMock("h1"),
+      h2: createMotionMock("h2"),
+      h3: createMotionMock("h3"),
     },
   };
 });

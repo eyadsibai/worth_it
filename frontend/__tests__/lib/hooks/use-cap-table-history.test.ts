@@ -1,8 +1,14 @@
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useCapTableHistory, type CapTableState } from "@/lib/hooks/use-cap-table-history";
 import { useHistoryStore } from "@/lib/hooks/use-history";
 import type { CapTable, FundingInstrument, PreferenceTier } from "@/lib/schemas";
+
+// Helper to wait for all effects to settle after rendering hooks
+// This prevents "not wrapped in act(...)" warnings from async state updates
+const waitForEffects = async () => {
+  await waitFor(() => {});
+};
 
 // Mock sonner toast
 vi.mock("sonner", () => ({
@@ -48,7 +54,7 @@ describe("useCapTableHistory", () => {
   });
 
   describe("initialization", () => {
-    it("returns all expected properties", () => {
+    it("returns all expected properties", async () => {
       const { result } = renderHook(() =>
         useCapTableHistory({
           capTable: createMockCapTable(),
@@ -59,6 +65,8 @@ describe("useCapTableHistory", () => {
           onPreferenceTiersChange: mockOnPreferenceTiersChange,
         })
       );
+
+      await waitForEffects();
 
       expect(result.current).toHaveProperty("setCapTable");
       expect(result.current).toHaveProperty("setInstruments");
@@ -73,7 +81,7 @@ describe("useCapTableHistory", () => {
       expect(result.current).toHaveProperty("clearHistory");
     });
 
-    it("initializes history with current state", () => {
+    it("initializes history with current state", async () => {
       const capTable = createMockCapTable();
       const instruments = createMockInstruments();
       const preferenceTiers = createMockPreferenceTiers();
@@ -89,6 +97,8 @@ describe("useCapTableHistory", () => {
         })
       );
 
+      await waitForEffects();
+
       // After initialization, we should have one state in history
       const historyState = useHistoryStore.getState();
       expect(historyState.present).toBeDefined();
@@ -96,7 +106,7 @@ describe("useCapTableHistory", () => {
   });
 
   describe("setCapTable", () => {
-    it("calls onCapTableChange and records history", () => {
+    it("calls onCapTableChange and records history", async () => {
       const initialCapTable = createMockCapTable(1);
       const updatedCapTable = createMockCapTable(2);
 
@@ -111,6 +121,8 @@ describe("useCapTableHistory", () => {
         })
       );
 
+      await waitForEffects();
+
       act(() => {
         result.current.setCapTable(updatedCapTable, "Add stakeholder");
       });
@@ -118,7 +130,7 @@ describe("useCapTableHistory", () => {
       expect(mockOnCapTableChange).toHaveBeenCalledWith(updatedCapTable);
     });
 
-    it("uses default label when none provided", () => {
+    it("uses default label when none provided", async () => {
       const { result } = renderHook(() =>
         useCapTableHistory({
           capTable: createMockCapTable(),
@@ -130,6 +142,8 @@ describe("useCapTableHistory", () => {
         })
       );
 
+      await waitForEffects();
+
       act(() => {
         result.current.setCapTable(createMockCapTable(2));
       });
@@ -139,7 +153,7 @@ describe("useCapTableHistory", () => {
   });
 
   describe("setInstruments", () => {
-    it("calls onInstrumentsChange and records history", () => {
+    it("calls onInstrumentsChange and records history", async () => {
       const newInstruments: FundingInstrument[] = [
         {
           id: "safe-1",
@@ -164,6 +178,8 @@ describe("useCapTableHistory", () => {
         })
       );
 
+      await waitForEffects();
+
       act(() => {
         result.current.setInstruments(newInstruments, "Add SAFE");
       });
@@ -173,7 +189,7 @@ describe("useCapTableHistory", () => {
   });
 
   describe("setPreferenceTiers", () => {
-    it("calls onPreferenceTiersChange and records history", () => {
+    it("calls onPreferenceTiersChange and records history", async () => {
       const newTiers: PreferenceTier[] = [
         {
           id: "tier-1",
@@ -197,6 +213,8 @@ describe("useCapTableHistory", () => {
         })
       );
 
+      await waitForEffects();
+
       act(() => {
         result.current.setPreferenceTiers(newTiers, "Add preference tier");
       });
@@ -206,7 +224,7 @@ describe("useCapTableHistory", () => {
   });
 
   describe("setAll", () => {
-    it("updates all state and creates single history entry", () => {
+    it("updates all state and creates single history entry", async () => {
       const newState: CapTableState = {
         capTable: createMockCapTable(3),
         instruments: [
@@ -245,6 +263,8 @@ describe("useCapTableHistory", () => {
         })
       );
 
+      await waitForEffects();
+
       act(() => {
         result.current.setAll(newState, "Load scenario");
       });
@@ -273,6 +293,8 @@ describe("useCapTableHistory", () => {
         { initialProps: { capTable: initialCapTable } }
       );
 
+      await waitForEffects();
+
       // Make a change
       act(() => {
         result.current.setCapTable(updatedCapTable, "Add stakeholder");
@@ -280,6 +302,8 @@ describe("useCapTableHistory", () => {
 
       // Re-render with updated cap table
       rerender({ capTable: updatedCapTable });
+
+      await waitForEffects();
 
       // Now undo
       act(() => {
@@ -290,7 +314,7 @@ describe("useCapTableHistory", () => {
       expect(mockOnCapTableChange).toHaveBeenCalled();
     });
 
-    it("does nothing when there is nothing to undo", () => {
+    it("does nothing when there is nothing to undo", async () => {
       const { result } = renderHook(() =>
         useCapTableHistory({
           capTable: createMockCapTable(0), // Empty cap table won't initialize history
@@ -302,6 +326,8 @@ describe("useCapTableHistory", () => {
         })
       );
 
+      await waitForEffects();
+
       // Try to undo with empty history
       mockOnCapTableChange.mockClear();
       act(() => {
@@ -312,7 +338,7 @@ describe("useCapTableHistory", () => {
       expect(mockOnCapTableChange).not.toHaveBeenCalled();
     });
 
-    it("does nothing when there is nothing to redo", () => {
+    it("does nothing when there is nothing to redo", async () => {
       const { result } = renderHook(() =>
         useCapTableHistory({
           capTable: createMockCapTable(),
@@ -323,6 +349,8 @@ describe("useCapTableHistory", () => {
           onPreferenceTiersChange: mockOnPreferenceTiersChange,
         })
       );
+
+      await waitForEffects();
 
       // Try to redo with no future states
       mockOnCapTableChange.mockClear();
@@ -336,7 +364,7 @@ describe("useCapTableHistory", () => {
   });
 
   describe("canUndo/canRedo state", () => {
-    it("reports correct undo availability", () => {
+    it("reports correct undo availability", async () => {
       const { result } = renderHook(() =>
         useCapTableHistory({
           capTable: createMockCapTable(),
@@ -347,6 +375,8 @@ describe("useCapTableHistory", () => {
           onPreferenceTiersChange: mockOnPreferenceTiersChange,
         })
       );
+
+      await waitForEffects();
 
       // Initially, there should be nothing to undo (past is empty)
       expect(result.current.canUndo).toBe(false);
@@ -360,7 +390,7 @@ describe("useCapTableHistory", () => {
       expect(result.current.canUndo).toBe(true);
     });
 
-    it("reports correct redo availability", () => {
+    it("reports correct redo availability", async () => {
       const { result, rerender } = renderHook(
         (props: { capTable: CapTable }) =>
           useCapTableHistory({
@@ -374,6 +404,8 @@ describe("useCapTableHistory", () => {
         { initialProps: { capTable: createMockCapTable() } }
       );
 
+      await waitForEffects();
+
       // Initially nothing to redo
       expect(result.current.canRedo).toBe(false);
 
@@ -384,6 +416,8 @@ describe("useCapTableHistory", () => {
       });
 
       rerender({ capTable: updatedCapTable });
+
+      await waitForEffects();
 
       // Undo the change
       act(() => {
@@ -396,7 +430,7 @@ describe("useCapTableHistory", () => {
   });
 
   describe("clearHistory", () => {
-    it("clears the history state", () => {
+    it("clears the history state", async () => {
       const { result } = renderHook(() =>
         useCapTableHistory({
           capTable: createMockCapTable(),
@@ -407,6 +441,8 @@ describe("useCapTableHistory", () => {
           onPreferenceTiersChange: mockOnPreferenceTiersChange,
         })
       );
+
+      await waitForEffects();
 
       // Make some changes
       act(() => {
@@ -427,7 +463,7 @@ describe("useCapTableHistory", () => {
   });
 
   describe("labels", () => {
-    it("provides correct undo label", () => {
+    it("provides correct undo label", async () => {
       const { result } = renderHook(() =>
         useCapTableHistory({
           capTable: createMockCapTable(),
@@ -438,6 +474,8 @@ describe("useCapTableHistory", () => {
           onPreferenceTiersChange: mockOnPreferenceTiersChange,
         })
       );
+
+      await waitForEffects();
 
       // Make a change with label
       act(() => {
