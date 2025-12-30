@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from worth_it.reports.builder import (
     build_first_chicago_report,
     build_pre_revenue_report,
@@ -321,3 +323,102 @@ class TestReportModels:
         assert chart.title == "Scenario Weights"
         assert len(chart.data) == 3
         assert chart.config == {}  # Default empty dict
+
+
+class TestNegotiationRange:
+    """Tests for negotiation range calculator."""
+
+    def test_range_from_valuation(self) -> None:
+        """Test calculating negotiation range from base valuation."""
+        from worth_it.reports.negotiation import (
+            NegotiationRange,
+            calculate_negotiation_range,
+        )
+
+        result = calculate_negotiation_range(valuation=10_000_000)
+
+        # Verify range ordering
+        assert result.floor < result.conservative
+        assert result.conservative < result.target
+        assert result.target < result.aggressive
+        assert result.aggressive < result.ceiling
+
+        # Target should equal the base valuation
+        assert result.target == 10_000_000
+
+        # Verify it's a NegotiationRange
+        assert isinstance(result, NegotiationRange)
+
+    def test_range_with_monte_carlo(self) -> None:
+        """Test using Monte Carlo percentiles for more accurate range."""
+        from worth_it.reports.negotiation import calculate_negotiation_range
+
+        result = calculate_negotiation_range(
+            valuation=10_000_000,
+            monte_carlo_percentiles={
+                "p10": 7_000_000,
+                "p25": 8_500_000,
+                "p50": 10_000_000,
+                "p75": 12_000_000,
+                "p90": 15_000_000,
+            },
+        )
+
+        # When Monte Carlo is available, use those percentiles
+        assert result.floor == 7_000_000  # p10
+        assert result.conservative == 8_500_000  # p25
+        assert result.target == 10_000_000  # p50 or base valuation
+        assert result.aggressive == 12_000_000  # p75
+        assert result.ceiling == 15_000_000  # p90
+
+    def test_range_without_monte_carlo_uses_variance(self) -> None:
+        """Test fallback to variance multipliers without Monte Carlo."""
+        from worth_it.reports.negotiation import calculate_negotiation_range
+
+        result = calculate_negotiation_range(valuation=10_000_000)
+
+        # Without Monte Carlo, use standard variance multipliers
+        assert result.floor == 7_000_000  # 0.7x
+        assert result.conservative == 8_500_000  # 0.85x
+        assert result.target == 10_000_000  # 1.0x
+        assert result.aggressive == 12_000_000  # 1.2x
+        assert result.ceiling == 15_000_000  # 1.5x
+
+    def test_range_immutability(self) -> None:
+        """Test that NegotiationRange is immutable (frozen dataclass)."""
+        import dataclasses
+
+        from worth_it.reports.negotiation import calculate_negotiation_range
+
+        result = calculate_negotiation_range(valuation=10_000_000)
+
+        # Verify it's frozen
+        assert dataclasses.is_dataclass(result)
+
+        # Attempting to modify should raise FrozenInstanceError
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            result.target = 5_000_000  # type: ignore
+
+    def test_range_with_zero_valuation(self) -> None:
+        """Test edge case with zero valuation."""
+        from worth_it.reports.negotiation import calculate_negotiation_range
+
+        result = calculate_negotiation_range(valuation=0)
+
+        assert result.floor == 0
+        assert result.conservative == 0
+        assert result.target == 0
+        assert result.aggressive == 0
+        assert result.ceiling == 0
+
+    def test_range_with_small_valuation(self) -> None:
+        """Test with a small valuation to ensure proper rounding."""
+        from worth_it.reports.negotiation import calculate_negotiation_range
+
+        result = calculate_negotiation_range(valuation=100_000)
+
+        assert result.floor == 70_000  # 0.7x
+        assert result.conservative == 85_000  # 0.85x
+        assert result.target == 100_000  # 1.0x
+        assert result.aggressive == 120_000  # 1.2x
+        assert result.ceiling == 150_000  # 1.5x
