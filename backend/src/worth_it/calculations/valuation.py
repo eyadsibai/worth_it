@@ -10,7 +10,7 @@ Implements three core valuation methods:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -139,6 +139,68 @@ class FirstChicagoResult:
     scenario_values: dict[str, float]
     scenario_present_values: dict[str, float]
     method: str = "first_chicago"
+
+
+# ============================================================================
+# Enhanced DCF Data Models (Multi-Stage Growth)
+# ============================================================================
+
+
+@dataclass(frozen=True)
+class DCFStage:
+    """A growth stage in a multi-stage DCF model.
+
+    Represents a distinct phase of company growth with specific
+    characteristics (e.g., hypergrowth, growth, mature).
+    """
+
+    name: str  # Stage name (e.g., "Hypergrowth", "Growth", "Mature")
+    years: int  # Duration of this stage in years
+    growth_rate: float  # Annual revenue growth rate (e.g., 0.50 for 50%)
+    margin: float  # Cash flow margin as % of revenue (e.g., 0.15 for 15%)
+
+
+class EnhancedDCFParams(BaseModel):
+    """Parameters for Enhanced DCF with multi-stage growth modeling."""
+
+    base_revenue: float = Field(..., gt=0, description="Starting annual revenue")
+    stages: list[DCFStage] = Field(
+        ..., min_length=1, description="Growth stages for the projection"
+    )
+    discount_rate: float = Field(
+        ..., gt=0, le=1, description="WACC or required rate of return (e.g., 0.12 for 12%)"
+    )
+    terminal_growth_rate: float | None = Field(
+        default=None, ge=0, lt=1, description="Perpetual growth rate for terminal value"
+    )
+
+    model_config = {"arbitrary_types_allowed": True}
+
+    @model_validator(mode="after")
+    def validate_growth_vs_discount(self) -> EnhancedDCFParams:
+        """Terminal growth must be less than discount rate."""
+        if (
+            self.terminal_growth_rate is not None
+            and self.terminal_growth_rate >= self.discount_rate
+        ):
+            raise ValueError(
+                f"Terminal growth rate ({self.terminal_growth_rate}) must be less than "
+                f"discount rate ({self.discount_rate})"
+            )
+        return self
+
+
+@dataclass(frozen=True)
+class EnhancedDCFResult:
+    """Result from Enhanced DCF multi-stage valuation."""
+
+    valuation: float  # Total enterprise value
+    pv_cash_flows: float  # Present value of projected cash flows
+    terminal_value: float  # Terminal value (undiscounted)
+    pv_terminal_value: float  # Present value of terminal value
+    year_by_year: list[dict[str, Any]]  # Detailed year-by-year projections
+    total_projection_years: int  # Total years in the projection
+    confidence: float  # Confidence score (0-1)
 
 
 @dataclass
@@ -574,6 +636,112 @@ def calculate_dcf(params: DCFParams) -> ValuationResult:
         confidence=min(confidence, 0.85),
         inputs=inputs,
         notes=notes,
+    )
+
+
+# ============================================================================
+# Enhanced DCF (Multi-Stage Growth) Valuation
+# ============================================================================
+
+
+def calculate_enhanced_dcf(params: EnhancedDCFParams) -> EnhancedDCFResult:
+    """
+    Calculate valuation using Enhanced DCF with multi-stage growth.
+
+    This advanced DCF model allows different growth rates and margins
+    for each stage of company development, providing more realistic
+    projections for startups that transition through phases.
+
+    Formula: PV = Σ(CFt / (1+r)^t) + Terminal Value
+
+    Where cash flows are derived from:
+    - Revenue = Previous Revenue × (1 + growth_rate)
+    - Cash Flow = Revenue × margin
+
+    Args:
+        params: Enhanced DCF parameters with growth stages
+
+    Returns:
+        EnhancedDCFResult with detailed year-by-year projections
+    """
+    discount_rate = params.discount_rate
+    stages = params.stages
+
+    # Build year-by-year projections
+    year_by_year: list[dict[str, Any]] = []
+    current_revenue = params.base_revenue
+    pv_cash_flows = 0.0
+    year = 0
+
+    for stage in stages:
+        for _ in range(stage.years):
+            year += 1
+            # Apply growth to get year-end revenue
+            current_revenue = current_revenue * (1 + stage.growth_rate)
+            cash_flow = current_revenue * stage.margin
+
+            # Discount to present value
+            discount_factor = (1 + discount_rate) ** year
+            pv = cash_flow / discount_factor
+            pv_cash_flows += pv
+
+            year_by_year.append(
+                {
+                    "year": year,
+                    "stage": stage.name,
+                    "revenue": current_revenue,
+                    "growth_rate": stage.growth_rate,
+                    "margin": stage.margin,
+                    "cash_flow": cash_flow,
+                    "discount_factor": discount_factor,
+                    "pv": pv,
+                }
+            )
+
+    total_years = year
+
+    # Calculate terminal value (if perpetuity model requested)
+    terminal_value = 0.0
+    pv_terminal_value = 0.0
+
+    if params.terminal_growth_rate is not None:
+        # Gordon Growth Model: TV = CF_n × (1+g) / (r-g)
+        last_cash_flow = year_by_year[-1]["cash_flow"] if year_by_year else 0
+        g = params.terminal_growth_rate
+        terminal_value = last_cash_flow * (1 + g) / (discount_rate - g)
+
+        # Discount terminal value to present
+        pv_terminal_value = terminal_value / ((1 + discount_rate) ** total_years)
+
+    valuation = pv_cash_flows + pv_terminal_value
+
+    # Calculate confidence based on projection characteristics
+    confidence = 0.6  # Base confidence for DCF
+
+    # Shorter projections are more reliable
+    if total_years <= 5:
+        confidence += 0.15
+    elif total_years <= 10:
+        confidence += 0.05
+    else:
+        confidence -= 0.05  # Long projections reduce confidence
+
+    # Multiple stages add complexity but also realism
+    if len(stages) >= 2:
+        confidence += 0.05  # More nuanced = more realistic
+
+    # Positive cash flows throughout indicate stability
+    if all(y["cash_flow"] > 0 for y in year_by_year):
+        confidence += 0.05
+
+    return EnhancedDCFResult(
+        valuation=valuation,
+        pv_cash_flows=pv_cash_flows,
+        terminal_value=terminal_value,
+        pv_terminal_value=pv_terminal_value,
+        year_by_year=year_by_year,
+        total_projection_years=total_years,
+        confidence=min(confidence, 0.85),  # Cap at 0.85
     )
 
 
