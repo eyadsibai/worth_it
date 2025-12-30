@@ -110,11 +110,11 @@ jobs:
     - name: Lint
       run: npm run lint
 
-    - name: Run unit tests
-      run: npm run test:unit
-
+    # Run tests once with coverage (previously ran twice - with and without coverage)
     - name: Run unit tests with coverage
       run: npm run test:unit:coverage
 
+    # Only build on push to main branches (not needed for PR validation)
     - name: Build
+      if: github.event_name == 'push'
       run: npm run build
