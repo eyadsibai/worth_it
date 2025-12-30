@@ -1067,3 +1067,13 @@ class PreRevenueExportRequest(ExportRequest):
     method_name: str = Field(..., description="Method name (e.g., Berkus, Scorecard, Risk Factor)")
     result: dict[str, Any] = Field(..., description="Valuation result")
     params: dict[str, Any] = Field(..., description="Parameters used in valuation")
+
+
+class NegotiationRangeRequest(BaseModel):
+    """Request to calculate negotiation range for term sheets."""
+
+    valuation: float = Field(..., ge=0, description="Base valuation amount")
+    monte_carlo_percentiles: dict[str, float] | None = Field(
+        default=None,
+        description="Monte Carlo percentiles (p10, p25, p50, p75, p90) for data-driven range",
+    )
