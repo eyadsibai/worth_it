@@ -55,6 +55,9 @@ import type {
   IndustryBenchmarkResponse,
   BenchmarkValidationRequest,
   BenchmarkValidationResponse,
+  // Export types (Phase 5)
+  FirstChicagoExportRequest,
+  PreRevenueExportRequest,
 } from "./schemas";
 import { APIErrorResponseSchema } from "./schemas";
 
@@ -443,6 +446,32 @@ class APIClient {
     return data;
   }
 
+  // ============================================================================
+  // Export Methods (Phase 5)
+  // ============================================================================
+
+  /**
+   * Export First Chicago valuation as PDF, JSON, or CSV.
+   * Returns a Blob for file download.
+   */
+  async exportFirstChicago(request: FirstChicagoExportRequest): Promise<Blob> {
+    const { data } = await this.client.post("/api/export/first-chicago", request, {
+      responseType: "blob",
+    });
+    return data;
+  }
+
+  /**
+   * Export pre-revenue valuation (Berkus, Scorecard, etc.) as PDF, JSON, or CSV.
+   * Returns a Blob for file download.
+   */
+  async exportPreRevenue(request: PreRevenueExportRequest): Promise<Blob> {
+    const { data } = await this.client.post("/api/export/pre-revenue", request, {
+      responseType: "blob",
+    });
+    return data;
+  }
+
   // WebSocket URL for Monte Carlo
   getMonteCarloWebSocketURL(): string {
     return `${this.wsURL}/ws/monte-carlo`;
@@ -656,6 +685,30 @@ export function useIndustryBenchmark(industryCode: string | null, enabled: boole
 export function useValidateBenchmark() {
   return useMutation({
     mutationFn: (request: BenchmarkValidationRequest) => apiClient.validateBenchmark(request),
+  });
+}
+
+// ============================================================================
+// Export Hooks (Phase 5)
+// ============================================================================
+
+/**
+ * Mutation hook for exporting First Chicago valuation reports.
+ * Returns a Blob that can be used with URL.createObjectURL() for download.
+ */
+export function useExportFirstChicago() {
+  return useMutation({
+    mutationFn: (request: FirstChicagoExportRequest) => apiClient.exportFirstChicago(request),
+  });
+}
+
+/**
+ * Mutation hook for exporting pre-revenue valuation reports.
+ * Returns a Blob that can be used with URL.createObjectURL() for download.
+ */
+export function useExportPreRevenue() {
+  return useMutation({
+    mutationFn: (request: PreRevenueExportRequest) => apiClient.exportPreRevenue(request),
   });
 }
 
