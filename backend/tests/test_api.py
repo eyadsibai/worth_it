@@ -2584,3 +2584,129 @@ class TestBenchmarkAPI:
 
         assert data["is_valid"] is True
         assert data["severity"] == "ok"
+
+
+class TestExportAPI:
+    """Tests for export API endpoints."""
+
+    def test_export_first_chicago_pdf(self):
+        """Test exporting First Chicago as PDF."""
+        response = client.post(
+            "/api/export/first-chicago",
+            json={
+                "company_name": "TestCo",
+                "format": "pdf",
+                "result": {
+                    "weighted_value": 10_000_000,
+                    "present_value": 7_500_000,
+                    "scenario_values": {"Best": 15_000_000, "Base": 10_000_000},
+                    "scenario_present_values": {"Best": 11_000_000, "Base": 7_500_000},
+                },
+                "params": {"discount_rate": 0.25},
+            },
+        )
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/pdf"
+        assert response.content[:4] == b"%PDF"
+
+    def test_export_first_chicago_json(self):
+        """Test exporting First Chicago as JSON."""
+        response = client.post(
+            "/api/export/first-chicago",
+            json={
+                "company_name": "TestCo",
+                "format": "json",
+                "result": {
+                    "weighted_value": 10_000_000,
+                    "present_value": 7_500_000,
+                    "scenario_values": {},
+                    "scenario_present_values": {},
+                },
+                "params": {},
+            },
+        )
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/json"
+        data = response.json()
+        assert data["company_name"] == "TestCo"
+        assert data["method"] == "First Chicago"
+
+    def test_export_first_chicago_csv(self):
+        """Test exporting First Chicago as CSV."""
+        response = client.post(
+            "/api/export/first-chicago",
+            json={
+                "company_name": "TestCo",
+                "format": "csv",
+                "result": {
+                    "weighted_value": 10_000_000,
+                    "present_value": 7_500_000,
+                    "scenario_values": {"Best": 15_000_000},
+                    "scenario_present_values": {"Best": 11_000_000},
+                },
+                "params": {},
+            },
+        )
+        assert response.status_code == 200
+        assert "text/csv" in response.headers["content-type"]
+        content = response.content.decode("utf-8")
+        assert "TestCo" in content
+        assert "First Chicago" in content
+
+    def test_export_pre_revenue_pdf(self):
+        """Test exporting pre-revenue valuation as PDF."""
+        response = client.post(
+            "/api/export/pre-revenue",
+            json={
+                "company_name": "StartupCo",
+                "method_name": "Berkus Method",
+                "format": "pdf",
+                "result": {"valuation": 2_500_000},
+                "params": {},
+            },
+        )
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "application/pdf"
+        assert response.content[:4] == b"%PDF"
+
+    def test_export_with_monte_carlo(self):
+        """Test export includes Monte Carlo data when provided."""
+        response = client.post(
+            "/api/export/first-chicago",
+            json={
+                "company_name": "MCTestCo",
+                "format": "pdf",
+                "result": {
+                    "weighted_value": 10_000_000,
+                    "present_value": 7_500_000,
+                    "scenario_values": {"Base": 10_000_000},
+                    "scenario_present_values": {"Base": 7_500_000},
+                },
+                "params": {},
+                "monte_carlo_result": {
+                    "mean": 8_000_000,
+                    "num_simulations": 10000,
+                    "percentiles": {"p5": 4_000_000, "p50": 7_800_000, "p95": 14_000_000},
+                },
+            },
+        )
+        assert response.status_code == 200
+        assert response.content[:4] == b"%PDF"
+
+    def test_export_invalid_format_rejected(self):
+        """Test export with unsupported format returns validation error."""
+        response = client.post(
+            "/api/export/first-chicago",
+            json={
+                "company_name": "TestCo",
+                "format": "docx",  # Not supported
+                "result": {
+                    "weighted_value": 10_000_000,
+                    "present_value": 7_500_000,
+                    "scenario_values": {},
+                    "scenario_present_values": {},
+                },
+                "params": {},
+            },
+        )
+        assert response.status_code == 400  # Validation error (transformed by error handler)

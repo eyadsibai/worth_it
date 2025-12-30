@@ -1038,3 +1038,32 @@ class BenchmarkValidationResponse(BaseModel):
     message: str
     benchmark_median: float
     suggested_range: tuple[float, float] | None = None
+
+
+# --- Export Models (Phase 5) ---
+
+
+class ExportRequest(BaseModel):
+    """Base request for export operations."""
+
+    company_name: str = Field(..., description="Name of the company being valued")
+    format: Literal["pdf", "json", "csv"] = Field(default="pdf", description="Export format")
+    industry: str | None = Field(default=None, description="Optional industry context")
+
+
+class FirstChicagoExportRequest(ExportRequest):
+    """Request to export First Chicago valuation report."""
+
+    result: dict[str, Any] = Field(..., description="First Chicago result with scenario values")
+    params: dict[str, Any] = Field(..., description="Parameters used in valuation")
+    monte_carlo_result: dict[str, Any] | None = Field(
+        default=None, description="Optional Monte Carlo simulation results"
+    )
+
+
+class PreRevenueExportRequest(ExportRequest):
+    """Request to export pre-revenue valuation report."""
+
+    method_name: str = Field(..., description="Method name (e.g., Berkus, Scorecard, Risk Factor)")
+    result: dict[str, Any] = Field(..., description="Valuation result")
+    params: dict[str, Any] = Field(..., description="Parameters used in valuation")
