@@ -487,4 +487,126 @@ test.describe('Valuation Calculator', () => {
       await expect(page.getByRole('heading', { name: /Valuation Calculator/i })).toBeVisible();
     });
   });
+
+  test.describe('Industry Benchmarks', () => {
+    test('should display industry selector', async ({ page }) => {
+      // Wait for page to fully load
+      await page.waitForLoadState('networkidle');
+
+      // Industry selector should be visible - use the combobox role
+      const industryCombobox = page.getByRole('combobox');
+      await expect(industryCombobox).toBeVisible();
+      await expect(industryCombobox).toContainText('Select your industry');
+    });
+
+    test('should show benchmark metrics when industry selected', async ({ page }) => {
+      await page.waitForLoadState('networkidle');
+
+      // Open industry selector
+      const industrySelector = page.getByRole('combobox');
+      await industrySelector.click();
+
+      // Select SaaS industry
+      await page.getByRole('option', { name: /SaaS.*Software/i }).click();
+
+      // Should show benchmark card with metrics after loading
+      await expect(page.getByText(/SaaS.*Benchmarks/i)).toBeVisible({ timeout: 10000 });
+    });
+
+    test('should show warning for outlier revenue multiple', async ({ page }) => {
+      await page.waitForLoadState('networkidle');
+
+      // First select an industry
+      await page.getByRole('combobox').click();
+      await page.getByRole('option', { name: /SaaS.*Software/i }).click();
+
+      // Wait for benchmark data to load
+      await expect(page.getByText(/SaaS.*Benchmarks/i)).toBeVisible({ timeout: 10000 });
+
+      // Wait for form to stabilize after benchmark load
+      await page.waitForTimeout(500);
+
+      // Enter an extremely high revenue multiple (above typical range)
+      // Navigate from the help button to the adjacent spinbutton using XPath sibling traversal
+      const multipleInput = page
+        .getByRole('button', { name: 'Help for Revenue Multiple' })
+        .locator('xpath=ancestor::div[1]/following-sibling::div[1]')
+        .getByRole('spinbutton');
+      await expect(multipleInput).toBeVisible();
+      await multipleInput.fill('50');
+
+      // Wait for debounced validation (300ms + API call)
+      await page.waitForTimeout(1000);
+
+      // Should show warning about value being outside typical range
+      await expect(page.getByText(/above maximum|outside.*range/i)).toBeVisible({ timeout: 10000 });
+    });
+
+    test('should validate discount rate in DCF form', async ({ page }) => {
+      await page.waitForLoadState('networkidle');
+
+      // Select industry first
+      await page.getByRole('combobox').click();
+      await page.getByRole('option', { name: /SaaS.*Software/i }).click();
+      await expect(page.getByText(/SaaS.*Benchmarks/i)).toBeVisible({ timeout: 10000 });
+
+      // Wait for form to stabilize
+      await page.waitForTimeout(500);
+
+      // Switch to DCF tab
+      await page.getByRole('tab', { name: /DCF/i }).click();
+
+      // Wait for DCF form to render - navigate from help button to adjacent spinbutton
+      const discountRateInput = page
+        .getByRole('button', { name: 'Help for Discount Rate' })
+        .locator('xpath=ancestor::div[1]/following-sibling::div[1]')
+        .getByRole('spinbutton');
+      await expect(discountRateInput).toBeVisible({ timeout: 5000 });
+
+      // Enter an extremely high discount rate
+      await discountRateInput.fill('50');
+
+      // Wait for validation
+      await page.waitForTimeout(1000);
+
+      // Should show warning about discount rate being high
+      await expect(page.getByText(/above.*(?:maximum|typical|range)/i)).toBeVisible({ timeout: 10000 });
+    });
+
+    test('should call benchmark API endpoints', async ({ request }) => {
+      // Test list industries endpoint
+      const industriesResponse = await request.get(
+        'http://localhost:8000/api/valuation/benchmarks/industries'
+      );
+      expect(industriesResponse.ok()).toBeTruthy();
+      const industries = await industriesResponse.json();
+      expect(industries.length).toBeGreaterThanOrEqual(15);
+      expect(industries.some((i: { code: string }) => i.code === 'saas')).toBeTruthy();
+
+      // Test get specific industry benchmark
+      const saasResponse = await request.get(
+        'http://localhost:8000/api/valuation/benchmarks/saas'
+      );
+      expect(saasResponse.ok()).toBeTruthy();
+      const saasBenchmark = await saasResponse.json();
+      expect(saasBenchmark.code).toBe('saas');
+      expect(saasBenchmark.metrics).toHaveProperty('revenue_multiple');
+
+      // Test validation endpoint
+      const validateResponse = await request.post(
+        'http://localhost:8000/api/valuation/benchmarks/validate',
+        {
+          data: {
+            industry_code: 'saas',
+            metric_name: 'revenue_multiple',
+            value: 15.0,
+          },
+        }
+      );
+      expect(validateResponse.ok()).toBeTruthy();
+      const validationResult = await validateResponse.json();
+      expect(validationResult.severity).toBe('warning');
+      expect(validationResult.benchmark_median).toBeGreaterThan(0);
+    });
+  });
 });
