@@ -13,9 +13,12 @@ from .models import (
     ReportSection,
     ValuationReportData,
 )
+from .negotiation import NegotiationRange, calculate_negotiation_range
 from .pdf_generator import generate_pdf_report
 
 __all__ = [
+    "NegotiationRange",
+    "calculate_negotiation_range",
     "ChartData",
     "ReportFormat",
     "ReportMetric",
