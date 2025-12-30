@@ -1539,3 +1539,46 @@ export const RiskFactorSummationFormSchema = z.object({
   factors: z.array(RiskFactorFormSchema).min(1, "At least one factor is required"),
 });
 export type RiskFactorSummationFormData = z.infer<typeof RiskFactorSummationFormSchema>;
+
+// ============================================================================
+// Export Schemas (Phase 5)
+// ============================================================================
+
+/**
+ * Export format options for valuation reports.
+ * - pdf: Full formatted PDF report with charts
+ * - json: Raw JSON data for programmatic use
+ * - csv: Spreadsheet-friendly format
+ */
+export const ExportFormatSchema = z.enum(["pdf", "json", "csv"]);
+export type ExportFormat = z.infer<typeof ExportFormatSchema>;
+
+/**
+ * Base export request schema.
+ */
+export const ExportRequestSchema = z.object({
+  company_name: z.string().min(1),
+  format: ExportFormatSchema.default("pdf"),
+  industry: z.string().nullable().optional(),
+});
+export type ExportRequest = z.infer<typeof ExportRequestSchema>;
+
+/**
+ * First Chicago method export request.
+ */
+export const FirstChicagoExportRequestSchema = ExportRequestSchema.extend({
+  result: z.record(z.string(), z.unknown()),
+  params: z.record(z.string(), z.unknown()),
+  monte_carlo_result: z.record(z.string(), z.unknown()).nullable().optional(),
+});
+export type FirstChicagoExportRequest = z.infer<typeof FirstChicagoExportRequestSchema>;
+
+/**
+ * Pre-revenue method export request (Berkus, Scorecard, etc.).
+ */
+export const PreRevenueExportRequestSchema = ExportRequestSchema.extend({
+  method_name: z.string().min(1),
+  result: z.record(z.string(), z.unknown()),
+  params: z.record(z.string(), z.unknown()),
+});
+export type PreRevenueExportRequest = z.infer<typeof PreRevenueExportRequestSchema>;
