@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download, FileText, FileSpreadsheet, FileJson, Loader2 } from "lucide-react";
+import { Download, FileText, FileSpreadsheet, FileJson, Loader2, AlertCircle } from "lucide-react";
 import { useExportFirstChicago, useExportPreRevenue } from "@/lib/api-client";
 import type { ExportFormat } from "@/lib/schemas";
 
@@ -38,6 +38,7 @@ export function ExportButton({
   disabled = false,
 }: ExportButtonProps) {
   const [isExporting, setIsExporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const exportFirstChicago = useExportFirstChicago();
   const exportPreRevenue = useExportPreRevenue();
@@ -87,41 +88,59 @@ export function ExportButton({
       }
 
       downloadBlob(blob, `${safeName}_valuation.${ext}`);
+      setError(null); // Clear any previous error on success
     } catch (error) {
       console.error("Export failed:", error);
+      setError("Export failed. Please try again.");
     } finally {
       setIsExporting(false);
     }
   };
 
+  // Auto-clear error after 5 seconds
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   const isLoading = isExporting || exportFirstChicago.isPending || exportPreRevenue.isPending;
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" disabled={disabled || isLoading}>
-          {isLoading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="mr-2 h-4 w-4" />
-          )}
-          Export
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => handleExport("pdf")}>
-          <FileText className="mr-2 h-4 w-4" />
-          PDF Report
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleExport("json")}>
-          <FileJson className="mr-2 h-4 w-4" />
-          JSON Data
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleExport("csv")}>
-          <FileSpreadsheet className="mr-2 h-4 w-4" />
-          CSV Spreadsheet
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex flex-col items-end gap-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" disabled={disabled || isLoading}>
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            Export
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => handleExport("pdf")}>
+            <FileText className="mr-2 h-4 w-4" />
+            PDF Report
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleExport("json")}>
+            <FileJson className="mr-2 h-4 w-4" />
+            JSON Data
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleExport("csv")}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            CSV Spreadsheet
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {error && (
+        <div className="text-destructive flex items-center gap-1.5 text-sm">
+          <AlertCircle className="h-4 w-4" />
+          <span>{error}</span>
+        </div>
+      )}
+    </div>
   );
 }

@@ -641,9 +641,10 @@ test.describe('Valuation Calculator', () => {
       // Click export button to open dropdown
       await page.getByRole('button', { name: /export/i }).click();
 
-      // Should show format options (PDF, JSON, CSV)
+      // Should show all 3 format options (PDF, JSON, CSV)
       await expect(page.getByText(/PDF/i)).toBeVisible({ timeout: 3000 });
       await expect(page.getByText(/JSON/i)).toBeVisible({ timeout: 3000 });
+      await expect(page.getByText(/CSV/i)).toBeVisible({ timeout: 3000 });
     });
   });
 

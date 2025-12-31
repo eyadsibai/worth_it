@@ -33,6 +33,27 @@ class NegotiationRange:
     ceiling: float
 
 
+def _get_percentile(data: dict[str, float], percentile: int, default: float) -> float:
+    """Get percentile value supporting both naming conventions.
+
+    Supports:
+    - Short form: 'p10', 'p25', 'p50', 'p75', 'p90'
+    - Monte Carlo output: 'percentile_10', 'percentile_25', etc.
+    """
+    short_key = f"p{percentile}"
+    long_key = f"percentile_{percentile}"
+    return data.get(short_key, data.get(long_key, default))
+
+
+def _has_required_percentiles(data: dict[str, float]) -> bool:
+    """Check if dict has required percentile keys in either format."""
+    required = [10, 25, 75, 90]
+    for p in required:
+        if f"p{p}" not in data and f"percentile_{p}" not in data:
+            return False
+    return True
+
+
 def calculate_negotiation_range(
     valuation: float,
     monte_carlo_percentiles: dict[str, float] | None = None,
@@ -44,22 +65,28 @@ def calculate_negotiation_range(
 
     Args:
         valuation: Base valuation amount
-        monte_carlo_percentiles: Optional dict with keys 'p10', 'p25', 'p50',
-            'p75', 'p90' representing Monte Carlo simulation percentiles
+        monte_carlo_percentiles: Optional dict with percentile keys. Supports both
+            short form ('p10', 'p25', 'p50', 'p75', 'p90') and Monte Carlo output
+            format ('percentile_10', 'percentile_25', etc.)
 
     Returns:
         NegotiationRange with floor, conservative, target, aggressive, ceiling
     """
     if monte_carlo_percentiles is not None:
-        # Validate required keys before using Monte Carlo percentiles
-        required_keys = {"p10", "p25", "p75", "p90"}
-        if required_keys.issubset(monte_carlo_percentiles.keys()):
+        # Check for required percentiles in either naming format
+        if _has_required_percentiles(monte_carlo_percentiles):
             return NegotiationRange(
-                floor=monte_carlo_percentiles["p10"],
-                conservative=monte_carlo_percentiles["p25"],
-                target=monte_carlo_percentiles.get("p50", valuation),
-                aggressive=monte_carlo_percentiles["p75"],
-                ceiling=monte_carlo_percentiles["p90"],
+                floor=_get_percentile(monte_carlo_percentiles, 10, valuation * FLOOR_MULTIPLIER),
+                conservative=_get_percentile(
+                    monte_carlo_percentiles, 25, valuation * CONSERVATIVE_MULTIPLIER
+                ),
+                target=_get_percentile(monte_carlo_percentiles, 50, valuation),
+                aggressive=_get_percentile(
+                    monte_carlo_percentiles, 75, valuation * AGGRESSIVE_MULTIPLIER
+                ),
+                ceiling=_get_percentile(
+                    monte_carlo_percentiles, 90, valuation * CEILING_MULTIPLIER
+                ),
             )
         # Fall through to standard multipliers if keys are missing
 
