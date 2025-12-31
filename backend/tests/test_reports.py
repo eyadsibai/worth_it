@@ -407,6 +407,29 @@ class TestNegotiationRange:
         assert result.aggressive == 12_000_000  # 1.2x
         assert result.ceiling == 15_000_000  # 1.5x
 
+    def test_range_with_monte_carlo_output_format(self) -> None:
+        """Test using Monte Carlo output format (percentile_10, percentile_25, etc.)."""
+        from worth_it.reports.negotiation import calculate_negotiation_range
+
+        # Use the actual Monte Carlo endpoint output format
+        result = calculate_negotiation_range(
+            valuation=10_000_000,
+            monte_carlo_percentiles={
+                "percentile_10": 7_000_000,
+                "percentile_25": 8_500_000,
+                "percentile_50": 10_000_000,
+                "percentile_75": 12_000_000,
+                "percentile_90": 15_000_000,
+            },
+        )
+
+        # Should use Monte Carlo values, same as short form
+        assert result.floor == 7_000_000  # percentile_10
+        assert result.conservative == 8_500_000  # percentile_25
+        assert result.target == 10_000_000  # percentile_50
+        assert result.aggressive == 12_000_000  # percentile_75
+        assert result.ceiling == 15_000_000  # percentile_90
+
     def test_range_immutability(self) -> None:
         """Test that NegotiationRange is immutable (frozen dataclass)."""
         import dataclasses
