@@ -168,10 +168,10 @@ class EnhancedDCFParams(BaseModel):
         ..., min_length=1, description="Growth stages for the projection"
     )
     discount_rate: float = Field(
-        ..., gt=0, le=1, description="WACC or required rate of return (e.g., 0.12 for 12%)"
+        ..., gt=0, le=0.5, description="WACC or required rate of return (e.g., 0.12 for 12%)"
     )
     terminal_growth_rate: float | None = Field(
-        default=None, ge=0, lt=1, description="Perpetual growth rate for terminal value"
+        default=None, ge=0, lt=0.1, description="Perpetual growth rate for terminal value"
     )
 
     model_config = {"arbitrary_types_allowed": True}

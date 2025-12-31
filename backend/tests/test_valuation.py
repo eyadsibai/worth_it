@@ -1017,12 +1017,14 @@ class TestEnhancedDCF:
 
         stages = [DCFStage(name="Growth", years=5, growth_rate=0.20, margin=0.15)]
 
+        # Use values that pass field validation (terminal_growth < 0.1)
+        # but fail model validation (terminal_growth >= discount_rate)
         with pytest.raises(ValidationError, match="(?i)terminal.*discount"):
             EnhancedDCFParams(
                 base_revenue=1_000_000,
                 stages=stages,
-                discount_rate=0.10,
-                terminal_growth_rate=0.12,  # Greater than discount
+                discount_rate=0.05,  # 5% discount rate
+                terminal_growth_rate=0.08,  # 8% > 5% (violates growth < discount)
             )
 
     def test_enhanced_dcf_result_structure(self):
