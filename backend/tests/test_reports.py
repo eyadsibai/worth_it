@@ -384,6 +384,29 @@ class TestNegotiationRange:
         assert result.aggressive == 12_000_000  # 1.2x
         assert result.ceiling == 15_000_000  # 1.5x
 
+    def test_range_with_incomplete_monte_carlo_falls_back(self) -> None:
+        """Test fallback when Monte Carlo percentiles are incomplete."""
+        from worth_it.reports.negotiation import calculate_negotiation_range
+
+        # Missing p90 key - should fall back to variance multipliers
+        result = calculate_negotiation_range(
+            valuation=10_000_000,
+            monte_carlo_percentiles={
+                "p10": 7_000_000,
+                "p25": 8_500_000,
+                "p50": 10_000_000,
+                "p75": 12_000_000,
+                # missing p90
+            },
+        )
+
+        # Should use standard variance multipliers, not crash
+        assert result.floor == 7_000_000  # 0.7x
+        assert result.conservative == 8_500_000  # 0.85x
+        assert result.target == 10_000_000  # 1.0x
+        assert result.aggressive == 12_000_000  # 1.2x
+        assert result.ceiling == 15_000_000  # 1.5x
+
     def test_range_immutability(self) -> None:
         """Test that NegotiationRange is immutable (frozen dataclass)."""
         import dataclasses

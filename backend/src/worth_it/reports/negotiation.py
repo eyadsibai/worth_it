@@ -51,14 +51,17 @@ def calculate_negotiation_range(
         NegotiationRange with floor, conservative, target, aggressive, ceiling
     """
     if monte_carlo_percentiles is not None:
-        # Use Monte Carlo percentiles for more accurate range
-        return NegotiationRange(
-            floor=monte_carlo_percentiles["p10"],
-            conservative=monte_carlo_percentiles["p25"],
-            target=monte_carlo_percentiles.get("p50", valuation),
-            aggressive=monte_carlo_percentiles["p75"],
-            ceiling=monte_carlo_percentiles["p90"],
-        )
+        # Validate required keys before using Monte Carlo percentiles
+        required_keys = {"p10", "p25", "p75", "p90"}
+        if required_keys.issubset(monte_carlo_percentiles.keys()):
+            return NegotiationRange(
+                floor=monte_carlo_percentiles["p10"],
+                conservative=monte_carlo_percentiles["p25"],
+                target=monte_carlo_percentiles.get("p50", valuation),
+                aggressive=monte_carlo_percentiles["p75"],
+                ceiling=monte_carlo_percentiles["p90"],
+            )
+        # Fall through to standard multipliers if keys are missing
 
     # Fall back to standard variance multipliers
     return NegotiationRange(

@@ -8,8 +8,10 @@ from typing import Any
 from .models import ReportMetric, ReportSection, ValuationReportData
 
 DEFAULT_DISCLAIMERS = [
-    "This valuation is provided for informational purposes only "
-    "and does not constitute financial advice.",
+    (
+        "This valuation is provided for informational purposes only "
+        "and does not constitute financial advice."
+    ),
     "Past performance does not guarantee future results.",
     "Consult with qualified professionals before making investment decisions.",
 ]
