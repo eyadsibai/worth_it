@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { apiClient } from "@/lib/api-client";
 import type { BenchmarkValidationResponse } from "@/lib/schemas";
 
@@ -37,6 +37,14 @@ export function useBenchmarkValidation(industryCode: string | null) {
   const [validations, setValidations] = useState<ValidationState>({});
   const [isValidating, setIsValidating] = useState(false);
   const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
+
+  // Cleanup all pending timers on unmount or industryCode change
+  useEffect(() => {
+    const timers = debounceTimers.current;
+    return () => {
+      Object.values(timers).forEach((timer) => clearTimeout(timer));
+    };
+  }, [industryCode]);
 
   const validateField = useCallback(
     (metricName: string, value: number, fieldKey?: string) => {

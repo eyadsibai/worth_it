@@ -46,9 +46,6 @@ export function DCFForm({ form, industryCode, benchmarks }: DCFFormProps) {
   const discountRateMedianDisplay = discountRateBenchmark
     ? `${Math.round(discountRateBenchmark.median * 100)}%`
     : undefined;
-  const discountRateRangeDisplay = discountRateBenchmark
-    ? `${Math.round(discountRateBenchmark.typical_low * 100)}% - ${Math.round(discountRateBenchmark.typical_high * 100)}%`
-    : undefined;
 
   return (
     <div className="space-y-4">
@@ -138,11 +135,7 @@ export function DCFForm({ form, industryCode, benchmarks }: DCFFormProps) {
           form={form}
           name="terminalGrowthRate"
           label="Terminal Growth Rate"
-          description={
-            discountRateRangeDisplay
-              ? `Discount range: ${discountRateRangeDisplay}`
-              : "Perpetual growth (optional)"
-          }
+          description="Perpetual growth (optional)"
           suffix="%"
           min={0}
           max={10}

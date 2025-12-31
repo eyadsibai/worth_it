@@ -131,6 +131,18 @@ def get_all_industries() -> list[IndustryBenchmark]:
     return list(_BENCHMARKS.values())
 
 
+def _format_metric_value(value: float, unit: str) -> str:
+    """Format a metric value for display.
+
+    For metrics with empty unit (rates/margins stored as decimals),
+    display as percentage. For others, use the unit as suffix.
+    """
+    if unit == "":
+        # Rate/margin metric - display as percentage
+        return f"{value * 100:.0f}%"
+    return f"{value}{unit}"
+
+
 def validate_against_benchmark(
     industry_code: str,
     metric_name: str,
@@ -166,12 +178,16 @@ def validate_against_benchmark(
 
     suggested_range = (metric.typical_low, metric.typical_high)
 
+    # Format values for display
+    def fmt(v):
+        return _format_metric_value(v, metric.unit)
+
     # Check ranges
     if value < metric.min_value:
         return ValidationResult(
             is_valid=False,
             severity="error",
-            message=f"Value {value}{metric.unit} is below minimum ({metric.min_value}{metric.unit}) for {benchmark.name}",
+            message=f"Value {fmt(value)} is below minimum ({fmt(metric.min_value)}) for {benchmark.name}",
             benchmark_median=metric.median,
             suggested_range=suggested_range,
         )
@@ -180,7 +196,7 @@ def validate_against_benchmark(
         return ValidationResult(
             is_valid=False,
             severity="error",
-            message=f"Value {value}{metric.unit} is above maximum ({metric.max_value}{metric.unit}) for {benchmark.name}",
+            message=f"Value {fmt(value)} is above maximum ({fmt(metric.max_value)}) for {benchmark.name}",
             benchmark_median=metric.median,
             suggested_range=suggested_range,
         )
@@ -189,7 +205,7 @@ def validate_against_benchmark(
         return ValidationResult(
             is_valid=True,
             severity="warning",
-            message=f"Value {value}{metric.unit} is below typical range ({metric.typical_low}-{metric.typical_high}{metric.unit})",
+            message=f"Value {fmt(value)} is below typical range ({fmt(metric.typical_low)}-{fmt(metric.typical_high)})",
             benchmark_median=metric.median,
             suggested_range=suggested_range,
         )
@@ -198,7 +214,7 @@ def validate_against_benchmark(
         return ValidationResult(
             is_valid=True,
             severity="warning",
-            message=f"Value {value}{metric.unit} is above typical range ({metric.typical_low}-{metric.typical_high}{metric.unit})",
+            message=f"Value {fmt(value)} is above typical range ({fmt(metric.typical_low)}-{fmt(metric.typical_high)})",
             benchmark_median=metric.median,
             suggested_range=suggested_range,
         )
