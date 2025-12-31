@@ -2711,11 +2711,9 @@ class TestExportAPI:
             },
         )
         assert response.status_code == 400  # Validation error (transformed by error handler)
-        # Verify error response structure from pydantic validation
+        # Verify structured error response format
         error_data = response.json()
-        assert "detail" in error_data
-        # Error should mention the invalid format value
-        assert any(
-            "docx" in str(err).lower() or "format" in str(err).lower()
-            for err in error_data["detail"]
-        )
+        assert "error" in error_data
+        assert error_data["error"]["code"] == "VALIDATION_ERROR"
+        # Error details should mention the format field
+        assert any("format" in str(detail).lower() for detail in error_data["error"]["details"])
