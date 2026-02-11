@@ -45,6 +45,10 @@ coverage.xml
 /playwright/.cache/
 /test-results/
 playwright/screenshots/*.png
+.playwright-mcp/
+
+# Screenshots (debug/temp)
+*.png
 
 node_modules
 .worktrees/
