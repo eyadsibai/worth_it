@@ -1,5 +1,10 @@
 "use client";
 
+/** Minimum height for tornado chart */
+const TORNADO_MIN_HEIGHT = 200;
+/** Height per data row in tornado chart */
+const TORNADO_ROW_HEIGHT = 50;
+
 import * as React from "react";
 import { AlertTriangle, TrendingUp, Info } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -118,7 +123,7 @@ export function SensitivityAnalysis({
         {/* Tornado chart */}
         <div>
           <h4 className="mb-4 text-sm font-semibold">Impact Analysis</h4>
-          <TornadoChart data={data} height={Math.max(200, data.length * 50)} showImpactLabels />
+          <TornadoChart data={data} height={Math.max(TORNADO_MIN_HEIGHT, data.length * TORNADO_ROW_HEIGHT)} showImpactLabels />
         </div>
 
         {/* Impact summary table */}

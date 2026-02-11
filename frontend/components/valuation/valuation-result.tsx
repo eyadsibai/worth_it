@@ -1,5 +1,15 @@
 "use client";
 
+/** Confidence level thresholds */
+const CONFIDENCE_LOW_THRESHOLD = 0.5;
+const CONFIDENCE_MEDIUM_THRESHOLD = 0.75;
+/** Percentage conversion multiplier */
+const PCT_MULTIPLIER = 100;
+/** Maximum number of inputs to display */
+const MAX_DISPLAYED_INPUTS = 6;
+/** Threshold for currency formatting vs number formatting */
+const CURRENCY_FORMAT_THRESHOLD = 1000;
+
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,14 +36,14 @@ const confidenceColors: Record<string, string> = {
 };
 
 function getConfidenceLevel(confidence: number): "low" | "medium" | "high" {
-  if (confidence < 0.5) return "low";
-  if (confidence < 0.75) return "medium";
+  if (confidence < CONFIDENCE_LOW_THRESHOLD) return "low";
+  if (confidence < CONFIDENCE_MEDIUM_THRESHOLD) return "medium";
   return "high";
 }
 
 export function ValuationResult({ result }: ValuationResultProps) {
   const confidenceLevel = getConfidenceLevel(result.confidence);
-  const confidencePercent = Math.round(result.confidence * 100);
+  const confidencePercent = Math.round(result.confidence * PCT_MULTIPLIER);
 
   return (
     <Card className="border-0 shadow-[0_1px_2px_rgba(0,0,0,0.03),0_2px_8px_rgba(0,0,0,0.04)]">
@@ -93,7 +103,7 @@ export function ValuationResult({ result }: ValuationResultProps) {
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
               {Object.entries(result.inputs)
-                .slice(0, 6)
+                .slice(0, MAX_DISPLAYED_INPUTS)
                 .map(([key, value]) => (
                   <div key={key} className="flex justify-between">
                     <span className="text-muted-foreground capitalize">
@@ -101,7 +111,7 @@ export function ValuationResult({ result }: ValuationResultProps) {
                     </span>
                     <span className="font-medium tabular-nums">
                       {typeof value === "number"
-                        ? value >= 1000
+                        ? value >= CURRENCY_FORMAT_THRESHOLD
                           ? formatCurrency(value)
                           : value.toLocaleString()
                         : String(value)}

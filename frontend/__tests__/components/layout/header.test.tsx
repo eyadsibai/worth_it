@@ -8,10 +8,12 @@ import { Header } from "@/components/layout/header";
 import { WalkthroughProvider } from "@/lib/walkthrough";
 
 // Mock next/navigation
+let mockPathname = "/";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),
   }),
+  usePathname: () => mockPathname,
 }));
 
 // Mock next-themes
@@ -32,12 +34,24 @@ vi.mock("@/components/command-palette", () => ({
 }));
 
 describe("Header", () => {
+  const originalPlatform = navigator.platform;
+  const originalUserAgent = navigator.userAgent;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPathname = "/";
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(window.navigator, "platform", {
+      configurable: true,
+      value: originalPlatform,
+    });
+    Object.defineProperty(window.navigator, "userAgent", {
+      configurable: true,
+      value: originalUserAgent,
+    });
   });
 
   describe("logo and branding", () => {
@@ -74,6 +88,22 @@ describe("Header", () => {
       expect(screen.getByRole("link", { name: "Analysis" })).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "About" })).toBeInTheDocument();
     });
+
+    it("marks current route as active with aria-current", () => {
+      mockPathname = "/valuation";
+
+      render(
+        <WalkthroughProvider>
+          <Header />
+        </WalkthroughProvider>
+      );
+
+      expect(screen.getByRole("link", { name: "Valuation" })).toHaveAttribute(
+        "aria-current",
+        "page"
+      );
+      expect(screen.getByRole("link", { name: "Analysis" })).not.toHaveAttribute("aria-current");
+    });
   });
 
   describe("search button", () => {
@@ -107,6 +137,46 @@ describe("Header", () => {
       await user.click(mobileSearchButton);
 
       expect(mockSetOpen).toHaveBeenCalledWith(true);
+    });
+
+    it("shows Ctrl+K hint on non-Mac platforms", () => {
+      Object.defineProperty(window.navigator, "platform", {
+        configurable: true,
+        value: "Win32",
+      });
+      Object.defineProperty(window.navigator, "userAgent", {
+        configurable: true,
+        value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+      });
+
+      render(
+        <WalkthroughProvider>
+          <Header />
+        </WalkthroughProvider>
+      );
+
+      expect(screen.getByText("Ctrl")).toBeInTheDocument();
+      expect(screen.getByText("K")).toBeInTheDocument();
+    });
+
+    it("shows ⌘K hint on Mac platforms", () => {
+      Object.defineProperty(window.navigator, "platform", {
+        configurable: true,
+        value: "MacIntel",
+      });
+      Object.defineProperty(window.navigator, "userAgent", {
+        configurable: true,
+        value: "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0)",
+      });
+
+      render(
+        <WalkthroughProvider>
+          <Header />
+        </WalkthroughProvider>
+      );
+
+      expect(screen.getByText("⌘")).toBeInTheDocument();
+      expect(screen.getByText("K")).toBeInTheDocument();
     });
   });
 });

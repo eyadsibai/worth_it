@@ -1,5 +1,8 @@
 "use client";
 
+/** Default batch size for Monte Carlo simulations */
+const DEFAULT_BATCH_SIZE = 1000;
+
 import * as React from "react";
 import type { MonteCarloResultData } from "@/components/valuation/monte-carlo-results";
 import type { DistributionValue } from "@/components/valuation/distribution-input";
@@ -110,7 +113,7 @@ export function useValuationMonteCarlo(
             method: config.method,
             distributions: config.distributions,
             n_simulations: config.n_simulations,
-            batch_size: config.batch_size || 1000,
+            batch_size: config.batch_size || DEFAULT_BATCH_SIZE,
           })
         );
       };

@@ -5,7 +5,18 @@
 
 import axios, { AxiosInstance } from "axios";
 import { useMutation, useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useCancellableMutation } from "./hooks/use-cancellable-mutation";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+/** Backend port for local development */
+const BACKEND_PORT = 8000;
+/** Default timeout for API requests in milliseconds */
+const API_TIMEOUT_MS = 30000;
+/** Stale time for health check queries (1 minute) */
+const HEALTH_CHECK_STALE_TIME_MS = 60000;
+/** Stale time for industry data queries (5 minutes) */
+const INDUSTRY_STALE_TIME_MS = 300000;
+
 import type {
   MonthlyDataGridRequest,
   MonthlyDataGridResponse,
@@ -181,7 +192,7 @@ class APIClient {
       this.wsURL = getWebSocketURL(
         window.location.protocol,
         window.location.host,
-        8000 // Backend port for local development
+        BACKEND_PORT,
       );
     } else {
       this.wsURL = getWebSocketURL("", "");
@@ -189,7 +200,7 @@ class APIClient {
 
     this.client = axios.create({
       baseURL: this.baseURL,
-      timeout: 30000,
+      timeout: API_TIMEOUT_MS,
       headers: {
         "Content-Type": "application/json",
       },
@@ -288,8 +299,13 @@ class APIClient {
   }
 
   // Monte Carlo (REST)
-  async runMonteCarlo(request: MonteCarloRequest): Promise<MonteCarloResponse> {
-    const { data } = await this.client.post<MonteCarloResponse>("/api/monte-carlo", request);
+  async runMonteCarlo(
+    request: MonteCarloRequest,
+    signal?: AbortSignal
+  ): Promise<MonteCarloResponse> {
+    const { data } = await this.client.post<MonteCarloResponse>("/api/monte-carlo", request, {
+      signal,
+    });
     return data;
   }
 
@@ -329,16 +345,25 @@ class APIClient {
   }
 
   // Waterfall Analysis (Exit Proceeds Distribution)
-  async calculateWaterfall(request: WaterfallRequest): Promise<WaterfallResponse> {
-    const { data } = await this.client.post<WaterfallResponse>("/api/waterfall", request);
+  async calculateWaterfall(
+    request: WaterfallRequest,
+    signal?: AbortSignal
+  ): Promise<WaterfallResponse> {
+    const { data } = await this.client.post<WaterfallResponse>("/api/waterfall", request, {
+      signal,
+    });
     return data;
   }
 
   // Dilution Preview (Funding Round Impact)
-  async getDilutionPreview(request: DilutionPreviewRequest): Promise<DilutionPreviewResponse> {
+  async getDilutionPreview(
+    request: DilutionPreviewRequest,
+    signal?: AbortSignal
+  ): Promise<DilutionPreviewResponse> {
     const { data } = await this.client.post<DilutionPreviewResponse>(
       "/api/dilution/preview",
-      request
+      request,
+      { signal }
     );
     return data;
   }
@@ -361,40 +386,59 @@ class APIClient {
   // ============================================================================
 
   // Revenue Multiple Valuation
-  async calculateRevenueMultiple(request: RevenueMultipleRequest): Promise<ValuationResult> {
+  async calculateRevenueMultiple(
+    request: RevenueMultipleRequest,
+    signal?: AbortSignal
+  ): Promise<ValuationResult> {
     const { data } = await this.client.post<ValuationResult>(
       "/api/valuation/revenue-multiple",
-      request
+      request,
+      { signal }
     );
     return data;
   }
 
   // DCF (Discounted Cash Flow) Valuation
-  async calculateDCF(request: DCFRequest): Promise<ValuationResult> {
-    const { data } = await this.client.post<ValuationResult>("/api/valuation/dcf", request);
+  async calculateDCF(request: DCFRequest, signal?: AbortSignal): Promise<ValuationResult> {
+    const { data } = await this.client.post<ValuationResult>("/api/valuation/dcf", request, {
+      signal,
+    });
     return data;
   }
 
   // VC Method Valuation
-  async calculateVCMethod(request: VCMethodRequest): Promise<ValuationResult> {
-    const { data } = await this.client.post<ValuationResult>("/api/valuation/vc-method", request);
+  async calculateVCMethod(
+    request: VCMethodRequest,
+    signal?: AbortSignal
+  ): Promise<ValuationResult> {
+    const { data } = await this.client.post<ValuationResult>("/api/valuation/vc-method", request, {
+      signal,
+    });
     return data;
   }
 
   // Compare Multiple Valuation Methods
-  async compareValuations(request: ValuationCompareRequest): Promise<ValuationCompareResponse> {
+  async compareValuations(
+    request: ValuationCompareRequest,
+    signal?: AbortSignal
+  ): Promise<ValuationCompareResponse> {
     const { data } = await this.client.post<ValuationCompareResponse>(
       "/api/valuation/compare",
-      request
+      request,
+      { signal }
     );
     return data;
   }
 
   // First Chicago Method Valuation
-  async calculateFirstChicago(request: FirstChicagoRequest): Promise<FirstChicagoResponse> {
+  async calculateFirstChicago(
+    request: FirstChicagoRequest,
+    signal?: AbortSignal
+  ): Promise<FirstChicagoResponse> {
     const { data } = await this.client.post<FirstChicagoResponse>(
       "/api/valuation/first-chicago",
-      request
+      request,
+      { signal }
     );
     return data;
   }
@@ -404,24 +448,33 @@ class APIClient {
   // ============================================================================
 
   // Berkus Method Valuation
-  async calculateBerkus(request: BerkusRequest): Promise<BerkusResponse> {
-    const { data } = await this.client.post<BerkusResponse>("/api/valuation/berkus", request);
+  async calculateBerkus(request: BerkusRequest, signal?: AbortSignal): Promise<BerkusResponse> {
+    const { data } = await this.client.post<BerkusResponse>("/api/valuation/berkus", request, {
+      signal,
+    });
     return data;
   }
 
   // Scorecard Method Valuation
-  async calculateScorecard(request: ScorecardRequest): Promise<ScorecardResponse> {
-    const { data } = await this.client.post<ScorecardResponse>("/api/valuation/scorecard", request);
+  async calculateScorecard(
+    request: ScorecardRequest,
+    signal?: AbortSignal
+  ): Promise<ScorecardResponse> {
+    const { data } = await this.client.post<ScorecardResponse>("/api/valuation/scorecard", request, {
+      signal,
+    });
     return data;
   }
 
   // Risk Factor Summation Method Valuation
   async calculateRiskFactorSummation(
-    request: RiskFactorSummationRequest
+    request: RiskFactorSummationRequest,
+    signal?: AbortSignal
   ): Promise<RiskFactorSummationResponse> {
     const { data } = await this.client.post<RiskFactorSummationResponse>(
       "/api/valuation/risk-factor-summation",
-      request
+      request,
+      { signal }
     );
     return data;
   }
@@ -562,7 +615,7 @@ export function useHealthCheck() {
   return useQuery({
     queryKey: ["health"],
     queryFn: () => apiClient.healthCheck(),
-    staleTime: 60000, // 1 minute
+    staleTime: HEALTH_CHECK_STALE_TIME_MS,
   });
 }
 
@@ -603,15 +656,17 @@ export function useCalculateNPV() {
 
 // Monte Carlo (REST)
 export function useRunMonteCarlo() {
-  return useMutation({
-    mutationFn: (request: MonteCarloRequest) => apiClient.runMonteCarlo(request),
+  return useCancellableMutation({
+    mutationFn: (request: MonteCarloRequest, signal: AbortSignal) =>
+      apiClient.runMonteCarlo(request, signal),
   });
 }
 
 // Sensitivity Analysis
 export function useRunSensitivityAnalysis() {
-  return useMutation({
-    mutationFn: (request: SensitivityAnalysisRequest) => apiClient.runSensitivityAnalysis(request),
+  return useCancellableMutation({
+    mutationFn: (request: SensitivityAnalysisRequest, signal: AbortSignal) =>
+      apiClient.runSensitivityAnalysis(request, signal),
   });
 }
 
@@ -631,22 +686,25 @@ export function useConvertInstruments() {
 
 // Waterfall Analysis (Exit Proceeds Distribution)
 export function useCalculateWaterfall() {
-  return useMutation({
-    mutationFn: (request: WaterfallRequest) => apiClient.calculateWaterfall(request),
+  return useCancellableMutation({
+    mutationFn: (request: WaterfallRequest, signal: AbortSignal) =>
+      apiClient.calculateWaterfall(request, signal),
   });
 }
 
 // Dilution Preview (Funding Round Impact)
 export function useGetDilutionPreview() {
-  return useMutation({
-    mutationFn: (request: DilutionPreviewRequest) => apiClient.getDilutionPreview(request),
+  return useCancellableMutation({
+    mutationFn: (request: DilutionPreviewRequest, signal: AbortSignal) =>
+      apiClient.getDilutionPreview(request, signal),
   });
 }
 
 // Scenario Comparison
 export function useCompareScenarios() {
-  return useMutation({
-    mutationFn: (request: ScenarioComparisonRequest) => apiClient.compareScenarios(request),
+  return useCancellableMutation({
+    mutationFn: (request: ScenarioComparisonRequest, signal: AbortSignal) =>
+      apiClient.compareScenarios(request, signal),
   });
 }
 
@@ -656,36 +714,41 @@ export function useCompareScenarios() {
 
 // Revenue Multiple Valuation
 export function useCalculateRevenueMultiple() {
-  return useMutation({
-    mutationFn: (request: RevenueMultipleRequest) => apiClient.calculateRevenueMultiple(request),
+  return useCancellableMutation({
+    mutationFn: (request: RevenueMultipleRequest, signal: AbortSignal) =>
+      apiClient.calculateRevenueMultiple(request, signal),
   });
 }
 
 // DCF (Discounted Cash Flow) Valuation
 export function useCalculateDCF() {
-  return useMutation({
-    mutationFn: (request: DCFRequest) => apiClient.calculateDCF(request),
+  return useCancellableMutation({
+    mutationFn: (request: DCFRequest, signal: AbortSignal) =>
+      apiClient.calculateDCF(request, signal),
   });
 }
 
 // VC Method Valuation
 export function useCalculateVCMethod() {
-  return useMutation({
-    mutationFn: (request: VCMethodRequest) => apiClient.calculateVCMethod(request),
+  return useCancellableMutation({
+    mutationFn: (request: VCMethodRequest, signal: AbortSignal) =>
+      apiClient.calculateVCMethod(request, signal),
   });
 }
 
 // Compare Multiple Valuation Methods
 export function useCompareValuations() {
-  return useMutation({
-    mutationFn: (request: ValuationCompareRequest) => apiClient.compareValuations(request),
+  return useCancellableMutation({
+    mutationFn: (request: ValuationCompareRequest, signal: AbortSignal) =>
+      apiClient.compareValuations(request, signal),
   });
 }
 
 // First Chicago Method Valuation
 export function useCalculateFirstChicago() {
-  return useMutation({
-    mutationFn: (request: FirstChicagoRequest) => apiClient.calculateFirstChicago(request),
+  return useCancellableMutation({
+    mutationFn: (request: FirstChicagoRequest, signal: AbortSignal) =>
+      apiClient.calculateFirstChicago(request, signal),
   });
 }
 
@@ -695,23 +758,25 @@ export function useCalculateFirstChicago() {
 
 // Berkus Method Valuation
 export function useCalculateBerkus() {
-  return useMutation({
-    mutationFn: (request: BerkusRequest) => apiClient.calculateBerkus(request),
+  return useCancellableMutation({
+    mutationFn: (request: BerkusRequest, signal: AbortSignal) =>
+      apiClient.calculateBerkus(request, signal),
   });
 }
 
 // Scorecard Method Valuation
 export function useCalculateScorecard() {
-  return useMutation({
-    mutationFn: (request: ScorecardRequest) => apiClient.calculateScorecard(request),
+  return useCancellableMutation({
+    mutationFn: (request: ScorecardRequest, signal: AbortSignal) =>
+      apiClient.calculateScorecard(request, signal),
   });
 }
 
 // Risk Factor Summation Method Valuation
 export function useCalculateRiskFactorSummation() {
-  return useMutation({
-    mutationFn: (request: RiskFactorSummationRequest) =>
-      apiClient.calculateRiskFactorSummation(request),
+  return useCancellableMutation({
+    mutationFn: (request: RiskFactorSummationRequest, signal: AbortSignal) =>
+      apiClient.calculateRiskFactorSummation(request, signal),
   });
 }
 
@@ -727,7 +792,7 @@ export function useListIndustries() {
   return useQuery({
     queryKey: ["industries"],
     queryFn: () => apiClient.listIndustries(),
-    staleTime: 5 * 60 * 1000, // 5 minutes - industries rarely change
+    staleTime: INDUSTRY_STALE_TIME_MS,
   });
 }
 
@@ -746,7 +811,7 @@ export function useIndustryBenchmark(industryCode: string | null, enabled: boole
       return apiClient.getIndustryBenchmark(industryCode);
     },
     enabled: enabled && industryCode !== null,
-    staleTime: 5 * 60 * 1000, // 5 minutes - benchmarks rarely change
+    staleTime: INDUSTRY_STALE_TIME_MS,
   });
 }
 
@@ -861,6 +926,7 @@ export function useMonteCarloWebSocket(): MonteCarloWSResult {
   const [error, setError] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
+  const intentionalCloseRef = useRef(false);
 
   // Refs to track current state values for use in WebSocket event handlers
   // This prevents stale closure issues where handlers capture outdated state
@@ -882,10 +948,15 @@ export function useMonteCarloWebSocket(): MonteCarloWSResult {
   }, [error]);
 
   const cancel = useCallback(() => {
-    if (wsRef.current) {
+    intentionalCloseRef.current = true;
+    if (
+      wsRef.current &&
+      wsRef.current.readyState !== WebSocket.CLOSED &&
+      wsRef.current.readyState !== WebSocket.CLOSING
+    ) {
       wsRef.current.close();
-      wsRef.current = null;
     }
+    wsRef.current = null;
     setIsConnected(false);
     setIsRunning(false);
     setProgress(null);
@@ -963,18 +1034,28 @@ export function useMonteCarloWebSocket(): MonteCarloWSResult {
 
     ws.onclose = () => {
       setIsConnected(false);
-      // Use refs to access current state values, avoiding stale closure issues
-      if (isRunningRef.current && !resultRef.current && !errorRef.current) {
+      // Only report unexpected closure - intentional close (via cancel) is not an error
+      if (
+        !intentionalCloseRef.current &&
+        isRunningRef.current &&
+        !resultRef.current &&
+        !errorRef.current
+      ) {
         setError("Connection closed unexpectedly");
         setIsRunning(false);
       }
+      intentionalCloseRef.current = false;
     };
   }, []); // Empty deps - callback is now stable since we use refs for state access
 
-  // Cleanup on unmount
+  // Cleanup on unmount - only close if not already closed/closing
   useEffect(() => {
     return () => {
-      if (wsRef.current) {
+      if (
+        wsRef.current &&
+        wsRef.current.readyState !== WebSocket.CLOSED &&
+        wsRef.current.readyState !== WebSocket.CLOSING
+      ) {
         wsRef.current.close();
       }
     };
@@ -997,8 +1078,7 @@ export function useMonteCarloWebSocket(): MonteCarloWSResult {
 // These hooks automatically cancel previous in-flight requests when a new
 // mutation is triggered, preventing stale responses from overwriting newer ones.
 
-import { useCancellableMutation, isAbortError } from "./hooks/use-cancellable-mutation";
-export { isAbortError };
+export { isAbortError } from "./hooks/use-cancellable-mutation";
 
 /**
  * Cancellable version of useCreateMonthlyDataGrid

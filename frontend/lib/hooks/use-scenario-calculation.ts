@@ -1,5 +1,8 @@
 "use client";
 
+/** Percentage to decimal conversion divisor */
+const PERCENT_TO_DECIMAL = 100;
+
 import * as React from "react";
 import {
   useMonthlyDataGridQuery,
@@ -84,7 +87,7 @@ export function useScenarioCalculation(input: ScenarioCalculationInput): Scenari
       exit_year: globalSettings.exit_year,
       current_job_monthly_salary: currentJob.monthly_salary,
       startup_monthly_salary: equityDetails.monthly_salary,
-      current_job_salary_growth_rate: currentJob.annual_salary_growth_rate / 100,
+      current_job_salary_growth_rate: currentJob.annual_salary_growth_rate / PERCENT_TO_DECIMAL,
       dilution_rounds:
         equityDetails.equity_type === "RSU" && equityDetails.simulate_dilution
           ? equityDetails.dilution_rounds
@@ -93,7 +96,7 @@ export function useScenarioCalculation(input: ScenarioCalculationInput): Scenari
                 round_name: r.round_name,
                 round_type: r.round_type,
                 year: r.year,
-                dilution_pct: r.dilution_pct ? r.dilution_pct / 100 : undefined,
+                dilution_pct: r.dilution_pct ? r.dilution_pct / PERCENT_TO_DECIMAL : undefined,
                 pre_money_valuation: r.pre_money_valuation,
                 amount_raised: r.amount_raised,
                 salary_change: r.salary_change,
@@ -111,7 +114,7 @@ export function useScenarioCalculation(input: ScenarioCalculationInput): Scenari
 
     return {
       monthly_data: monthlyDataQuery.data.data,
-      annual_roi: currentJob.assumed_annual_roi / 100,
+      annual_roi: currentJob.assumed_annual_roi / PERCENT_TO_DECIMAL,
       investment_frequency: currentJob.investment_frequency,
       options_params:
         equityDetails.equity_type === "STOCK_OPTIONS"
@@ -159,7 +162,7 @@ export function useScenarioCalculation(input: ScenarioCalculationInput): Scenari
                       round_name: r.round_name,
                       round_type: r.round_type,
                       year: r.year,
-                      dilution_pct: r.dilution_pct ? r.dilution_pct / 100 : undefined,
+                      dilution_pct: r.dilution_pct ? r.dilution_pct / PERCENT_TO_DECIMAL : undefined,
                       pre_money_valuation: r.pre_money_valuation,
                       amount_raised: r.amount_raised,
                       salary_change: r.salary_change,

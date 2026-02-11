@@ -1,5 +1,10 @@
 "use client";
 
+/** Success rate threshold for "Strong" outlook */
+const STRONG_OUTLOOK_THRESHOLD = 70;
+/** Success rate threshold for "Moderate" outlook */
+const MODERATE_OUTLOOK_THRESHOLD = 50;
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { MonteCarloStats } from "./types";
 import { formatCurrency } from "./utils";
@@ -76,12 +81,12 @@ export function MonteCarloSummary({ stats, simulationCount }: MonteCarloSummaryP
             The Monte Carlo simulation ran {simulationCount.toLocaleString()} scenarios to account
             for uncertainty in exit valuations and salary growth rates.
           </p>
-          {stats.positiveRate >= 70 ? (
+          {stats.positiveRate >= STRONG_OUTLOOK_THRESHOLD ? (
             <p className="text-primary font-medium">
               With {stats.positiveRate.toFixed(1)}% probability of success, this opportunity shows
               strong potential for positive returns.
             </p>
-          ) : stats.positiveRate >= 50 ? (
+          ) : stats.positiveRate >= MODERATE_OUTLOOK_THRESHOLD ? (
             <p className="font-medium text-yellow-600 dark:text-yellow-500">
               With {stats.positiveRate.toFixed(1)}% success probability, this is a moderate-risk
               opportunity. Consider your risk tolerance.

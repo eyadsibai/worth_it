@@ -36,7 +36,7 @@ export function BerkusForm({ form }: BerkusFormProps) {
 
         <NumberInputField
           form={form}
-          name="prototype"
+          name="mvp"
           label="Prototype"
           description="Technology risk reduction"
           prefix="$"

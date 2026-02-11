@@ -2,13 +2,15 @@
  * Shared formatting utilities for the frontend
  */
 
+import { FORMATTING } from "./constants/formatting";
+
 /**
  * Multipliers for shorthand suffixes (case-insensitive)
  */
 const SHORTHAND_MULTIPLIERS: Record<string, number> = {
-  k: 1_000,
-  m: 1_000_000,
-  b: 1_000_000_000,
+  k: FORMATTING.THOUSAND,
+  m: FORMATTING.MILLION,
+  b: FORMATTING.BILLION,
 };
 
 /**
@@ -60,7 +62,7 @@ export function parseShorthand(input: string): number {
  */
 export function formatNumberWithSeparators(value: number): string {
   return new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: 10, // Preserve decimals
+    maximumFractionDigits: FORMATTING.MAX_FRACTION_DIGITS_PRESERVE,
   }).format(value);
 }
 
@@ -132,19 +134,19 @@ export function formatLargeNumber(value: number, prefix: string = "$"): string {
   const absValue = Math.abs(value);
   const sign = value < 0 ? "-" : "";
 
-  if (absValue >= 1_000_000_000) {
-    const num = absValue / 1_000_000_000;
-    const formatted = num % 1 === 0 ? num.toFixed(0) : removeTrailingZeros(num.toFixed(2));
+  if (absValue >= FORMATTING.BILLION) {
+    const num = absValue / FORMATTING.BILLION;
+    const formatted = num % 1 === 0 ? num.toFixed(0) : removeTrailingZeros(num.toFixed(FORMATTING.DECIMAL_PLACES_DEFAULT));
     return `${sign}${prefix}${formatted}B`;
   }
-  if (absValue >= 1_000_000) {
-    const num = absValue / 1_000_000;
-    const formatted = num % 1 === 0 ? num.toFixed(0) : removeTrailingZeros(num.toFixed(2));
+  if (absValue >= FORMATTING.MILLION) {
+    const num = absValue / FORMATTING.MILLION;
+    const formatted = num % 1 === 0 ? num.toFixed(0) : removeTrailingZeros(num.toFixed(FORMATTING.DECIMAL_PLACES_DEFAULT));
     return `${sign}${prefix}${formatted}M`;
   }
-  if (absValue >= 1_000) {
-    const num = absValue / 1_000;
-    const formatted = num % 1 === 0 ? num.toFixed(0) : removeTrailingZeros(num.toFixed(1));
+  if (absValue >= FORMATTING.THOUSAND) {
+    const num = absValue / FORMATTING.THOUSAND;
+    const formatted = num % 1 === 0 ? num.toFixed(0) : removeTrailingZeros(num.toFixed(FORMATTING.DECIMAL_PLACES_PERCENT));
     return `${sign}${prefix}${formatted}K`;
   }
   return `${sign}${prefix}${absValue.toFixed(0)}`;

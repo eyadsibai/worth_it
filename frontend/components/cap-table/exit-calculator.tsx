@@ -1,5 +1,18 @@
 "use client";
 
+/** Default exit valuation ($50M) */
+const DEFAULT_EXIT_VALUATION = 50_000_000;
+/** Percentage to decimal divisor */
+const PERCENT_DIVISOR = 100;
+/** Decimal places for ownership display */
+const OWNERSHIP_DECIMAL_PLACES = 2;
+/** Quick-select exit valuation presets */
+const EXIT_PRESET_10M = 10_000_000;
+const EXIT_PRESET_50M = 50_000_000;
+const EXIT_PRESET_100M = 100_000_000;
+const EXIT_PRESET_500M = 500_000_000;
+const EXIT_VALUATION_PRESETS = [EXIT_PRESET_10M, EXIT_PRESET_50M, EXIT_PRESET_100M, EXIT_PRESET_500M] as const;
+
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,14 +42,14 @@ interface PayoutRow {
 }
 
 export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorProps) {
-  const [exitValuation, setExitValuation] = React.useState<number>(50000000); // 50M default
+  const [exitValuation, setExitValuation] = React.useState<number>(DEFAULT_EXIT_VALUATION);
 
   const payouts: PayoutRow[] = React.useMemo(() => {
     const rows: PayoutRow[] = stakeholders.map((s) => ({
       name: s.name,
       type: s.type,
       ownershipPct: s.ownership_pct,
-      payout: (s.ownership_pct / 100) * exitValuation,
+      payout: (s.ownership_pct / PERCENT_DIVISOR) * exitValuation,
     }));
 
     // Add option pool payout (typically goes to employees)
@@ -45,7 +58,7 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
         name: "Option Pool (Reserved)",
         type: "option_pool",
         ownershipPct: optionPoolPct,
-        payout: (optionPoolPct / 100) * exitValuation,
+        payout: (optionPoolPct / PERCENT_DIVISOR) * exitValuation,
       });
     }
 
@@ -85,7 +98,7 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
             />
           </div>
           <div className="mt-2 flex gap-2">
-            {[10000000, 50000000, 100000000, 500000000].map((val) => (
+            {EXIT_VALUATION_PRESETS.map((val) => (
               <motion.button
                 key={val}
                 type="button"
@@ -127,7 +140,7 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
                     {row.type.replace("_", " ")}
                   </TableCell>
                   <TableCell className="text-right">
-                    {removeTrailingZeros(row.ownershipPct.toFixed(2))}%
+                    {removeTrailingZeros(row.ownershipPct.toFixed(OWNERSHIP_DECIMAL_PLACES))}%
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     <HighlightOnChange value={row.payout}>
@@ -140,7 +153,7 @@ export function ExitCalculator({ stakeholders, optionPoolPct }: ExitCalculatorPr
                 <TableCell>Total</TableCell>
                 <TableCell />
                 <TableCell className="text-right">
-                  {removeTrailingZeros(totalAllocatedPct.toFixed(2))}%
+                  {removeTrailingZeros(totalAllocatedPct.toFixed(OWNERSHIP_DECIMAL_PLACES))}%
                 </TableCell>
                 <TableCell className="text-terminal text-right tabular-nums">
                   <HighlightOnChange value={totalPayout}>

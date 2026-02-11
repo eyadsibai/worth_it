@@ -1,5 +1,10 @@
 "use client";
 
+/** Wizard step indices for display */
+const STEP_IDX = { OPTION_POOL: 2, ADVISORS: 3, FUNDING: 4, COMPLETE: 5 } as const;
+/** Default pre-money valuation when not specified */
+const DEFAULT_PRE_MONEY_VALUATION = 10_000_000;
+
 import * as React from "react";
 import { Card } from "@/components/ui/card";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,15 +42,15 @@ export function CapTableWizard({ onComplete, onSkip }: CapTableWizardProps) {
       case "founders":
         return 1;
       case "option-pool":
-        return 2;
+        return STEP_IDX.OPTION_POOL;
       case "advisors-ask":
       case "advisors-form":
-        return 3;
+        return STEP_IDX.ADVISORS;
       case "funding-ask":
       case "funding-form":
-        return 4;
+        return STEP_IDX.FUNDING;
       case "complete":
-        return 5;
+        return STEP_IDX.COMPLETE;
       default:
         return 1;
     }
@@ -172,7 +177,7 @@ export function CapTableWizard({ onComplete, onSkip }: CapTableWizardProps) {
           type: "PRICED_ROUND",
           round_name: funding.investorName,
           // Use nullish coalescing to only fallback when undefined/null (not 0)
-          pre_money_valuation: funding.valuationCap ?? 10_000_000,
+          pre_money_valuation: funding.valuationCap ?? DEFAULT_PRE_MONEY_VALUATION,
           amount_raised: funding.amount,
           price_per_share: 1, // Will be calculated
           new_shares_issued: 0, // Will be calculated during conversion

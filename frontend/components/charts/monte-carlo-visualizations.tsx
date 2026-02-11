@@ -1,5 +1,23 @@
 "use client";
 
+/** Percentile indices for statistical calculations */
+const PERCENTILES = {
+  P10: 0.1,
+  P25: 0.25,
+  P75: 0.75,
+  P90: 0.9,
+} as const;
+/** Midpoint divisor for median calculation */
+const MIDPOINT_DIVISOR = 2;
+/** Percentage conversion multiplier */
+const PCT_MULTIPLIER = 100;
+/** Success rate threshold for "Strong" outlook */
+const STRONG_OUTLOOK_THRESHOLD = 70;
+/** Success rate threshold for "Moderate" outlook */
+const MODERATE_OUTLOOK_THRESHOLD = 50;
+/** Number of histogram bins */
+const HISTOGRAM_BIN_COUNT = 30;
+
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -79,18 +97,18 @@ export function MonteCarloVisualizations({
 
     const sorted = [...netOutcomes].sort((a, b) => a - b);
     const mean = netOutcomes.reduce((a, b) => a + b, 0) / netOutcomes.length;
-    const median = sorted[Math.floor(sorted.length / 2)];
-    const p10 = sorted[Math.floor(sorted.length * 0.1)];
-    const p25 = sorted[Math.floor(sorted.length * 0.25)];
-    const p75 = sorted[Math.floor(sorted.length * 0.75)];
-    const p90 = sorted[Math.floor(sorted.length * 0.9)];
+    const median = sorted[Math.floor(sorted.length / MIDPOINT_DIVISOR)];
+    const p10 = sorted[Math.floor(sorted.length * PERCENTILES.P10)];
+    const p25 = sorted[Math.floor(sorted.length * PERCENTILES.P25)];
+    const p75 = sorted[Math.floor(sorted.length * PERCENTILES.P75)];
+    const p90 = sorted[Math.floor(sorted.length * PERCENTILES.P90)];
     const min = sorted[0];
     const max = sorted[sorted.length - 1];
     const std = Math.sqrt(
-      netOutcomes.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / netOutcomes.length
+      netOutcomes.reduce((sum, val) => sum + Math.pow(val - mean, MIDPOINT_DIVISOR), 0) / netOutcomes.length // squared deviation
     );
     const positiveCount = netOutcomes.filter((x) => x > 0).length;
-    const positiveRate = (positiveCount / netOutcomes.length) * 100;
+    const positiveRate = (positiveCount / netOutcomes.length) * PCT_MULTIPLIER;
 
     return { mean, median, std, min, max, p10, p25, p75, p90, positiveRate };
   }, [netOutcomes]);
@@ -98,9 +116,9 @@ export function MonteCarloVisualizations({
   // Generate plain-English headline based on success rate
   const headline = React.useMemo(() => {
     const successPct = Math.round(stats.positiveRate);
-    if (stats.positiveRate >= 70) {
+    if (stats.positiveRate >= STRONG_OUTLOOK_THRESHOLD) {
       return `Strong outlook: ${successPct}% chance of a positive outcome`;
-    } else if (stats.positiveRate >= 50) {
+    } else if (stats.positiveRate >= MODERATE_OUTLOOK_THRESHOLD) {
       return `Moderate outlook: ${successPct}% chance of a positive outcome`;
     } else {
       return `Caution: only ${successPct}% chance of a positive outcome`;
@@ -114,7 +132,7 @@ export function MonteCarloVisualizations({
       return [];
     }
 
-    const bins = 30;
+    const bins = HISTOGRAM_BIN_COUNT;
     const min = Math.min(...netOutcomes);
     const max = Math.max(...netOutcomes);
 
@@ -156,7 +174,7 @@ export function MonteCarloVisualizations({
     const sorted = [...netOutcomes].sort((a, b) => a - b);
     return sorted.map((value, index) => ({
       value,
-      probability: ((index + 1) / sorted.length) * 100,
+      probability: ((index + 1) / sorted.length) * PCT_MULTIPLIER,
       label: formatCurrency(value),
     }));
   }, [netOutcomes]);
@@ -240,7 +258,7 @@ export function MonteCarloVisualizations({
           </div>
           <div className="bg-muted/50 flex flex-col items-center rounded-lg p-4">
             <div className="text-muted-foreground mb-1 flex items-center gap-2 text-sm">
-              {stats.positiveRate >= 50 ? (
+              {stats.positiveRate >= MODERATE_OUTLOOK_THRESHOLD ? (
                 <TrendingUp className="text-terminal h-4 w-4" />
               ) : (
                 <TrendingDown className="text-destructive h-4 w-4" />
@@ -249,7 +267,7 @@ export function MonteCarloVisualizations({
             </div>
             <span
               className={`text-xl font-semibold tabular-nums ${
-                stats.positiveRate >= 50 ? "text-terminal" : "text-destructive"
+                stats.positiveRate >= MODERATE_OUTLOOK_THRESHOLD ? "text-terminal" : "text-destructive"
               }`}
             >
               {stats.positiveRate.toFixed(1)}%

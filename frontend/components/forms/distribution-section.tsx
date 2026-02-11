@@ -1,5 +1,9 @@
 "use client";
 
+/** Grid column options for distribution layout */
+const GRID_COLS_TWO = 2;
+const GRID_COLS_THREE = 3;
+
 import * as React from "react";
 import { type FieldValues, type UseFormReturn, type Path } from "react-hook-form";
 import { FormField } from "@/components/ui/form";
@@ -21,7 +25,7 @@ interface DistributionSectionProps<T extends FieldValues> {
   /** Section content (typically NumberInputFields) */
   children: React.ReactNode;
   /** Number of columns for the grid layout (default: 3) */
-  columns?: 2 | 3;
+  columns?: typeof GRID_COLS_TWO | typeof GRID_COLS_THREE;
   /** Additional className for the container */
   className?: string;
 }
@@ -54,7 +58,7 @@ export function DistributionSection<T extends FieldValues>({
   description,
   distributionType,
   children,
-  columns = 3,
+  columns = GRID_COLS_THREE,
   className,
 }: DistributionSectionProps<T>) {
   const isEnabled = form.watch(enabledFieldName);
@@ -88,7 +92,7 @@ export function DistributionSection<T extends FieldValues>({
           <div
             className={cn(
               "grid grid-cols-1 gap-4",
-              columns === 2 ? "sm:grid-cols-2 sm:gap-6" : "sm:grid-cols-3"
+              columns === GRID_COLS_TWO ? "sm:grid-cols-2 sm:gap-6" : "sm:grid-cols-3"
             )}
           >
             {children}

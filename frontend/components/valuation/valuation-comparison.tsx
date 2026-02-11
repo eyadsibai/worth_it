@@ -1,5 +1,18 @@
 "use client";
 
+import { FORMATTING } from "@/lib/constants/formatting";
+
+/** Percentage conversion multiplier */
+const PCT_MULTIPLIER = 100;
+/** Wide range threshold for valuation spread */
+const WIDE_RANGE_THRESHOLD = 0.5;
+/** Tight range threshold for valuation spread */
+const TIGHT_RANGE_THRESHOLD = 0.2;
+/** Minimum methods for chart display */
+const MIN_CHART_METHODS = 2;
+/** Bar chart border radius */
+const BAR_RADIUS = 4;
+
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -54,7 +67,7 @@ function ChartTooltip({ active, payload }: ChartTooltipProps) {
     <div className="rounded-xl bg-[hsl(220,15%,15%)] px-3 py-2 text-white shadow-lg">
       <p className="mb-1 text-sm font-medium">{data.name}</p>
       <p className="text-lg font-semibold tabular-nums">{valuationStr}</p>
-      <p className="text-xs text-gray-400">{Math.round(data.confidence * 100)}% confidence</p>
+      <p className="text-xs text-gray-400">{Math.round(data.confidence * PCT_MULTIPLIER)}% confidence</p>
     </div>
   );
 }
@@ -68,9 +81,9 @@ export function ValuationComparison({ comparison }: ValuationComparisonProps) {
     method: result.method,
   }));
 
-  const rangePctDisplay = Math.round(comparison.rangePct * 100);
-  const isWideRange = comparison.rangePct > 0.5;
-  const isTightRange = comparison.rangePct < 0.2;
+  const rangePctDisplay = Math.round(comparison.rangePct * PCT_MULTIPLIER);
+  const isWideRange = comparison.rangePct > WIDE_RANGE_THRESHOLD;
+  const isTightRange = comparison.rangePct < TIGHT_RANGE_THRESHOLD;
 
   // Format large values for display
   const formatValuation = (value: number) => {
@@ -148,7 +161,7 @@ export function ValuationComparison({ comparison }: ValuationComparisonProps) {
         </div>
 
         {/* Bar Chart - only show when comparing 2+ methods */}
-        {chartData.length >= 2 ? (
+        {chartData.length >= MIN_CHART_METHODS ? (
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -164,7 +177,7 @@ export function ValuationComparison({ comparison }: ValuationComparisonProps) {
                 />
                 <XAxis
                   type="number"
-                  tickFormatter={(value) => `$${(value / 1000000).toFixed(0)}M`}
+                  tickFormatter={(value) => `$${(value / FORMATTING.MILLION).toFixed(0)}M`}
                   tick={{ fontSize: 12, fill: chartColors.foreground }}
                   axisLine={false}
                   tickLine={false}
@@ -189,7 +202,7 @@ export function ValuationComparison({ comparison }: ValuationComparisonProps) {
                     fontSize: 10,
                   }}
                 />
-                <Bar dataKey="valuation" radius={[0, 4, 4, 0]}>
+                <Bar dataKey="valuation" radius={[0, BAR_RADIUS, BAR_RADIUS, 0]}>
                   {chartData.map((entry, index) => (
                     <Cell
                       key={entry.method}
@@ -260,7 +273,7 @@ export function ValuationComparison({ comparison }: ValuationComparisonProps) {
 function MethodCard({ result }: { result: FrontendValuationResult }) {
   const valuationStr = formatCurrency(result.valuation);
   const [whole, decimal] = valuationStr.split(".");
-  const confidencePercent = Math.round(result.confidence * 100);
+  const confidencePercent = Math.round(result.confidence * PCT_MULTIPLIER);
 
   return (
     <div className="bg-muted/30 rounded-lg p-4">

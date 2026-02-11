@@ -26,6 +26,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Trash2, Plus, GripVertical, Layers } from "lucide-react";
+import { FORMATTING } from "@/lib/constants";
 import { generateId } from "@/lib/utils";
 import { motion, MotionList, MotionListItem } from "@/lib/motion";
 import {
@@ -43,14 +44,14 @@ interface PreferenceStackEditorProps {
 
 // Format currency for display
 function formatCurrency(value: number): string {
-  if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(1)}B`;
+  if (value >= FORMATTING.BILLION) {
+    return `$${(value / FORMATTING.BILLION).toFixed(1)}B`;
   }
-  if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= FORMATTING.MILLION) {
+    return `$${(value / FORMATTING.MILLION).toFixed(1)}M`;
   }
-  if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(0)}K`;
+  if (value >= FORMATTING.THOUSAND) {
+    return `$${(value / FORMATTING.THOUSAND).toFixed(0)}K`;
   }
   return `$${value.toFixed(0)}`;
 }

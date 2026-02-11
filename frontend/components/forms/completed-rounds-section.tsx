@@ -1,5 +1,8 @@
 "use client";
 
+/** Percentage conversion divisor */
+const PCT_DIVISOR = 100;
+
 import * as React from "react";
 import { UseFormReturn } from "react-hook-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,12 +41,12 @@ export function CompletedRoundsSection({
   const totalHistoricalDilution = completedRounds.reduce((acc, round) => {
     if (round.enabled) {
       // Cumulative dilution: (1 - d1) * (1 - d2) * ...
-      return acc * (1 - round.dilution_pct / 100);
+      return acc * (1 - round.dilution_pct / PCT_DIVISOR);
     }
     return acc;
   }, 1);
 
-  const totalDilutionPct = ((1 - totalHistoricalDilution) * 100).toFixed(1);
+  const totalDilutionPct = ((1 - totalHistoricalDilution) * PCT_DIVISOR).toFixed(1);
 
   // Calculate total raised
   const totalRaised = completedRounds.reduce((acc, round) => {

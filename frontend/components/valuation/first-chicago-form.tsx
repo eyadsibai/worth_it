@@ -1,5 +1,12 @@
 "use client";
 
+/** Required total probability percentage */
+const REQUIRED_PROBABILITY_TOTAL = 100;
+/** Tolerance for probability validation */
+const PROBABILITY_TOLERANCE = 0.01;
+/** Maximum number of scenarios allowed */
+const MAX_SCENARIOS = 10;
+
 import * as React from "react";
 import { UseFormReturn, useFieldArray } from "react-hook-form";
 import { NumberInputField, TextInputField } from "@/components/forms/form-fields";
@@ -36,7 +43,7 @@ export function FirstChicagoForm({ form }: FirstChicagoFormProps) {
   // Calculate total probability for validation hint
   const scenarios = form.watch("scenarios");
   const totalProbability = scenarios?.reduce((sum, s) => sum + (s.probability || 0), 0) || 0;
-  const probabilityValid = Math.abs(totalProbability - 100) < 0.01;
+  const probabilityValid = Math.abs(totalProbability - REQUIRED_PROBABILITY_TOTAL) < PROBABILITY_TOLERANCE;
 
   return (
     <div className="space-y-6">
@@ -55,7 +62,7 @@ export function FirstChicagoForm({ form }: FirstChicagoFormProps) {
             size="sm"
             onClick={addScenario}
             className="h-8"
-            disabled={fields.length >= 10}
+            disabled={fields.length >= MAX_SCENARIOS}
           >
             <Plus className="mr-1 h-4 w-4" />
             Add Scenario

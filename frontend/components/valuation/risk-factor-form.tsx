@@ -1,5 +1,7 @@
 "use client";
 
+import { FORMATTING } from "@/lib/constants/formatting";
+
 import * as React from "react";
 import { UseFormReturn, useFieldArray } from "react-hook-form";
 import { NumberInputField, TextInputField } from "@/components/forms/form-fields";
@@ -60,9 +62,9 @@ export function RiskFactorForm({ form }: RiskFactorFormProps) {
   const formatAdjustment = (value: number) => {
     const absValue = Math.abs(value);
     const formatted =
-      absValue >= 1_000_000
-        ? `$${(absValue / 1_000_000).toFixed(1)}M`
-        : `$${(absValue / 1_000).toFixed(0)}K`;
+      absValue >= FORMATTING.MILLION
+        ? `$${(absValue / FORMATTING.MILLION).toFixed(1)}M`
+        : `$${(absValue / FORMATTING.THOUSAND).toFixed(0)}K`;
     return value >= 0 ? `+${formatted}` : `-${formatted}`;
   };
 

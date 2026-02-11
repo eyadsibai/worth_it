@@ -1,5 +1,8 @@
 "use client";
 
+/** Divisor for computing center position */
+const CENTER_DIVISOR = 2;
+
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
@@ -51,8 +54,8 @@ function calculateTooltipPosition(
   const viewportHeight = window.innerHeight;
 
   // Calculate center positions
-  const centerX = targetRect.left + targetRect.width / 2 - tooltipWidth / 2;
-  const centerY = targetRect.top + targetRect.height / 2 - tooltipHeight / 2;
+  const centerX = targetRect.left + targetRect.width / CENTER_DIVISOR - tooltipWidth / CENTER_DIVISOR;
+  const centerY = targetRect.top + targetRect.height / CENTER_DIVISOR - tooltipHeight / CENTER_DIVISOR;
 
   // Try positions in order of preference
   const positions: Array<{
@@ -216,8 +219,8 @@ export function Spotlight({
             style={{
               top: targetRect.top - overlayPadding,
               left: targetRect.left - overlayPadding,
-              width: targetRect.width + overlayPadding * 2,
-              height: targetRect.height + overlayPadding * 2,
+              width: targetRect.width + overlayPadding * CENTER_DIVISOR,
+              height: targetRect.height + overlayPadding * CENTER_DIVISOR,
               boxShadow: `0 0 0 9999px rgba(0, 0, 0, 0.6)`,
             }}
           />

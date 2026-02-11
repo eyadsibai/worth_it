@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { FORMATTING } from "@/lib/constants";
 import {
   BarChart,
   Bar,
@@ -36,14 +37,14 @@ interface WaterfallChartProps {
 
 // Format currency for display
 function formatCurrency(value: number): string {
-  if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(1)}B`;
+  if (value >= FORMATTING.BILLION) {
+    return `$${(value / FORMATTING.BILLION).toFixed(1)}B`;
   }
-  if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= FORMATTING.MILLION) {
+    return `$${(value / FORMATTING.MILLION).toFixed(1)}M`;
   }
-  if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(0)}K`;
+  if (value >= FORMATTING.THOUSAND) {
+    return `$${(value / FORMATTING.THOUSAND).toFixed(0)}K`;
   }
   return `$${value.toFixed(0)}`;
 }

@@ -1,5 +1,14 @@
 "use client";
 
+/** Default interest rate (%) */
+const DEFAULT_INTEREST_RATE = 5;
+/** Default maturity in months */
+const DEFAULT_MATURITY_MONTHS = 24;
+/** Months per year */
+const MONTHS_PER_YEAR = 12;
+/** Percentage to decimal divisor */
+const PERCENT_DIVISOR = 100;
+
 import * as React from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,11 +40,11 @@ export function ConvertibleNoteForm({
     defaultValues: {
       investor_name: defaultValues?.investor_name ?? "",
       principal_amount: defaultValues?.principal_amount ?? 0,
-      interest_rate: defaultValues?.interest_rate ?? 5,
+      interest_rate: defaultValues?.interest_rate ?? DEFAULT_INTEREST_RATE,
       interest_type: defaultValues?.interest_type ?? "simple",
       valuation_cap: defaultValues?.valuation_cap ?? undefined,
       discount_pct: defaultValues?.discount_pct ?? undefined,
-      maturity_months: defaultValues?.maturity_months ?? 24,
+      maturity_months: defaultValues?.maturity_months ?? DEFAULT_MATURITY_MONTHS,
     },
   });
 
@@ -52,11 +61,13 @@ export function ConvertibleNoteForm({
   });
   const principal = (watchedValues[0] as number) ?? 0;
   const rate = (watchedValues[1] as number) ?? 0;
-  const months = (watchedValues[2] as number) ?? 24;
-  const interestType = (watchedValues[3] as string) ?? "simple";
+  const MATURITY_IDX = 2;
+  const INTEREST_TYPE_IDX = 3;
+  const months = (watchedValues[MATURITY_IDX] as number) ?? DEFAULT_MATURITY_MONTHS;
+  const interestType = (watchedValues[INTEREST_TYPE_IDX] as string) ?? "simple";
 
-  const years = months / 12;
-  const annualRate = rate / 100;
+  const years = months / MONTHS_PER_YEAR;
+  const annualRate = rate / PERCENT_DIVISOR;
   const accruedInterest =
     interestType === "compound"
       ? principal * (Math.pow(1 + annualRate, years) - 1)

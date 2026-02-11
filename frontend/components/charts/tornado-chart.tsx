@@ -1,5 +1,10 @@
 "use client";
 
+/** X-axis padding multiplier for domain */
+const AXIS_PADDING = 1.1;
+/** Bar chart corner radius */
+const BAR_RADIUS = 4;
+
 import * as React from "react";
 import {
   BarChart,
@@ -74,7 +79,7 @@ export function TornadoChart({
           >
             <XAxis
               type="number"
-              domain={[-maxAbsValue * 1.1, maxAbsValue * 1.1]}
+              domain={[-maxAbsValue * AXIS_PADDING, maxAbsValue * AXIS_PADDING]}
               tickFormatter={(value) => formatCurrencyCompact(value)}
               tick={{ fill: colors.foreground, fontSize: 11 }}
               stroke={colors.muted}
@@ -96,14 +101,14 @@ export function TornadoChart({
                 Note: "Low" here means the outcome when the variable is at its low range.
                 We show this in destructive color because lower outcomes are generally worse.
                 The actual variable value direction depends on the variable type. */}
-            <Bar dataKey="low" stackId="stack" radius={[4, 0, 0, 4]}>
+            <Bar dataKey="low" stackId="stack" radius={[BAR_RADIUS, 0, 0, BAR_RADIUS]}>
               {chartData.map((entry, index) => (
                 <Cell key={`low-${index}`} fill={colors.destructive} opacity={0.8} />
               ))}
             </Bar>
 
             {/* High (positive impact) bars - shown in green/chart3 color */}
-            <Bar dataKey="high" stackId="stack" radius={[0, 4, 4, 0]}>
+            <Bar dataKey="high" stackId="stack" radius={[0, BAR_RADIUS, BAR_RADIUS, 0]}>
               {chartData.map((entry, index) => (
                 <Cell key={`high-${index}`} fill={colors.chart3} opacity={0.8} />
               ))}

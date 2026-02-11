@@ -1,5 +1,10 @@
 "use client";
 
+/** Default annual salary growth rate percentage */
+const DEFAULT_SALARY_GROWTH_RATE = 3;
+/** Default assumed annual ROI percentage */
+const DEFAULT_ANNUAL_ROI = 5.4;
+
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,8 +44,8 @@ export function CurrentJobFormComponent({
     resolver: zodResolver(CurrentJobFormSchema),
     defaultValues: {
       monthly_salary: initialValues?.monthly_salary ?? 0,
-      annual_salary_growth_rate: initialValues?.annual_salary_growth_rate ?? 3,
-      assumed_annual_roi: initialValues?.assumed_annual_roi ?? 5.4,
+      annual_salary_growth_rate: initialValues?.annual_salary_growth_rate ?? DEFAULT_SALARY_GROWTH_RATE,
+      assumed_annual_roi: initialValues?.assumed_annual_roi ?? DEFAULT_ANNUAL_ROI,
       investment_frequency: initialValues?.investment_frequency ?? "Monthly",
     },
     mode: "onChange",

@@ -12,6 +12,9 @@
  */
 
 import { useCallback, useEffect, useRef } from "react";
+
+/** Default maximum retry count (matches TanStack Query default) */
+const DEFAULT_MAX_RETRIES = 3;
 import {
   useMutation,
   type UseMutationOptions,
@@ -148,7 +151,7 @@ export function useCancellableMutation<TData = unknown, TError = Error, TVariabl
       if (typeof defaultRetry === "boolean") {
         // When true, retry up to 3 times (TanStack Query's default behavior)
         // When false, never retry
-        return defaultRetry && failureCount < 3;
+        return defaultRetry && failureCount < DEFAULT_MAX_RETRIES;
       }
       // Default: no retries (TanStack Query mutations don't retry by default)
       return false;

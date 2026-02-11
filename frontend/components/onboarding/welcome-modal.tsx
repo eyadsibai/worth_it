@@ -1,5 +1,14 @@
 "use client";
 
+/** Wizard step identifiers */
+const STEP = {
+  GET_STARTED: 2,
+  MODE_SELECT: 2,
+  QUICK_TOUR: 3,
+} as const;
+/** Total number of wizard steps */
+const TOTAL_STEPS = 3;
+
 import * as React from "react";
 import { Briefcase, Building2, Sparkles, ArrowRight } from "lucide-react";
 import {
@@ -27,11 +36,11 @@ export function WelcomeModal({ open, onComplete, onSkip }: WelcomeModalProps) {
 
   const handleModeSelect = (mode: AppMode) => {
     setAppMode(mode);
-    setCurrentStep(3);
+    setCurrentStep(STEP.QUICK_TOUR);
   };
 
   const handleGetStarted = () => {
-    setCurrentStep(2);
+    setCurrentStep(STEP.GET_STARTED);
   };
 
   const handleComplete = () => {
@@ -55,7 +64,7 @@ export function WelcomeModal({ open, onComplete, onSkip }: WelcomeModalProps) {
       >
         {/* Step Indicators */}
         <div className="mb-2 flex justify-center gap-2">
-          {[1, 2, 3].map((step) => (
+          {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((step) => (
             <div
               key={step}
               data-testid="step-indicator"
@@ -118,7 +127,7 @@ export function WelcomeModal({ open, onComplete, onSkip }: WelcomeModalProps) {
         )}
 
         {/* Step 2: Mode Selection */}
-        {currentStep === 2 && (
+        {currentStep === STEP.MODE_SELECT && (
           <>
             <DialogHeader className="text-center">
               <DialogTitle className="text-xl">Are you an Employee or Founder?</DialogTitle>
@@ -162,7 +171,7 @@ export function WelcomeModal({ open, onComplete, onSkip }: WelcomeModalProps) {
         )}
 
         {/* Step 3: Quick Tour */}
-        {currentStep === 3 && (
+        {currentStep === STEP.QUICK_TOUR && (
           <>
             <DialogHeader className="text-center">
               <div className="bg-chart-3/20 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full">

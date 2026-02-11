@@ -1,5 +1,18 @@
 "use client";
 
+/** Time conversion constants in milliseconds */
+const TIME_MS = {
+  MINUTE: 60000,
+  HOUR: 3600000,
+  DAY: 86400000,
+} as const;
+/** Time unit thresholds */
+const TIME_THRESHOLDS = {
+  MINUTES_PER_HOUR: 60,
+  HOURS_PER_DAY: 24,
+  DAYS_PER_WEEK: 7,
+} as const;
+
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,25 +57,25 @@ function formatRelativeTime(dateString: string): string {
   // Handle future dates explicitly (e.g., clock skew or manipulation)
   if (diffMs < 0) {
     const futureMs = Math.abs(diffMs);
-    const futureMins = Math.floor(futureMs / 60000);
-    const futureHours = Math.floor(futureMs / 3600000);
-    const futureDays = Math.floor(futureMs / 86400000);
+    const futureMins = Math.floor(futureMs / TIME_MS.MINUTE);
+    const futureHours = Math.floor(futureMs / TIME_MS.HOUR);
+    const futureDays = Math.floor(futureMs / TIME_MS.DAY);
 
     if (futureMins < 1) return "In a few seconds";
-    if (futureMins < 60) return `In ${futureMins}m`;
-    if (futureHours < 24) return `In ${futureHours}h`;
-    if (futureDays < 7) return `In ${futureDays}d`;
+    if (futureMins < TIME_THRESHOLDS.MINUTES_PER_HOUR) return `In ${futureMins}m`;
+    if (futureHours < TIME_THRESHOLDS.HOURS_PER_DAY) return `In ${futureHours}h`;
+    if (futureDays < TIME_THRESHOLDS.DAYS_PER_WEEK) return `In ${futureDays}d`;
     return date.toLocaleDateString();
   }
 
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
+  const diffMins = Math.floor(diffMs / TIME_MS.MINUTE);
+  const diffHours = Math.floor(diffMs / TIME_MS.HOUR);
+  const diffDays = Math.floor(diffMs / TIME_MS.DAY);
 
   if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffMins < TIME_THRESHOLDS.MINUTES_PER_HOUR) return `${diffMins}m ago`;
+  if (diffHours < TIME_THRESHOLDS.HOURS_PER_DAY) return `${diffHours}h ago`;
+  if (diffDays < TIME_THRESHOLDS.DAYS_PER_WEEK) return `${diffDays}d ago`;
   return date.toLocaleDateString();
 }
 

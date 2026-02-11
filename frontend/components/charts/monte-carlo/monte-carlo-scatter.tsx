@@ -67,7 +67,7 @@ export function MonteCarloScatter({ data }: MonteCarloScatterProps) {
             />
             <Tooltip
               cursor={{ strokeDasharray: "3 3" }}
-              formatter={(value: number) => formatCurrency(value)}
+              formatter={(value) => formatCurrency(typeof value === "number" ? value : Number(value) || 0)}
               {...tooltipStyles}
             />
             <Scatter data={data} fill={colors.chart1} fillOpacity={0.6} />

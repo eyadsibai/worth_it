@@ -1,5 +1,16 @@
 "use client";
 
+/** Percentage to decimal divisor */
+const PCT_DIVISOR = 100;
+/** Decimal places for factor display */
+const FACTOR_DECIMALS = 2;
+/** Default Monte Carlo simulation count */
+const DEFAULT_MC_SIMULATIONS = 10000;
+/** Minimum probability percentage step */
+const PROB_STEP = 0.01;
+/** Array indices for scenario probabilities */
+const SCENARIO_IDX = { BEST: 0, BASE: 1, WORST: 2 } as const;
+
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -135,7 +146,7 @@ const defaultFirstChicagoValues: FirstChicagoFormData = {
 // Pre-revenue method defaults
 const defaultBerkusValues: BerkusFormData = {
   soundIdea: 250_000,
-  prototype: 200_000,
+  mvp: 200_000,
   qualityTeam: 300_000,
   strategicRelationships: 150_000,
   productRollout: 100_000,
@@ -256,7 +267,7 @@ function PreRevenueResultCard({ result }: { result: PreRevenueResult }) {
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Adjustment Factor</span>
-                  <span className="font-medium">{result.adjustmentFactor.toFixed(2)}x</span>
+                  <span className="font-medium">{result.adjustmentFactor.toFixed(FACTOR_DECIMALS)}x</span>
                 </div>
               </div>
             </div>
@@ -295,7 +306,7 @@ export function ValuationCalculator() {
 
   // Monte Carlo state
   const [mcEnabled, setMcEnabled] = React.useState(false);
-  const [mcSimulations, setMcSimulations] = React.useState(10000);
+  const [mcSimulations, setMcSimulations] = React.useState(DEFAULT_MC_SIMULATIONS);
   const [mcDistributions, setMcDistributions] =
     React.useState<Record<string, DistributionValue>>(DEFAULT_MC_DISTRIBUTIONS);
   const [mcResult, setMcResult] = React.useState<MonteCarloResultData | null>(null);
@@ -395,17 +406,17 @@ export function ValuationCalculator() {
       {
         name: "best_prob",
         distribution_type: "fixed",
-        params: { value: formData.scenarios[0].probability / 100 },
+        params: { value: formData.scenarios[0].probability / PCT_DIVISOR },
       },
       {
         name: "base_prob",
         distribution_type: "fixed",
-        params: { value: formData.scenarios[1].probability / 100 },
+        params: { value: formData.scenarios[1].probability / PCT_DIVISOR },
       },
       {
         name: "worst_prob",
         distribution_type: "fixed",
-        params: { value: formData.scenarios[2].probability / 100 },
+        params: { value: formData.scenarios[SCENARIO_IDX.WORST].probability / PCT_DIVISOR },
       },
       {
         name: "years",
@@ -433,7 +444,7 @@ export function ValuationCalculator() {
       const response = await revenueMultipleMutation.mutateAsync({
         annual_revenue: data.annualRevenue,
         revenue_multiple: data.revenueMultiple,
-        growth_rate: data.growthRate ? data.growthRate / 100 : undefined,
+        growth_rate: data.growthRate ? data.growthRate / PCT_DIVISOR : undefined,
         industry_benchmark_multiple: data.industryBenchmarkMultiple,
       });
       const result = transformValuationResult(response);
@@ -450,8 +461,8 @@ export function ValuationCalculator() {
     try {
       const response = await dcfMutation.mutateAsync({
         projected_cash_flows: data.projectedCashFlows.map((cf) => cf.value),
-        discount_rate: data.discountRate / 100,
-        terminal_growth_rate: data.terminalGrowthRate ? data.terminalGrowthRate / 100 : undefined,
+        discount_rate: data.discountRate / PCT_DIVISOR,
+        terminal_growth_rate: data.terminalGrowthRate ? data.terminalGrowthRate / PCT_DIVISOR : undefined,
       });
       const result = transformValuationResult(response);
       updateMethodResult("dcf", result, null);
@@ -470,9 +481,9 @@ export function ValuationCalculator() {
         exit_year: data.exitYear,
         target_return_multiple:
           data.returnType === "multiple" ? data.targetReturnMultiple : undefined,
-        target_irr: data.returnType === "irr" && data.targetIRR ? data.targetIRR / 100 : undefined,
-        expected_dilution: data.expectedDilution / 100,
-        exit_probability: data.exitProbability ? data.exitProbability / 100 : 1,
+        target_irr: data.returnType === "irr" && data.targetIRR ? data.targetIRR / PCT_DIVISOR : undefined,
+        expected_dilution: data.expectedDilution / PCT_DIVISOR,
+        exit_probability: data.exitProbability ? data.exitProbability / PCT_DIVISOR : 1,
         investment_amount: data.investmentAmount,
       });
       const result = transformValuationResult(response);
@@ -489,18 +500,18 @@ export function ValuationCalculator() {
     try {
       // Validate that probabilities sum to 100%
       const totalProbability = data.scenarios.reduce((sum, s) => sum + s.probability, 0);
-      if (Math.abs(totalProbability - 100) > 0.01) {
-        throw new Error(`Scenario probabilities must sum to 100% (currently ${totalProbability}%)`);
+      if (Math.abs(totalProbability - PCT_DIVISOR) > PROB_STEP) {
+        throw new Error(`Scenario probabilities must sum to ${PCT_DIVISOR}% (currently ${totalProbability}%)`);
       }
 
       const response = await firstChicagoMutation.mutateAsync({
         scenarios: data.scenarios.map((s) => ({
           name: s.name,
-          probability: s.probability / 100,
+          probability: s.probability / PCT_DIVISOR,
           exit_value: s.exitValue,
           years_to_exit: s.yearsToExit,
         })),
-        discount_rate: data.discountRate / 100,
+        discount_rate: data.discountRate / PCT_DIVISOR,
         current_investment: data.currentInvestment,
       });
       const result = transformFirstChicagoResponse(response);
@@ -517,9 +528,17 @@ export function ValuationCalculator() {
   // Handle Berkus Method submission
   const handleBerkus = async (data: BerkusFormData) => {
     try {
+      const formValues = berkusForm.getValues();
+      const prototypeScore =
+        typeof data.mvp === "number"
+          ? data.mvp
+          : typeof formValues.mvp === "number"
+            ? formValues.mvp
+            : 0;
+
       const response = await berkusMutation.mutateAsync({
         sound_idea: data.soundIdea,
-        prototype: data.prototype,
+        prototype_value: prototypeScore,
         quality_team: data.qualityTeam,
         strategic_relationships: data.strategicRelationships,
         product_rollout: data.productRollout,
@@ -621,15 +640,15 @@ export function ValuationCalculator() {
           annual_revenue: revenueMultipleData.annualRevenue,
           revenue_multiple: revenueMultipleData.revenueMultiple,
           growth_rate: revenueMultipleData.growthRate
-            ? revenueMultipleData.growthRate / 100
+            ? revenueMultipleData.growthRate / PCT_DIVISOR
             : undefined,
           industry_benchmark_multiple: revenueMultipleData.industryBenchmarkMultiple,
         },
         dcf: {
           projected_cash_flows: dcfData.projectedCashFlows.map((cf) => cf.value),
-          discount_rate: dcfData.discountRate / 100,
+          discount_rate: dcfData.discountRate / PCT_DIVISOR,
           terminal_growth_rate: dcfData.terminalGrowthRate
-            ? dcfData.terminalGrowthRate / 100
+            ? dcfData.terminalGrowthRate / PCT_DIVISOR
             : undefined,
         },
         vc_method: {
@@ -639,10 +658,10 @@ export function ValuationCalculator() {
             vcMethodData.returnType === "multiple" ? vcMethodData.targetReturnMultiple : undefined,
           target_irr:
             vcMethodData.returnType === "irr" && vcMethodData.targetIRR
-              ? vcMethodData.targetIRR / 100
+              ? vcMethodData.targetIRR / PCT_DIVISOR
               : undefined,
-          expected_dilution: vcMethodData.expectedDilution / 100,
-          exit_probability: vcMethodData.exitProbability ? vcMethodData.exitProbability / 100 : 1,
+          expected_dilution: vcMethodData.expectedDilution / PCT_DIVISOR,
+          exit_probability: vcMethodData.exitProbability ? vcMethodData.exitProbability / PCT_DIVISOR : 1,
           investment_amount: vcMethodData.investmentAmount,
         },
       });
@@ -925,9 +944,9 @@ export function ValuationCalculator() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Running simulation...</span>
-                    <span className="font-mono">{Math.round(mcProgress * 100)}%</span>
+                    <span className="font-mono">{Math.round(mcProgress * PCT_DIVISOR)}%</span>
                   </div>
-                  <Progress value={mcProgress * 100} />
+                  <Progress value={mcProgress * PCT_DIVISOR} />
                 </div>
               </CardContent>
             </Card>

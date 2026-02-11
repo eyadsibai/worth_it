@@ -105,7 +105,7 @@ export interface ComparisonFactor {
 }
 
 // ============================================================================
-// Scoring Weights
+// Scoring Weights & Constants
 // ============================================================================
 
 /** Weights for each factor category (must sum to 1.0) */
@@ -116,6 +116,58 @@ export const FACTOR_WEIGHTS = {
   personal: 0.15,
 } as const;
 
+/** Scoring constants for decision framework */
+const SCORE = {
+  /** Neutral starting score */
+  NEUTRAL: 5,
+  /** Base career score before factor bonuses */
+  CAREER_BASE: 2,
+  /** Maximum possible score */
+  MAX: 10,
+  /** Score adjustment values */
+  ADJUST_LARGE: 3,
+  ADJUST_MEDIUM: 2,
+  ADJUST_SMALL: 1,
+  /** Career factor weight multiplier for learning/growth */
+  CAREER_WEIGHT_MAJOR: 1.5,
+} as const;
+
+/** Financial analysis thresholds */
+const FINANCIAL_THRESHOLDS = {
+  /** Net benefit considered strong */
+  STRONG_BENEFIT: 200000,
+  /** Net benefit considered moderate */
+  MODERATE_BENEFIT: 50000,
+  /** Net loss considered moderate */
+  MODERATE_LOSS: -50000,
+  /** High confidence probability */
+  HIGH_CONFIDENCE: 0.7,
+  /** Moderate confidence probability */
+  MODERATE_CONFIDENCE: 0.5,
+  /** Low confidence probability */
+  LOW_CONFIDENCE: 0.3,
+  /** Probability threshold for risk warning */
+  RISK_WARNING: 0.4,
+  /** Probability threshold for conservative risk check */
+  CONSERVATIVE_RISK: 0.6,
+  /** Upside potential comparison threshold */
+  UPSIDE_THRESHOLD: 100000,
+} as const;
+
+/** Recommendation thresholds for overall weighted score */
+const RECOMMENDATION_THRESHOLDS = {
+  ACCEPT: 7.5,
+  LEAN_ACCEPT: 6,
+  NEUTRAL: 4.5,
+  LEAN_REJECT: 3,
+} as const;
+
+/** Income certainty probability threshold */
+const INCOME_CERTAINTY_THRESHOLD = 0.6;
+
+/** Rounding factor for score precision (1 decimal place) */
+const SCORE_ROUNDING_FACTOR = 10;
+
 // ============================================================================
 // Scoring Functions
 // ============================================================================
@@ -124,45 +176,45 @@ export const FACTOR_WEIGHTS = {
  * Score financial analysis (0-10)
  */
 export function scoreFinancial(financial: FinancialAnalysis): FactorScore {
-  let score = 5; // Start neutral
+  let score: number = SCORE.NEUTRAL;
   let explanation = "";
 
-  // Net benefit scoring (-2 to +3)
-  if (financial.netBenefit > 200000) {
-    score += 3;
+  // Net benefit scoring
+  if (financial.netBenefit > FINANCIAL_THRESHOLDS.STRONG_BENEFIT) {
+    score += SCORE.ADJUST_LARGE;
     explanation = "Strong expected financial gain";
-  } else if (financial.netBenefit > 50000) {
-    score += 2;
+  } else if (financial.netBenefit > FINANCIAL_THRESHOLDS.MODERATE_BENEFIT) {
+    score += SCORE.ADJUST_MEDIUM;
     explanation = "Moderate expected financial gain";
   } else if (financial.netBenefit > 0) {
-    score += 1;
+    score += SCORE.ADJUST_SMALL;
     explanation = "Slight expected financial gain";
-  } else if (financial.netBenefit > -50000) {
-    score -= 1;
+  } else if (financial.netBenefit > FINANCIAL_THRESHOLDS.MODERATE_LOSS) {
+    score -= SCORE.ADJUST_SMALL;
     explanation = "Slight expected financial loss";
   } else {
-    score -= 2;
+    score -= SCORE.ADJUST_MEDIUM;
     explanation = "Significant expected financial loss";
   }
 
-  // Probability bonus/penalty (-1 to +2)
-  if (financial.positiveOutcomeProbability > 0.7) {
-    score += 2;
+  // Probability bonus/penalty
+  if (financial.positiveOutcomeProbability > FINANCIAL_THRESHOLDS.HIGH_CONFIDENCE) {
+    score += SCORE.ADJUST_MEDIUM;
     explanation += " with high confidence";
-  } else if (financial.positiveOutcomeProbability > 0.5) {
-    score += 1;
+  } else if (financial.positiveOutcomeProbability > FINANCIAL_THRESHOLDS.MODERATE_CONFIDENCE) {
+    score += SCORE.ADJUST_SMALL;
     explanation += " with moderate confidence";
-  } else if (financial.positiveOutcomeProbability < 0.3) {
-    score -= 1;
+  } else if (financial.positiveOutcomeProbability < FINANCIAL_THRESHOLDS.LOW_CONFIDENCE) {
+    score -= SCORE.ADJUST_SMALL;
     explanation += " but low probability of success";
   }
 
-  // Clamp to 0-10
-  score = Math.max(0, Math.min(10, score));
+  // Clamp to 0-MAX
+  score = Math.max(0, Math.min(SCORE.MAX, score));
 
   return {
     score,
-    maxScore: 10,
+    maxScore: SCORE.MAX,
     label: "Financial",
     explanation,
   };
@@ -173,47 +225,47 @@ export function scoreFinancial(financial: FinancialAnalysis): FactorScore {
  * Higher score = better risk alignment (safer to take the startup)
  */
 export function scoreRisk(risk: RiskAssessment): FactorScore {
-  let score = 5; // Start neutral
+  let score: number = SCORE.NEUTRAL;
   const factors: string[] = [];
 
   // Financial runway
   if (risk.financialRunway === "more_than_12_months") {
-    score += 2;
+    score += SCORE.ADJUST_MEDIUM;
     factors.push("strong financial cushion");
   } else if (risk.financialRunway === "6_to_12_months") {
     score += 0;
     factors.push("adequate runway");
   } else {
-    score -= 2;
+    score -= SCORE.ADJUST_MEDIUM;
     factors.push("limited financial runway");
   }
 
   // Dependents
   if (risk.hasDependents) {
-    score -= 1;
+    score -= SCORE.ADJUST_SMALL;
     factors.push("family financial obligations");
   } else {
-    score += 1;
+    score += SCORE.ADJUST_SMALL;
     factors.push("flexible financial situation");
   }
 
   // Income stability needs
   if (risk.needsIncomeStability) {
-    score -= 2;
+    score -= SCORE.ADJUST_MEDIUM;
     factors.push("needs stable income");
   } else {
-    score += 1;
+    score += SCORE.ADJUST_SMALL;
     factors.push("can handle income variability");
   }
 
-  // Clamp to 0-10
-  score = Math.max(0, Math.min(10, score));
+  // Clamp to 0-MAX
+  score = Math.max(0, Math.min(SCORE.MAX, score));
 
   const explanation = factors.length > 0 ? factors.join(", ") : "Neutral risk profile";
 
   return {
     score,
-    maxScore: 10,
+    maxScore: SCORE.MAX,
     label: "Risk Profile",
     explanation: explanation.charAt(0).toUpperCase() + explanation.slice(1),
   };
@@ -226,21 +278,21 @@ export function scoreCareer(career: CareerFactors): FactorScore {
   const levelScores: Record<FactorLevel, number> = {
     low: 0,
     medium: 1,
-    high: 2,
+    high: SCORE.ADJUST_MEDIUM,
   };
 
-  let score = 2; // Base score
+  let score: number = SCORE.CAREER_BASE;
   const highlights: string[] = [];
 
-  // Learning opportunity (weight: 1.5)
-  const learningScore = levelScores[career.learningOpportunity] * 1.5;
+  // Learning opportunity (weight: major)
+  const learningScore = levelScores[career.learningOpportunity] * SCORE.CAREER_WEIGHT_MAJOR;
   score += learningScore;
   if (career.learningOpportunity === "high") {
     highlights.push("excellent learning opportunity");
   }
 
-  // Career growth (weight: 1.5)
-  const growthScore = levelScores[career.careerGrowth] * 1.5;
+  // Career growth (weight: major)
+  const growthScore = levelScores[career.careerGrowth] * SCORE.CAREER_WEIGHT_MAJOR;
   score += growthScore;
   if (career.careerGrowth === "high") {
     highlights.push("strong career growth potential");
@@ -258,8 +310,8 @@ export function scoreCareer(career: CareerFactors): FactorScore {
     highlights.push("aligns with long-term goals");
   }
 
-  // Clamp to 0-10
-  score = Math.max(0, Math.min(10, score));
+  // Clamp to 0-MAX
+  score = Math.max(0, Math.min(SCORE.MAX, score));
 
   const explanation =
     highlights.length > 0
@@ -270,7 +322,7 @@ export function scoreCareer(career: CareerFactors): FactorScore {
 
   return {
     score,
-    maxScore: 10,
+    maxScore: SCORE.MAX,
     label: "Career",
     explanation: explanation.charAt(0).toUpperCase() + explanation.slice(1),
   };
@@ -280,20 +332,20 @@ export function scoreCareer(career: CareerFactors): FactorScore {
  * Score personal factors (0-10)
  */
 export function scorePersonal(personal: PersonalFactors): FactorScore {
-  let score = 5; // Start neutral
+  let score: number = SCORE.NEUTRAL;
   const factors: string[] = [];
 
   // Risk tolerance
   if (personal.riskTolerance === "aggressive") {
-    score += 2;
+    score += SCORE.ADJUST_MEDIUM;
     factors.push("comfortable with risk");
   } else if (personal.riskTolerance === "conservative") {
-    score -= 2;
+    score -= SCORE.ADJUST_MEDIUM;
     factors.push("prefers stability");
   }
 
   // Life stage flexibility
-  const flexScores: Record<FactorLevel, number> = { low: -1, medium: 0, high: 1 };
+  const flexScores: Record<FactorLevel, number> = { low: -SCORE.ADJUST_SMALL, medium: 0, high: SCORE.ADJUST_SMALL };
   score += flexScores[personal.lifeStageFlexibility];
   if (personal.lifeStageFlexibility === "high") {
     factors.push("flexible life situation");
@@ -302,7 +354,7 @@ export function scorePersonal(personal: PersonalFactors): FactorScore {
   }
 
   // Excitement level
-  const exciteScores: Record<FactorLevel, number> = { low: -1, medium: 0, high: 2 };
+  const exciteScores: Record<FactorLevel, number> = { low: -SCORE.ADJUST_SMALL, medium: 0, high: SCORE.ADJUST_MEDIUM };
   score += exciteScores[personal.excitementLevel];
   if (personal.excitementLevel === "high") {
     factors.push("genuinely excited about opportunity");
@@ -310,14 +362,14 @@ export function scorePersonal(personal: PersonalFactors): FactorScore {
     factors.push("not particularly excited");
   }
 
-  // Clamp to 0-10
-  score = Math.max(0, Math.min(10, score));
+  // Clamp to 0-MAX
+  score = Math.max(0, Math.min(SCORE.MAX, score));
 
   const explanation = factors.length > 0 ? factors.join(", ") : "Neutral personal fit";
 
   return {
     score,
-    maxScore: 10,
+    maxScore: SCORE.MAX,
     label: "Personal Fit",
     explanation: explanation.charAt(0).toUpperCase() + explanation.slice(1),
   };
@@ -354,19 +406,19 @@ export function generateRecommendation(inputs: DecisionInputs): DecisionRecommen
   let recommendation: DecisionRecommendation["recommendation"];
   let recommendationText: string;
 
-  if (overallScore >= 7.5) {
+  if (overallScore >= RECOMMENDATION_THRESHOLDS.ACCEPT) {
     recommendation = "accept";
     recommendationText =
       "This looks like a strong opportunity for you. The numbers and personal factors align well.";
-  } else if (overallScore >= 6) {
+  } else if (overallScore >= RECOMMENDATION_THRESHOLDS.LEAN_ACCEPT) {
     recommendation = "lean_accept";
     recommendationText =
       "The opportunity has merit. Consider the warnings below, but overall it leans positive.";
-  } else if (overallScore >= 4.5) {
+  } else if (overallScore >= RECOMMENDATION_THRESHOLDS.NEUTRAL) {
     recommendation = "neutral";
     recommendationText =
       "This is a close call. Weigh the pros and cons carefully based on what matters most to you.";
-  } else if (overallScore >= 3) {
+  } else if (overallScore >= RECOMMENDATION_THRESHOLDS.LEAN_REJECT) {
     recommendation = "lean_reject";
     recommendationText =
       "There are some concerns. The opportunity may not be the best fit given your situation.";
@@ -388,7 +440,7 @@ export function generateRecommendation(inputs: DecisionInputs): DecisionRecommen
     cons.push("Negative expected financial value");
   }
 
-  if (inputs.financial.positiveOutcomeProbability < 0.4) {
+  if (inputs.financial.positiveOutcomeProbability < FINANCIAL_THRESHOLDS.RISK_WARNING) {
     warnings.push("Low probability of positive outcome - high uncertainty");
   }
 
@@ -420,13 +472,13 @@ export function generateRecommendation(inputs: DecisionInputs): DecisionRecommen
   }
   if (
     inputs.personal.riskTolerance === "conservative" &&
-    inputs.financial.positiveOutcomeProbability < 0.6
+    inputs.financial.positiveOutcomeProbability < FINANCIAL_THRESHOLDS.CONSERVATIVE_RISK
   ) {
     warnings.push("This may be riskier than your typical comfort level");
   }
 
   return {
-    overallScore: Math.round(overallScore * 10) / 10,
+    overallScore: Math.round(overallScore * SCORE_ROUNDING_FACTOR) / SCORE_ROUNDING_FACTOR,
     recommendation,
     recommendationText,
     factorScores: {
@@ -457,7 +509,7 @@ export function generateComparisonTable(inputs: DecisionInputs): ComparisonFacto
   factors.push({
     factor: "Income Certainty",
     currentJob: "High",
-    startup: inputs.financial.positiveOutcomeProbability > 0.6 ? "Medium" : "Low",
+    startup: inputs.financial.positiveOutcomeProbability > INCOME_CERTAINTY_THRESHOLD ? "Medium" : "Low",
     advantage: "current",
   });
 
@@ -465,7 +517,7 @@ export function generateComparisonTable(inputs: DecisionInputs): ComparisonFacto
   factors.push({
     factor: "Upside Potential",
     currentJob: "Low",
-    startup: inputs.financial.netBenefit > 100000 ? "High" : "Medium",
+    startup: inputs.financial.netBenefit > FINANCIAL_THRESHOLDS.UPSIDE_THRESHOLD ? "High" : "Medium",
     advantage: "startup",
   });
 

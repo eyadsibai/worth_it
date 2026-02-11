@@ -1,3 +1,6 @@
+/** JSON indent spaces for export */
+const JSON_INDENT = 2;
+
 /**
  * Timeline Export Hook (#228)
  *
@@ -95,7 +98,7 @@ export function exportToJSON(events: TimelineEvent[]): void {
     })),
   };
 
-  const json = JSON.stringify(exportData, null, 2);
+  const json = JSON.stringify(exportData, null, JSON_INDENT);
   downloadFile(json, "equity-timeline.json", "application/json");
 }
 

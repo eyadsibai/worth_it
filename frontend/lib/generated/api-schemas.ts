@@ -11,6 +11,23 @@
 import { makeApi, Zodios, type ZodiosOptions } from "@zodios/core";
 import { z } from "zod";
 
+/**
+ * Validation bounds for generated Zod schemas.
+ * These match the Pydantic model constraints in the backend.
+ */
+const GEN = {
+  EXIT_YEAR_MAX: 20,
+  MC_SIMULATIONS_MAX: 10000,
+  VESTING_MONTHS_MAX: 120,
+  CLIFF_MONTHS_MAX: 48,
+  OWNERSHIP_MAX: 100,
+  DEFAULT_TOTAL_SHARES: 10000000,
+  DEFAULT_OPTION_POOL_PCT: 10,
+  INTEREST_RATE_MAX: 100,
+  REVENUE_MULTIPLE_MAX: 100,
+  VC_EXIT_YEAR_MAX: 15,
+} as const;
+
 const HealthCheckResponse = z.object({ status: z.string(), version: z.string() }).passthrough();
 const DilutionRound = z
   .object({
@@ -26,7 +43,7 @@ const DilutionRound = z
   .passthrough();
 const MonthlyDataGridRequest = z
   .object({
-    exit_year: z.number().int().gte(1).lte(20),
+    exit_year: z.number().int().gte(1).lte(GEN.EXIT_YEAR_MAX),
     current_job_monthly_salary: z.number().gte(0),
     startup_monthly_salary: z.number().gte(0),
     current_job_salary_growth_rate: z.number().gte(0).lte(1),
@@ -86,7 +103,7 @@ const NPVRequest = z
 const NPVResponse = z.object({ npv: z.union([z.number(), z.null()]) }).passthrough();
 const MonteCarloRequest = z
   .object({
-    num_simulations: z.number().int().gte(1).lte(10000),
+    num_simulations: z.number().int().gte(1).lte(GEN.MC_SIMULATIONS_MAX),
     base_params: z.object({}).partial().passthrough(),
     sim_param_configs: z.object({}).partial().passthrough(),
   })
@@ -110,8 +127,8 @@ const DilutionFromValuationResponse = z.object({ dilution: z.number() }).passthr
 const VestingSchedule = z
   .object({
     total_shares: z.number().int().gte(0),
-    vesting_months: z.number().int().gte(1).lte(120),
-    cliff_months: z.number().int().gte(0).lte(48),
+    vesting_months: z.number().int().gte(1).lte(GEN.VESTING_MONTHS_MAX),
+    cliff_months: z.number().int().gte(0).lte(GEN.CLIFF_MONTHS_MAX),
     start_date: z.union([z.string(), z.null()]).optional(),
     vested_shares: z.number().int().gte(0).optional().default(0),
   })
@@ -122,7 +139,7 @@ const Stakeholder = z
     name: z.string().min(1),
     type: z.enum(["founder", "employee", "investor", "advisor"]),
     shares: z.number().int().gte(0),
-    ownership_pct: z.number().gte(0).lte(100),
+    ownership_pct: z.number().gte(0).lte(GEN.OWNERSHIP_MAX),
     share_class: z.enum(["common", "preferred"]),
     vesting: z.union([VestingSchedule, z.null()]).optional(),
   })
@@ -130,8 +147,8 @@ const Stakeholder = z
 const CapTable_Input = z
   .object({
     stakeholders: z.array(Stakeholder),
-    total_shares: z.number().int().gte(0).default(10000000),
-    option_pool_pct: z.number().gte(0).lte(100).default(10),
+    total_shares: z.number().int().gte(0).default(GEN.DEFAULT_TOTAL_SHARES),
+    option_pool_pct: z.number().gte(0).lte(GEN.OWNERSHIP_MAX).default(GEN.DEFAULT_OPTION_POOL_PCT),
   })
   .partial()
   .passthrough();
@@ -157,11 +174,11 @@ const ConvertibleNote = z
     type: z.string().optional().default("CONVERTIBLE_NOTE"),
     investor_name: z.string().min(1),
     principal_amount: z.number().gt(0),
-    interest_rate: z.number().gte(0).lte(100),
+    interest_rate: z.number().gte(0).lte(GEN.INTEREST_RATE_MAX),
     interest_type: z.enum(["simple", "compound"]).optional().default("simple"),
     valuation_cap: z.union([z.number(), z.null()]).optional(),
     discount_pct: z.union([z.number(), z.null()]).optional(),
-    maturity_months: z.number().int().gte(1).lte(120),
+    maturity_months: z.number().int().gte(1).lte(GEN.VESTING_MONTHS_MAX),
     date: z.union([z.string(), z.null()]).optional(),
     status: z.enum(["outstanding", "converted", "cancelled"]).optional().default("outstanding"),
     accrued_interest: z.union([z.number(), z.null()]).optional(),
@@ -196,8 +213,8 @@ const CapTableConversionRequest = z
 const CapTable_Output = z
   .object({
     stakeholders: z.array(Stakeholder),
-    total_shares: z.number().int().gte(0).default(10000000),
-    option_pool_pct: z.number().gte(0).lte(100).default(10),
+    total_shares: z.number().int().gte(0).default(GEN.DEFAULT_TOTAL_SHARES),
+    option_pool_pct: z.number().gte(0).lte(GEN.OWNERSHIP_MAX).default(GEN.DEFAULT_OPTION_POOL_PCT),
   })
   .partial()
   .passthrough();
@@ -261,7 +278,7 @@ const StakeholderPayout = z
     stakeholder_id: z.string(),
     name: z.string(),
     payout_amount: z.number().gte(0),
-    payout_pct: z.number().gte(0).lte(100),
+    payout_pct: z.number().gte(0).lte(GEN.OWNERSHIP_MAX),
     investment_amount: z.union([z.number(), z.null()]).optional(),
     roi: z.union([z.number(), z.null()]).optional(),
   })
@@ -271,8 +288,8 @@ const WaterfallDistribution = z
     exit_valuation: z.number().gt(0),
     waterfall_steps: z.array(WaterfallStep),
     stakeholder_payouts: z.array(StakeholderPayout),
-    common_pct: z.number().gte(0).lte(100),
-    preferred_pct: z.number().gte(0).lte(100),
+    common_pct: z.number().gte(0).lte(GEN.OWNERSHIP_MAX),
+    preferred_pct: z.number().gte(0).lte(GEN.OWNERSHIP_MAX),
   })
   .passthrough();
 const WaterfallResponse = z
@@ -285,13 +302,13 @@ const DilutionStakeholderInput = z
   .object({
     name: z.string().min(1),
     type: z.enum(["founder", "employee", "investor", "advisor"]),
-    ownership_pct: z.number().gte(0).lte(100),
+    ownership_pct: z.number().gte(0).lte(GEN.OWNERSHIP_MAX),
   })
   .passthrough();
 const DilutionPreviewRequest = z
   .object({
     stakeholders: z.array(DilutionStakeholderInput).optional(),
-    option_pool_pct: z.number().gte(0).lte(100).optional().default(0),
+    option_pool_pct: z.number().gte(0).lte(GEN.OWNERSHIP_MAX).optional().default(0),
     pre_money_valuation: z.number().gt(0),
     amount_raised: z.number().gt(0),
     investor_name: z.string().min(1).optional().default("New Investor"),
@@ -372,7 +389,7 @@ const ScenarioComparisonResponse = z
 const RevenueMultipleRequest = z
   .object({
     annual_revenue: z.number().gte(0).describe("Annual revenue (ARR or TTM)"),
-    revenue_multiple: z.number().gt(0).lte(100).describe("Revenue multiple (e.g., 10x)"),
+    revenue_multiple: z.number().gt(0).lte(GEN.REVENUE_MULTIPLE_MAX).describe("Revenue multiple (e.g., 10x)"),
     growth_rate: z
       .union([z.number(), z.null()])
       .describe("YoY revenue growth rate (e.g., 0.5 for 50%)")
@@ -409,7 +426,7 @@ const DCFRequest = z
 const VCMethodRequest = z
   .object({
     projected_exit_value: z.number().gt(0).describe("Expected exit valuation (acquisition/IPO)"),
-    exit_year: z.number().int().gte(1).lte(15).describe("Years until exit"),
+    exit_year: z.number().int().gte(1).lte(GEN.VC_EXIT_YEAR_MAX).describe("Years until exit"),
     target_return_multiple: z
       .union([z.number(), z.null()])
       .describe("Target return multiple (e.g., 10x)")

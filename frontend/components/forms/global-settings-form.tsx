@@ -1,5 +1,8 @@
 "use client";
 
+/** Default exit year for global settings */
+const DEFAULT_EXIT_YEAR = 5;
+
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,7 +40,7 @@ export function GlobalSettingsFormComponent({
   const form = useForm<GlobalSettingsForm>({
     resolver: zodResolver(GlobalSettingsFormSchema),
     defaultValues: {
-      exit_year: initialValues?.exit_year ?? 5,
+      exit_year: initialValues?.exit_year ?? DEFAULT_EXIT_YEAR,
     },
     mode: "onChange",
   });

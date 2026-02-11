@@ -1,5 +1,8 @@
 "use client";
 
+/** Bar chart top corner radius */
+const BAR_RADIUS = 4;
+
 import {
   BarChart,
   Bar,
@@ -56,7 +59,7 @@ export function MonteCarloHistogram({ data }: MonteCarloHistogramProps) {
               }}
             />
             <Tooltip {...tooltipStyles} />
-            <Bar dataKey="count" fill={colors.chart1} radius={[4, 4, 0, 0]}>
+            <Bar dataKey="count" fill={colors.chart1} radius={[BAR_RADIUS, BAR_RADIUS, 0, 0]}>
               {data.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}

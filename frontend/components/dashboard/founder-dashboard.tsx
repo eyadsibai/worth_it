@@ -1,5 +1,8 @@
 "use client";
 
+/** Maximum ownership percentage */
+const MAX_OWNERSHIP_PCT = 100;
+
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
@@ -182,13 +185,13 @@ export function FounderDashboard() {
                 <span>Total Allocated</span>
                 <span
                   className={`tabular-nums ${
-                    totalOwnership > 100 ? "text-destructive" : "text-terminal"
+                    totalOwnership > MAX_OWNERSHIP_PCT ? "text-destructive" : "text-terminal"
                   }`}
                 >
                   <AnimatedPercentage value={totalOwnership} decimals={1} />
                 </span>
               </div>
-              {totalOwnership > 100 && (
+              {totalOwnership > MAX_OWNERSHIP_PCT && (
                 <motion.p
                   className="text-destructive text-xs"
                   initial={{ opacity: 0, y: -5 }}

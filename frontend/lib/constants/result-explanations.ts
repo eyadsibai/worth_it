@@ -1,3 +1,8 @@
+import { FORMATTING } from "./formatting";
+
+/** Percentage conversion multiplier */
+const PERCENTAGE_MULTIPLIER = 100;
+
 /**
  * Explanations for result metrics in the scenario results view.
  * These provide contextual help for understanding financial outcomes.
@@ -55,7 +60,7 @@ export function generateResultsSummary({
     if (finalPayout > 0) {
       summary += ` Your equity would be worth **${formattedPayout}** at exit`;
       if (totalDilution !== undefined && totalDilution > 0) {
-        summary += ` (after ${(totalDilution * 100).toFixed(0)}% dilution)`;
+        summary += ` (after ${(totalDilution * PERCENTAGE_MULTIPLIER).toFixed(0)}% dilution)`;
       }
       summary += ".";
     }
@@ -84,14 +89,14 @@ function formatCompact(value: number): string {
   const absValue = Math.abs(value);
   const sign = value < 0 ? "-" : "";
 
-  if (absValue >= 1_000_000_000) {
-    return `${sign}$${(absValue / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`;
+  if (absValue >= FORMATTING.BILLION) {
+    return `${sign}$${(absValue / FORMATTING.BILLION).toFixed(1).replace(/\.0$/, "")}B`;
   }
-  if (absValue >= 1_000_000) {
-    return `${sign}$${(absValue / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (absValue >= FORMATTING.MILLION) {
+    return `${sign}$${(absValue / FORMATTING.MILLION).toFixed(1).replace(/\.0$/, "")}M`;
   }
-  if (absValue >= 1_000) {
-    return `${sign}$${(absValue / 1_000).toFixed(0)}K`;
+  if (absValue >= FORMATTING.THOUSAND) {
+    return `${sign}$${(absValue / FORMATTING.THOUSAND).toFixed(0)}K`;
   }
   return `${sign}$${absValue.toFixed(0)}`;
 }

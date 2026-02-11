@@ -1,5 +1,17 @@
 "use client";
 
+/** Percentage conversion multiplier */
+const PCT_MULTIPLIER = 100;
+/** Default failure/positive probability estimates */
+const DEFAULT_POSITIVE_PROBABILITY = 0.6;
+const DEFAULT_NEGATIVE_PROBABILITY = 0.4;
+/** Skeleton card count for loading state */
+const SKELETON_CARD_COUNT = 5;
+/** Decimal places for percentage display */
+const PCT_DECIMAL_PLACES = 2;
+/** Divisor for odd/even toggle in bold text rendering */
+const ODD_EVEN_DIVISOR = 2;
+
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +29,12 @@ import type {
   DilutionRoundForm,
 } from "@/lib/schemas";
 
+/** Safely extract a numeric value from a DataFrame-like row record. */
+function rowNum(row: Record<string, unknown>, key: string, fallback = 0): number {
+  const v = row[key];
+  return typeof v === "number" ? v : fallback;
+}
+
 /**
  * Calculate total dilution percentage from dilution rounds.
  * Returns the total dilution as a decimal (e.g., 0.48 for 48% dilution).
@@ -29,7 +47,7 @@ function calculateTotalDilutionFromRounds(rounds: DilutionRoundForm[] | undefine
 
   // Calculate remaining equity factor: product of (1 - dilution_pct/100) for each round
   const remainingFactor = enabledRounds.reduce((factor, round) => {
-    return factor * (1 - round.dilution_pct / 100);
+    return factor * (1 - round.dilution_pct / PCT_MULTIPLIER);
   }, 1);
 
   // Total dilution = 1 - remaining factor
@@ -169,7 +187,7 @@ export function ScenarioResults({
     () => ({
       netBenefit,
       // Use Monte Carlo profit probability if available, otherwise estimate from net benefit
-      positiveOutcomeProbability: monteCarloStats?.profitProbability ?? (isPositive ? 0.6 : 0.4),
+      positiveOutcomeProbability: monteCarloStats?.profitProbability ?? (isPositive ? DEFAULT_POSITIVE_PROBABILITY : DEFAULT_NEGATIVE_PROBABILITY),
       expectedValue: monteCarloStats?.mean ?? netBenefit,
       isWorthIt: isPositive,
     }),
@@ -200,7 +218,7 @@ export function ScenarioResults({
         <div className="animate-fade-in space-y-6">
           {/* Skeleton Metric Cards */}
           <MetricCarousel>
-            {[...Array(5)].map((_, i) => (
+            {[...Array(SKELETON_CARD_COUNT)].map((_, i) => (
               <Card key={i} className="terminal-card overflow-hidden">
                 <CardHeader className="px-4 pt-4 pb-2">
                   <Skeleton className="h-3 w-20" />
@@ -236,7 +254,7 @@ export function ScenarioResults({
             <CardContent>
               <Skeleton className="mb-4 h-8 w-48" />
               <div className="space-y-3">
-                {[...Array(5)].map((_, i) => (
+                {[...Array(SKELETON_CARD_COUNT)].map((_, i) => (
                   <Skeleton key={i} className="h-10 w-full" />
                 ))}
               </div>
@@ -508,7 +526,7 @@ export function ScenarioResults({
         )}
 
         {/* Key Metrics Cards */}
-        {/* Carousel on mobile, 5-col grid on desktop */}
+        {/* Carousel on mobile, 3-col grid on desktop (wraps to 2 rows) */}
         <MetricCarousel>
           {/* Final Payout */}
           <Card className="terminal-card h-full overflow-hidden">
@@ -595,12 +613,12 @@ export function ScenarioResults({
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 <CardTitle className="text-foreground text-lg font-semibold tracking-tight tabular-nums lg:text-xl">
-                  <AnimatedPercentage value={displayTotalDilution * 100} decimals={2} />
+                  <AnimatedPercentage value={displayTotalDilution * PCT_MULTIPLIER} decimals={PCT_DECIMAL_PLACES} />
                 </CardTitle>
                 <p className="text-muted-foreground mt-1 text-xs">
                   Final:{" "}
                   <AnimatedPercentage
-                    value={(displayResults.diluted_equity_pct || 0) * 100}
+                    value={(displayResults.diluted_equity_pct || 0) * PCT_MULTIPLIER}
                     decimals={2}
                   />
                 </p>
@@ -622,10 +640,10 @@ export function ScenarioResults({
                 displayResults.results_df[displayResults.results_df.length - 1].breakeven_value !==
                   undefined ? (
                   <CurrencyDisplay
-                    value={
-                      displayResults.results_df[displayResults.results_df.length - 1]
-                        .breakeven_value
-                    }
+                    value={rowNum(
+                      displayResults.results_df[displayResults.results_df.length - 1],
+                      "breakeven_value"
+                    )}
                     responsive
                   />
                 ) : (
@@ -656,14 +674,17 @@ export function ScenarioResults({
                       exitYear: globalSettings.exit_year,
                       breakEvenValuation:
                         displayResults.results_df.length > 0
-                          ? displayResults.results_df[displayResults.results_df.length - 1]
-                              .breakeven_value
+                          ? rowNum(
+                              displayResults.results_df[displayResults.results_df.length - 1],
+                              "breakeven_value",
+                              0
+                            ) || undefined
                           : undefined,
                       totalDilution: displayResults.total_dilution ?? undefined,
                     })
                       .split("**")
                       .map((part, i) =>
-                        i % 2 === 1 ? (
+                        i % ODD_EVEN_DIVISOR === 1 ? (
                           <strong key={i} className="font-semibold">
                             {part}
                           </strong>
@@ -801,21 +822,21 @@ export function ScenarioResults({
                         {results.results_df.map((row, idx) => (
                           <tr key={idx} className="hover:bg-secondary/30 transition-colors">
                             <td className="text-accent px-4 py-3 font-medium">
-                              {row.year || idx + 1}
+                              {rowNum(row, "year") || idx + 1}
                             </td>
                             <td className="px-4 py-3 text-right tabular-nums">
-                              {formatCurrency(row.startup_monthly_salary || 0)}
+                              {formatCurrency(rowNum(row, "startup_monthly_salary"))}
                             </td>
                             <td className="px-4 py-3 text-right tabular-nums">
-                              {formatCurrency(row.current_job_monthly_salary || 0)}
+                              {formatCurrency(rowNum(row, "current_job_monthly_salary"))}
                             </td>
                             <td
-                              className={`px-4 py-3 text-right tabular-nums ${(row.monthly_surplus || 0) >= 0 ? "text-terminal" : "text-destructive"}`}
+                              className={`px-4 py-3 text-right tabular-nums ${rowNum(row, "monthly_surplus") >= 0 ? "text-terminal" : "text-destructive"}`}
                             >
-                              {formatCurrency(row.monthly_surplus || 0)}
+                              {formatCurrency(rowNum(row, "monthly_surplus"))}
                             </td>
                             <td className="text-muted-foreground px-4 py-3 text-right tabular-nums">
-                              {formatCurrency(row.cumulative_opportunity_cost || 0)}
+                              {formatCurrency(rowNum(row, "cumulative_opportunity_cost"))}
                             </td>
                           </tr>
                         ))}

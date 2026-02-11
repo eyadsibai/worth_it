@@ -1,5 +1,8 @@
 "use client";
 
+/** Maximum number of advisors in wizard */
+const MAX_ADVISORS = 5;
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -189,7 +192,7 @@ export function StepAdvisors({
           size="sm"
           onClick={handleAddAdvisor}
           className="mt-4 w-full"
-          disabled={data.advisors.length >= 5}
+          disabled={data.advisors.length >= MAX_ADVISORS}
         >
           <Plus className="mr-2 h-4 w-4" />
           Add Advisor

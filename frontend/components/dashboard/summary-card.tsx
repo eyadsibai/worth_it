@@ -1,5 +1,8 @@
 "use client";
 
+/** Percentage conversion multiplier */
+const PCT_MULTIPLIER = 100;
+
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, BarChart3, Briefcase, Building2 } from "lucide-react";
@@ -32,7 +35,7 @@ interface SummaryCardProps {
 export function SummaryCard({ stats, className }: SummaryCardProps) {
   const worthItPercentage =
     stats.employeeScenarios > 0
-      ? Math.round((stats.worthItCount / stats.employeeScenarios) * 100)
+      ? Math.round((stats.worthItCount / stats.employeeScenarios) * PCT_MULTIPLIER)
       : 0;
 
   return (

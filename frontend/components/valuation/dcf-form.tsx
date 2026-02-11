@@ -1,5 +1,10 @@
 "use client";
 
+/** Percentage conversion multiplier (decimal-to-percent) */
+const PCT_MULTIPLIER = 100;
+/** Default cash flow growth per year */
+const DEFAULT_CF_GROWTH = 500000;
+
 import * as React from "react";
 import { UseFormReturn, useFieldArray } from "react-hook-form";
 import { NumberInputField } from "@/components/forms/form-fields";
@@ -31,7 +36,7 @@ export function DCFForm({ form, industryCode, benchmarks }: DCFFormProps) {
   // Validate discount rate when it changes (convert from percentage to decimal)
   React.useEffect(() => {
     if (discountRate !== undefined && industryCode) {
-      validateField("discount_rate", discountRate / 100);
+      validateField("discount_rate", discountRate / PCT_MULTIPLIER);
     }
   }, [discountRate, industryCode, validateField]);
 
@@ -44,7 +49,7 @@ export function DCFForm({ form, industryCode, benchmarks }: DCFFormProps) {
 
   // Format benchmark values for display (convert from decimal to percentage)
   const discountRateMedianDisplay = discountRateBenchmark
-    ? `${Math.round(discountRateBenchmark.median * 100)}%`
+    ? `${Math.round(discountRateBenchmark.median * PCT_MULTIPLIER)}%`
     : undefined;
 
   return (
@@ -69,7 +74,7 @@ export function DCFForm({ form, industryCode, benchmarks }: DCFFormProps) {
                   label=""
                   prefix="$"
                   step={100000}
-                  placeholder={String((index + 1) * 500000)}
+                  placeholder={String((index + 1) * DEFAULT_CF_GROWTH)}
                   formatDisplay={true}
                 />
               </div>
@@ -105,7 +110,7 @@ export function DCFForm({ form, industryCode, benchmarks }: DCFFormProps) {
             max={100}
             step={0.5}
             placeholder={
-              discountRateBenchmark ? String(Math.round(discountRateBenchmark.median * 100)) : "12"
+              discountRateBenchmark ? String(Math.round(discountRateBenchmark.median * PCT_MULTIPLIER)) : "12"
             }
             tooltip="Weighted Average Cost of Capital or required rate of return. Typically 10-20% for startups."
           />
@@ -115,14 +120,14 @@ export function DCFForm({ form, industryCode, benchmarks }: DCFFormProps) {
               message={discountRateValidation.message}
               median={
                 discountRateValidation.benchmark_median
-                  ? Math.round(discountRateValidation.benchmark_median * 100)
+                  ? Math.round(discountRateValidation.benchmark_median * PCT_MULTIPLIER)
                   : undefined
               }
               suggestedRange={
                 discountRateValidation.suggested_range
                   ? [
-                      Math.round(discountRateValidation.suggested_range[0] * 100),
-                      Math.round(discountRateValidation.suggested_range[1] * 100),
+                      Math.round(discountRateValidation.suggested_range[0] * PCT_MULTIPLIER),
+                      Math.round(discountRateValidation.suggested_range[1] * PCT_MULTIPLIER),
                     ]
                   : undefined
               }

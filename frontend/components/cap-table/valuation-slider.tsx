@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { FORMATTING } from "@/lib/constants";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -38,7 +39,7 @@ export function ValuationSlider({
 
   // Update input when slider changes
   React.useEffect(() => {
-    setInputValue((value / 1_000_000).toString());
+    setInputValue((value / FORMATTING.MILLION).toString());
   }, [value]);
 
   const handleSliderChange = (values: number[]) => {
@@ -53,12 +54,12 @@ export function ValuationSlider({
     const parsed = parseInputValue(inputValue);
     if (parsed !== null) {
       // Input is in millions
-      const valueInDollars = parsed * 1_000_000;
+      const valueInDollars = parsed * FORMATTING.MILLION;
       const clamped = Math.max(min, Math.min(max, valueInDollars));
       onChange(clamped);
     } else {
       // Reset to current value
-      setInputValue((value / 1_000_000).toString());
+      setInputValue((value / FORMATTING.MILLION).toString());
     }
   };
 

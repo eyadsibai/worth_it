@@ -1,5 +1,13 @@
 "use client";
 
+/** Schema bounds for stock options form */
+const SO = {
+  MAX_VESTING_PERIOD: 10,
+  MAX_CLIFF_PERIOD: 5,
+  MAX_EXERCISE_YEAR: 20,
+  DEFAULT_VESTING_YEARS: 4,
+} as const;
+
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,10 +25,10 @@ const StockOptionsFormSimplifiedSchema = z.object({
   monthly_salary: z.number().min(0),
   num_options: z.number().int().min(0),
   strike_price: z.number().min(0),
-  vesting_period: z.number().int().min(1).max(10),
-  cliff_period: z.number().int().min(0).max(5),
+  vesting_period: z.number().int().min(1).max(SO.MAX_VESTING_PERIOD),
+  cliff_period: z.number().int().min(0).max(SO.MAX_CLIFF_PERIOD),
   exercise_strategy: z.enum(["AT_EXIT", "AFTER_VESTING"]),
-  exercise_year: z.number().int().min(1).max(20).optional(),
+  exercise_year: z.number().int().min(1).max(SO.MAX_EXERCISE_YEAR).optional(),
   exit_price_per_share: z.number().min(0),
 });
 
@@ -48,7 +56,7 @@ export function StockOptionsFormComponent({
       monthly_salary: initialValues?.monthly_salary ?? 0,
       num_options: initialValues?.num_options ?? 0,
       strike_price: initialValues?.strike_price ?? 0,
-      vesting_period: initialValues?.vesting_period ?? 4,
+      vesting_period: initialValues?.vesting_period ?? SO.DEFAULT_VESTING_YEARS,
       cliff_period: initialValues?.cliff_period ?? 1,
       exercise_strategy: initialValues?.exercise_strategy ?? "AT_EXIT",
       exercise_year: initialValues?.exercise_year,

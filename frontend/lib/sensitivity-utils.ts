@@ -13,6 +13,24 @@ import type {
   SensitivityAnalysisResponse,
 } from "@/lib/schemas";
 
+/** Sensitivity analysis constants */
+const SENSITIVITY = {
+  /** Estimated shares outstanding for stock options valuation */
+  ESTIMATED_SHARES_OUTSTANDING: 1000000,
+  /** Default startup failure probability (60%) */
+  DEFAULT_FAILURE_PROBABILITY: 0.6,
+  /** Low-end range multiplier (20% of expected) */
+  RANGE_LOW_MULTIPLIER: 0.2,
+  /** High-end range multiplier (200% of expected) */
+  RANGE_HIGH_MULTIPLIER: 2.0,
+  /** Half-width of ROI range for sensitivity sweep */
+  ROI_RANGE_HALF_WIDTH: 0.04,
+  /** Maximum salary growth rate for sensitivity sweep (10%) */
+  MAX_SALARY_GROWTH_RATE: 0.1,
+  /** Percentage divisor for converting form values to decimals */
+  PERCENTAGE_DIVISOR: 100,
+} as const;
+
 /**
  * Transformed sensitivity data point for charts
  */
@@ -47,37 +65,37 @@ export function buildSensitivityRequest(
   currentJob: CurrentJobForm,
   equity: RSUForm | StockOptionsForm
 ): SensitivityAnalysisRequest {
-  // Determine equity type and params
-  const isRSU = "total_equity_grant_pct" in equity;
+  // Use discriminated union narrowing via equity_type for type safety
+  const isRSU = equity.equity_type === "RSU";
   // For Stock Options, we estimate valuation from exit_price_per_share.
   // Note: This assumes ~1M shares outstanding, which is a rough estimate.
   // In practice, fully_diluted_shares would be needed for accurate valuation.
   const exitValuation = isRSU
-    ? (equity as RSUForm).exit_valuation
-    : (equity as StockOptionsForm).exit_price_per_share * 1000000;
+    ? equity.exit_valuation
+    : equity.exit_price_per_share * SENSITIVITY.ESTIMATED_SHARES_OUTSTANDING;
 
   // Build flat startup_params using Issue #248 typed format
   const startup_params = isRSU
     ? {
         equity_type: "RSU" as const,
         monthly_salary: equity.monthly_salary,
-        total_equity_grant_pct: (equity as RSUForm).total_equity_grant_pct,
+        total_equity_grant_pct: equity.total_equity_grant_pct,
         vesting_period: equity.vesting_period,
         cliff_period: equity.cliff_period,
-        exit_valuation: (equity as RSUForm).exit_valuation,
+        exit_valuation: equity.exit_valuation,
         simulate_dilution: false,
         dilution_rounds: null,
       }
     : {
         equity_type: "STOCK_OPTIONS" as const,
         monthly_salary: equity.monthly_salary,
-        num_options: (equity as StockOptionsForm).num_options,
-        strike_price: (equity as StockOptionsForm).strike_price,
+        num_options: equity.num_options,
+        strike_price: equity.strike_price,
         vesting_period: equity.vesting_period,
         cliff_period: equity.cliff_period,
-        exit_price_per_share: (equity as StockOptionsForm).exit_price_per_share,
-        exercise_strategy: (equity as StockOptionsForm).exercise_strategy || "AT_EXIT",
-        exercise_year: (equity as StockOptionsForm).exercise_year || null,
+        exit_price_per_share: equity.exit_price_per_share,
+        exercise_strategy: equity.exercise_strategy || "AT_EXIT",
+        exercise_year: equity.exercise_year || null,
       };
 
   // Base parameters for calculation - uses Issue #248 TypedBaseParams format
@@ -85,10 +103,10 @@ export function buildSensitivityRequest(
     exit_year: globalSettings.exit_year,
     current_job_monthly_salary: currentJob.monthly_salary,
     startup_monthly_salary: equity.monthly_salary,
-    current_job_salary_growth_rate: currentJob.annual_salary_growth_rate / 100,
-    annual_roi: currentJob.assumed_annual_roi / 100,
+    current_job_salary_growth_rate: currentJob.annual_salary_growth_rate / SENSITIVITY.PERCENTAGE_DIVISOR,
+    annual_roi: currentJob.assumed_annual_roi / SENSITIVITY.PERCENTAGE_DIVISOR,
     investment_frequency: currentJob.investment_frequency,
-    failure_probability: 0.6, // 60% failure rate (realistic estimate)
+    failure_probability: SENSITIVITY.DEFAULT_FAILURE_PROBABILITY,
     startup_params,
   };
 
@@ -97,30 +115,30 @@ export function buildSensitivityRequest(
   const sim_param_configs = isRSU
     ? {
         exit_valuation: {
-          min: exitValuation * 0.2, // 20% of expected
-          max: exitValuation * 2.0, // 200% of expected
+          min: exitValuation * SENSITIVITY.RANGE_LOW_MULTIPLIER,
+          max: exitValuation * SENSITIVITY.RANGE_HIGH_MULTIPLIER,
         },
         annual_roi: {
-          min: Math.max(0, currentJob.assumed_annual_roi / 100 - 0.04),
-          max: currentJob.assumed_annual_roi / 100 + 0.04,
+          min: Math.max(0, currentJob.assumed_annual_roi / SENSITIVITY.PERCENTAGE_DIVISOR - SENSITIVITY.ROI_RANGE_HALF_WIDTH),
+          max: currentJob.assumed_annual_roi / SENSITIVITY.PERCENTAGE_DIVISOR + SENSITIVITY.ROI_RANGE_HALF_WIDTH,
         },
         current_job_salary_growth_rate: {
           min: 0.0,
-          max: 0.1, // 0-10% growth
+          max: SENSITIVITY.MAX_SALARY_GROWTH_RATE,
         },
       }
     : {
         exit_price_per_share: {
-          min: (equity as StockOptionsForm).exit_price_per_share * 0.2,
-          max: (equity as StockOptionsForm).exit_price_per_share * 2.0,
+          min: (equity as StockOptionsForm).exit_price_per_share * SENSITIVITY.RANGE_LOW_MULTIPLIER,
+          max: (equity as StockOptionsForm).exit_price_per_share * SENSITIVITY.RANGE_HIGH_MULTIPLIER,
         },
         annual_roi: {
-          min: Math.max(0, currentJob.assumed_annual_roi / 100 - 0.04),
-          max: currentJob.assumed_annual_roi / 100 + 0.04,
+          min: Math.max(0, currentJob.assumed_annual_roi / SENSITIVITY.PERCENTAGE_DIVISOR - SENSITIVITY.ROI_RANGE_HALF_WIDTH),
+          max: currentJob.assumed_annual_roi / SENSITIVITY.PERCENTAGE_DIVISOR + SENSITIVITY.ROI_RANGE_HALF_WIDTH,
         },
         current_job_salary_growth_rate: {
           min: 0.0,
-          max: 0.1, // 0-10% growth
+          max: SENSITIVITY.MAX_SALARY_GROWTH_RATE,
         },
       };
 

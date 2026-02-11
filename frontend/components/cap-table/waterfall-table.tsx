@@ -1,5 +1,12 @@
 "use client";
 
+/** Decimal places for ROI display */
+const ROI_DECIMAL_PLACES = 2;
+/** ROI threshold for green badge */
+const ROI_HIGH = 10;
+/** ROI threshold for medium badge */
+const ROI_MEDIUM = 3;
+
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,14 +36,14 @@ function formatCurrency(value: number | null | undefined): string {
 // Format ROI (multiple of invested capital)
 function formatROI(roi: number | null | undefined): string {
   if (roi === undefined || roi === null) return "-";
-  return `${roi.toFixed(2)}x`;
+  return `${roi.toFixed(ROI_DECIMAL_PLACES)}x`;
 }
 
 // Get ROI badge color
 function getROIColor(roi: number | null | undefined): string {
   if (roi === undefined || roi === null) return "";
-  if (roi >= 10) return "bg-green-500/20 text-green-500 border-green-500/30";
-  if (roi >= 3) return "bg-chart-1/20 text-chart-1 border-chart-1/30";
+  if (roi >= ROI_HIGH) return "bg-green-500/20 text-green-500 border-green-500/30";
+  if (roi >= ROI_MEDIUM) return "bg-chart-1/20 text-chart-1 border-chart-1/30";
   if (roi >= 1) return "bg-chart-2/20 text-chart-2 border-chart-2/30";
   return "bg-destructive/20 text-destructive border-destructive/30";
 }

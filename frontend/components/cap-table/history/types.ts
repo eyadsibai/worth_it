@@ -5,6 +5,9 @@
  * cap table versions over time.
  */
 
+/** Maximum option pool percentage */
+const MAX_OPTION_POOL_PCT = 100;
+
 import { z } from "zod";
 import type { Stakeholder, FundingInstrument } from "@/lib/schemas";
 
@@ -39,7 +42,7 @@ export const VERSION_TRIGGER_LABELS: Record<VersionTrigger, string> = {
 export const CapTableSnapshotSchema = z.object({
   stakeholders: z.array(z.custom<Stakeholder>()),
   fundingInstruments: z.array(z.custom<FundingInstrument>()),
-  optionPoolPct: z.number().min(0).max(100),
+  optionPoolPct: z.number().min(0).max(MAX_OPTION_POOL_PCT),
   totalShares: z.number().min(0),
 });
 export type CapTableSnapshot = z.infer<typeof CapTableSnapshotSchema>;

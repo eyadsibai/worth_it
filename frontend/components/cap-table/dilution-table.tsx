@@ -1,5 +1,8 @@
 "use client";
 
+/** Stagger delay between animation of table rows (seconds) */
+const ROW_STAGGER_DELAY = 0.05;
+
 import * as React from "react";
 import {
   Table,
@@ -67,7 +70,7 @@ export function DilutionTable({ data }: DilutionTableProps) {
               className={`hover:bg-muted/50 border-b transition-colors ${row.isNew ? "bg-terminal/5" : ""}`}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.2, delay: index * 0.05 }}
+              transition={{ duration: 0.2, delay: index * ROW_STAGGER_DELAY }}
             >
               <TableCell>
                 <div className="flex items-center gap-2">

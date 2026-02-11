@@ -1,5 +1,6 @@
 "use client";
 
+import { FORMATTING } from "@/lib/constants";
 import { Clock, RotateCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -19,17 +20,17 @@ interface VersionListItemProps {
 function formatRelativeTime(timestamp: number): string {
   const now = Date.now();
   const diffMs = now - timestamp;
-  const diffMinutes = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffMinutes = Math.floor(diffMs / (FORMATTING.MS_PER_SECOND * FORMATTING.SECONDS_PER_MINUTE));
+  const diffHours = Math.floor(diffMs / (FORMATTING.MS_PER_SECOND * FORMATTING.SECONDS_PER_MINUTE * FORMATTING.MINUTES_PER_HOUR));
+  const diffDays = Math.floor(diffMs / (FORMATTING.MS_PER_SECOND * FORMATTING.SECONDS_PER_MINUTE * FORMATTING.MINUTES_PER_HOUR * FORMATTING.HOURS_PER_DAY));
 
   if (diffMinutes < 1) {
     return "Just now";
-  } else if (diffMinutes < 60) {
+  } else if (diffMinutes < FORMATTING.MINUTES_PER_HOUR) {
     return `${diffMinutes}m ago`;
-  } else if (diffHours < 24) {
+  } else if (diffHours < FORMATTING.HOURS_PER_DAY) {
     return `${diffHours}h ago`;
-  } else if (diffDays < 7) {
+  } else if (diffDays < FORMATTING.DAYS_PER_WEEK) {
     return `${diffDays}d ago`;
   } else {
     return new Date(timestamp).toLocaleDateString();

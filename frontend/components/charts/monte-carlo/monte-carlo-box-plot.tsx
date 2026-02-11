@@ -1,5 +1,8 @@
 "use client";
 
+/** Bar chart corner radius */
+const BAR_RADIUS = 4;
+
 import {
   BarChart,
   Bar,
@@ -49,8 +52,11 @@ export function MonteCarloBoxPlot({ data }: MonteCarloBoxPlotProps) {
               tick={{ fill: colors.foreground }}
               stroke={colors.muted}
             />
-            <Tooltip formatter={(value: number) => formatCurrency(value)} {...tooltipStyles} />
-            <Bar dataKey="value" fill={colors.chart1} radius={[0, 4, 4, 0]} />
+            <Tooltip
+              formatter={(value) => formatCurrency(typeof value === "number" ? value : Number(value) || 0)}
+              {...tooltipStyles}
+            />
+            <Bar dataKey="value" fill={colors.chart1} radius={[0, BAR_RADIUS, BAR_RADIUS, 0]} />
             <ReferenceLine x={0} stroke={colors.muted} strokeDasharray="3 3" />
           </BarChart>
         </ResponsiveContainer>

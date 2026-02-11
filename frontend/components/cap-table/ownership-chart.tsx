@@ -1,5 +1,20 @@
 "use client";
 
+/** Maximum ownership percentage */
+const MAX_OWNERSHIP_PCT = 100;
+/** Decimal places for tooltip display */
+const TOOLTIP_DECIMAL_PLACES = 2;
+/** Degrees in half circle (for radian conversion) */
+const DEGREES_HALF_CIRCLE = 180;
+/** Offset for label position from outer radius */
+const LABEL_OFFSET = 30;
+/** Maximum label name length before truncation */
+const MAX_LABEL_LENGTH = 12;
+/** Unallocated slice opacity */
+const UNALLOCATED_OPACITY = 0.3;
+/** Padding angle between pie chart slices */
+const SLICE_PADDING_ANGLE = 2;
+
 import * as React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +58,7 @@ function CustomTooltip({
       <div className="bg-popover rounded-lg border p-3 shadow-lg">
         <p className="font-medium">{data.name}</p>
         <p className="text-muted-foreground text-sm">
-          {data.value.toFixed(2).replace(/\.?0+$/, "")}% ownership
+          {data.value.toFixed(TOOLTIP_DECIMAL_PLACES).replace(/\.?0+$/, "")}% ownership
         </p>
         <p className="text-muted-foreground text-xs capitalize">{data.type.replace("_", " ")}</p>
       </div>
@@ -71,10 +86,10 @@ export function OwnershipChart({ stakeholders, optionPoolPct }: OwnershipChartPr
 
     // Calculate unallocated
     const totalAllocated = data.reduce((sum, d) => sum + d.value, 0);
-    if (totalAllocated < 100) {
+    if (totalAllocated < MAX_OWNERSHIP_PCT) {
       data.push({
         name: "Unallocated",
-        value: 100 - totalAllocated,
+        value: MAX_OWNERSHIP_PCT - totalAllocated,
         type: "unallocated",
       });
     }
@@ -109,18 +124,18 @@ export function OwnershipChart({ stakeholders, optionPoolPct }: OwnershipChartPr
                 cy="50%"
                 innerRadius={60}
                 outerRadius={100}
-                paddingAngle={2}
+                paddingAngle={SLICE_PADDING_ANGLE}
                 dataKey="value"
                 label={({ cx, cy, midAngle, outerRadius, name, value }) => {
                   // Guard against undefined values
                   if (midAngle === undefined || name === undefined) return null;
                   // Position labels outside the pie chart
-                  const RADIAN = Math.PI / 180;
-                  const radius = (outerRadius as number) + 30;
+                  const RADIAN = Math.PI / DEGREES_HALF_CIRCLE;
+                  const radius = (outerRadius as number) + LABEL_OFFSET;
                   const x = (cx as number) + radius * Math.cos(-midAngle * RADIAN);
                   const y = (cy as number) + radius * Math.sin(-midAngle * RADIAN);
                   // Truncate long names to prevent overlap
-                  const displayName = name.length > 12 ? `${name.slice(0, 12)}...` : name;
+                  const displayName = name.length > MAX_LABEL_LENGTH ? `${name.slice(0, MAX_LABEL_LENGTH)}...` : name;
                   return (
                     <text
                       x={x}
@@ -146,7 +161,7 @@ export function OwnershipChart({ stakeholders, optionPoolPct }: OwnershipChartPr
                           ? "hsl(var(--accent))"
                           : COLORS[index % COLORS.length]
                     }
-                    opacity={entry.type === "unallocated" ? 0.3 : 1}
+                    opacity={entry.type === "unallocated" ? UNALLOCATED_OPACITY : 1}
                   />
                 ))}
               </Pie>

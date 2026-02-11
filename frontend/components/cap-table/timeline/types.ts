@@ -1,3 +1,6 @@
+/** Maximum ownership percentage */
+const MAX_OWNERSHIP_PCT = 100;
+
 /**
  * Types for Equity Timeline Visualization (#228)
  *
@@ -63,7 +66,7 @@ export type OwnershipCategory = "founder" | "investor" | "employee" | "option_po
 export const OwnershipDataPointSchema = z.object({
   stakeholderId: z.string(),
   name: z.string(),
-  percentage: z.number().min(0).max(100),
+  percentage: z.number().min(0).max(MAX_OWNERSHIP_PCT),
   category: z.enum(["founder", "investor", "employee", "option_pool"]),
 });
 export type OwnershipDataPoint = z.infer<typeof OwnershipDataPointSchema>;

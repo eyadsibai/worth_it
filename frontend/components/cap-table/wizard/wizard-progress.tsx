@@ -1,5 +1,10 @@
 "use client";
 
+/** Percent multiplier for progress calculation */
+const PERCENT_MULTIPLIER = 100;
+/** Stagger delay between step dot animations */
+const DOT_STAGGER_DELAY = 0.05;
+
 import * as React from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -11,7 +16,7 @@ interface WizardProgressProps {
 }
 
 export function WizardProgress({ currentStep, totalSteps, stepLabels = [] }: WizardProgressProps) {
-  const progress = (currentStep / totalSteps) * 100;
+  const progress = (currentStep / totalSteps) * PERCENT_MULTIPLIER;
 
   return (
     <div className="space-y-2">
@@ -57,7 +62,7 @@ export function WizardProgress({ currentStep, totalSteps, stepLabels = [] }: Wiz
               backgroundColor: index < currentStep ? undefined : undefined,
             }}
             transition={{
-              scale: { duration: 0.2, delay: index * 0.05 },
+              scale: { duration: 0.2, delay: index * DOT_STAGGER_DELAY },
               backgroundColor: { duration: 0.3 },
             }}
             whileHover={{ scale: 1.3 }}

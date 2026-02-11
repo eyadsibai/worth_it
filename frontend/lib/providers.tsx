@@ -8,6 +8,9 @@ import { CommandPalette, useCommandPalette } from "@/components/command-palette"
 import { WalkthroughProvider } from "@/lib/walkthrough";
 import { WalkthroughOverlay } from "@/components/walkthrough";
 
+/** Default stale time for queries (1 minute in ms) */
+const DEFAULT_STALE_TIME_MS = 60000;
+
 function CommandPaletteWrapper() {
   const { open, setOpen } = useCommandPalette();
   return <CommandPalette open={open} onOpenChange={setOpen} />;
@@ -19,7 +22,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000, // 1 minute
+            staleTime: DEFAULT_STALE_TIME_MS,
             refetchOnWindowFocus: false,
             retry: 1,
           },

@@ -1,5 +1,10 @@
 "use client";
 
+/** Tolerance for weight sum validation */
+const WEIGHT_TOLERANCE = 0.01;
+/** Decimal places for weight display */
+const WEIGHT_DECIMAL_PLACES = 2;
+
 import * as React from "react";
 import { UseFormReturn, useFieldArray } from "react-hook-form";
 import { NumberInputField, TextInputField } from "@/components/forms/form-fields";
@@ -52,7 +57,7 @@ export function ScorecardForm({ form }: ScorecardFormProps) {
     return sum + weight;
   }, 0);
 
-  const weightIsValid = Math.abs(totalWeight - 1.0) < 0.01;
+  const weightIsValid = Math.abs(totalWeight - 1.0) < WEIGHT_TOLERANCE;
 
   return (
     <div className="space-y-4">
@@ -78,7 +83,7 @@ export function ScorecardForm({ form }: ScorecardFormProps) {
             <p className="text-muted-foreground text-xs">
               Weight sum:{" "}
               <span className={weightIsValid ? "text-terminal" : "text-destructive"}>
-                {totalWeight.toFixed(2)}
+                {totalWeight.toFixed(WEIGHT_DECIMAL_PLACES)}
               </span>
               {!weightIsValid && " (should be 1.0)"}
             </p>

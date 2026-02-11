@@ -1,5 +1,10 @@
 "use client";
 
+import { FORMATTING } from "@/lib/constants/formatting";
+
+/** Decimal places for price display */
+const PRICE_DECIMAL_PLACES = 2;
+
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
@@ -36,7 +41,7 @@ function calculateAdjustedOpportunityCost(
   vestingYears: number
 ): number {
   // Lower startup salary = higher opportunity cost (more foregone income)
-  const salaryDiff = (originalSalary - newSalary) * 12 * vestingYears;
+  const salaryDiff = (originalSalary - newSalary) * FORMATTING.MONTHS_PER_YEAR * vestingYears;
   return baseOpportunityCost + salaryDiff;
 }
 
@@ -328,7 +333,7 @@ export function QuickAdjustPanel({
                       <AnimatedNumber
                         value={exitPricePerShare}
                         formatValue={(v) =>
-                          "$" + (v % 1 === 0 ? v.toString() : v.toFixed(2).replace(/\.?0+$/, ""))
+                          "$" + (v % 1 === 0 ? v.toString() : v.toFixed(PRICE_DECIMAL_PLACES).replace(/\.?0+$/, ""))
                         }
                       />
                     </span>

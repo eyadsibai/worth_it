@@ -13,6 +13,31 @@ import * as React from "react";
 import { useReducedMotion } from "@/lib/hooks/use-reduced-motion";
 import { formatCurrencyWithDecimals, formatCurrencyCompact } from "@/lib/format-utils";
 
+/** Animation constants */
+const ANIM = {
+  /** Default spring duration in ms */
+  SPRING_DURATION_MS: 1000,
+  /** Currency animation spring duration in ms */
+  CURRENCY_SPRING_MS: 800,
+  /** Delta display timeout in ms */
+  DELTA_DISPLAY_MS: 2000,
+  /** Animation threshold for completion check */
+  COMPLETION_THRESHOLD: 0.01,
+  /** Crossfade transition duration */
+  CROSSFADE_DURATION: 0.2,
+  /** Highlight glow effect duration in ms */
+  HIGHLIGHT_DURATION_MS: 600,
+  /** Pulsing dot scale factor at peak */
+  PULSE_SCALE_PEAK: 1.5,
+  /** Pulsing dot animation duration in seconds */
+  PULSE_DURATION: 1.5,
+  /** Skeleton opacity animation values */
+  SKELETON_OPACITY_MIN: 0.5,
+  SKELETON_STATIC_OPACITY: 0.75,
+  /** Percentage display: max percentage for progress bar */
+  MAX_PERCENTAGE: 100,
+} as const;
+
 // ============================================================================
 // Animation Variants - Reusable animation presets
 // ============================================================================
@@ -238,7 +263,7 @@ export const AnimatedNumber = React.memo(function AnimatedNumber({
   const ref = React.useRef<HTMLSpanElement>(null);
   const motionValue = useMotionValue(prefersReducedMotion ? value : 0);
   const springValue = useSpring(motionValue, {
-    duration: duration * 1000,
+    duration: duration * ANIM.SPRING_DURATION_MS,
     bounce: 0,
   });
   // Use continuous visibility tracking (not once: true) to pause when scrolled away
@@ -341,7 +366,7 @@ export const AnimatedCurrencyDisplay = React.memo(function AnimatedCurrencyDispl
   const mainRef = React.useRef<HTMLSpanElement>(null);
   const motionValue = useMotionValue(prefersReducedMotion ? value : 0);
   const springValue = useSpring(motionValue, {
-    duration: prefersReducedMotion ? 0 : 800,
+    duration: prefersReducedMotion ? 0 : ANIM.CURRENCY_SPRING_MS,
     bounce: 0,
   });
   // Use continuous visibility tracking to pause when scrolled away
@@ -362,7 +387,7 @@ export const AnimatedCurrencyDisplay = React.memo(function AnimatedCurrencyDispl
         if (diff !== 0) {
           setDelta(diff);
           // Clear delta after 2 seconds
-          const timer = setTimeout(() => setDelta(null), 2000);
+          const timer = setTimeout(() => setDelta(null), ANIM.DELTA_DISPLAY_MS);
           return () => clearTimeout(timer);
         }
       }
@@ -415,7 +440,7 @@ export const AnimatedCurrencyDisplay = React.memo(function AnimatedCurrencyDispl
             initial={{ opacity: 0, y: -5, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 5 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
+            transition={{ duration: prefersReducedMotion ? 0 : ANIM.CROSSFADE_DURATION }}
             className={`absolute top-0 left-full ml-1.5 hidden font-mono text-xs whitespace-nowrap tabular-nums lg:inline ${
               delta > 0 ? "text-terminal" : delta < 0 ? "text-destructive" : ""
             }`}
@@ -451,7 +476,7 @@ export const AnimatedPercentage = React.memo(function AnimatedPercentage({
   const prefersReducedMotion = useReducedMotion();
   const ref = React.useRef<HTMLSpanElement>(null);
   const motionValue = useMotionValue(prefersReducedMotion ? value : 0);
-  const springValue = useSpring(motionValue, { duration: 800, bounce: 0 });
+  const springValue = useSpring(motionValue, { duration: ANIM.CURRENCY_SPRING_MS, bounce: 0 });
   // Use continuous visibility tracking to pause when scrolled away
   const isInView = useInView(ref, { margin: "-50px" });
   const targetValue = React.useRef(value);
@@ -497,7 +522,7 @@ export const AnimatedPercentage = React.memo(function AnimatedPercentage({
     const unsubscribe = springValue.on("change", (latest) => {
       if (ref.current) {
         // Check if animation is close to complete (within 0.01 of target)
-        const isComplete = Math.abs(latest - targetValue.current) < 0.01;
+        const isComplete = Math.abs(latest - targetValue.current) < ANIM.COMPLETION_THRESHOLD;
         ref.current.textContent = formatPercentage(latest, isComplete, targetValue.current);
       }
     });
@@ -536,7 +561,7 @@ export function AnimatedProgress({
   className,
   barClassName,
 }: AnimatedProgressProps) {
-  const percentage = Math.min((value / max) * 100, 100);
+  const percentage = Math.min((value / max) * ANIM.MAX_PERCENTAGE, ANIM.MAX_PERCENTAGE);
 
   return (
     <div className={className}>
@@ -580,8 +605,8 @@ export const PulsingDot = React.memo(function PulsingDot({
       {shouldAnimate ? (
         <motion.span
           className={`absolute inline-flex h-full w-full rounded-full ${color} opacity-75`}
-          animate={{ scale: [1, 1.5, 1], opacity: [0.75, 0, 0.75] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
+          animate={{ scale: [1, ANIM.PULSE_SCALE_PEAK, 1], opacity: [ANIM.SKELETON_STATIC_OPACITY, 0, ANIM.SKELETON_STATIC_OPACITY] }}
+          transition={{ duration: ANIM.PULSE_DURATION, repeat: Infinity }}
         />
       ) : (
         <span className={`absolute inline-flex h-full w-full rounded-full ${color} opacity-75`} />
@@ -619,8 +644,8 @@ export const Skeleton = React.memo(function Skeleton({ className }: SkeletonProp
       <motion.div
         ref={ref}
         className={`bg-muted rounded ${className}`}
-        animate={{ opacity: [0.5, 1, 0.5] }}
-        transition={{ duration: 1.5, repeat: Infinity }}
+        animate={{ opacity: [ANIM.SKELETON_OPACITY_MIN, 1, ANIM.SKELETON_OPACITY_MIN] }}
+        transition={{ duration: ANIM.PULSE_DURATION, repeat: Infinity }}
       />
     );
   }
@@ -651,7 +676,7 @@ export function HighlightOnChange({
   React.useEffect(() => {
     if (previousValue.current !== value) {
       setHighlight(true);
-      const timer = setTimeout(() => setHighlight(false), 600);
+      const timer = setTimeout(() => setHighlight(false), ANIM.HIGHLIGHT_DURATION_MS);
       previousValue.current = value;
       return () => clearTimeout(timer);
     }

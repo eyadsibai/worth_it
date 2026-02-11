@@ -1,5 +1,10 @@
 "use client";
 
+/** Maximum ownership percentage */
+const MAX_OWNERSHIP_PCT = 100;
+/** Maximum number of founders */
+const MAX_FOUNDERS = 6;
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +22,7 @@ export function StepFounders({
   onSkipWizard,
 }: Omit<WizardStepProps, "onBack">) {
   const totalOwnership = data.founders.reduce((sum, f) => sum + f.ownershipPct, 0);
-  const isOverLimit = totalOwnership > 100;
+  const isOverLimit = totalOwnership > MAX_OWNERSHIP_PCT;
   const hasValidNames = data.founders.some((f) => f.name.trim() !== "");
   const canProceed = hasValidNames && !isOverLimit;
 
@@ -124,7 +129,7 @@ export function StepFounders({
           size="sm"
           onClick={handleAddFounder}
           className="mt-4 w-full"
-          disabled={data.founders.length >= 6}
+          disabled={data.founders.length >= MAX_FOUNDERS}
         >
           <Plus className="mr-2 h-4 w-4" />
           Add Founder
@@ -137,7 +142,7 @@ export function StepFounders({
           <span className="text-sm font-medium">Total</span>
           <span
             className={`text-lg font-semibold tabular-nums ${
-              isOverLimit ? "text-destructive" : totalOwnership === 100 ? "text-terminal" : ""
+              isOverLimit ? "text-destructive" : totalOwnership === MAX_OWNERSHIP_PCT ? "text-terminal" : ""
             }`}
           >
             {totalOwnership}%
@@ -145,12 +150,12 @@ export function StepFounders({
         </div>
         {isOverLimit && (
           <p className="text-destructive mt-1 text-xs">
-            Total exceeds 100%. Please adjust the ownership percentages.
+            Total exceeds {MAX_OWNERSHIP_PCT}%. Please adjust the ownership percentages.
           </p>
         )}
-        {!isOverLimit && totalOwnership < 100 && (
+        {!isOverLimit && totalOwnership < MAX_OWNERSHIP_PCT && (
           <p className="text-muted-foreground mt-1 text-xs">
-            Remaining {100 - totalOwnership}% will be unallocated (can add later)
+            Remaining {MAX_OWNERSHIP_PCT - totalOwnership}% will be unallocated (can add later)
           </p>
         )}
       </Card>

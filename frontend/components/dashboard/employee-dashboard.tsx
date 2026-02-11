@@ -1,5 +1,14 @@
 "use client";
 
+import { FORMATTING } from "@/lib/constants/formatting";
+
+/** Debounce delay for outdated results indicator */
+const OUTDATED_RESULTS_DELAY_MS = 500;
+/** Default failure probability for base params */
+const DEFAULT_FAILURE_PROBABILITY = 0.6;
+/** Percentage conversion divisor */
+const PCT_DIVISOR = 100;
+
 import * as React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
@@ -55,9 +64,9 @@ export function EmployeeDashboard() {
   } = useAppStore();
 
   // Debounce form values to prevent waterfall API calls on rapid form changes
-  const debouncedGlobalSettings = useDebounce(globalSettings, 300);
-  const debouncedCurrentJob = useDebounce(currentJob, 300);
-  const debouncedEquityDetails = useDebounce(equityDetails, 300);
+  const debouncedGlobalSettings = useDebounce(globalSettings, FORMATTING.DEBOUNCE_MS);
+  const debouncedCurrentJob = useDebounce(currentJob, FORMATTING.DEBOUNCE_MS);
+  const debouncedEquityDetails = useDebounce(equityDetails, FORMATTING.DEBOUNCE_MS);
 
   // Form completion status for sidebar summary
   const formStatus = useSidebarFormStatus(globalSettings, currentJob, equityDetails);
@@ -89,7 +98,7 @@ export function EmployeeDashboard() {
     if (input) {
       input.scrollIntoView({ behavior: "smooth", block: "center" });
       // Small delay to ensure scroll completes before focus
-      setTimeout(() => input.focus(), 300);
+      setTimeout(() => input.focus(), FORMATTING.DEBOUNCE_MS);
     }
   }, [equityDetails]);
 
@@ -127,7 +136,7 @@ export function EmployeeDashboard() {
       mobileView.setHasOutdatedResults(true);
       const timer = setTimeout(() => {
         mobileView.setHasOutdatedResults(false);
-      }, 500); // Clear after calculation completes
+      }, OUTDATED_RESULTS_DELAY_MS); // Clear after calculation completes
       return () => clearTimeout(timer);
     }
   }, [
@@ -145,7 +154,7 @@ export function EmployeeDashboard() {
   const showResults = !isTablet || activeView === "results";
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[380px_1fr]">
+    <div className="grid gap-8 lg:grid-cols-[420px_1fr]">
       {/* Left Column - Configuration Forms */}
       <div
         className={cn(
@@ -252,10 +261,10 @@ export function EmployeeDashboard() {
                         current_job_monthly_salary: debouncedCurrentJob.monthly_salary,
                         startup_monthly_salary: debouncedEquityDetails.monthly_salary,
                         current_job_salary_growth_rate:
-                          debouncedCurrentJob.annual_salary_growth_rate / 100,
-                        annual_roi: debouncedCurrentJob.assumed_annual_roi / 100,
+                          debouncedCurrentJob.annual_salary_growth_rate / PCT_DIVISOR,
+                        annual_roi: debouncedCurrentJob.assumed_annual_roi / PCT_DIVISOR,
                         investment_frequency: debouncedCurrentJob.investment_frequency,
-                        failure_probability: 0.6,
+                        failure_probability: DEFAULT_FAILURE_PROBABILITY,
                         // Issue #248: Use flat typed format for startup_params
                         startup_params:
                           debouncedEquityDetails.equity_type === "RSU"
@@ -276,7 +285,7 @@ export function EmployeeDashboard() {
                                         round_type: r.round_type,
                                         year: r.year,
                                         dilution_pct: r.dilution_pct
-                                          ? r.dilution_pct / 100
+                                          ? r.dilution_pct / PCT_DIVISOR
                                           : undefined,
                                         pre_money_valuation: r.pre_money_valuation,
                                         amount_raised: r.amount_raised,

@@ -59,8 +59,10 @@ export interface ScenarioData {
 /**
  * Export data as JSON file
  */
+const JSON_INDENT_SPACES = 2;
+
 export function exportAsJSON(data: unknown, filename: string): void {
-  const jsonString = JSON.stringify(data, null, 2);
+  const jsonString = JSON.stringify(data, null, JSON_INDENT_SPACES);
   const blob = new Blob([jsonString], { type: "application/json" });
   downloadBlob(blob, `${filename}.json`);
 }
@@ -376,8 +378,8 @@ export function exportScenarioAsCSV(scenario: ScenarioData): void {
   rows.push("CURRENT JOB");
   rows.push("Metric,Value");
   rows.push(`Monthly Salary,${scenario.currentJob.monthlySalary}`);
-  rows.push(`Annual Growth Rate,${(scenario.currentJob.annualGrowthRate * 100).toFixed(1)}%`);
-  rows.push(`Assumed ROI,${(scenario.currentJob.assumedROI * 100).toFixed(1)}%`);
+  rows.push(`Annual Growth Rate,${(scenario.currentJob.annualGrowthRate * PDF_CONFIG.PCT_MULTIPLIER).toFixed(PDF_CONFIG.PCT_DECIMAL_PLACES)}%`);
+  rows.push(`Assumed ROI,${(scenario.currentJob.assumedROI * PDF_CONFIG.PCT_MULTIPLIER).toFixed(PDF_CONFIG.PCT_DECIMAL_PLACES)}%`);
   rows.push(`Investment Frequency,${escapeCSV(scenario.currentJob.investmentFrequency)}`);
   rows.push("");
 
@@ -390,7 +392,7 @@ export function exportScenarioAsCSV(scenario: ScenarioData): void {
   rows.push(`Cliff Period,${scenario.equity.cliffPeriod} year(s)`);
 
   if (scenario.equity.type === "RSU") {
-    rows.push(`Equity Percentage,${((scenario.equity.equityPct || 0) * 100).toFixed(2)}%`);
+    rows.push(`Equity Percentage,${((scenario.equity.equityPct || 0) * PDF_CONFIG.PCT_MULTIPLIER).toFixed(PDF_CONFIG.DECIMAL_PLACES_2)}%`);
     rows.push(`Exit Valuation,${scenario.equity.exitValuation || 0}`);
     if (scenario.equity.simulateDilution !== undefined) {
       rows.push(`Simulate Dilution,${scenario.equity.simulateDilution ? "Yes" : "No"}`);
@@ -434,7 +436,8 @@ export function exportScenarioAsJSON(
     monteCarloStats: monteCarloStats || null,
   };
 
-  const jsonString = JSON.stringify(exportData, null, 2);
+  const JSON_INDENT = 2;
+  const jsonString = JSON.stringify(exportData, null, JSON_INDENT);
   const blob = new Blob([jsonString], { type: "application/json" });
   const jsonFilename = `scenario-${sanitizeFilename(scenario.name)}-${timestamp}.json`;
   downloadBlob(blob, jsonFilename);
@@ -452,37 +455,37 @@ export function exportScenarioAsPDF(
   const verdictText = scenario.results.netOutcome >= 0 ? "WORTH IT" : "NOT WORTH IT";
 
   // Title
-  doc.setFontSize(24);
-  doc.text("Worth It Analysis Report", 14, 22);
+  doc.setFontSize(PDF_CONFIG.FONT_SIZE.TITLE);
+  doc.text("Worth It Analysis Report", PDF_CONFIG.MARGIN, PDF_CONFIG.Y.TITLE);
 
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text(`Generated: ${timestamp}`, 14, 30);
-  doc.text(`Scenario: ${scenario.name}`, 14, 36);
-  doc.setTextColor(0);
+  doc.setFontSize(PDF_CONFIG.FONT_SIZE.SMALL);
+  doc.setTextColor(PDF_CONFIG.TEXT_COLOR.MUTED);
+  doc.text(`Generated: ${timestamp}`, PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUBTITLE_1);
+  doc.text(`Scenario: ${scenario.name}`, PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUBTITLE_2);
+  doc.setTextColor(PDF_CONFIG.TEXT_COLOR.DEFAULT);
 
   // Executive Summary Box
-  doc.setFontSize(14);
-  doc.text("Executive Summary", 14, 50);
+  doc.setFontSize(PDF_CONFIG.FONT_SIZE.SECTION_HEADING);
+  doc.text("Executive Summary", PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUMMARY_START);
 
-  doc.setFontSize(11);
+  doc.setFontSize(PDF_CONFIG.FONT_SIZE.BODY);
   const netOutcomeFormatted = formatNumber(scenario.results.netOutcome);
-  doc.text(`Net Benefit: $${netOutcomeFormatted} (${verdictText})`, 14, 60);
-  doc.text(`Equity Payout: $${formatNumber(scenario.results.finalPayoutValue)}`, 14, 68);
-  doc.text(`Opportunity Cost: $${formatNumber(scenario.results.finalOpportunityCost)}`, 14, 76);
+  doc.text(`Net Benefit: $${netOutcomeFormatted} (${verdictText})`, PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUMMARY_BODY_3);
+  doc.text(`Equity Payout: $${formatNumber(scenario.results.finalPayoutValue)}`, PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUMMARY_BODY_6);
+  doc.text(`Opportunity Cost: $${formatNumber(scenario.results.finalOpportunityCost)}`, PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUMMARY_BODY_8);
   if (scenario.results.breakeven) {
-    doc.text(`Breakeven: ${scenario.results.breakeven}`, 14, 84);
+    doc.text(`Breakeven: ${scenario.results.breakeven}`, PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUMMARY_BODY_10);
   }
 
   // Inputs Table
-  doc.setFontSize(14);
-  doc.text("Analysis Inputs", 14, 100);
+  doc.setFontSize(PDF_CONFIG.FONT_SIZE.SECTION_HEADING);
+  doc.text("Analysis Inputs", PDF_CONFIG.MARGIN, PDF_CONFIG.Y.INPUTS_HEADING);
 
   const inputData = [
     ["Exit Horizon", `Year ${scenario.globalSettings.exitYear}`],
     ["Current Monthly Salary", `$${formatNumber(scenario.currentJob.monthlySalary)}`],
-    ["Salary Growth Rate", `${(scenario.currentJob.annualGrowthRate * 100).toFixed(1)}%`],
-    ["Investment ROI", `${(scenario.currentJob.assumedROI * 100).toFixed(1)}%`],
+    ["Salary Growth Rate", `${(scenario.currentJob.annualGrowthRate * PDF_CONFIG.PCT_MULTIPLIER).toFixed(PDF_CONFIG.PCT_DECIMAL_PLACES)}%`],
+    ["Investment ROI", `${(scenario.currentJob.assumedROI * PDF_CONFIG.PCT_MULTIPLIER).toFixed(PDF_CONFIG.PCT_DECIMAL_PLACES)}%`],
     ["Startup Monthly Salary", `$${formatNumber(scenario.equity.monthlySalary)}`],
     ["Equity Type", scenario.equity.type === "RSU" ? "RSU" : "Stock Options"],
     ["Vesting Period", `${scenario.equity.vestingPeriod} years`],
@@ -493,44 +496,44 @@ export function exportScenarioAsPDF(
   if (scenario.equity.type === "RSU") {
     inputData.push([
       "Equity Percentage",
-      `${((scenario.equity.equityPct || 0) * 100).toFixed(2)}%`,
+      `${((scenario.equity.equityPct || 0) * PDF_CONFIG.PCT_MULTIPLIER).toFixed(PDF_CONFIG.DECIMAL_PLACES_2)}%`,
     ]);
     inputData.push(["Exit Valuation", `$${formatNumber(scenario.equity.exitValuation || 0)}`]);
   } else {
     inputData.push(["Number of Options", formatNumber(scenario.equity.numOptions || 0)]);
-    inputData.push(["Strike Price", `$${(scenario.equity.strikePrice || 0).toFixed(2)}`]);
-    inputData.push(["Exit Price/Share", `$${(scenario.equity.exitPricePerShare || 0).toFixed(2)}`]);
+    inputData.push(["Strike Price", `$${(scenario.equity.strikePrice || 0).toFixed(PDF_CONFIG.DECIMAL_PLACES_2)}`]);
+    inputData.push(["Exit Price/Share", `$${(scenario.equity.exitPricePerShare || 0).toFixed(PDF_CONFIG.DECIMAL_PLACES_2)}`]);
   }
 
   autoTable(doc, {
-    startY: 105,
+    startY: PDF_CONFIG.Y.INPUTS_TABLE_BODY,
     head: [["Parameter", "Value"]],
     body: inputData,
     theme: "striped",
     headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
-    styles: { fontSize: 9 },
+    styles: { fontSize: PDF_CONFIG.FONT_SIZE.TABLE },
   });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let finalY = (doc as any).lastAutoTable?.finalY || 105;
+  let finalY = (doc as any).lastAutoTable?.finalY || PDF_CONFIG.Y.INPUTS_TABLE_BODY;
 
   // Monte Carlo Section (if provided)
   if (monteCarloStats) {
     if (finalY > PDF_CONFIG.BREAK_THRESHOLD) {
       doc.addPage();
-      finalY = 20;
+      finalY = PDF_CONFIG.Y.NEW_PAGE_START;
     } else {
-      finalY += 15;
+      finalY += PDF_CONFIG.Y.SECTION_GAP;
     }
 
-    doc.setFontSize(14);
-    doc.text("Monte Carlo Analysis", 14, finalY);
+    doc.setFontSize(PDF_CONFIG.FONT_SIZE.SECTION_HEADING);
+    doc.text("Monte Carlo Analysis", PDF_CONFIG.MARGIN, finalY);
 
     const mcData = [
       ["Expected Value (Mean)", `$${formatNumber(monteCarloStats.mean)}`],
       ["Median Outcome", `$${formatNumber(monteCarloStats.median)}`],
       ["Standard Deviation", `$${formatNumber(monteCarloStats.stdDev)}`],
-      ["Probability of Profit", `${(monteCarloStats.profitProbability * 100).toFixed(1)}%`],
+      ["Probability of Profit", `${(monteCarloStats.profitProbability * PDF_CONFIG.PCT_MULTIPLIER).toFixed(PDF_CONFIG.PCT_DECIMAL_PLACES)}%`],
     ];
 
     // Add percentiles
@@ -539,12 +542,12 @@ export function exportScenarioAsPDF(
     });
 
     autoTable(doc, {
-      startY: finalY + 5,
+      startY: finalY + PDF_CONFIG.Y.TABLE_GAP,
       head: [["Metric", "Value"]],
       body: mcData,
       theme: "striped",
       headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
-      styles: { fontSize: 9 },
+      styles: { fontSize: PDF_CONFIG.FONT_SIZE.TABLE },
     });
   }
 
@@ -552,17 +555,17 @@ export function exportScenarioAsPDF(
   const pageCount = doc.internal.pages.length - 1;
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(150);
+    doc.setFontSize(PDF_CONFIG.FONT_SIZE.FOOTER);
+    doc.setTextColor(PDF_CONFIG.TEXT_COLOR.FOOTER);
     doc.text(
       "Generated by Worth It - https://worth-it.app",
-      14,
-      doc.internal.pageSize.getHeight() - 10
+      PDF_CONFIG.MARGIN,
+      doc.internal.pageSize.getHeight() - PDF_CONFIG.Y.FOOTER_OFFSET
     );
     doc.text(
       `Page ${i} of ${pageCount}`,
-      doc.internal.pageSize.getWidth() - 30,
-      doc.internal.pageSize.getHeight() - 10
+      doc.internal.pageSize.getWidth() - PDF_CONFIG.Y.PAGE_NUMBER_OFFSET,
+      doc.internal.pageSize.getHeight() - PDF_CONFIG.Y.FOOTER_OFFSET
     );
   }
 
@@ -613,35 +616,34 @@ export function exportScenarioComparisonPDF(
   const insights = comparisonData?.insights ?? [];
 
   // Title
-  doc.setFontSize(24);
-  doc.text("Scenario Comparison Report", 14, 22);
+  doc.setFontSize(PDF_CONFIG.FONT_SIZE.TITLE);
+  doc.text("Scenario Comparison Report", PDF_CONFIG.MARGIN, PDF_CONFIG.Y.TITLE);
 
-  doc.setFontSize(10);
-  doc.setTextColor(100);
-  doc.text(`Generated: ${timestamp}`, 14, 30);
-  doc.text(`Comparing ${scenarios.length} scenario${scenarios.length !== 1 ? "s" : ""}`, 14, 36);
-  doc.setTextColor(0);
+  doc.setFontSize(PDF_CONFIG.FONT_SIZE.SMALL);
+  doc.setTextColor(PDF_CONFIG.TEXT_COLOR.MUTED);
+  doc.text(`Generated: ${timestamp}`, PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUBTITLE_1);
+  doc.text(`Comparing ${scenarios.length} scenario${scenarios.length !== 1 ? "s" : ""}`, PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUBTITLE_2);
+  doc.setTextColor(PDF_CONFIG.TEXT_COLOR.DEFAULT);
 
   // Winner Summary (if applicable)
   if (winner && !winner.isTie && winner.netOutcomeAdvantage > 0) {
-    doc.setFontSize(14);
-    doc.text("Winner", 14, 50);
-    doc.setFontSize(11);
-    doc.text(`${winner.winnerName} - Best Choice`, 14, 58);
-    doc.setFontSize(10);
-    doc.text(`Net outcome advantage: $${formatNumber(winner.netOutcomeAdvantage)}`, 14, 66);
+    doc.setFontSize(PDF_CONFIG.FONT_SIZE.SECTION_HEADING);
+    doc.text("Winner", PDF_CONFIG.MARGIN, PDF_CONFIG.COMPARE_Y.WINNER_TITLE);
+    doc.setFontSize(PDF_CONFIG.FONT_SIZE.BODY);
+    doc.text(`${winner.winnerName} - Best Choice`, PDF_CONFIG.MARGIN, PDF_CONFIG.COMPARE_Y.WINNER_NAME);
+    doc.setFontSize(PDF_CONFIG.FONT_SIZE.SMALL);
+    doc.text(`Net outcome advantage: $${formatNumber(winner.netOutcomeAdvantage)}`, PDF_CONFIG.MARGIN, PDF_CONFIG.COMPARE_Y.WINNER_DETAIL);
   } else if (winner?.isTie) {
-    doc.setFontSize(14);
-    doc.text("Result: Tie", 14, 50);
-    doc.setFontSize(10);
-    doc.text("All scenarios have equal net outcomes", 14, 58);
+    doc.setFontSize(PDF_CONFIG.FONT_SIZE.SECTION_HEADING);
+    doc.text("Result: Tie", PDF_CONFIG.MARGIN, PDF_CONFIG.COMPARE_Y.TIE_TITLE);
+    doc.setFontSize(PDF_CONFIG.FONT_SIZE.SMALL);
+    doc.text("All scenarios have equal net outcomes", PDF_CONFIG.MARGIN, PDF_CONFIG.COMPARE_Y.TIE_DETAIL);
   }
 
   // Comparison Table
-  // Y positioning: winner box ends at ~70, tie text ends at ~58, no winner starts at 42
-  const startY = winner ? (winner.isTie ? 70 : 80) : 50;
-  doc.setFontSize(14);
-  doc.text("Side-by-Side Comparison", 14, startY);
+  const startY = winner ? (winner.isTie ? PDF_CONFIG.COMPARE_Y.TABLE_WITH_TIE : PDF_CONFIG.COMPARE_Y.TABLE_WITH_WINNER) : PDF_CONFIG.COMPARE_Y.TABLE_NO_WINNER;
+  doc.setFontSize(PDF_CONFIG.FONT_SIZE.SECTION_HEADING);
+  doc.text("Side-by-Side Comparison", PDF_CONFIG.MARGIN, startY);
 
   // Build comparison table data
   const comparisonHeaders = ["Metric", ...scenarios.map((s) => s.name)];
@@ -666,71 +668,73 @@ export function exportScenarioComparisonPDF(
   ];
 
   autoTable(doc, {
-    startY: startY + 5,
+    startY: startY + PDF_CONFIG.Y.TABLE_GAP,
     head: [comparisonHeaders],
     body: comparisonTableRows,
     theme: "striped",
     headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
-    styles: { fontSize: 9 },
+    styles: { fontSize: PDF_CONFIG.FONT_SIZE.TABLE },
   });
 
+  const FALLBACK_TABLE_HEIGHT = 100;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let finalY = (doc as any).lastAutoTable?.finalY || startY + 100;
+  let finalY = (doc as any).lastAutoTable?.finalY || startY + FALLBACK_TABLE_HEIGHT;
 
   // Metric Differences Section
   if (diffs.length > 0) {
     if (finalY > PDF_CONFIG.BREAK_THRESHOLD) {
       doc.addPage();
-      finalY = 20;
+      finalY = PDF_CONFIG.Y.NEW_PAGE_START;
     } else {
-      finalY += 15;
+      finalY += PDF_CONFIG.Y.SECTION_GAP;
     }
 
-    doc.setFontSize(14);
-    doc.text("Key Differences", 14, finalY);
+    doc.setFontSize(PDF_CONFIG.FONT_SIZE.SECTION_HEADING);
+    doc.text("Key Differences", PDF_CONFIG.MARGIN, finalY);
 
     const diffData = diffs.map((diff) => [
       diff.label,
       `$${formatNumber(diff.absoluteDiff)}`,
-      `${diff.percentageDiff.toFixed(1)}%`,
+      `${diff.percentageDiff.toFixed(PDF_CONFIG.PCT_DECIMAL_PLACES)}%`,
       diff.betterScenario,
     ]);
 
     autoTable(doc, {
-      startY: finalY + 5,
+      startY: finalY + PDF_CONFIG.Y.TABLE_GAP,
       head: [["Metric", "Difference", "% Change", "Better Option"]],
       body: diffData,
       theme: "striped",
       headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
-      styles: { fontSize: 9 },
+      styles: { fontSize: PDF_CONFIG.FONT_SIZE.TABLE },
     });
 
+    const FALLBACK_DIFF_TABLE_HEIGHT = 50;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    finalY = (doc as any).lastAutoTable?.finalY || finalY + 50;
+    finalY = (doc as any).lastAutoTable?.finalY || finalY + FALLBACK_DIFF_TABLE_HEIGHT;
   }
 
   // Insights Section
   if (insights.length > 0) {
     if (finalY > PDF_CONFIG.BREAK_THRESHOLD) {
       doc.addPage();
-      finalY = 20;
+      finalY = PDF_CONFIG.Y.NEW_PAGE_START;
     } else {
-      finalY += 15;
+      finalY += PDF_CONFIG.Y.SECTION_GAP;
     }
 
-    doc.setFontSize(14);
-    doc.text("Key Insights", 14, finalY);
+    doc.setFontSize(PDF_CONFIG.FONT_SIZE.SECTION_HEADING);
+    doc.text("Key Insights", PDF_CONFIG.MARGIN, finalY);
 
     const insightData = insights.map((insight) => [insight.title, insight.description]);
 
     autoTable(doc, {
-      startY: finalY + 5,
+      startY: finalY + PDF_CONFIG.Y.TABLE_GAP,
       head: [["Insight", "Details"]],
       body: insightData,
       theme: "striped",
       headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
-      styles: { fontSize: 9 },
-      columnStyles: { 1: { cellWidth: 100 } },
+      styles: { fontSize: PDF_CONFIG.FONT_SIZE.TABLE },
+      columnStyles: { 1: { cellWidth: PDF_CONFIG.INSIGHT_DETAIL_WIDTH } },
     });
   }
 
@@ -738,17 +742,17 @@ export function exportScenarioComparisonPDF(
   const pageCount = doc.internal.pages.length - 1;
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(150);
+    doc.setFontSize(PDF_CONFIG.FONT_SIZE.FOOTER);
+    doc.setTextColor(PDF_CONFIG.TEXT_COLOR.FOOTER);
     doc.text(
       "Generated by Worth It - https://worth-it.app",
-      14,
-      doc.internal.pageSize.getHeight() - 10
+      PDF_CONFIG.MARGIN,
+      doc.internal.pageSize.getHeight() - PDF_CONFIG.Y.FOOTER_OFFSET
     );
     doc.text(
       `Page ${i} of ${pageCount}`,
-      doc.internal.pageSize.getWidth() - 30,
-      doc.internal.pageSize.getHeight() - 10
+      doc.internal.pageSize.getWidth() - PDF_CONFIG.Y.PAGE_NUMBER_OFFSET,
+      doc.internal.pageSize.getHeight() - PDF_CONFIG.Y.FOOTER_OFFSET
     );
   }
 
@@ -790,7 +794,7 @@ export function exportCapTableAsCSV(capTable: CapTable, filename: string): void 
   rows.push(`Total Shares,${capTable.total_shares},,,,,`);
   rows.push(`Option Pool %,${capTable.option_pool_pct},,,,,`);
   const totalOwnership = capTable.stakeholders.reduce((sum, s) => sum + s.ownership_pct, 0);
-  rows.push(`Total Allocated %,${totalOwnership.toFixed(2)},,,,,`);
+  rows.push(`Total Allocated %,${totalOwnership.toFixed(PDF_CONFIG.DECIMAL_PLACES_2)},,,,,`);
 
   const csvContent = rows.join("\n");
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
@@ -877,8 +881,8 @@ export function exportExitScenariosAsCSV(
     const row: string[] = [valuation.toString()];
 
     capTable.stakeholders.forEach((s) => {
-      const payout = (valuation * s.ownership_pct) / 100;
-      row.push(payout.toFixed(2));
+      const payout = (valuation * s.ownership_pct) / PDF_CONFIG.PCT_MULTIPLIER;
+      row.push(payout.toFixed(PDF_CONFIG.DECIMAL_PLACES_2));
     });
 
     rows.push(row.join(","));
@@ -900,65 +904,66 @@ export function exportCapTableAsPDF(
   const doc = new jsPDF();
   const timestamp = new Date().toLocaleDateString();
 
+  const CAP_TABLE_FONT_SIZE = 20;
   // Title
-  doc.setFontSize(20);
-  doc.text("Cap Table Report", 14, 22);
-  doc.setFontSize(10);
-  doc.text(`Generated: ${timestamp}`, 14, 30);
+  doc.setFontSize(CAP_TABLE_FONT_SIZE);
+  doc.text("Cap Table Report", PDF_CONFIG.MARGIN, PDF_CONFIG.Y.TITLE);
+  doc.setFontSize(PDF_CONFIG.FONT_SIZE.SMALL);
+  doc.text(`Generated: ${timestamp}`, PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUBTITLE_1);
 
   // Summary Statistics
-  doc.setFontSize(14);
-  doc.text("Summary", 14, 45);
+  doc.setFontSize(PDF_CONFIG.FONT_SIZE.SECTION_HEADING);
+  doc.text("Summary", PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUMMARY_HEADING);
 
   const totalOwnership = capTable.stakeholders.reduce((sum, s) => sum + s.ownership_pct, 0);
   const totalRaised = calculateTotalRaised(instruments);
 
-  doc.setFontSize(10);
-  doc.text(`Total Shares: ${capTable.total_shares.toLocaleString()}`, 14, 53);
-  doc.text(`Option Pool: ${capTable.option_pool_pct}%`, 14, 60);
-  doc.text(`Allocated Ownership: ${totalOwnership.toFixed(1)}%`, 14, 67);
-  doc.text(`Total Raised: $${totalRaised.toLocaleString()}`, 14, 74);
-  doc.text(`Number of Stakeholders: ${capTable.stakeholders.length}`, 14, 81);
-  doc.text(`Number of Funding Rounds: ${instruments.length}`, 14, 88);
+  doc.setFontSize(PDF_CONFIG.FONT_SIZE.SMALL);
+  doc.text(`Total Shares: ${capTable.total_shares.toLocaleString()}`, PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUMMARY_BODY_1);
+  doc.text(`Option Pool: ${capTable.option_pool_pct}%`, PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUMMARY_BODY_3);
+  doc.text(`Allocated Ownership: ${totalOwnership.toFixed(PDF_CONFIG.PCT_DECIMAL_PLACES)}%`, PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUMMARY_BODY_5);
+  doc.text(`Total Raised: $${totalRaised.toLocaleString()}`, PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUMMARY_BODY_7);
+  doc.text(`Number of Stakeholders: ${capTable.stakeholders.length}`, PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUMMARY_BODY_9);
+  doc.text(`Number of Funding Rounds: ${instruments.length}`, PDF_CONFIG.MARGIN, PDF_CONFIG.Y.SUMMARY_BODY_11);
 
   // Stakeholders Table
-  doc.setFontSize(14);
-  doc.text("Stakeholders", 14, 103);
+  doc.setFontSize(PDF_CONFIG.FONT_SIZE.SECTION_HEADING);
+  doc.text("Stakeholders", PDF_CONFIG.MARGIN, PDF_CONFIG.Y.INPUTS_TABLE_START);
 
   const stakeholdersData = capTable.stakeholders.map((s) => [
     s.name,
     s.type,
     s.share_class,
     s.shares.toLocaleString(),
-    `${s.ownership_pct.toFixed(2)}%`,
+    `${s.ownership_pct.toFixed(PDF_CONFIG.DECIMAL_PLACES_2)}%`,
     s.vesting ? `${s.vesting.vesting_months}m/${s.vesting.cliff_months}m` : "No",
   ]);
 
   autoTable(doc, {
-    startY: 108,
+    startY: PDF_CONFIG.Y.INPUTS_TABLE_ALT,
     head: [["Name", "Type", "Share Class", "Shares", "Ownership %", "Vesting"]],
     body: stakeholdersData,
     theme: "striped",
     headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
-    styles: { fontSize: 9 },
+    styles: { fontSize: PDF_CONFIG.FONT_SIZE.TABLE },
   });
 
   // Get Y position after stakeholders table
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let finalY = (doc as any).lastAutoTable?.finalY || 108;
+  let finalY = (doc as any).lastAutoTable?.finalY || PDF_CONFIG.Y.INPUTS_TABLE_ALT;
 
   // Add new page if needed
   if (finalY > PDF_CONFIG.BREAK_THRESHOLD) {
     doc.addPage();
-    finalY = 20;
+    finalY = PDF_CONFIG.Y.NEW_PAGE_START;
   } else {
-    finalY += 15;
+    finalY += PDF_CONFIG.Y.SECTION_GAP;
   }
 
   // Funding History Table
   if (instruments.length > 0) {
-    doc.setFontSize(14);
-    doc.text("Funding History", 14, finalY);
+    doc.setFontSize(PDF_CONFIG.FONT_SIZE.SECTION_HEADING);
+    doc.text("Funding History", PDF_CONFIG.MARGIN, finalY);
 
     const fundingData = instruments.map((i) => {
       if (i.type === "SAFE") {
@@ -985,19 +990,19 @@ export function exportCapTableAsPDF(
           i.lead_investor || "N/A",
           `$${i.amount_raised.toLocaleString()}`,
           `$${i.pre_money_valuation.toLocaleString()}`,
-          `$${i.price_per_share.toFixed(2)}`,
+          `$${i.price_per_share.toFixed(PDF_CONFIG.DECIMAL_PLACES_2)}`,
           "Active",
         ];
       }
     });
 
     autoTable(doc, {
-      startY: finalY + 5,
+      startY: finalY + PDF_CONFIG.Y.TABLE_GAP,
       head: [["Type", "Investor/Lead", "Amount", "Valuation/Cap", "Discount/Price", "Status"]],
       body: fundingData,
       theme: "striped",
       headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
-      styles: { fontSize: 8 },
+      styles: { fontSize: PDF_CONFIG.FONT_SIZE.TABLE_SMALL },
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1008,28 +1013,28 @@ export function exportCapTableAsPDF(
   if (waterfall && waterfall.stakeholder_payouts.length > 0) {
     if (finalY > PDF_CONFIG.BREAK_THRESHOLD) {
       doc.addPage();
-      finalY = 20;
+      finalY = PDF_CONFIG.Y.NEW_PAGE_START;
     } else {
-      finalY += 15;
+      finalY += PDF_CONFIG.Y.SECTION_GAP;
     }
 
-    doc.setFontSize(14);
-    doc.text(`Waterfall Analysis ($${waterfall.exit_valuation.toLocaleString()} Exit)`, 14, finalY);
+    doc.setFontSize(PDF_CONFIG.FONT_SIZE.SECTION_HEADING);
+    doc.text(`Waterfall Analysis ($${waterfall.exit_valuation.toLocaleString()} Exit)`, PDF_CONFIG.MARGIN, finalY);
 
     const waterfallData = waterfall.stakeholder_payouts.map((p) => [
       p.name,
       `$${p.payout_amount.toLocaleString()}`,
-      `${p.payout_pct.toFixed(2)}%`,
-      p.roi ? `${p.roi.toFixed(2)}x` : "N/A",
+      `${p.payout_pct.toFixed(PDF_CONFIG.DECIMAL_PLACES_2)}%`,
+      p.roi ? `${p.roi.toFixed(PDF_CONFIG.DECIMAL_PLACES_2)}x` : "N/A",
     ]);
 
     autoTable(doc, {
-      startY: finalY + 5,
+      startY: finalY + PDF_CONFIG.Y.TABLE_GAP,
       head: [["Stakeholder", "Payout", "% of Exit", "ROI"]],
       body: waterfallData,
       theme: "striped",
       headStyles: { fillColor: PDF_CONFIG.COLORS.PRIMARY },
-      styles: { fontSize: 9 },
+      styles: { fontSize: PDF_CONFIG.FONT_SIZE.TABLE },
     });
   }
 
@@ -1068,12 +1073,76 @@ export function calculateTotalRaised(instruments: FundingInstrument[]): number {
   }, 0);
 }
 
+// PDF color values (blue primary for table headers)
+const PDF_PRIMARY_R = 59;
+const PDF_PRIMARY_G = 130;
+const PDF_PRIMARY_B = 246;
+
 // PDF Configuration constants
 const PDF_CONFIG = {
   PAGE_HEIGHT: 297,
   BREAK_THRESHOLD: 220,
   MARGIN: 14,
-  COLORS: {
-    PRIMARY: [59, 130, 246] as [number, number, number],
+  FONT_SIZE: {
+    TITLE: 24,
+    SECTION_HEADING: 14,
+    BODY: 11,
+    SMALL: 10,
+    TABLE: 9,
+    TABLE_SMALL: 8,
+    FOOTER: 8,
   },
+  TEXT_COLOR: {
+    MUTED: 100,
+    FOOTER: 150,
+    DEFAULT: 0,
+  },
+  /** Y-positions for standard report layouts */
+  Y: {
+    TITLE: 22,
+    SUBTITLE_1: 30,
+    SUBTITLE_2: 36,
+    SUMMARY_HEADING: 45,
+    SUMMARY_START: 50,
+    SUMMARY_BODY_1: 53,
+    SUMMARY_BODY_2: 58,
+    SUMMARY_BODY_3: 60,
+    SUMMARY_BODY_4: 66,
+    SUMMARY_BODY_5: 67,
+    SUMMARY_BODY_6: 68,
+    SUMMARY_BODY_7: 74,
+    SUMMARY_BODY_8: 76,
+    SUMMARY_BODY_9: 81,
+    SUMMARY_BODY_10: 84,
+    SUMMARY_BODY_11: 88,
+    INPUTS_HEADING: 100,
+    INPUTS_TABLE_START: 103,
+    INPUTS_TABLE_BODY: 105,
+    INPUTS_TABLE_ALT: 108,
+    NEW_PAGE_START: 20,
+    SECTION_GAP: 15,
+    TABLE_GAP: 5,
+    FOOTER_OFFSET: 10,
+    PAGE_NUMBER_OFFSET: 30,
+  },
+  /** Comparison report-specific Y positions */
+  COMPARE_Y: {
+    WINNER_TITLE: 50,
+    WINNER_NAME: 58,
+    WINNER_DETAIL: 66,
+    TIE_TITLE: 50,
+    TIE_DETAIL: 58,
+    TABLE_WITH_WINNER: 80,
+    TABLE_WITH_TIE: 70,
+    TABLE_NO_WINNER: 50,
+  },
+  COLORS: {
+    PRIMARY: [PDF_PRIMARY_R, PDF_PRIMARY_G, PDF_PRIMARY_B] as [number, number, number],
+  },
+  /** Column width for insight details */
+  INSIGHT_DETAIL_WIDTH: 100,
+  /** Percentage formatting constants */
+  PCT_MULTIPLIER: 100,
+  PCT_DECIMAL_PLACES: 1,
+  DECIMAL_PLACES_2: 2,
 } as const;

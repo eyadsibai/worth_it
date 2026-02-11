@@ -1,5 +1,8 @@
 "use client";
 
+/** Percentage conversion multiplier */
+const PCT_MULTIPLIER = 100;
+
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +22,7 @@ export function FirstChicagoResults({ result }: FirstChicagoResultsProps) {
   // Calculate the discount factor implied by the difference between weighted and present value
   const impliedDiscount =
     result.weightedValue > 0
-      ? ((result.weightedValue - result.presentValue) / result.weightedValue) * 100
+      ? ((result.weightedValue - result.presentValue) / result.weightedValue) * PCT_MULTIPLIER
       : 0;
 
   return (
@@ -106,7 +109,7 @@ export function FirstChicagoResults({ result }: FirstChicagoResultsProps) {
                 const presentValue = result.scenarioPresentValues[name];
                 // Calculate contribution percentage to total present value
                 const contributionPct =
-                  result.presentValue > 0 ? (presentValue / result.presentValue) * 100 : 0;
+                  result.presentValue > 0 ? (presentValue / result.presentValue) * PCT_MULTIPLIER : 0;
 
                 return (
                   <div

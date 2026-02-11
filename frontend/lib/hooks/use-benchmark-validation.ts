@@ -4,6 +4,9 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { apiClient } from "@/lib/api-client";
 import type { BenchmarkValidationResponse } from "@/lib/schemas";
 
+/** Debounce delay for benchmark validation calls in ms */
+const VALIDATION_DEBOUNCE_MS = 300;
+
 interface ValidationState {
   [fieldKey: string]: BenchmarkValidationResponse | null;
 }
@@ -61,7 +64,7 @@ export function useBenchmarkValidation(industryCode: string | null) {
         clearTimeout(debounceTimers.current[key]);
       }
 
-      // Debounce validation calls (300ms)
+      // Debounce validation calls
       debounceTimers.current[key] = setTimeout(async () => {
         setIsValidating(true);
         try {
@@ -82,7 +85,7 @@ export function useBenchmarkValidation(industryCode: string | null) {
         } finally {
           setIsValidating(false);
         }
-      }, 300);
+      }, VALIDATION_DEBOUNCE_MS);
     },
     [industryCode]
   );

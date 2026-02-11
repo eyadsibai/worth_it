@@ -1,5 +1,14 @@
 "use client";
 
+/** Percentage conversion divisor */
+const PCT_DIVISOR = 100;
+/** Rounding factor for single-decimal precision */
+const ROUNDING_FACTOR = 10;
+/** Maximum dilution per single round */
+const MAX_DILUTION_SINGLE_ROUND = 50;
+/** Maximum slider value for total projected dilution */
+const MAX_SLIDER_DILUTION = 80;
+
 import * as React from "react";
 import { UseFormReturn } from "react-hook-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,7 +44,7 @@ function formatPct(value: number): string {
 function calculateDilutionFactor(rounds: DilutionRoundForm[]): number {
   return rounds.reduce((factor, round) => {
     if (round.enabled) {
-      return factor * (1 - round.dilution_pct / 100);
+      return factor * (1 - round.dilution_pct / PCT_DIVISOR);
     }
     return factor;
   }, 1);
@@ -100,9 +109,9 @@ export function DilutionSummaryCard({
       // Distribute the new total dilution according to base ratios
       enabledIndices.forEach((originalIdx, i) => {
         if (i < baseRatios.length) {
-          const newDilution = Math.round(newTotalDilution * baseRatios[i] * 10) / 10;
+          const newDilution = Math.round(newTotalDilution * baseRatios[i] * ROUNDING_FACTOR) / ROUNDING_FACTOR;
           // Clamp to valid range
-          const clampedDilution = Math.max(0, Math.min(50, newDilution));
+          const clampedDilution = Math.max(0, Math.min(MAX_DILUTION_SINGLE_ROUND, newDilution));
           form.setValue(`dilution_rounds.${originalIdx}.dilution_pct`, clampedDilution);
         }
       });
@@ -121,18 +130,18 @@ export function DilutionSummaryCard({
   const totalFactor = historicalFactor * projectedFactor;
 
   // Convert to percentages (formatted without trailing .0)
-  const historicalDilution = formatPct((1 - historicalFactor) * 100);
-  const projectedDilution = formatPct((1 - projectedFactor) * 100);
-  const totalDilution = formatPct((1 - totalFactor) * 100);
-  const equityRemaining = Math.round(totalFactor * 100);
+  const historicalDilution = formatPct((1 - historicalFactor) * PCT_DIVISOR);
+  const projectedDilution = formatPct((1 - projectedFactor) * PCT_DIVISOR);
+  const totalDilution = formatPct((1 - totalFactor) * PCT_DIVISOR);
+  const equityRemaining = Math.round(totalFactor * PCT_DIVISOR);
 
   // Progress bar segments (as percentages of the bar)
-  const historicalBarWidth = (1 - historicalFactor) * 100;
-  const projectedBarWidth = historicalFactor * (1 - projectedFactor) * 100;
-  const remainingBarWidth = totalFactor * 100;
+  const historicalBarWidth = (1 - historicalFactor) * PCT_DIVISOR;
+  const projectedBarWidth = historicalFactor * (1 - projectedFactor) * PCT_DIVISOR;
+  const remainingBarWidth = totalFactor * PCT_DIVISOR;
 
   // Calculate total projected dilution percentage for slider
-  const projectedDilutionPct = (1 - projectedFactor) * 100;
+  const projectedDilutionPct = (1 - projectedFactor) * PCT_DIVISOR;
 
   return (
     <Card className="terminal-card">
@@ -171,7 +180,7 @@ export function DilutionSummaryCard({
               value={[projectedDilutionPct]}
               onValueChange={handleTotalDilutionChange}
               min={0}
-              max={80}
+              max={MAX_SLIDER_DILUTION}
               step={1}
               className="w-full"
             />

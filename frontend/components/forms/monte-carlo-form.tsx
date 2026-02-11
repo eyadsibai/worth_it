@@ -1,5 +1,18 @@
 "use client";
 
+/** Monte Carlo schema bounds */
+const MC = {
+  SIM_MIN: 100, SIM_MAX: 10000,
+  GROWTH_MIN: -50, GROWTH_MAX: 100,
+  ROI_MEAN_MAX: 50, ROI_STD_MAX: 20,
+  EXIT_YEAR_MAX: 20,
+  DILUTION_MAX: 100,
+  /** Standard deviations for 95% confidence interval */
+  STD_DEV_FACTOR: 2,
+  /** Percentage to decimal divisor */
+  PCT_DIVISOR: 100,
+} as const;
+
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,29 +30,29 @@ import { useRunMonteCarlo } from "@/lib/api-client";
 import type { MonteCarloRequest, TypedBaseParams, SimParamConfigs } from "@/lib/schemas";
 
 const MonteCarloFormSchema = z.object({
-  num_simulations: z.number().int().min(100).max(10000),
+  num_simulations: z.number().int().min(MC.SIM_MIN).max(MC.SIM_MAX),
   // Exit Valuation (normal distribution)
   exit_valuation_mean: z.number().min(0),
   exit_valuation_std: z.number().min(0),
   // Salary Growth Rate (PERT distribution)
   growth_rate_enabled: z.boolean(),
-  growth_rate_min: z.number().min(-50).max(100),
-  growth_rate_mode: z.number().min(-50).max(100),
-  growth_rate_max: z.number().min(-50).max(100),
+  growth_rate_min: z.number().min(MC.GROWTH_MIN).max(MC.GROWTH_MAX),
+  growth_rate_mode: z.number().min(MC.GROWTH_MIN).max(MC.GROWTH_MAX),
+  growth_rate_max: z.number().min(MC.GROWTH_MIN).max(MC.GROWTH_MAX),
   // ROI (normal distribution)
   roi_enabled: z.boolean(),
-  roi_mean: z.number().min(0).max(50),
-  roi_std: z.number().min(0).max(20),
+  roi_mean: z.number().min(0).max(MC.ROI_MEAN_MAX),
+  roi_std: z.number().min(0).max(MC.ROI_STD_MAX),
   // Exit Year (PERT distribution)
   exit_year_enabled: z.boolean(),
-  exit_year_min: z.number().int().min(1).max(20),
-  exit_year_mode: z.number().int().min(1).max(20),
-  exit_year_max: z.number().int().min(1).max(20),
+  exit_year_min: z.number().int().min(1).max(MC.EXIT_YEAR_MAX),
+  exit_year_mode: z.number().int().min(1).max(MC.EXIT_YEAR_MAX),
+  exit_year_max: z.number().int().min(1).max(MC.EXIT_YEAR_MAX),
   // Dilution (PERT distribution)
   dilution_enabled: z.boolean(),
-  dilution_min: z.number().min(0).max(100),
-  dilution_mode: z.number().min(0).max(100),
-  dilution_max: z.number().min(0).max(100),
+  dilution_min: z.number().min(0).max(MC.DILUTION_MAX),
+  dilution_mode: z.number().min(0).max(MC.DILUTION_MAX),
+  dilution_max: z.number().min(0).max(MC.DILUTION_MAX),
 });
 
 type MonteCarloForm = z.infer<typeof MonteCarloFormSchema>;
@@ -55,7 +68,7 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
     defaultValues: {
       num_simulations: 1000,
       // Exit Valuation (normal distribution)
-      exit_valuation_mean: 100000000, // 100M
+      exit_valuation_mean: 100000000, // MC.PCT_DIVISORM
       exit_valuation_std: 50000000, // 50M
       // Salary Growth Rate (PERT distribution)
       growth_rate_enabled: false,
@@ -99,23 +112,23 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
     // Exit Valuation - convert from normal (mean ± 2*std) to min/max range
     // Using ±2 standard deviations captures ~95% of the distribution
     sim_param_configs.exit_valuation = {
-      min: Math.max(0, data.exit_valuation_mean - 2 * data.exit_valuation_std),
-      max: data.exit_valuation_mean + 2 * data.exit_valuation_std,
+      min: Math.max(0, data.exit_valuation_mean - MC.STD_DEV_FACTOR * data.exit_valuation_std),
+      max: data.exit_valuation_mean + MC.STD_DEV_FACTOR * data.exit_valuation_std,
     };
 
     // Salary Growth Rate - convert PERT to simple range (drop mode)
     if (data.growth_rate_enabled) {
       sim_param_configs.current_job_salary_growth_rate = {
-        min: data.growth_rate_min / 100,
-        max: data.growth_rate_max / 100,
+        min: data.growth_rate_min / MC.PCT_DIVISOR,
+        max: data.growth_rate_max / MC.PCT_DIVISOR,
       };
     }
 
     // ROI - convert from normal to min/max range
     if (data.roi_enabled) {
       sim_param_configs.annual_roi = {
-        min: Math.max(0, data.roi_mean / 100 - (2 * data.roi_std) / 100),
-        max: data.roi_mean / 100 + (2 * data.roi_std) / 100,
+        min: Math.max(0, data.roi_mean / MC.PCT_DIVISOR - (MC.STD_DEV_FACTOR * data.roi_std) / MC.PCT_DIVISOR),
+        max: data.roi_mean / MC.PCT_DIVISOR + (MC.STD_DEV_FACTOR * data.roi_std) / MC.PCT_DIVISOR,
       };
     }
 

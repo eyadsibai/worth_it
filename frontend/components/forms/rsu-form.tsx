@@ -1,5 +1,8 @@
 "use client";
 
+/** Default vesting period in years */
+const DEFAULT_VESTING_YEARS = 4;
+
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,7 +55,7 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
       equity_type: "RSU" as const,
       monthly_salary: initialValues?.monthly_salary ?? 0,
       total_equity_grant_pct: initialValues?.total_equity_grant_pct ?? 0,
-      vesting_period: initialValues?.vesting_period ?? 4,
+      vesting_period: initialValues?.vesting_period ?? DEFAULT_VESTING_YEARS,
       cliff_period: initialValues?.cliff_period ?? 1,
       exit_valuation: initialValues?.exit_valuation ?? 0,
       simulate_dilution: initialValues?.simulate_dilution ?? false,

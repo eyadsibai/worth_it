@@ -1,5 +1,20 @@
 "use client";
 
+/** Number of owners to show before truncation */
+const VISIBLE_OWNERS = 4;
+/** Vertical spacing (px) per label level */
+const LABEL_LEVEL_SPACING = 36;
+/** Base top position (px) for labels */
+const LABEL_BASE_TOP = 8;
+/** Default center position (%) when time range is zero */
+const CENTER_POSITION = 50;
+/** Number of padding sides (left + right) for timeline edges */
+const TIMELINE_PADDING_SIDES = 2;
+/** Maximum ownership percentage */
+const MAX_PERCENT = 100;
+/** Minimum label spacing (%) to avoid overlap */
+const MIN_LABEL_SPACING = 10;
+
 /**
  * Event Timeline Component (#228)
  *
@@ -178,14 +193,14 @@ function EventDetailCard({ event }: EventDetailCardProps) {
               Ownership at this point
             </p>
             <div className="space-y-1">
-              {event.ownershipSnapshot.slice(0, 4).map((owner) => (
+              {event.ownershipSnapshot.slice(0, VISIBLE_OWNERS).map((owner) => (
                 <div key={owner.stakeholderId} className="flex justify-between text-sm">
                   <span className="max-w-[140px] truncate text-gray-300">{owner.name}</span>
                   <span className="font-medium tabular-nums">{owner.percentage.toFixed(1)}%</span>
                 </div>
               ))}
-              {event.ownershipSnapshot.length > 4 && (
-                <p className="text-xs text-gray-500">+{event.ownershipSnapshot.length - 4} more</p>
+              {event.ownershipSnapshot.length > VISIBLE_OWNERS && (
+                <p className="text-xs text-gray-500">+{event.ownershipSnapshot.length - VISIBLE_OWNERS} more</p>
               )}
             </div>
           </div>
@@ -211,7 +226,7 @@ interface EventLabelProps {
 function EventLabel({ event, position, isSelected, isHovered, offsetIndex = 0 }: EventLabelProps) {
   // Calculate vertical offset: alternate between normal and offset positions
   // Using 36px per level to ensure clear separation between staggered labels
-  const verticalOffset = offsetIndex * 36;
+  const verticalOffset = offsetIndex * LABEL_LEVEL_SPACING;
 
   return (
     <div
@@ -222,7 +237,7 @@ function EventLabel({ event, position, isSelected, isHovered, offsetIndex = 0 }:
       )}
       style={{
         left: `${position}%`,
-        top: `${8 + verticalOffset}px`, // Base top + offset
+        top: `${LABEL_BASE_TOP + verticalOffset}px`, // Base top + offset
       }}
     >
       <p className="max-w-[100px] truncate text-xs font-medium whitespace-nowrap">{event.title}</p>
@@ -253,7 +268,7 @@ export function EventTimeline({
   // Calculate positions for each event (0-100%) with collision detection
   const eventPositions = useMemo(() => {
     if (events.length === 0) return [];
-    if (events.length === 1) return [{ event: events[0], position: 50, labelOffset: 0 }];
+    if (events.length === 1) return [{ event: events[0], position: CENTER_POSITION, labelOffset: 0 }];
 
     const timestamps = events.map((e) => e.timestamp);
     const minTime = Math.min(...timestamps);
@@ -268,14 +283,14 @@ export function EventTimeline({
       event,
       position:
         timeRange === 0
-          ? 50
-          : paddingPct + ((event.timestamp - minTime) / timeRange) * (100 - 2 * paddingPct),
+          ? CENTER_POSITION
+          : paddingPct + ((event.timestamp - minTime) / timeRange) * (MAX_PERCENT - TIMELINE_PADDING_SIDES * paddingPct),
       labelOffset: 0, // Will be calculated in second pass
     }));
 
     // Second pass: detect collisions and assign offsets
     // Labels need ~12% spacing to avoid overlap (based on max-w-[100px] ~ 100px in typical container)
-    const minSpacing = 10; // Minimum percentage spacing between labels
+    const minSpacing = MIN_LABEL_SPACING;
 
     // Track which offset levels are "occupied" at each position cluster
     // Events within minSpacing of each other form a cluster

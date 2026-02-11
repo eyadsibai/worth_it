@@ -2,6 +2,9 @@ import { useMemo } from "react";
 import { useFormStatus, type FormSectionState } from "./use-form-status";
 import type { GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm } from "@/lib/schemas";
 
+/** Low salary warning threshold */
+const LOW_SALARY_THRESHOLD = 1000;
+
 /**
  * Derives form section states from store data.
  * Since form onChange only fires when valid, we can infer:
@@ -29,7 +32,7 @@ export function useSidebarFormStatus(
     // Current Job
     const hasLowSalary =
       currentJob?.monthly_salary !== undefined &&
-      currentJob.monthly_salary < 1000 &&
+      currentJob.monthly_salary < LOW_SALARY_THRESHOLD &&
       currentJob.monthly_salary > 0;
     result["Current Job"] = {
       isValid: currentJob !== null,
@@ -43,7 +46,7 @@ export function useSidebarFormStatus(
     // Startup Offer
     const hasLowStartupSalary =
       equityDetails?.monthly_salary !== undefined &&
-      equityDetails.monthly_salary < 1000 &&
+      equityDetails.monthly_salary < LOW_SALARY_THRESHOLD &&
       equityDetails.monthly_salary > 0;
     const hasZeroStartupSalary = equityDetails?.monthly_salary === 0;
     result["Startup Offer"] = {

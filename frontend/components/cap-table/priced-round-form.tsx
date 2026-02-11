@@ -1,5 +1,14 @@
 "use client";
 
+/** Array indices for watched form values */
+const WATCHED = { PRE_MONEY: 0, AMOUNT: 1, PARTICIPATING: 2, LIQ_MULT: 3, LEAD: 4 } as const;
+/** Percent to decimal multiplier */
+const PERCENT_MULTIPLIER = 100;
+/** Decimal places for dilution display */
+const DILUTION_DECIMAL_PLACES = 2;
+/** Decimal places for price per share */
+const PPS_DECIMAL_PLACES = 4;
+
 import * as React from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -65,14 +74,14 @@ export function PricedRoundForm({
       "lead_investor",
     ] as const,
   });
-  const preMoney = (watchedValues[0] as number) ?? 0;
-  const amountRaised = (watchedValues[1] as number) ?? 0;
-  const participating = (watchedValues[2] as boolean) ?? false;
-  const liquidationMult = (watchedValues[3] as number) ?? 1;
-  const leadInvestor = (watchedValues[4] as string) ?? "";
+  const preMoney = (watchedValues[WATCHED.PRE_MONEY] as number) ?? 0;
+  const amountRaised = (watchedValues[WATCHED.AMOUNT] as number) ?? 0;
+  const participating = (watchedValues[WATCHED.PARTICIPATING] as boolean) ?? false;
+  const liquidationMult = (watchedValues[WATCHED.LIQ_MULT] as number) ?? 1;
+  const leadInvestor = (watchedValues[WATCHED.LEAD] as string) ?? "";
 
   const postMoney = preMoney + amountRaised;
-  const dilutionPct = postMoney > 0 ? (amountRaised / postMoney) * 100 : 0;
+  const dilutionPct = postMoney > 0 ? (amountRaised / postMoney) * PERCENT_MULTIPLIER : 0;
   const pricePerShare = totalShares > 0 ? preMoney / totalShares : 0;
   const newShares = pricePerShare > 0 ? amountRaised / pricePerShare : 0;
 
@@ -125,13 +134,13 @@ export function PricedRoundForm({
             <div className="flex justify-between">
               <span className="text-muted-foreground">Dilution:</span>
               <span className="text-amber-500 tabular-nums">
-                {dilutionPct.toFixed(2).replace(/\.?0+$/, "")}%
+                {dilutionPct.toFixed(DILUTION_DECIMAL_PLACES).replace(/\.?0+$/, "")}%
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Price Per Share:</span>
               <span className="tabular-nums">
-                ${pricePerShare.toFixed(4).replace(/\.?0+$/, "")}
+                ${pricePerShare.toFixed(PPS_DECIMAL_PLACES).replace(/\.?0+$/, "")}
               </span>
             </div>
             <div className="flex justify-between">

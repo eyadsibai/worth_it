@@ -13,6 +13,12 @@ import {
 
 const STORAGE_KEY = "worth_it_founder_scenarios";
 
+/** Maximum safe filename length */
+const MAX_FILENAME_LENGTH = 100;
+/** JSON indentation spaces */
+const JSON_INDENT = 2;
+/** Slice length for ID prefix in exported filenames */
+const ID_SLICE_LENGTH = 8;
 /**
  * Create a new founder scenario with generated ID and timestamps
  */
@@ -122,20 +128,20 @@ function sanitizeFilename(name: string): string {
     .replace(/[/\\?%*:|"<>]/g, "") // Remove filesystem-unsafe characters
     .replace(/\.\./g, "") // Prevent directory traversal
     .replace(/\s+/g, "_") // Replace spaces with underscores
-    .substring(0, 100); // Limit length
+    .substring(0, MAX_FILENAME_LENGTH);
 }
 
 /**
  * Export a founder scenario as a downloadable JSON file
  */
 export function exportFounderScenario(scenario: FounderScenario): void {
-  const jsonString = JSON.stringify(scenario, null, 2);
+  const jsonString = JSON.stringify(scenario, null, JSON_INDENT);
   const blob = new Blob([jsonString], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
   const safeName = sanitizeFilename(scenario.name);
-  link.download = `${safeName}_${scenario.id.slice(0, 8)}.json`;
+  link.download = `${safeName}_${scenario.id.slice(0, ID_SLICE_LENGTH)}.json`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

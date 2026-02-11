@@ -1,5 +1,8 @@
 "use client";
 
+/** Maximum Y-axis value for ownership percentage */
+const Y_AXIS_MAX = 100;
+
 /**
  * Ownership Area Chart Component (#228)
  *
@@ -182,7 +185,7 @@ export function OwnershipAreaChart({
           />
 
           <YAxis
-            domain={[0, 100]}
+            domain={[0, Y_AXIS_MAX]}
             axisLine={false}
             tickLine={false}
             tick={{ fontSize: 12, fill: chartColors.foreground }}

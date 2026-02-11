@@ -1,3 +1,15 @@
+import { FORMATTING } from "@/lib/constants";
+
+/** Default vesting period in years when not specified */
+const DEFAULT_VESTING_YEARS = 4;
+/** Maximum percentage */
+const MAX_PERCENT = 100;
+/** Vesting milestones to display */
+const VESTING_MILESTONE_50 = 50;
+const VESTING_MILESTONE_100 = 100;
+/** Option exercise deadline in months (10 years) */
+const EXERCISE_DEADLINE_MONTHS = 120;
+
 /**
  * Timeline Data Hook for Equity Timeline (#228)
  *
@@ -179,14 +191,14 @@ function isStockOptions(form: RSUForm | StockOptionsForm): form is StockOptionsF
  * Format currency for display in timeline events
  */
 function formatCompactCurrency(value: number): string {
-  if (value >= 1_000_000_000) {
-    return `$${(value / 1_000_000_000).toFixed(1)}B`;
+  if (value >= FORMATTING.BILLION) {
+    return `$${(value / FORMATTING.BILLION).toFixed(1)}B`;
   }
-  if (value >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(0)}M`;
+  if (value >= FORMATTING.MILLION) {
+    return `$${(value / FORMATTING.MILLION).toFixed(0)}M`;
   }
-  if (value >= 1_000) {
-    return `$${(value / 1_000).toFixed(0)}K`;
+  if (value >= FORMATTING.THOUSAND) {
+    return `$${(value / FORMATTING.THOUSAND).toFixed(0)}K`;
   }
   return `$${value.toLocaleString()}`;
 }
@@ -204,8 +216,8 @@ export function deriveEmployeeTimelineEvents(
   const grantDate = new Date();
   // Schema stores vesting_period/cliff_period in years, convert to months
   // Use ?? instead of || to allow 0 as a valid cliff period
-  const vestingMonths = (equityDetails.vesting_period ?? 4) * 12;
-  const cliffMonths = (equityDetails.cliff_period ?? 1) * 12;
+  const vestingMonths = (equityDetails.vesting_period ?? DEFAULT_VESTING_YEARS) * FORMATTING.MONTHS_PER_YEAR;
+  const cliffMonths = (equityDetails.cliff_period ?? 1) * FORMATTING.MONTHS_PER_YEAR;
   // Get shares/options count based on equity type
   const totalShares = isStockOptions(equityDetails) ? equityDetails.num_options : 0; // RSUs use percentage, not share count
 
@@ -220,7 +232,7 @@ export function deriveEmployeeTimelineEvents(
     {
       stakeholderId: "unvested",
       name: "Unvested",
-      percentage: 100 - vestedPct,
+      percentage: MAX_PERCENT - vestedPct,
       category: "option_pool",
     },
   ];
@@ -247,7 +259,7 @@ export function deriveEmployeeTimelineEvents(
   // 2. Cliff Date (if applicable)
   if (cliffMonths > 0) {
     const cliffDate = addMonths(grantDate, cliffMonths);
-    const cliffPct = (cliffMonths / vestingMonths) * 100;
+    const cliffPct = (cliffMonths / vestingMonths) * MAX_PERCENT;
 
     events.push({
       id: "cliff_date",
@@ -258,18 +270,18 @@ export function deriveEmployeeTimelineEvents(
       ownershipSnapshot: createVestingSnapshot(cliffPct),
       metadata: {
         vestedPercentage: cliffPct,
-        sharesAffected: Math.floor((cliffPct / 100) * totalShares),
+        sharesAffected: Math.floor((cliffPct / MAX_PERCENT) * totalShares),
       },
     });
   }
 
   // 3. Vesting Milestones (50% and 100% only - reduced from 25/50/75/100)
-  const milestones = [50, 100];
+  const milestones = [VESTING_MILESTONE_50, VESTING_MILESTONE_100];
   milestones.forEach((pct) => {
-    const monthsToMilestone = (pct / 100) * vestingMonths;
+    const monthsToMilestone = (pct / MAX_PERCENT) * vestingMonths;
 
     // Skip if this milestone is before or at cliff
-    if (monthsToMilestone <= cliffMonths && pct < 100) return;
+    if (monthsToMilestone <= cliffMonths && pct < MAX_PERCENT) return;
 
     const milestoneDate = addMonths(grantDate, monthsToMilestone);
 
@@ -279,13 +291,13 @@ export function deriveEmployeeTimelineEvents(
       type: "vesting_milestone",
       title: `${pct}% Vested`,
       description:
-        pct === 100
+        pct === MAX_PERCENT
           ? "Fully vested!"
           : `${pct}% of equity vested after ${monthsToMilestone} months`,
       ownershipSnapshot: createVestingSnapshot(pct),
       metadata: {
         vestedPercentage: pct,
-        sharesAffected: Math.floor((pct / 100) * totalShares),
+        sharesAffected: Math.floor((pct / MAX_PERCENT) * totalShares),
       },
     });
   });
@@ -299,11 +311,11 @@ export function deriveEmployeeTimelineEvents(
     equityDetails.dilution_rounds.forEach((round, idx) => {
       if (!round.enabled || round.year <= 0) return; // Skip disabled or past rounds
 
-      const roundDate = addMonths(grantDate, round.year * 12);
+      const roundDate = addMonths(grantDate, round.year * FORMATTING.MONTHS_PER_YEAR);
 
       // Calculate vested percentage at this point
-      const monthsFromGrant = round.year * 12;
-      const vestedAtRound = Math.min(100, Math.max(0, (monthsFromGrant / vestingMonths) * 100));
+      const monthsFromGrant = round.year * FORMATTING.MONTHS_PER_YEAR;
+      const vestedAtRound = Math.min(MAX_PERCENT, Math.max(0, (monthsFromGrant / vestingMonths) * MAX_PERCENT));
 
       events.push({
         id: `funding_round_${idx}`,
@@ -341,8 +353,8 @@ export function deriveEmployeeTimelineEvents(
 
   // 5. Target Exit Date (from global settings)
   if (globalSettings.exit_year > 0) {
-    const exitDate = addMonths(grantDate, globalSettings.exit_year * 12);
-    const vestedAtExit = Math.min(100, ((globalSettings.exit_year * 12) / vestingMonths) * 100);
+    const exitDate = addMonths(grantDate, globalSettings.exit_year * FORMATTING.MONTHS_PER_YEAR);
+    const vestedAtExit = Math.min(MAX_PERCENT, ((globalSettings.exit_year * FORMATTING.MONTHS_PER_YEAR) / vestingMonths) * MAX_PERCENT);
 
     events.push({
       id: "target_exit",
@@ -357,7 +369,7 @@ export function deriveEmployeeTimelineEvents(
 
   // 6. Exercise Deadline (for options only - 10 years from grant)
   if (isStockOptions(equityDetails)) {
-    const exerciseDeadline = addMonths(grantDate, 120); // 10 years
+    const exerciseDeadline = addMonths(grantDate, EXERCISE_DEADLINE_MONTHS);
 
     events.push({
       id: "exercise_deadline",
@@ -365,7 +377,7 @@ export function deriveEmployeeTimelineEvents(
       type: "exercise_deadline",
       title: "Exercise Deadline",
       description: "Options expire if not exercised",
-      ownershipSnapshot: createVestingSnapshot(100),
+      ownershipSnapshot: createVestingSnapshot(MAX_PERCENT),
       metadata: {},
     });
   }

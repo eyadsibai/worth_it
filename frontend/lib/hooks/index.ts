@@ -4,6 +4,8 @@ export {
   useDraftAutoSave,
   getDraft,
   clearDraft,
+  safeParseDraftData,
+  safeDraftSerialize,
   type DraftData,
   type DraftFormData,
 } from "./use-draft-auto-save";

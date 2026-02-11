@@ -1,5 +1,14 @@
 "use client";
 
+/** Percentage conversion multiplier */
+const PCT_MULTIPLIER = 100;
+/** Y-axis headroom multiplier for histogram */
+const Y_AXIS_HEADROOM = 1.1;
+/** Midpoint divisor for bin center calculation */
+const MIDPOINT_DIVISOR = 2;
+/** Border radius for bar chart corners */
+const BAR_RADIUS = 2;
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency, formatLargeNumber } from "@/lib/format-utils";
@@ -65,7 +74,7 @@ export function MonteCarloResults({ result, progress, isRunning }: MonteCarloRes
   // We can only form a bin when we have both a start and an end boundary
   const pairCount = Math.min(counts.length, Math.max(0, bins.length - 1));
   const histogramData = Array.from({ length: pairCount }, (_, i) => ({
-    binCenter: (bins[i] + bins[i + 1]) / 2,
+    binCenter: (bins[i] + bins[i + 1]) / MIDPOINT_DIVISOR,
     binStart: bins[i],
     binEnd: bins[i + 1],
     count: counts[i],
@@ -83,9 +92,9 @@ export function MonteCarloResults({ result, progress, isRunning }: MonteCarloRes
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Running simulation...</span>
-                <span className="font-mono">{Math.round(progress * 100)}%</span>
+                <span className="font-mono">{Math.round(progress * PCT_MULTIPLIER)}%</span>
               </div>
-              <Progress value={progress * 100} />
+              <Progress value={progress * PCT_MULTIPLIER} />
             </div>
           </CardContent>
         </Card>
@@ -155,14 +164,19 @@ export function MonteCarloResults({ result, progress, isRunning }: MonteCarloRes
                   tick={{ fill: chartColors.foreground, fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
-                  domain={[0, maxCount * 1.1]}
+                  domain={[0, maxCount * Y_AXIS_HEADROOM]}
                 />
                 <Tooltip
                   {...CHART_TOOLTIP_STYLES}
-                  formatter={(value: number) => [value.toLocaleString(), "Simulations"]}
-                  labelFormatter={(label: number) => `Valuation: ${formatCurrency(label)}`}
+                  formatter={(value) => [
+                    (typeof value === "number" ? value : Number(value) || 0).toLocaleString(),
+                    "Simulations",
+                  ]}
+                  labelFormatter={(label) =>
+                    `Valuation: ${formatCurrency(typeof label === "number" ? label : Number(label) || 0)}`
+                  }
                 />
-                <Bar dataKey="count" fill={chartColors.chart1} radius={[2, 2, 0, 0]} />
+                <Bar dataKey="count" fill={chartColors.chart1} radius={[BAR_RADIUS, BAR_RADIUS, 0, 0]} />
 
                 {/* Percentile reference lines */}
                 <ReferenceLine

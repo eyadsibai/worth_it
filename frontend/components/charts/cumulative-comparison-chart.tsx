@@ -1,5 +1,8 @@
 "use client";
 
+/** Bar chart top corner radius */
+const BAR_RADIUS = 4;
+
 import * as React from "react";
 import {
   BarChart,
@@ -66,15 +69,20 @@ export const CumulativeComparisonChart = React.memo(function CumulativeCompariso
             stroke={colors.muted}
             tickFormatter={formatCurrencyCompact}
           />
-          <Tooltip formatter={(value: number) => formatCurrencyCompact(value)} {...tooltipStyles} />
+          <Tooltip
+            formatter={(value) =>
+              formatCurrencyCompact(typeof value === "number" ? value : Number(value) || 0)
+            }
+            {...tooltipStyles}
+          />
           <Legend />
           <Bar
             dataKey="currentJob"
             fill={colors.chart1}
             name="Current Job Salary"
-            radius={[4, 4, 0, 0]}
+            radius={[BAR_RADIUS, BAR_RADIUS, 0, 0]}
           />
-          <Bar dataKey="startup" fill={colors.chart2} name="Startup Salary" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="startup" fill={colors.chart2} name="Startup Salary" radius={[BAR_RADIUS, BAR_RADIUS, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

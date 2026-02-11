@@ -1,5 +1,14 @@
 "use client";
 
+/** Time conversion constants */
+const TIME = {
+  MS_PER_SECOND: 1000,
+  SECONDS_PER_MINUTE: 60,
+  MINUTES_PER_HOUR: 60,
+  MINUTES_THRESHOLD_2H: 120,
+  MINUTES_PER_DAY: 1440,
+} as const;
+
 import * as React from "react";
 import {
   AlertDialog,
@@ -28,21 +37,21 @@ function getRelativeTime(isoDate: string): string {
   const savedDate = new Date(isoDate);
   const now = new Date();
   const diffMs = now.getTime() - savedDate.getTime();
-  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffMinutes = Math.floor(diffMs / (TIME.MS_PER_SECOND * TIME.SECONDS_PER_MINUTE));
 
   if (diffMinutes < 1) {
     return "just now";
   } else if (diffMinutes === 1) {
     return "1 minute ago";
-  } else if (diffMinutes < 60) {
+  } else if (diffMinutes < TIME.MINUTES_PER_HOUR) {
     return `${diffMinutes} minutes ago`;
-  } else if (diffMinutes < 120) {
+  } else if (diffMinutes < TIME.MINUTES_THRESHOLD_2H) {
     return "1 hour ago";
-  } else if (diffMinutes < 1440) {
-    const hours = Math.floor(diffMinutes / 60);
+  } else if (diffMinutes < TIME.MINUTES_PER_DAY) {
+    const hours = Math.floor(diffMinutes / TIME.MINUTES_PER_HOUR);
     return `${hours} hours ago`;
   } else {
-    const days = Math.floor(diffMinutes / 1440);
+    const days = Math.floor(diffMinutes / TIME.MINUTES_PER_DAY);
     return days === 1 ? "1 day ago" : `${days} days ago`;
   }
 }

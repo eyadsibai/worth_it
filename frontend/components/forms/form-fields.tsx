@@ -1,5 +1,17 @@
 "use client";
 
+/** Slider scale factor for logarithmic slider */
+const SLIDER_SCALE = 100;
+/** Base for decimal system in step size calculation */
+const DECIMAL_BASE = 10;
+/** Step size thresholds for currency increment/decrement buttons */
+const STEP_THRESHOLDS = {
+  BILLION: { threshold: 1_000_000_000, step: 100_000_000 },
+  HUNDRED_M: { threshold: 100_000_000, step: 10_000_000 },
+  TEN_M: { threshold: 10_000_000, step: 1_000_000 },
+  DEFAULT_STEP: 100_000,
+} as const;
+
 import * as React from "react";
 import { UseFormReturn } from "react-hook-form";
 import { HelpCircle } from "lucide-react";
@@ -635,13 +647,13 @@ export function LogarithmicSliderField({
         const hasWarning = !!warning && !fieldState.error;
 
         // Convert between actual value and slider position (0-100)
-        const sliderPosition = logToLinear(field.value, min, max) * 100;
+        const sliderPosition = logToLinear(field.value, min, max) * SLIDER_SCALE;
 
         const handleSliderChange = (values: number[]) => {
-          const position = values[0] / 100;
+          const position = values[0] / SLIDER_SCALE;
           const newValue = linearToLog(position, min, max);
           // Round to nearest reasonable step based on magnitude
-          const magnitude = Math.pow(10, Math.floor(Math.log10(newValue)));
+          const magnitude = Math.pow(DECIMAL_BASE, Math.floor(Math.log10(newValue)));
           const rounded = Math.round(newValue / magnitude) * magnitude;
           field.onChange(Math.max(min, Math.min(max, rounded)));
         };
@@ -688,10 +700,10 @@ export function LogarithmicSliderField({
 
         // Calculate step sizes for +/- buttons based on current magnitude
         const getStepSize = (value: number): number => {
-          if (value >= 1_000_000_000) return 100_000_000; // $100M steps above $1B
-          if (value >= 100_000_000) return 10_000_000; // $10M steps above $100M
-          if (value >= 10_000_000) return 1_000_000; // $1M steps above $10M
-          return 100_000; // $100K steps for smaller values
+          if (value >= STEP_THRESHOLDS.BILLION.threshold) return STEP_THRESHOLDS.BILLION.step;
+          if (value >= STEP_THRESHOLDS.HUNDRED_M.threshold) return STEP_THRESHOLDS.HUNDRED_M.step;
+          if (value >= STEP_THRESHOLDS.TEN_M.threshold) return STEP_THRESHOLDS.TEN_M.step;
+          return STEP_THRESHOLDS.DEFAULT_STEP;
         };
 
         const handleDecrement = () => {

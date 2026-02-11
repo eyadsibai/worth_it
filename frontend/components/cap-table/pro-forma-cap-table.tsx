@@ -1,5 +1,10 @@
 "use client";
 
+/** Decimal places for percent display */
+const PCT_DECIMAL_PLACES = 2;
+/** Percent to decimal multiplier */
+const PERCENT_MULTIPLIER = 100;
+
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
@@ -21,7 +26,7 @@ function formatNumber(num: number): string {
 }
 
 function formatPercent(pct: number): string {
-  return `${pct.toFixed(2).replace(/\.?0+$/, "")}%`;
+  return `${pct.toFixed(PCT_DECIMAL_PLACES).replace(/\.?0+$/, "")}%`;
 }
 
 /** Row data for the pro-forma cap table */
@@ -44,7 +49,7 @@ export function ProFormaCapTable({ capTable, conversions, isLoading }: ProFormaC
   // Recalculate ownership percentages for existing stakeholders
   const existingStakeholders = capTable.stakeholders.map((s) => ({
     ...s,
-    proFormaOwnership: totalProFormaShares > 0 ? (s.shares / totalProFormaShares) * 100 : 0,
+    proFormaOwnership: totalProFormaShares > 0 ? (s.shares / totalProFormaShares) * PERCENT_MULTIPLIER : 0,
   }));
 
   // Create rows for converted investors

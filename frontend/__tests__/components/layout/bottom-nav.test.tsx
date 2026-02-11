@@ -188,10 +188,11 @@ describe("BottomNav", () => {
       expect(screen.getByRole("button", { name: /more/i })).toBeInTheDocument();
     });
 
-    it("active button has aria-current attribute", () => {
+    it("active button has aria-pressed attribute", () => {
       renderWithProvider(defaultProps, { defaultView: "inputs" });
       const inputsButton = screen.getByRole("button", { name: /inputs/i });
-      expect(inputsButton).toHaveAttribute("aria-current", "page");
+      expect(inputsButton).toHaveAttribute("aria-pressed", "true");
+      expect(inputsButton).not.toHaveAttribute("aria-current");
     });
   });
 

@@ -1,5 +1,8 @@
 "use client";
 
+/** Auto-clear error message timeout in milliseconds */
+const ERROR_CLEAR_TIMEOUT_MS = 5000;
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -100,7 +103,7 @@ export function ExportButton({
   // Auto-clear error after 5 seconds
   useEffect(() => {
     if (error) {
-      const timer = setTimeout(() => setError(null), 5000);
+      const timer = setTimeout(() => setError(null), ERROR_CLEAR_TIMEOUT_MS);
       return () => clearTimeout(timer);
     }
   }, [error]);

@@ -1,5 +1,8 @@
 "use client";
 
+/** Percentage scale for position calculation */
+const PCT_SCALE = 100;
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrencyCompact } from "@/lib/format-utils";
@@ -44,7 +47,7 @@ export function NegotiationRange({
   // Calculate position on the bar (0-100%)
   const getPosition = (value: number) => {
     if (range === 0) return 0;
-    return ((value - min) / range) * 100;
+    return ((value - min) / range) * PCT_SCALE;
   };
 
   return (

@@ -1,5 +1,8 @@
 "use client";
 
+/** Maximum Y-axis value for probability axis */
+const MAX_PROBABILITY_PCT = 100;
+
 import {
   LineChart,
   Line,
@@ -53,7 +56,7 @@ export function MonteCarloEcdf({ data }: MonteCarloEcdfProps) {
                 position: "insideLeft",
                 fill: colors.foreground,
               }}
-              domain={[0, 100]}
+              domain={[0, MAX_PROBABILITY_PCT]}
             />
             <Tooltip {...tooltipStyles} />
             <Line

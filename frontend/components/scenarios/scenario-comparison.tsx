@@ -1,5 +1,10 @@
 "use client";
 
+/** Minimum scenarios needed for comparison */
+const MIN_SCENARIOS_FOR_COMPARISON = 2;
+/** Decimal places for equity percentage display */
+const EQUITY_PCT_DECIMALS = 3;
+
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,7 +52,7 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
 
   // Call API when scenarios change and there are at least 2 scenarios
   React.useEffect(() => {
-    if (scenarios.length < 2) return;
+    if (scenarios.length < MIN_SCENARIOS_FOR_COMPARISON) return;
 
     // Transform scenarios to API format
     const apiScenarios = scenarios.map((s) => ({
@@ -87,7 +92,7 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
   }
 
   // Show loading state for comparison data
-  const isLoadingComparison = scenarios.length >= 2 && compareMutation.isPending;
+  const isLoadingComparison = scenarios.length >= MIN_SCENARIOS_FOR_COMPARISON && compareMutation.isPending;
 
   // Find best net outcome for highlighting
   const netOutcomes = scenarios.map((s) => s.results.netOutcome);
@@ -105,7 +110,7 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            {scenarios.length >= 2 && !isLoadingComparison && (
+            {scenarios.length >= MIN_SCENARIOS_FOR_COMPARISON && !isLoadingComparison && (
               <Button
                 onClick={() => {
                   const comparisonData: ComparisonDataForExport = {
@@ -358,7 +363,7 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
                       {scenarios.map((scenario, idx) => (
                         <td key={`equity-pct-${idx}`} className="px-4 py-3 tabular-nums">
                           {scenario.equity.type === "RSU" && scenario.equity.equityPct
-                            ? `${scenario.equity.equityPct.toFixed(3)}%`
+                            ? `${scenario.equity.equityPct.toFixed(EQUITY_PCT_DECIMALS)}%`
                             : "N/A"}
                         </td>
                       ))}
@@ -470,7 +475,7 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
                     const isPositive = scenario.results.netOutcome >= 0;
                     const isBest = scenario.results.netOutcome === bestNetOutcome;
                     const showDiff =
-                      scenarios.length >= 2 &&
+                      scenarios.length >= MIN_SCENARIOS_FOR_COMPARISON &&
                       isBest &&
                       netOutcomeDiff &&
                       netOutcomeDiff.percentageDiff > 0;

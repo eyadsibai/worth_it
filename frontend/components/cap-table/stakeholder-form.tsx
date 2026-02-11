@@ -1,5 +1,12 @@
 "use client";
 
+/** Default vesting period in months */
+const DEFAULT_VESTING_MONTHS = 48;
+/** Default cliff period in months */
+const DEFAULT_CLIFF_MONTHS = 12;
+/** Months per year */
+const MONTHS_PER_YEAR = 12;
+
 import * as React from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,8 +43,8 @@ export function StakeholderForm({
       ownership_pct: defaultValues?.ownership_pct ?? 0,
       share_class: defaultValues?.share_class ?? "common",
       has_vesting: defaultValues?.has_vesting ?? false,
-      vesting_months: defaultValues?.vesting_months ?? 48,
-      cliff_months: defaultValues?.cliff_months ?? 12,
+      vesting_months: defaultValues?.vesting_months ?? DEFAULT_VESTING_MONTHS,
+      cliff_months: defaultValues?.cliff_months ?? DEFAULT_CLIFF_MONTHS,
     },
   });
 
@@ -119,8 +126,8 @@ export function StakeholderForm({
               tooltip={TOOLTIPS.vestingPeriod}
               min={12}
               max={60}
-              step={12}
-              formatValue={(v) => `${v / 12} years`}
+              step={MONTHS_PER_YEAR}
+              formatValue={(v) => `${v / MONTHS_PER_YEAR} years`}
             />
 
             <SliderField

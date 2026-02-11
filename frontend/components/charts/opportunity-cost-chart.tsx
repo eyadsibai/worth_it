@@ -1,5 +1,7 @@
 "use client";
 
+import { FORMATTING } from "@/lib/constants/formatting";
+
 import * as React from "react";
 import {
   LineChart,
@@ -32,7 +34,7 @@ export const OpportunityCostChart = React.memo(function OpportunityCostChart({
       data.map((row) => ({
         year: `Year ${row.year || 0}`,
         opportunityCost: row.cumulative_opportunity_cost || 0,
-        monthlySurplus: (row.monthly_surplus || 0) * 12, // Convert to annual
+        monthlySurplus: (row.monthly_surplus || 0) * FORMATTING.MONTHS_PER_YEAR, // Convert to annual
       })),
     [data]
   );
@@ -66,7 +68,12 @@ export const OpportunityCostChart = React.memo(function OpportunityCostChart({
             stroke={colors.muted}
             tickFormatter={formatCurrencyCompact}
           />
-          <Tooltip formatter={(value: number) => formatCurrencyCompact(value)} {...tooltipStyles} />
+          <Tooltip
+            formatter={(value) =>
+              formatCurrencyCompact(typeof value === "number" ? value : Number(value) || 0)
+            }
+            {...tooltipStyles}
+          />
           <Legend />
           <ReferenceLine y={0} stroke={colors.muted} />
           <Line

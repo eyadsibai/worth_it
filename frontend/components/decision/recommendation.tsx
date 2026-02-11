@@ -1,5 +1,18 @@
 "use client";
 
+/** Percentage conversion multiplier */
+const PCT_MULTIPLIER = 100;
+/** Score gauge thresholds */
+const GAUGE_GOOD_THRESHOLD = 70;
+const GAUGE_MODERATE_THRESHOLD = 50;
+/** SVG circle circumference for score gauge */
+const CIRCLE_CIRCUMFERENCE = 251.2;
+/** Max score for overall recommendation */
+const MAX_SCORE = 10;
+/** Score thresholds for recommendation coloring */
+const SCORE_HIGH = 7;
+const SCORE_MEDIUM = 5;
+
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,10 +70,10 @@ interface ScoreGaugeProps {
 }
 
 function ScoreGauge({ score, maxScore, label, explanation }: ScoreGaugeProps) {
-  const percentage = (score / maxScore) * 100;
+  const percentage = (score / maxScore) * PCT_MULTIPLIER;
   const getColor = () => {
-    if (percentage >= 70) return "bg-terminal";
-    if (percentage >= 50) return "bg-amber-500";
+    if (percentage >= GAUGE_GOOD_THRESHOLD) return "bg-terminal";
+    if (percentage >= GAUGE_MODERATE_THRESHOLD) return "bg-amber-500";
     return "bg-destructive";
   };
 
@@ -246,11 +259,11 @@ export function DecisionRecommendationDisplay({
                       stroke="currentColor"
                       strokeWidth="8"
                       fill="none"
-                      strokeDasharray={`${(recommendation.overallScore / 10) * 251.2} 251.2`}
+                      strokeDasharray={`${(recommendation.overallScore / MAX_SCORE) * CIRCLE_CIRCUMFERENCE} ${CIRCLE_CIRCUMFERENCE}`}
                       className={cn(
-                        recommendation.overallScore >= 7
+                        recommendation.overallScore >= SCORE_HIGH
                           ? "text-terminal"
-                          : recommendation.overallScore >= 5
+                          : recommendation.overallScore >= SCORE_MEDIUM
                             ? "text-amber-500"
                             : "text-destructive"
                       )}

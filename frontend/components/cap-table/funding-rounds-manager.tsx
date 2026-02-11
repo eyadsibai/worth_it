@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { FORMATTING } from "@/lib/constants";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -129,9 +130,9 @@ export function FundingRoundsManager({
             <AnimatedNumber
               value={totalRaised}
               formatValue={(v) => {
-                if (v >= 1000000) {
-                  const num = v / 1000000;
-                  return num % 1 === 0 ? `${num}M` : `${num.toFixed(2).replace(/\.?0+$/, "")}M`;
+                if (v >= FORMATTING.MILLION) {
+                  const num = v / FORMATTING.MILLION;
+                  return num % 1 === 0 ? `${num}M` : `${num.toFixed(FORMATTING.DECIMAL_PLACES_DEFAULT).replace(/\.?0+$/, "")}M`;
                 }
                 return v.toLocaleString();
               }}

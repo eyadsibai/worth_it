@@ -1,5 +1,17 @@
 import { useMemo } from "react";
 
+/** Warning threshold constants */
+const WARNING_THRESHOLDS = {
+  /** Minimum reasonable monthly salary */
+  LOW_MONTHLY_SALARY: 1000,
+  /** Maximum reasonable monthly salary */
+  HIGH_MONTHLY_SALARY: 100000,
+  /** Unusually long vesting period in years */
+  LONG_VESTING_YEARS: 5,
+  /** Months per year for annual salary calculation */
+  MONTHS_PER_YEAR: 12,
+} as const;
+
 /**
  * Context object for field warnings that may need related field values.
  */
@@ -41,10 +53,10 @@ export function getFieldWarning(
   switch (fieldName) {
     case "monthly_salary":
     case "current_job_monthly_salary":
-      if (value < 1000) {
+      if (value < WARNING_THRESHOLDS.LOW_MONTHLY_SALARY) {
         return WARNING_MESSAGES.lowMonthlySalary;
       }
-      if (value > 100000) {
+      if (value > WARNING_THRESHOLDS.HIGH_MONTHLY_SALARY) {
         return WARNING_MESSAGES.highMonthlySalary;
       }
       return null;
@@ -53,23 +65,23 @@ export function getFieldWarning(
       if (value === 0) {
         return WARNING_MESSAGES.zeroStartupSalary;
       }
-      if (value < 1000) {
+      if (value < WARNING_THRESHOLDS.LOW_MONTHLY_SALARY) {
         return WARNING_MESSAGES.lowMonthlySalary;
       }
-      if (value > 100000) {
+      if (value > WARNING_THRESHOLDS.HIGH_MONTHLY_SALARY) {
         return WARNING_MESSAGES.highMonthlySalary;
       }
       return null;
 
     case "vesting_years":
-      if (value > 5) {
+      if (value > WARNING_THRESHOLDS.LONG_VESTING_YEARS) {
         return WARNING_MESSAGES.longVesting;
       }
       return null;
 
     case "exit_valuation":
       if (context?.monthly_salary !== undefined) {
-        const annualSalary = context.monthly_salary * 12;
+        const annualSalary = context.monthly_salary * WARNING_THRESHOLDS.MONTHS_PER_YEAR;
         if (value < annualSalary) {
           return WARNING_MESSAGES.lowExitValuation;
         }

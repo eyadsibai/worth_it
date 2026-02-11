@@ -1,5 +1,8 @@
 "use client";
 
+/** Percentage conversion multiplier */
+const PCT_MULTIPLIER = 100;
+
 import { useEffect, useCallback } from "react";
 import {
   Select,
@@ -42,7 +45,7 @@ function formatMetricRange(metric: BenchmarkMetric): string {
 
   // Percentage format (unit is empty and values are <= 1)
   if (unit === "" && typical_high <= 1) {
-    return `${Math.round(typical_low * 100)}% - ${Math.round(typical_high * 100)}%`;
+    return `${Math.round(typical_low * PCT_MULTIPLIER)}% - ${Math.round(typical_high * PCT_MULTIPLIER)}%`;
   }
 
   // Multiplier format

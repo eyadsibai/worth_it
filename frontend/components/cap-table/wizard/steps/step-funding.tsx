@@ -1,5 +1,8 @@
 "use client";
 
+/** Maximum number of funding rounds in wizard */
+const MAX_FUNDING_ROUNDS = 5;
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -265,7 +268,7 @@ export function StepFunding({ data, onDataChange, onNext, onBack, onSkipWizard }
         variant="outline"
         onClick={handleAddFunding}
         className="w-full"
-        disabled={data.funding.length >= 5}
+        disabled={data.funding.length >= MAX_FUNDING_ROUNDS}
       >
         <Plus className="mr-2 h-4 w-4" />
         Add Another Investment

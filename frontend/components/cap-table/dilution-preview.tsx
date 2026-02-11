@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { FORMATTING } from "@/lib/constants";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, Loader2 } from "lucide-react";
 import { DilutionTable } from "./dilution-table";
@@ -26,9 +27,9 @@ export function DilutionPreview({
   investorName = "New Investor",
 }: DilutionPreviewProps) {
   // Debounce the input values to avoid jittery updates while typing
-  const debouncedPreMoney = useDebounce(preMoneyValuation, 300);
-  const debouncedAmount = useDebounce(amountRaised, 300);
-  const debouncedInvestorName = useDebounce(investorName, 300);
+  const debouncedPreMoney = useDebounce(preMoneyValuation, FORMATTING.DEBOUNCE_MS);
+  const debouncedAmount = useDebounce(amountRaised, FORMATTING.DEBOUNCE_MS);
+  const debouncedInvestorName = useDebounce(investorName, FORMATTING.DEBOUNCE_MS);
 
   const dilutionMutation = useGetDilutionPreview();
 
@@ -121,7 +122,7 @@ export function DilutionPreview({
             <span>
               Post-money:{" "}
               <span className="text-foreground tabular-nums">
-                ${(summaryStats.postMoneyValuation / 1_000_000).toFixed(1)}M
+                ${(summaryStats.postMoneyValuation / FORMATTING.MILLION).toFixed(1)}M
               </span>
             </span>
             <span>

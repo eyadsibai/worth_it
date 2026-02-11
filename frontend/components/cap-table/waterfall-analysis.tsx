@@ -1,6 +1,16 @@
 "use client";
 
+/** Default selected exit valuation ($50M) */
+const DEFAULT_EXIT_VALUATION = 50_000_000;
+/** Number of exit valuation data points for chart */
+const EXIT_VALUATION_COUNT = 20;
+/** Minimum exit valuation for chart range ($1M) */
+const CHART_MIN_VALUATION = 1_000_000;
+/** Maximum exit valuation for chart range ($500M) */
+const CHART_MAX_VALUATION = 500_000_000;
+
 import * as React from "react";
+import { FORMATTING } from "@/lib/constants";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,18 +65,18 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
   });
 
   // Exit valuation state
-  const [selectedValuation, setSelectedValuation] = React.useState(50_000_000);
+  const [selectedValuation, setSelectedValuation] = React.useState(DEFAULT_EXIT_VALUATION);
   const [activeView, setActiveView] = React.useState<"chart" | "table">("chart");
 
   // Debounce valuation changes to avoid too many API calls
-  const debouncedValuation = useDebounce(selectedValuation, 300);
+  const debouncedValuation = useDebounce(selectedValuation, FORMATTING.DEBOUNCE_MS);
 
   // Calculate waterfall using API
   const waterfallMutation = useCalculateWaterfall();
 
   // Generate exit valuations for chart (from $1M to $500M)
   const exitValuations = React.useMemo(
-    () => generateExitValuations(1_000_000, 500_000_000, 20),
+    () => generateExitValuations(CHART_MIN_VALUATION, CHART_MAX_VALUATION, EXIT_VALUATION_COUNT),
     []
   );
 

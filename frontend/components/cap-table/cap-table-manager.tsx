@@ -1,6 +1,10 @@
 "use client";
 
+/** Maximum ownership percentage */
+const MAX_OWNERSHIP_PCT = 100;
+
 import * as React from "react";
+import { FORMATTING } from "@/lib/constants";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -462,13 +466,13 @@ export function CapTableManager({
                       <span>Total Allocated</span>
                       <span
                         className={`tabular-nums ${
-                          totalOwnership > 100 ? "text-destructive" : "text-terminal"
+                          totalOwnership > MAX_OWNERSHIP_PCT ? "text-destructive" : "text-terminal"
                         }`}
                       >
                         <AnimatedPercentage value={totalOwnership} decimals={1} />
                       </span>
                     </div>
-                    {totalOwnership > 100 && (
+                    {totalOwnership > MAX_OWNERSHIP_PCT && (
                       <motion.p
                         className="text-destructive text-xs"
                         initial={{ opacity: 0, y: -5 }}
@@ -511,7 +515,7 @@ export function CapTableManager({
                                 </Badge>
                                 {stakeholder.vesting && (
                                   <Badge variant="secondary" className="text-xs">
-                                    {stakeholder.vesting.vesting_months / 12}yr vesting
+                                    {stakeholder.vesting.vesting_months / FORMATTING.MONTHS_PER_YEAR}yr vesting
                                   </Badge>
                                 )}
                               </div>

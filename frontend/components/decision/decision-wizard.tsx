@@ -1,5 +1,12 @@
 "use client";
 
+/** Animation spring stiffness for deselected state */
+const DESELECTED_SCALE = 0.9;
+/** Thousand divisor for compact currency formatting */
+const THOUSAND = 1000;
+/** Percentage conversion multiplier */
+const PCT_MULTIPLIER = 100;
+
 import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -83,7 +90,7 @@ function OptionButton({ selected, onClick, children, className }: OptionButtonPr
           "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2",
           selected ? "border-primary bg-primary" : "border-muted-foreground"
         )}
-        animate={{ scale: selected ? 1 : 0.9 }}
+        animate={{ scale: selected ? 1 : DESELECTED_SCALE }}
         transition={{ type: "spring", stiffness: 500, damping: 25 }}
       >
         {selected && (
@@ -140,7 +147,7 @@ function FinancialStep({ financial }: FinancialStepProps) {
   const formatCurrency = (value: number) => {
     const absValue = Math.abs(value);
     const formatted =
-      absValue >= 1000 ? `$${(absValue / 1000).toFixed(0)}K` : `$${absValue.toFixed(0)}`;
+      absValue >= THOUSAND ? `$${(absValue / THOUSAND).toFixed(0)}K` : `$${absValue.toFixed(0)}`;
     return value >= 0 ? formatted : `-${formatted}`;
   };
 
@@ -171,7 +178,7 @@ function FinancialStep({ financial }: FinancialStepProps) {
             Success Probability
           </p>
           <p className="text-2xl font-semibold tabular-nums">
-            {(financial.positiveOutcomeProbability * 100).toFixed(0)}%
+            {(financial.positiveOutcomeProbability * PCT_MULTIPLIER).toFixed(0)}%
           </p>
         </div>
       </div>
@@ -433,7 +440,7 @@ export function DecisionWizard({
   });
 
   const currentIndex = STEPS.indexOf(currentStep);
-  const progress = ((currentIndex + 1) / STEPS.length) * 100;
+  const progress = ((currentIndex + 1) / STEPS.length) * PCT_MULTIPLIER;
   const isLastStep = currentStep === STEPS[STEPS.length - 1];
   const isFirstStep = currentStep === STEPS[0];
 

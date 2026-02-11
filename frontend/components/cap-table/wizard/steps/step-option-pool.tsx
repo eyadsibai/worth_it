@@ -1,5 +1,8 @@
 "use client";
 
+/** Recommended option pool percentage */
+const RECOMMENDED_POOL_PCT = 15;
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -47,7 +50,7 @@ export function StepOptionPool({
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{option.label}</span>
-                  {option.value === 15 && (
+                  {option.value === RECOMMENDED_POOL_PCT && (
                     <span className="bg-terminal/20 text-terminal rounded-full px-2 py-0.5 text-xs">
                       Recommended
                     </span>
