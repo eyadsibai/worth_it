@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test';
+import { Page, Locator, expect } from '@playwright/test';
 import { TEST_DATA, SELECTORS, TIMEOUTS } from './test-data';
 import path from 'path';
 
@@ -28,13 +28,8 @@ export class WorthItHelpers {
     await this.dismissWelcomeDialog();
 
     // Wait for the form to be interactive (Exit Year slider)
+    // All form fields now use touch-friendly SliderField components (no input[type="number"])
     await this.page.waitForSelector('[role="slider"]', {
-      timeout: TIMEOUTS.navigation,
-    });
-
-    // Wait for form inputs to be ready (number inputs render after React hydration)
-    // Use input[type="number"] as it's more reliable than role selector during page load
-    await this.page.waitForSelector('input[type="number"]', {
       timeout: TIMEOUTS.navigation,
     });
   }
@@ -48,13 +43,18 @@ export class WorthItHelpers {
    *
    * Fallback: If the edit button isn't found (older slider style), uses keyboard navigation.
    */
-  async setSliderValue(labelText: string, targetValue: number, min: number = 0, step: number = 1) {
-    // Find the label with explicit timeout
-    const label = this.page.getByText(labelText, { exact: true });
+  async setSliderValue(labelText: string, targetValue: number, min: number = 0, step: number = 1, container?: Locator) {
+    // Use container if provided (for disambiguation when the same label appears in multiple forms)
+    const searchContext = container || this.page;
+
+    // Find the label with explicit timeout (scoped to container for waiting)
+    const label = searchContext.getByText(labelText, { exact: true });
     await label.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
 
     // Find the closest ancestor FormItem that contains both the label and a slider
-    const formItem = this.page.locator('[data-slot="form-item"]').filter({ has: label });
+    // IMPORTANT: filter({ has }) requires a page-level locator, not a container-scoped one
+    const pageLabel = this.page.getByText(labelText, { exact: true });
+    const formItem = searchContext.locator('[data-slot="form-item"]').filter({ has: pageLabel });
 
     // Try the fast path: use the "Edit {label} value" button for direct input
     const editButton = formItem.getByRole('button', { name: `Edit ${labelText} value` });
@@ -64,8 +64,9 @@ export class WorthItHelpers {
       // Fast path: Click edit button, type value, press Enter
       await editButton.click();
 
-      // Wait for the input to appear and focus
-      const valueInput = formItem.locator('input[type="number"]');
+      // Wait for the input to appear (could be type="number" for SliderField
+      // or type="text" for CurrencySliderField which supports shorthand like "10K")
+      const valueInput = formItem.locator(`input[aria-label="${labelText} value"]`);
       await valueInput.waitFor({ state: 'visible', timeout: TIMEOUTS.formInput });
 
       // Clear and type the new value
@@ -134,17 +135,16 @@ export class WorthItHelpers {
    * shadcn/ui FormLabel doesn't use proper label-input associations (for/id attributes)
    */
   async fillCurrentJobForm(params = TEST_DATA.currentJob) {
-    // Scope to Current Job card to avoid matching other forms - uses terminal-card class
-    const currentJobCard = this.page.locator('.terminal-card').filter({ hasText: 'Current Job' });
+    // Scope to Current Job card using the collapsible trigger button for precise matching
+    // (hasText: 'Current Job' can match result cards that mention "current job")
+    const currentJobCard = this.page.locator('.terminal-card').filter({
+      has: this.page.getByRole('button', { name: /^Current Job/ }),
+    });
     await currentJobCard.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
 
-    // Monthly Salary - uses formatDisplay=true so it renders as textbox with placeholder
-    // The placeholder is "e.g. 12,000" - use that to find the input
-    const salaryInput = currentJobCard.getByRole('textbox', { name: 'e.g. 12,000' });
-    await salaryInput.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
-    // Triple-click to select all (works cross-platform)
-    await salaryInput.click({ clickCount: 3 });
-    await this.page.keyboard.type(params.monthlySalary.toString());
+    // Monthly Salary - uses SliderField (touch-friendly), scoped to Current Job card
+    // to avoid matching Startup Offer's Monthly Salary
+    await this.setSliderValue('Monthly Salary', params.monthlySalary, 0, 500, currentJobCard);
 
     // Annual Salary Growth Rate - uses slider, set via setSliderValue
     await this.setSliderValue('Annual Salary Growth Rate', params.annualSalaryGrowthRate, 0, 0.1);
@@ -209,29 +209,21 @@ export class WorthItHelpers {
     const rsuPanel = this.page.getByRole('tabpanel', { name: 'RSUs' });
     await rsuPanel.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
 
-    // Monthly Salary - uses textbox (formatDisplay=true)
-    // It's the first textbox in the panel
-    const textInputs = rsuPanel.locator('input[type="text"]');
-    await textInputs.first().waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
-    // Triple-click to select all, then type new value
-    await textInputs.nth(0).click({ clickCount: 3 });
-    await this.page.keyboard.type(params.monthlySalary.toString());
+    // All form fields now use touch-friendly SliderField components
+    // Monthly Salary - scoped to RSU panel to avoid matching Current Job's
+    await this.setSliderValue('Monthly Salary', params.monthlySalary, 0, 500, rsuPanel);
 
-    // Total Equity Grant % - uses number input (only one in the form)
-    const numberInput = rsuPanel.locator('input[type="number"]');
-    await numberInput.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
-    await numberInput.fill(params.totalEquityGrantPct.toString());
+    // Total Equity Grant %
+    await this.setSliderValue('Total Equity Grant', params.totalEquityGrantPct, 0, 0.01, rsuPanel);
 
-    // Exit Valuation - uses textbox (formatDisplay=true)
-    // It's the second textbox in the panel
-    await textInputs.nth(1).click({ clickCount: 3 });
-    await this.page.keyboard.type(params.exitValuation.toString());
+    // Exit Valuation
+    await this.setSliderValue('Exit Valuation', params.exitValuation, 0, 1000000, rsuPanel);
 
-    // Vesting Period (Radix UI Slider: min=1, step=1)
-    await this.setSliderValue('Vesting Period', params.vestingPeriod, 1, 1);
+    // Vesting Period (min=1, step=1)
+    await this.setSliderValue('Vesting Period', params.vestingPeriod, 1, 1, rsuPanel);
 
-    // Cliff Period (Radix UI Slider: min=0, step=1)
-    await this.setSliderValue('Cliff Period', params.cliffPeriod, 0, 1);
+    // Cliff Period (min=0, step=1)
+    await this.setSliderValue('Cliff Period', params.cliffPeriod, 0, 1, rsuPanel);
 
     // Simulate Dilution checkbox if needed (it's a Checkbox, not a switch)
     if (params.simulateDilution) {
@@ -263,33 +255,24 @@ export class WorthItHelpers {
     const optionsPanel = this.page.getByRole('tabpanel', { name: 'Stock Options' });
     await optionsPanel.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
 
-    // Get text inputs (formatDisplay fields) within the Stock Options panel
-    const textInputs = optionsPanel.locator('input[type="text"]');
-    await textInputs.first().waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
+    // All form fields now use touch-friendly SliderField components
+    // Monthly Salary - scoped to options panel to avoid matching Current Job's
+    await this.setSliderValue('Monthly Salary', params.monthlySalary, 0, 500, optionsPanel);
 
-    // Monthly Salary - first textbox (formatDisplay=true)
-    await textInputs.nth(0).click({ clickCount: 3 });
-    await this.page.keyboard.type(params.monthlySalary.toString());
+    // Number of Options
+    await this.setSliderValue('Number of Options', params.numOptions, 0, 1000, optionsPanel);
 
-    // Number of Options - second textbox (formatDisplay=true)
-    await textInputs.nth(1).click({ clickCount: 3 });
-    await this.page.keyboard.type(params.numOptions.toString());
+    // Strike Price
+    await this.setSliderValue('Strike Price', params.strikePrice, 0, 0.1, optionsPanel);
 
-    // Get number inputs (Strike Price, Exit Price)
-    const numberInputs = optionsPanel.locator('input[type="number"]');
-    await numberInputs.first().waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
+    // Exit Price Per Share
+    await this.setSliderValue('Exit Price Per Share', params.exitPricePerShare, 0, 0.1, optionsPanel);
 
-    // Strike Price - first number input
-    await numberInputs.nth(0).fill(params.strikePrice.toString());
+    // Vesting Period (min=1, step=1)
+    await this.setSliderValue('Vesting Period', params.vestingPeriod, 1, 1, optionsPanel);
 
-    // Exit Price Per Share - second number input
-    await numberInputs.nth(1).fill(params.exitPricePerShare.toString());
-
-    // Vesting Period (Radix UI Slider: min=1, step=1)
-    await this.setSliderValue('Vesting Period', params.vestingPeriod, 1, 1);
-
-    // Cliff Period (Radix UI Slider: min=0, step=1)
-    await this.setSliderValue('Cliff Period', params.cliffPeriod, 0, 1);
+    // Cliff Period (min=0, step=1)
+    await this.setSliderValue('Cliff Period', params.cliffPeriod, 0, 1, optionsPanel);
 
     // Exercise Strategy - use combobox (label is "When to Exercise")
     const strategySection = optionsPanel.getByText('When to Exercise').locator('..');

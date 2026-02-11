@@ -49,13 +49,17 @@ test.describe('RSU Equity Form', () => {
     // Get RSU panel
     const rsuPanel = page.getByRole('tabpanel', { name: 'RSUs' });
 
-    // Verify equity grant percentage (the only number input in the panel)
-    const numberInput = rsuPanel.locator('input[type="number"]');
-    await expect(numberInput).toHaveValue(TEST_DATA.rsuEquity.totalEquityGrantPct.toString(), { timeout: TIMEOUTS.formInput });
+    // Verify equity grant via slider aria-valuenow (all fields now use SliderField)
+    const equityLabel = page.getByText('Total Equity Grant', { exact: true });
+    const equityFormItem = rsuPanel.locator('[data-slot="form-item"]').filter({ has: equityLabel });
+    const equitySlider = equityFormItem.locator('[role="slider"]');
+    await expect(equitySlider).toHaveAttribute('aria-valuenow', TEST_DATA.rsuEquity.totalEquityGrantPct.toString(), { timeout: TIMEOUTS.formInput });
 
-    // Exit valuation uses textbox with formatted display - verify field is visible and filled
-    const textInputs = rsuPanel.locator('input[type="text"]');
-    await expect(textInputs.nth(1)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    // Exit valuation - verify slider value
+    const exitLabel = page.getByText('Exit Valuation', { exact: true });
+    const exitFormItem = rsuPanel.locator('[data-slot="form-item"]').filter({ has: exitLabel });
+    const exitSlider = exitFormItem.locator('[role="slider"]');
+    await expect(exitSlider).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should allow enabling dilution simulation', async ({ page, helpers }) => {

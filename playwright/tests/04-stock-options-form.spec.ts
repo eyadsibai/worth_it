@@ -42,16 +42,17 @@ test.describe('Stock Options Form', () => {
     // Get Stock Options panel
     const optionsPanel = page.getByRole('tabpanel', { name: 'Stock Options' });
 
-    // Number of options uses textbox with formatted display - verify visible
-    const textInputs = optionsPanel.locator('input[type="text"]');
-    await expect(textInputs.nth(1)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    // Verify strike price via slider aria-valuenow (all fields now use SliderField)
+    const strikeLabel = page.getByText('Strike Price', { exact: true });
+    const strikeFormItem = optionsPanel.locator('[data-slot="form-item"]').filter({ has: strikeLabel });
+    const strikeSlider = strikeFormItem.locator('[role="slider"]');
+    await expect(strikeSlider).toHaveAttribute('aria-valuenow', TEST_DATA.stockOptions.strikePrice.toString(), { timeout: TIMEOUTS.formInput });
 
-    // Verify strike price (first number input in the panel)
-    const numberInputs = optionsPanel.locator('input[type="number"]');
-    await expect(numberInputs.nth(0)).toHaveValue(TEST_DATA.stockOptions.strikePrice.toString(), { timeout: TIMEOUTS.formInput });
-
-    // Verify exit price (second number input in the panel)
-    await expect(numberInputs.nth(1)).toHaveValue(TEST_DATA.stockOptions.exitPricePerShare.toString(), { timeout: TIMEOUTS.formInput });
+    // Verify exit price via slider
+    const exitLabel = page.getByText('Exit Price Per Share', { exact: true });
+    const exitFormItem = optionsPanel.locator('[data-slot="form-item"]').filter({ has: exitLabel });
+    const exitSlider = exitFormItem.locator('[role="slider"]');
+    await expect(exitSlider).toHaveAttribute('aria-valuenow', TEST_DATA.stockOptions.exitPricePerShare.toString(), { timeout: TIMEOUTS.formInput });
   });
 
   test('should allow setting vesting and cliff periods for options', async ({ page, helpers }) => {

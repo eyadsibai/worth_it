@@ -64,15 +64,19 @@ test.describe('Current Job Form', () => {
     await helpers.waitForAPIConnection();
     await helpers.fillCurrentJobForm();
 
-    // Scope to Current Job card
-    const currentJobCard = page.locator('.terminal-card').filter({ hasText: 'Current Job' });
+    // Scope to Current Job card using collapsible trigger button for precise matching
+    const currentJobCard = page.locator('.terminal-card').filter({
+      has: page.getByRole('button', { name: /^Current Job/ }),
+    });
 
-    // Verify salary input is filled (uses formatDisplay=true so value includes commas)
-    const salaryInput = currentJobCard.getByRole('textbox', { name: 'e.g. 12,000' });
-    // formatDisplay adds thousand separators, so check formatted value
-    await expect(salaryInput).toHaveValue(TEST_DATA.currentJob.monthlySalary.toLocaleString(), { timeout: TIMEOUTS.formInput });
+    // All fields now use SliderField - verify via aria-valuenow on slider
+    // IMPORTANT: filter({ has }) requires page-level locators, not container-scoped ones
+    const salaryLabel = page.getByText('Monthly Salary', { exact: true });
+    const salaryFormItem = currentJobCard.locator('[data-slot="form-item"]').filter({ has: salaryLabel });
+    const salarySlider = salaryFormItem.locator('[role="slider"]');
+    await expect(salarySlider).toHaveAttribute('aria-valuenow', TEST_DATA.currentJob.monthlySalary.toString(), { timeout: TIMEOUTS.formInput });
 
-    // Growth rate and ROI are Radix UI sliders - verify using aria-valuenow with data-slot
+    // Growth rate and ROI are sliders - verify using aria-valuenow with data-slot
     const growthLabel = page.getByText('Annual Salary Growth Rate', { exact: true });
     const growthFormItem = page.locator('[data-slot="form-item"]').filter({ has: growthLabel });
     const growthSlider = growthFormItem.locator('[role="slider"]');
@@ -87,16 +91,20 @@ test.describe('Current Job Form', () => {
   test('should accept numeric input for salary', async ({ page, helpers }) => {
     await helpers.waitForAPIConnection();
 
-    // Scope to Current Job card - salary uses formatDisplay=true so it's a textbox
-    const currentJobCard = page.locator('.terminal-card').filter({ hasText: 'Current Job' });
-    const salaryInput = currentJobCard.getByRole('textbox', { name: 'e.g. 12,000' });
-    await salaryInput.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
+    // Scope to Current Job card using collapsible trigger button for precise matching
+    const currentJobCard = page.locator('.terminal-card').filter({
+      has: page.getByRole('button', { name: /^Current Job/ }),
+    });
 
-    await salaryInput.click();
-    // Triple-click to select all (works cross-platform)
-    await salaryInput.click({ clickCount: 3 });
-    await page.keyboard.type('20000');
-    await expect(salaryInput).toHaveValue('20000', { timeout: TIMEOUTS.formInput });
+    // Use the edit button to set salary value directly
+    await helpers.setSliderValue('Monthly Salary', 20000, 0, 500, currentJobCard);
+
+    // Verify slider has the correct value
+    // IMPORTANT: filter({ has }) requires page-level locators, not container-scoped ones
+    const salaryLabel = page.getByText('Monthly Salary', { exact: true });
+    const salaryFormItem = currentJobCard.locator('[data-slot="form-item"]').filter({ has: salaryLabel });
+    const salarySlider = salaryFormItem.locator('[role="slider"]');
+    await expect(salarySlider).toHaveAttribute('aria-valuenow', '20000', { timeout: TIMEOUTS.formInput });
   });
 
   test('should accept decimal values for percentages', async ({ page, helpers }) => {
