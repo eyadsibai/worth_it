@@ -6,7 +6,18 @@ insights about which option is better and why.
 
 from __future__ import annotations
 
+import re
 from typing import Literal, TypedDict
+
+# Currency formatting thresholds
+MILLION = 1_000_000
+THOUSAND = 1_000
+
+# Minimum number of scenarios required for comparison
+MIN_SCENARIOS_FOR_COMPARISON = 2
+
+# Salary difference percentage that qualifies as "significant"
+SIGNIFICANT_SALARY_DIFF_PCT = 10
 
 
 # Type definitions
@@ -75,10 +86,10 @@ class ComparisonMetrics(TypedDict):
 
 def _format_currency(value: float) -> str:
     """Format a value as currency."""
-    if value >= 1_000_000:
-        return f"${value / 1_000_000:.1f}M"
-    elif value >= 1_000:
-        return f"${value / 1_000:.0f}K"
+    if value >= MILLION:
+        return f"${value / MILLION:.1f}M"
+    elif value >= THOUSAND:
+        return f"${value / THOUSAND:.0f}K"
     else:
         return f"${value:.0f}"
 
@@ -141,7 +152,7 @@ def calculate_metric_diffs(scenarios: list[dict]) -> list[MetricDiff]:
     Returns:
         List of MetricDiff for each metric
     """
-    if len(scenarios) < 2:
+    if len(scenarios) < MIN_SCENARIOS_FOR_COMPARISON:
         return []
 
     metrics_config = [
@@ -212,7 +223,7 @@ def generate_comparison_insights(scenarios: list[dict]) -> list[ComparisonInsigh
     Returns:
         List of ComparisonInsight, limited to 5 most relevant
     """
-    if len(scenarios) < 2:
+    if len(scenarios) < MIN_SCENARIOS_FOR_COMPARISON:
         return []
 
     insights: list[ComparisonInsight] = []
@@ -246,7 +257,7 @@ def generate_comparison_insights(scenarios: list[dict]) -> list[ComparisonInsigh
     min_salary = min(salaries)
     salary_diff_pct = ((max_salary - min_salary) / min_salary * 100) if min_salary > 0 else 0
 
-    if salary_diff_pct > 10:  # Significant salary difference
+    if salary_diff_pct > SIGNIFICANT_SALARY_DIFF_PCT:
         high_salary_scenario = next(
             s for s in scenarios if s["equity"]["monthly_salary"] == max_salary
         )
@@ -278,8 +289,6 @@ def generate_comparison_insights(scenarios: list[dict]) -> list[ComparisonInsigh
         # Find earliest breakeven
         def parse_year(breakeven_str: str) -> int:
             """Extract year number from breakeven string."""
-            import re
-
             match = re.search(r"\d+", breakeven_str)
             return int(match.group()) if match else 99
 

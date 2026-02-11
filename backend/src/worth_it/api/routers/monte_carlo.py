@@ -196,7 +196,7 @@ ws_router = APIRouter(tags=["monte-carlo"])
 
 
 @ws_router.websocket("/ws/monte-carlo")
-async def websocket_monte_carlo(websocket: WebSocket):
+async def websocket_monte_carlo(websocket: WebSocket):  # noqa: C901 - complex WebSocket protocol handler with rate limiting, validation, timeout, and error recovery
     """WebSocket endpoint for Monte Carlo simulation with progress updates.
 
     Receives simulation parameters and sends progress updates as the simulation runs.
@@ -389,7 +389,7 @@ def _get_valuation_function(method: str) -> Any:
 
 
 @ws_router.websocket("/ws/valuation-monte-carlo")
-async def websocket_valuation_monte_carlo(websocket: WebSocket) -> None:
+async def websocket_valuation_monte_carlo(websocket: WebSocket) -> None:  # noqa: C901 - complex WebSocket protocol handler with rate limiting, validation, batching, and error recovery
     """WebSocket endpoint for streaming valuation Monte Carlo results.
 
     Accepts configuration, runs simulation in batches, streams progress updates.

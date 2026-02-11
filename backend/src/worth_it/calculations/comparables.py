@@ -12,6 +12,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from statistics import mean, median
 
+# Minimum number of comparables for percentile interpolation
+MIN_COMPARABLES_FOR_PERCENTILES = 2
+
 
 @dataclass(frozen=True)
 class ComparableTransaction:
@@ -111,7 +114,7 @@ def calculate_comparable_valuation(params: ComparablesParams) -> ComparablesResu
     # Calculate percentiles
     if n == 1:
         p25_mult = p75_mult = sorted_multiples[0]
-    elif n == 2:
+    elif n == MIN_COMPARABLES_FOR_PERCENTILES:
         p25_mult = sorted_multiples[0]
         p75_mult = sorted_multiples[1]
     else:

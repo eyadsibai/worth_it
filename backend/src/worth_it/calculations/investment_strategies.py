@@ -90,9 +90,9 @@ class MonthlyInvestmentStrategy(InvestmentFrequencyStrategy):
         monthly_df: pd.DataFrame,
         year_end: int,
         annual_roi: float,
-        annual_investable_surplus: pd.Series,  # noqa: ARG002 - not used in monthly
-        annual_exercise_cost: pd.Series,  # noqa: ARG002 - not used in monthly
-        annual_cash_from_sale: pd.Series,  # noqa: ARG002 - not used in monthly
+        annual_investable_surplus: pd.Series,
+        annual_exercise_cost: pd.Series,
+        annual_cash_from_sale: pd.Series,
     ) -> FutureValueResult:
         """Calculate FV with monthly compounding."""
         monthly_roi = annual_to_monthly_roi(annual_roi)
@@ -126,7 +126,7 @@ class AnnualInvestmentStrategy(InvestmentFrequencyStrategy):
 
     def calculate_future_value(
         self,
-        monthly_df: pd.DataFrame,  # noqa: ARG002 - not used in annual
+        monthly_df: pd.DataFrame,
         year_end: int,
         annual_roi: float,
         annual_investable_surplus: pd.Series,

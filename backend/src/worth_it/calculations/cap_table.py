@@ -139,8 +139,8 @@ def calculate_months_between_dates(start_date: str, end_date: str) -> float:
 from worth_it.calculations.conversion_engine import convert_instruments  # noqa: E402
 
 __all__ = [
-    "calculate_interest",
     "calculate_conversion_price",
+    "calculate_interest",
     "calculate_months_between_dates",
     "convert_instruments",
 ]

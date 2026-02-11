@@ -135,7 +135,7 @@ from worth_it.calculations.waterfall_engine import (
 # 1. monte_carlo's imports from calculations are at the top (executed first)
 # 2. This import is at the END of calculations __init__.py (all functions already defined)
 # 3. Python handles this pattern correctly when calculations is imported first
-from worth_it.monte_carlo import (  # noqa: E402
+from worth_it.monte_carlo import (
     get_random_variates_pert,
     run_monte_carlo_simulation,
     run_monte_carlo_simulation_iterative,
@@ -144,85 +144,85 @@ from worth_it.monte_carlo import (  # noqa: E402
 )
 
 __all__ = [
-    # Base
-    "EquityType",
-    "annual_to_monthly_roi",
-    # Opportunity cost
-    "create_monthly_data_grid",
-    "calculate_annual_opportunity_cost",
-    # Startup scenario
-    "calculate_startup_scenario",
-    # Financial metrics
-    "calculate_dilution_from_valuation",
-    "calculate_irr",
-    "calculate_npv",
-    # Cap table
-    "calculate_interest",
-    "calculate_conversion_price",
-    "calculate_months_between_dates",
+    "AnnualInvestmentStrategy",
+    # Pre-revenue valuation methods (Phase 2)
+    "BerkusParams",
+    "BerkusResult",
     # Conversion engine (fluent pipeline)
     "ConversionPipeline",
     "ConversionResult",
-    "convert_instruments",
+    "DCFParams",
+    "DilutionParty",
+    # Dilution engine (fluent pipeline)
+    "DilutionPipeline",
+    "DilutionPreviewResult",
+    "DilutionResult",
+    # Base
+    "EquityType",
+    "FirstChicagoParams",
+    "FirstChicagoResult",
+    "FirstChicagoScenario",
+    "FutureValueResult",
+    # Investment frequency strategies (Strategy Pattern)
+    "InvestmentFrequencyStrategy",
+    "IterativeMonteCarlo",
+    "MonteCarloResult",
+    # Monte Carlo simulation classes (Template Method Pattern)
+    "MonteCarloSimulation",
+    "MonthlyInvestmentStrategy",
+    "RevenueMultipleParams",
+    "RiskFactor",
+    "RiskFactorSummationParams",
+    "RiskFactorSummationResult",
+    "ScorecardFactor",
+    "ScorecardParams",
+    "ScorecardResult",
+    "VCMethodParams",
+    "ValuationComparison",
+    "ValuationResult",
+    "VectorizedMonteCarlo",
     # Waterfall (fluent pipeline)
     "WaterfallPipeline",
     "WaterfallResult",
-    "calculate_waterfall",
-    # Dilution engine (fluent pipeline)
-    "DilutionPipeline",
-    "DilutionResult",
-    "calculate_dilution_schedule",
+    "annual_to_monthly_roi",
+    "calculate_annual_opportunity_cost",
+    "calculate_berkus",
+    "calculate_conversion_price",
+    "calculate_dcf",
+    # Financial metrics
+    "calculate_dilution_from_valuation",
     # Dilution preview
     "calculate_dilution_preview",
-    "DilutionParty",
-    "DilutionPreviewResult",
-    # Scenario comparison
-    "identify_winner",
+    "calculate_dilution_schedule",
+    "calculate_first_chicago",
+    # Cap table
+    "calculate_interest",
+    "calculate_irr",
     "calculate_metric_diffs",
+    "calculate_months_between_dates",
+    "calculate_npv",
+    # Valuation methods (revenue-based)
+    "calculate_revenue_multiple",
+    "calculate_risk_factor_summation",
+    "calculate_scorecard",
+    # Startup scenario
+    "calculate_startup_scenario",
+    "calculate_vc_method",
+    "calculate_waterfall",
+    "compare_valuations",
+    "convert_instruments",
+    # Opportunity cost
+    "create_monthly_data_grid",
     "generate_comparison_insights",
     "get_comparison_metrics",
+    "get_investment_strategy",
+    "get_monte_carlo_simulation",
     # Monte Carlo (re-exported from monte_carlo.py)
     "get_random_variates_pert",
+    # Scenario comparison
+    "identify_winner",
     "run_monte_carlo_simulation",
     "run_monte_carlo_simulation_iterative",
     "run_monte_carlo_simulation_vectorized",
     "run_sensitivity_analysis",
-    # Valuation methods (revenue-based)
-    "calculate_revenue_multiple",
-    "calculate_dcf",
-    "calculate_vc_method",
-    "calculate_first_chicago",
-    "compare_valuations",
-    "RevenueMultipleParams",
-    "DCFParams",
-    "VCMethodParams",
-    "FirstChicagoScenario",
-    "FirstChicagoParams",
-    "FirstChicagoResult",
-    "ValuationResult",
-    "ValuationComparison",
-    # Pre-revenue valuation methods (Phase 2)
-    "BerkusParams",
-    "BerkusResult",
-    "calculate_berkus",
-    "ScorecardFactor",
-    "ScorecardParams",
-    "ScorecardResult",
-    "calculate_scorecard",
-    "RiskFactor",
-    "RiskFactorSummationParams",
-    "RiskFactorSummationResult",
-    "calculate_risk_factor_summation",
-    # Investment frequency strategies (Strategy Pattern)
-    "InvestmentFrequencyStrategy",
-    "MonthlyInvestmentStrategy",
-    "AnnualInvestmentStrategy",
-    "FutureValueResult",
-    "get_investment_strategy",
-    # Monte Carlo simulation classes (Template Method Pattern)
-    "MonteCarloSimulation",
-    "VectorizedMonteCarlo",
-    "IterativeMonteCarlo",
-    "MonteCarloResult",
-    "get_monte_carlo_simulation",
 ]

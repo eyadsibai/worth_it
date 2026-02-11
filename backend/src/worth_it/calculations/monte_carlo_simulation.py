@@ -240,8 +240,8 @@ class VectorizedMonteCarlo(MonteCarloSimulation):
 
         Delegates to the optimized function for actual computation.
         """
-        # Import here to avoid circular imports
-        from worth_it.monte_carlo import run_monte_carlo_simulation_vectorized
+        # Deferred import to avoid circular dependency: monte_carlo imports calculations
+        from worth_it.monte_carlo import run_monte_carlo_simulation_vectorized  # noqa: PLC0415
 
         return run_monte_carlo_simulation_vectorized(
             num_simulations,
@@ -255,7 +255,8 @@ class VectorizedMonteCarlo(MonteCarloSimulation):
         config: dict[str, Any],
     ) -> np.ndarray:
         """Generate PERT distribution samples."""
-        from worth_it.monte_carlo import get_random_variates_pert
+        # Deferred import to avoid circular dependency: monte_carlo imports calculations
+        from worth_it.monte_carlo import get_random_variates_pert  # noqa: PLC0415
 
         return get_random_variates_pert(num_simulations, config, 0)
 
@@ -273,9 +274,15 @@ class IterativeMonteCarlo(MonteCarloSimulation):
     def generate_samples(self, num_simulations: int) -> dict[str, np.ndarray]:
         """Generate samples including variable exit year."""
         samples: dict[str, np.ndarray] = {}
+        default_valuation = self.base_params["startup_params"]["rsu_params"].get(
+            "target_exit_valuation"
+        ) or self.base_params["startup_params"]["options_params"].get(
+            "target_exit_price_per_share"
+        )
 
         # Exit year: PERT distribution (key differentiator)
-        from worth_it.monte_carlo import get_random_variates_pert
+        # Deferred import to avoid circular dependency: monte_carlo imports calculations
+        from worth_it.monte_carlo import get_random_variates_pert  # noqa: PLC0415
 
         samples["exit_year"] = get_random_variates_pert(
             num_simulations,
@@ -286,7 +293,7 @@ class IterativeMonteCarlo(MonteCarloSimulation):
         # Valuation: May be year-dependent
         if "yearly_valuation" in self.sim_param_configs:
             yearly_val = self.sim_param_configs["yearly_valuation"]
-            default_config = list(yearly_val.values())[0]
+            default_config = next(iter(yearly_val.values()))
             valuations = []
             for year in samples["exit_year"]:
                 config = yearly_val.get(str(year), default_config)
@@ -299,7 +306,7 @@ class IterativeMonteCarlo(MonteCarloSimulation):
                 0,
             )
         else:
-            samples["valuation"] = np.full(num_simulations, 0)
+            samples["valuation"] = np.full(num_simulations, default_valuation)
 
         # ROI: Normal distribution
         if "roi" in self.sim_param_configs:
@@ -338,12 +345,15 @@ class IterativeMonteCarlo(MonteCarloSimulation):
         This must iterate because each simulation has a different exit year,
         which changes the entire calculation structure.
         """
-        from worth_it.calculations.base import EquityType
-        from worth_it.calculations.opportunity_cost import (
+        # Deferred imports to avoid circular dependency: these modules import from monte_carlo
+        from worth_it.calculations.base import EquityType  # noqa: PLC0415
+        from worth_it.calculations.opportunity_cost import (  # noqa: PLC0415
             calculate_annual_opportunity_cost,
             create_monthly_data_grid,
         )
-        from worth_it.calculations.startup_scenario import calculate_startup_scenario
+        from worth_it.calculations.startup_scenario import (  # noqa: PLC0415
+            calculate_startup_scenario,
+        )
 
         net_outcomes_list: list[float] = []
         final_opportunity_costs_list: list[float] = []

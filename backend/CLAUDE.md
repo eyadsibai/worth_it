@@ -153,7 +153,7 @@ LOG_LEVEL=INFO
 
 **Backend not starting?**
 
-- Check Python version: `python --version` (requires 3.13+)
+- Check Python version: `python --version` (requires 3.14+)
 - Reinstall dependencies: `uv sync`
 - Check port 8000 is free: `lsof -i :8000`
 

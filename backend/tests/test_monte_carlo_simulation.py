@@ -244,6 +244,26 @@ class TestIterativeMonteCarlo:
         assert samples["exit_year"].min() >= min_val
         assert samples["exit_year"].max() <= max_val
 
+    def test_generate_samples_defaults_valuation_when_not_simulated(
+        self,
+        base_params_rsu: dict[str, Any],
+    ):
+        """Verify valuation defaults to base exit valuation in iterative mode."""
+        sim = IterativeMonteCarlo(
+            base_params_rsu,
+            {
+                "exit_year": {
+                    "min_val": 3,
+                    "max_val": 7,
+                    "mode": 5,
+                }
+            },
+        )
+        samples = sim.generate_samples(20)
+
+        assert len(samples["valuation"]) == 20
+        assert np.all(samples["valuation"] == 100_000_000)
+
 
 # --- Template Method Pattern Tests ---
 

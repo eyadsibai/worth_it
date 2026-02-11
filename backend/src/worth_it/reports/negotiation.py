@@ -48,10 +48,7 @@ def _get_percentile(data: dict[str, float], percentile: int, default: float) -> 
 def _has_required_percentiles(data: dict[str, float]) -> bool:
     """Check if dict has required percentile keys in either format."""
     required = [10, 25, 75, 90]
-    for p in required:
-        if f"p{p}" not in data and f"percentile_{p}" not in data:
-            return False
-    return True
+    return all(not (f"p{p}" not in data and f"percentile_{p}" not in data) for p in required)
 
 
 def calculate_negotiation_range(
@@ -72,23 +69,20 @@ def calculate_negotiation_range(
     Returns:
         NegotiationRange with floor, conservative, target, aggressive, ceiling
     """
-    if monte_carlo_percentiles is not None:
-        # Check for required percentiles in either naming format
-        if _has_required_percentiles(monte_carlo_percentiles):
-            return NegotiationRange(
-                floor=_get_percentile(monte_carlo_percentiles, 10, valuation * FLOOR_MULTIPLIER),
-                conservative=_get_percentile(
-                    monte_carlo_percentiles, 25, valuation * CONSERVATIVE_MULTIPLIER
-                ),
-                target=_get_percentile(monte_carlo_percentiles, 50, valuation),
-                aggressive=_get_percentile(
-                    monte_carlo_percentiles, 75, valuation * AGGRESSIVE_MULTIPLIER
-                ),
-                ceiling=_get_percentile(
-                    monte_carlo_percentiles, 90, valuation * CEILING_MULTIPLIER
-                ),
-            )
-        # Fall through to standard multipliers if keys are missing
+    if monte_carlo_percentiles is not None and _has_required_percentiles(monte_carlo_percentiles):
+        return NegotiationRange(
+            floor=_get_percentile(monte_carlo_percentiles, 10, valuation * FLOOR_MULTIPLIER),
+            conservative=_get_percentile(
+                monte_carlo_percentiles, 25, valuation * CONSERVATIVE_MULTIPLIER
+            ),
+            target=_get_percentile(monte_carlo_percentiles, 50, valuation),
+            aggressive=_get_percentile(
+                monte_carlo_percentiles, 75, valuation * AGGRESSIVE_MULTIPLIER
+            ),
+            ceiling=_get_percentile(
+                monte_carlo_percentiles, 90, valuation * CEILING_MULTIPLIER
+            ),
+        )
 
     # Fall back to standard variance multipliers
     return NegotiationRange(

@@ -839,6 +839,39 @@ def test_equity_sale_slider_limited_to_vested():
     assert not np.isnan(results["final_payout_value"])
 
 
+# --- Tests for annual_to_monthly_roi validation ---
+class TestAnnualToMonthlyRoi:
+    """Tests for the annual_to_monthly_roi utility function."""
+
+    def test_normal_conversion(self):
+        """Test standard annual-to-monthly ROI conversion."""
+        monthly = calculations.annual_to_monthly_roi(0.12)
+        assert monthly == pytest.approx(0.009488, rel=1e-3)
+
+    def test_zero_roi(self):
+        """Test zero annual ROI returns zero monthly."""
+        assert calculations.annual_to_monthly_roi(0.0) == 0.0
+
+    def test_rejects_below_minus_one(self):
+        """Test that annual ROI < -1 raises CalculationError."""
+        from worth_it.exceptions import CalculationError
+
+        with pytest.raises(CalculationError, match="Annual ROI must be >= -1"):
+            calculations.annual_to_monthly_roi(-1.5)
+
+    def test_rejects_array_below_minus_one(self):
+        """Test that numpy array with values < -1 raises CalculationError."""
+        from worth_it.exceptions import CalculationError
+
+        with pytest.raises(CalculationError, match="All annual ROI values must be >= -1"):
+            calculations.annual_to_monthly_roi(np.array([0.1, -2.0, 0.05]))
+
+    def test_accepts_minus_one(self):
+        """Test that exactly -1 (100% loss) is accepted."""
+        result = calculations.annual_to_monthly_roi(-1.0)
+        assert result == -1.0
+
+
 # --- Tests for calculate_dilution_from_valuation ---
 class TestCalculateDilutionFromValuation:
     """Tests for the dilution calculation function."""

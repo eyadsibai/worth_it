@@ -93,18 +93,14 @@ def calculate_startup_scenario(
         diluted_equity_pct = initial_equity_pct * last_factor
 
         # Build sorted_rounds for equity sale calculations
-        if dilution_rounds:
-            sorted_rounds = sorted(dilution_rounds, key=lambda r: r["year"])
-        else:
-            sorted_rounds = []
+        sorted_rounds = sorted(dilution_rounds, key=lambda r: r["year"]) if dilution_rounds else []
 
         # --- Account for Sold Equity ---
         # Only consider equity sales that happen before or at the exit year
         remaining_equity_factor = 1.0
         for r in sorted_rounds:
-            if "percent_to_sell" in r and r["percent_to_sell"] > 0:
-                if r["year"] <= exit_year:
-                    remaining_equity_factor *= 1 - r["percent_to_sell"]
+            if "percent_to_sell" in r and r["percent_to_sell"] > 0 and r["year"] <= exit_year:
+                remaining_equity_factor *= 1 - r["percent_to_sell"]
 
         final_vested_equity_pct = (
             results_df["Vested Equity (%)"].iloc[-1] / 100

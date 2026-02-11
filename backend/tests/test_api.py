@@ -1247,6 +1247,26 @@ class TestSecurityConfiguration:
             if original is not None:
                 os.environ["API_HOST"] = original
 
+    def test_default_development_cors_includes_nextjs_common_ports(self):
+        """Test that default dev CORS origins include Next.js local ports."""
+        import os
+
+        original = os.environ.get("CORS_ORIGINS")
+        try:
+            os.environ.pop("CORS_ORIGINS", None)
+            from worth_it.config import Settings
+
+            origins = Settings.get_cors_origins()
+            assert "http://localhost:3000" in origins
+            assert "http://127.0.0.1:3000" in origins
+            assert "http://localhost:3001" in origins
+            assert "http://127.0.0.1:3001" in origins
+        finally:
+            if original is not None:
+                os.environ["CORS_ORIGINS"] = original
+            else:
+                os.environ.pop("CORS_ORIGINS", None)
+
     def test_cors_origin_validation_rejects_invalid_format(self):
         """Test that invalid CORS origin format is rejected."""
         from worth_it.config import Settings
@@ -1362,7 +1382,7 @@ class TestSecurityConfiguration:
 
             @staticmethod
             def get_cors_origins() -> list[str]:
-                return ["http://insecure.example.com"]
+                return ["https://secure.example.com"]
 
             @classmethod
             def is_production(cls) -> bool:
@@ -1373,8 +1393,24 @@ class TestSecurityConfiguration:
 
         # Should warn about 0.0.0.0 binding
         assert any("0.0.0.0" in record.message for record in caplog.records)
-        # Should warn about non-HTTPS origin
-        assert any("Non-HTTPS origin" in record.message for record in caplog.records)
+
+    def test_validate_rejects_http_origins_in_production(self):
+        """Test that HTTP origins are rejected as a hard error in production."""
+        from worth_it.config import Settings
+
+        class TestSettings(Settings):
+            ENVIRONMENT = "production"
+
+            @staticmethod
+            def get_cors_origins() -> list[str]:
+                return ["http://insecure.example.com"]
+
+            @classmethod
+            def is_production(cls) -> bool:
+                return True
+
+        with pytest.raises(ValueError, match="HTTP origins not allowed in production"):
+            TestSettings.validate()
 
 
 class TestDilutionPreviewAPI:
@@ -2239,6 +2275,23 @@ class TestPreRevenueValuationAPI:
         assert data["valuation"] == 1_700_000  # Sum of all criteria
         assert "breakdown" in data
         assert len(data["breakdown"]) == 5
+
+    def test_berkus_accepts_prototype_value_alias(self):
+        """Test Berkus API accepts frontend-safe prototype_value key."""
+        request_data = {
+            "sound_idea": 400_000,
+            "prototype_value": 350_000,
+            "quality_team": 500_000,
+            "strategic_relationships": 250_000,
+            "product_rollout": 200_000,
+        }
+        response = client.post("/api/valuation/berkus", json=request_data)
+        assert response.status_code == 200
+        data = response.json()
+
+        assert data["method"] == "berkus"
+        assert data["valuation"] == 1_700_000
+        assert data["breakdown"]["prototype"] == 350_000
 
     def test_berkus_with_custom_max_per_criterion(self):
         """Test Berkus Method with custom max value per criterion."""

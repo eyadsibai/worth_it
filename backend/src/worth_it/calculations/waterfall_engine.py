@@ -90,10 +90,20 @@ class WaterfallPipeline:
         )
 
     def build_tier_lookups(self) -> WaterfallPipeline:
-        """Build stakeholder-to-tier mappings and group by seniority."""
+        """Build stakeholder-to-tier mappings and group by seniority.
+
+        Raises:
+            ValueError: If a tier references a stakeholder ID not in the cap table.
+        """
+        stakeholder_ids_in_cap_table = {s["id"] for s in self.cap_table.get("stakeholders", [])}
         stakeholder_to_tier: dict[str, dict[str, Any]] = {}
         for tier in self.preference_tiers:
             for sid in tier.get("stakeholder_ids", []):
+                if sid not in stakeholder_ids_in_cap_table:
+                    raise ValueError(
+                        f"Stakeholder '{sid}' in tier '{tier.get('name', tier.get('id'))}' "
+                        f"not found in cap table. Valid IDs: {stakeholder_ids_in_cap_table}"
+                    )
                 stakeholder_to_tier[sid] = tier
 
         sorted_tiers = sorted(self.preference_tiers, key=lambda t: t["seniority"])
@@ -223,9 +233,8 @@ class WaterfallPipeline:
                 payouts[sid]["payout_amount"] for sid in tier.get("stakeholder_ids", [])
             )
 
-            if not tier.get("participating", False):
+            if not tier.get("participating", False) and pro_rata_value > current_payout:
                 # Non-participating: choose preference OR convert (not both)
-                if pro_rata_value > current_payout:
                     converted_tiers.add(tier["id"])
                     # Reset payout - they'll get pro-rata in distribution
                     for sid in tier.get("stakeholder_ids", []):
@@ -295,7 +304,7 @@ class WaterfallPipeline:
             _remaining_proceeds=0,
         )
 
-    def _distribute_with_preferences(self) -> WaterfallPipeline:
+    def _distribute_with_preferences(self) -> WaterfallPipeline:  # noqa: C901 - complex waterfall distribution with multiple preference tier paths and participation logic
         """Distribute remaining with preference tier logic."""
         stakeholders = self.cap_table.get("stakeholders", [])
         self.cap_table.get("total_shares", 10_000_000)
@@ -311,9 +320,7 @@ class WaterfallPipeline:
         shares_for_remaining = common_shares
         for tier in self.preference_tiers:
             tier_shares = sum(payouts[sid]["shares"] for sid in tier.get("stakeholder_ids", []))
-            if tier["id"] in self._converted_tiers:
-                shares_for_remaining += tier_shares
-            elif tier.get("participating", False):
+            if tier["id"] in self._converted_tiers or tier.get("participating", False):
                 shares_for_remaining += tier_shares
 
         if shares_for_remaining > 0 and remaining > 0:

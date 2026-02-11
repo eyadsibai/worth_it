@@ -89,8 +89,10 @@ def generate_pdf_report(report_data: ValuationReportData) -> bytes:
         # Section metrics as table
         if section.metrics:
             metric_data = [["Metric", "Value", "Description"]]
-            for metric in section.metrics:
-                metric_data.append([metric.name, metric.formatted_value, metric.description])
+            metric_data.extend(
+                [metric.name, metric.formatted_value, metric.description]
+                for metric in section.metrics
+            )
 
             metric_table = Table(
                 metric_data,
@@ -126,8 +128,10 @@ def generate_pdf_report(report_data: ValuationReportData) -> bytes:
     if report_data.disclaimers:
         story.append(Paragraph("Disclaimers", styles["Heading2"]))
         story.append(Spacer(1, 6))
-        for disclaimer in report_data.disclaimers:
-            story.append(Paragraph(disclaimer, styles["Disclaimer"]))
+        story.extend(
+            Paragraph(disclaimer, styles["Disclaimer"])
+            for disclaimer in report_data.disclaimers
+        )
         story.append(Spacer(1, 12))
 
     # Build PDF

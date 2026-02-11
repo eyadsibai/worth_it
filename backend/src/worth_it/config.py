@@ -10,6 +10,13 @@ import os
 
 logger = logging.getLogger(__name__)
 
+# Validation boundary constants
+MAX_PORT = 65535
+MAX_SIMULATIONS_UPPER = 100000
+MAX_WS_CONCURRENT = 20
+MIN_WS_TIMEOUT = 5
+MAX_WS_TIMEOUT = 300
+
 
 class Settings:
     """Application settings loaded from environment variables."""
@@ -38,8 +45,10 @@ class Settings:
         # Default origins for local development
         default_origins = [
             "http://localhost:3000",  # Next.js default port
+            "http://localhost:3001",  # Alternate Next.js dev port
             "http://localhost:8501",  # Legacy Streamlit port
             "http://127.0.0.1:3000",
+            "http://127.0.0.1:3001",
             "http://127.0.0.1:8501",
         ]
 
@@ -52,9 +61,7 @@ class Settings:
 
         # In development, add potential Vercel preview URLs
         if Settings.ENVIRONMENT.lower() == "development":
-            return default_origins + [
-                "https://localhost:3000",
-            ]
+            return [*default_origins, "https://localhost:3000", "https://localhost:3001"]
 
         return default_origins
 
@@ -93,27 +100,27 @@ class Settings:
         """Validate critical configuration settings."""
         errors = []
 
-        if cls.API_PORT < 1 or cls.API_PORT > 65535:
-            errors.append(f"Invalid API_PORT: {cls.API_PORT}. Must be between 1 and 65535.")
+        if cls.API_PORT < 1 or cls.API_PORT > MAX_PORT:
+            errors.append(f"Invalid API_PORT: {cls.API_PORT}. Must be between 1 and {MAX_PORT}.")
 
-        if cls.STREAMLIT_PORT < 1 or cls.STREAMLIT_PORT > 65535:
+        if cls.STREAMLIT_PORT < 1 or cls.STREAMLIT_PORT > MAX_PORT:
             errors.append(
-                f"Invalid STREAMLIT_PORT: {cls.STREAMLIT_PORT}. Must be between 1 and 65535."
+                f"Invalid STREAMLIT_PORT: {cls.STREAMLIT_PORT}. Must be between 1 and {MAX_PORT}."
             )
 
-        if cls.MAX_SIMULATIONS < 1 or cls.MAX_SIMULATIONS > 100000:
+        if cls.MAX_SIMULATIONS < 1 or cls.MAX_SIMULATIONS > MAX_SIMULATIONS_UPPER:
             errors.append(
-                f"Invalid MAX_SIMULATIONS: {cls.MAX_SIMULATIONS}. Must be between 1 and 100000."
+                f"Invalid MAX_SIMULATIONS: {cls.MAX_SIMULATIONS}. Must be between 1 and {MAX_SIMULATIONS_UPPER}."
             )
 
-        if cls.WS_MAX_CONCURRENT_PER_IP < 1 or cls.WS_MAX_CONCURRENT_PER_IP > 20:
+        if cls.WS_MAX_CONCURRENT_PER_IP < 1 or cls.WS_MAX_CONCURRENT_PER_IP > MAX_WS_CONCURRENT:
             errors.append(
-                f"Invalid WS_MAX_CONCURRENT_PER_IP: {cls.WS_MAX_CONCURRENT_PER_IP}. Must be between 1 and 20."
+                f"Invalid WS_MAX_CONCURRENT_PER_IP: {cls.WS_MAX_CONCURRENT_PER_IP}. Must be between 1 and {MAX_WS_CONCURRENT}."
             )
 
-        if cls.WS_SIMULATION_TIMEOUT_SECONDS < 5 or cls.WS_SIMULATION_TIMEOUT_SECONDS > 300:
+        if cls.WS_SIMULATION_TIMEOUT_SECONDS < MIN_WS_TIMEOUT or cls.WS_SIMULATION_TIMEOUT_SECONDS > MAX_WS_TIMEOUT:
             errors.append(
-                f"Invalid WS_SIMULATION_TIMEOUT_SECONDS: {cls.WS_SIMULATION_TIMEOUT_SECONDS}. Must be between 5 and 300."
+                f"Invalid WS_SIMULATION_TIMEOUT_SECONDS: {cls.WS_SIMULATION_TIMEOUT_SECONDS}. Must be between {MIN_WS_TIMEOUT} and {MAX_WS_TIMEOUT}."
             )
 
         if cls.LOG_LEVEL not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
@@ -123,13 +130,12 @@ class Settings:
 
         # Validate CORS origins format
         cors_origins = cls.get_cors_origins()
-        for origin in cors_origins:
-            if origin != "*" and not (
-                origin.startswith("http://") or origin.startswith("https://")
-            ):
-                errors.append(
-                    f"Invalid CORS origin '{origin}'. Must be '*' or start with http:// or https://"
-                )
+        errors.extend(
+            f"Invalid CORS origin '{origin}'. Must be '*' or start with http:// or https://"
+            for origin in cors_origins
+            if origin != "*"
+            and not (origin.startswith("http://") or origin.startswith("https://"))
+        )
 
         # In production, reject wildcard CORS as a hard error
         if cls.is_production() and "*" in cors_origins:
@@ -137,6 +143,15 @@ class Settings:
                 "Wildcard '*' CORS origin is not allowed in production. "
                 "Set CORS_ORIGINS to specific allowed origins."
             )
+
+        # In production, reject insecure HTTP origins
+        if cls.is_production():
+            http_origins = [o for o in cors_origins if o.startswith("http://")]
+            if http_origins:
+                errors.append(
+                    f"HTTP origins not allowed in production: {', '.join(http_origins)}. "
+                    "Use HTTPS origins only."
+                )
 
         if errors:
             raise ValueError("Configuration validation failed:\n" + "\n".join(errors))
@@ -150,16 +165,8 @@ class Settings:
         """
         if cls.is_production():
             cors_origins = cls.get_cors_origins()
-            # Note: Wildcard CORS check is handled by validate() which raises an error
-            # before this method is called, so no need to check for "*" here
-
-            # Check for overly permissive CORS patterns (warn for ALL HTTP origins)
-            for origin in cors_origins:
-                if origin.startswith("http://"):
-                    logger.warning(
-                        f"SECURITY WARNING: Non-HTTPS origin '{origin}' in production CORS. "
-                        "Consider using HTTPS origins only."
-                    )
+            # Note: Wildcard CORS and HTTP origin checks are handled by validate()
+            # which raises an error before this method is called
 
             # Warn about binding to all interfaces
             if cls.API_HOST == "0.0.0.0":  # nosec B104 - intentional check

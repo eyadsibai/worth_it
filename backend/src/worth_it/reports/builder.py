@@ -7,6 +7,10 @@ from typing import Any
 
 from .models import ReportMetric, ReportSection, ValuationReportData
 
+# Currency formatting thresholds
+MILLION = 1_000_000
+THOUSAND = 1_000
+
 DEFAULT_DISCLAIMERS = [
     (
         "This valuation is provided for informational purposes only "
@@ -26,10 +30,10 @@ def format_currency(value: float) -> str:
     Returns:
         Formatted string (e.g., "$7.5M", "$500K", "$500")
     """
-    if abs(value) >= 1_000_000:
-        return f"${value / 1_000_000:.1f}M"
-    elif abs(value) >= 1_000:
-        return f"${value / 1_000:.1f}K"
+    if abs(value) >= MILLION:
+        return f"${value / MILLION:.1f}M"
+    elif abs(value) >= THOUSAND:
+        return f"${value / THOUSAND:.1f}K"
     else:
         return f"${value:,.0f}"
 

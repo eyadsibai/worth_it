@@ -14,6 +14,22 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+# Revenue multiple comparison thresholds (vs industry benchmark)
+BENCHMARK_PREMIUM_THRESHOLD = 1.2
+BENCHMARK_DISCOUNT_THRESHOLD = 0.8
+
+# DCF confidence thresholds
+DCF_RELIABLE_YEARS = 5
+DCF_SHORT_PROJECTION_YEARS = 5
+DCF_MEDIUM_PROJECTION_YEARS = 10
+DCF_MIN_STAGES_FOR_REALISM = 2
+
+# Valuation comparison thresholds
+OUTLIER_DEVIATION_THRESHOLD = 0.5  # More than 50% from average
+TIGHT_CLUSTER_RANGE = 0.2
+MODERATE_CLUSTER_RANGE = 0.5
+MIN_RESULTS_FOR_RECOMMENDATION = 2
+
 # ============================================================================
 # Data Models
 # ============================================================================
@@ -541,9 +557,9 @@ def calculate_revenue_multiple(params: RevenueMultipleParams) -> ValuationResult
         inputs["multiple_vs_benchmark"] = multiple_vs_benchmark
         inputs["industry_benchmark_multiple"] = params.industry_benchmark_multiple
 
-        if multiple_vs_benchmark > 1.2:
+        if multiple_vs_benchmark > BENCHMARK_PREMIUM_THRESHOLD:
             notes = "Premium multiple vs industry benchmark - justified if growth exceeds peers"
-        elif multiple_vs_benchmark < 0.8:
+        elif multiple_vs_benchmark < BENCHMARK_DISCOUNT_THRESHOLD:
             notes = "Discount to industry benchmark - consider if undervalued or challenged"
         else:
             notes = "Multiple in line with industry benchmark"
@@ -625,7 +641,7 @@ def calculate_dcf(params: DCFParams) -> ValuationResult:
 
     # Confidence (DCF has moderate confidence due to projection uncertainty)
     confidence = 0.6
-    if len(cash_flows) >= 5:
+    if len(cash_flows) >= DCF_RELIABLE_YEARS:
         confidence += 0.1  # More years = more reliable
     if all(cf >= 0 for cf in cash_flows):
         confidence += 0.05  # Profitable company = more predictable
@@ -719,15 +735,15 @@ def calculate_enhanced_dcf(params: EnhancedDCFParams) -> EnhancedDCFResult:
     confidence = 0.6  # Base confidence for DCF
 
     # Shorter projections are more reliable
-    if total_years <= 5:
+    if total_years <= DCF_SHORT_PROJECTION_YEARS:
         confidence += 0.15
-    elif total_years <= 10:
+    elif total_years <= DCF_MEDIUM_PROJECTION_YEARS:
         confidence += 0.05
     else:
         confidence -= 0.05  # Long projections reduce confidence
 
     # Multiple stages add complexity but also realism
-    if len(stages) >= 2:
+    if len(stages) >= DCF_MIN_STAGES_FOR_REALISM:
         confidence += 0.05  # More nuanced = more realistic
 
     # Positive cash flows throughout indicate stability
@@ -914,17 +930,17 @@ def compare_valuations(results: list[ValuationResult]) -> ValuationComparison:
     outliers: list[str] = []
     for r in results:
         deviation = abs(r.valuation - avg_val) / avg_val if avg_val > 0 else 0
-        if deviation > 0.5:  # More than 50% from average
+        if deviation > OUTLIER_DEVIATION_THRESHOLD:
             outliers.append(r.method)
 
     # Generate insights
     insights = []
 
-    if range_pct < 0.2:
+    if range_pct < TIGHT_CLUSTER_RANGE:
         insights.append(
             f"Valuations are tightly clustered (±{range_pct:.0%}), suggesting strong consensus"
         )
-    elif range_pct < 0.5:
+    elif range_pct < MODERATE_CLUSTER_RANGE:
         insights.append(
             f"Moderate valuation range ({range_pct:.0%}). Consider weighted average of ${weighted_avg:,.0f}"
         )
@@ -939,7 +955,7 @@ def compare_valuations(results: list[ValuationResult]) -> ValuationComparison:
         )
 
     # Recommend a value
-    if len(results) >= 2:
+    if len(results) >= MIN_RESULTS_FOR_RECOMMENDATION:
         insights.append(
             f"Recommended range: ${min_val:,.0f} to ${max_val:,.0f} (weighted avg: ${weighted_avg:,.0f})"
         )

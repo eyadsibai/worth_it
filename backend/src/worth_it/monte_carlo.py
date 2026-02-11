@@ -79,7 +79,20 @@ def run_monte_carlo_simulation(
 
     Returns:
         Dictionary with 'net_outcomes' and 'simulated_valuations' arrays
+
+    Raises:
+        CalculationError: If num_simulations exceeds MAX_SIMULATIONS
     """
+    # Deferred import to avoid circular dependency: config/exceptions import models
+    from worth_it.config import Settings  # noqa: PLC0415
+    from worth_it.exceptions import CalculationError  # noqa: PLC0415
+
+    if num_simulations > Settings.MAX_SIMULATIONS:
+        raise CalculationError(
+            f"num_simulations ({num_simulations}) exceeds max allowed "
+            f"({Settings.MAX_SIMULATIONS}). Reduce the number of simulations."
+        )
+
     # If exit year is simulated, the calculation must be iterative.
     if "exit_year" in sim_param_configs:
         return run_monte_carlo_simulation_iterative(num_simulations, base_params, sim_param_configs)
@@ -128,7 +141,7 @@ def run_monte_carlo_simulation(
     return run_monte_carlo_simulation_vectorized(num_simulations, base_params, sim_params)
 
 
-def run_monte_carlo_simulation_vectorized(
+def run_monte_carlo_simulation_vectorized(  # noqa: C901 - inherently complex vectorized simulation with multiple equity type paths
     num_simulations: int, base_params: dict[str, Any], sim_params: dict[str, np.ndarray]
 ) -> dict[str, np.ndarray]:
     """
@@ -327,6 +340,10 @@ def run_monte_carlo_simulation_iterative(
         Dictionary with 'net_outcomes' and 'simulated_valuations' arrays
     """
     sim_params: dict[str, Any] = {}
+
+    default_valuation = base_params["startup_params"]["rsu_params"].get(
+        "target_exit_valuation"
+    ) or base_params["startup_params"]["options_params"].get("target_exit_price_per_share")
     sim_params["exit_year"] = get_random_variates_pert(
         num_simulations, sim_param_configs.get("exit_year"), base_params["exit_year"]
     ).astype(int)
@@ -335,7 +352,7 @@ def run_monte_carlo_simulation_iterative(
         yearly_valuation = sim_param_configs["yearly_valuation"]
         valuations = []
         # Cache the default value outside the loop
-        default_config = list(yearly_valuation.values())[0]
+        default_config = next(iter(yearly_valuation.values()))
         for year in sim_params["exit_year"]:
             # Ensure year is treated as a string key
             config = yearly_valuation.get(str(year), default_config)
@@ -345,6 +362,8 @@ def run_monte_carlo_simulation_iterative(
         sim_params["valuation"] = get_random_variates_pert(
             num_simulations, sim_param_configs["valuation"], 0
         )
+    else:
+        sim_params["valuation"] = np.full(num_simulations, default_valuation)
 
     # Handle other variables
     if "roi" in sim_param_configs:

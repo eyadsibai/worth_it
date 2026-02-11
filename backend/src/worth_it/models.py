@@ -6,17 +6,24 @@ the Streamlit frontend and the FastAPI backend.
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Literal, Self
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from worth_it.types import DilutionRound
 
+# Floating-point tolerance bounds for probability sum validation
+PROBABILITY_TOLERANCE_LOW = 0.99
+PROBABILITY_TOLERANCE_HIGH = 1.01
+
+# Exit year domain bounds
+MAX_EXIT_YEAR = 20
+
 # --- Error Response Models (Issue #244) ---
 
 
-class ErrorCode(str, Enum):
+class ErrorCode(StrEnum):
     """Standardized error codes for API responses."""
 
     VALIDATION_ERROR = "VALIDATION_ERROR"
@@ -52,7 +59,7 @@ class ErrorResponse(BaseModel):
 # --- Typed Request Payload Models (Issue #248) ---
 
 
-class VariableParam(str, Enum):
+class VariableParam(StrEnum):
     """Parameters that can be varied in Monte Carlo/Sensitivity analysis.
 
     These are the allowed keys for sim_param_configs dictionary,
@@ -105,7 +112,7 @@ class RSUParams(BaseModel):
     total_equity_grant_pct: float = Field(..., ge=0, le=100)
     vesting_period: int = Field(default=4, ge=1, le=10)
     cliff_period: int = Field(default=1, ge=0, le=5)
-    exit_valuation: float = Field(..., ge=0)
+    exit_valuation: float = Field(..., gt=0)
     simulate_dilution: bool = False
     dilution_rounds: list[DilutionRound] | None = None
     discount_rate: float | None = Field(
@@ -131,13 +138,22 @@ class StockOptionsParams(BaseModel):
     cliff_period: int = Field(default=1, ge=0, le=5)
     exit_price_per_share: float = Field(..., ge=0)
     exercise_strategy: Literal["AT_EXIT", "AFTER_VESTING"] = "AT_EXIT"
-    exercise_year: int | None = None
+    exercise_year: int | None = Field(default=None, ge=1)
     discount_rate: float | None = Field(
         default=None,
         ge=0,
         le=1,
         description="Discount rate for NPV calculation. Defaults to annual_roi if not provided.",
     )
+
+    @model_validator(mode="after")
+    def validate_exercise_year_for_after_vesting(self) -> Self:
+        """Require exercise_year when exercise_strategy is AFTER_VESTING."""
+        if self.exercise_strategy == "AFTER_VESTING" and self.exercise_year is None:
+            raise ValueError(
+                "exercise_year is required when exercise_strategy is 'AFTER_VESTING'"
+            )
+        return self
 
 
 class TypedBaseParams(BaseModel):
@@ -208,8 +224,30 @@ def validate_base_params(base_params: dict[str, Any]) -> None:
     exit_year = base_params.get("exit_year")
     if isinstance(exit_year, bool) or not isinstance(exit_year, int):
         raise ValueError(f"exit_year must be an integer between 1 and 20, got: {exit_year}")
-    if exit_year < 1 or exit_year > 20:
-        raise ValueError(f"exit_year must be an integer between 1 and 20, got: {exit_year}")
+    if exit_year < 1 or exit_year > MAX_EXIT_YEAR:
+        raise ValueError(f"exit_year must be an integer between 1 and {MAX_EXIT_YEAR}, got: {exit_year}")
+
+
+def validate_exit_year_sim_range(
+    sim_param_configs: dict[VariableParam, SimParamRange],
+) -> None:
+    """Validate simulated exit_year range constraints.
+
+    exit_year is discrete and bounded by TypedBaseParams (1..20), so simulation
+    ranges should honor the same domain and use whole-year values.
+    """
+    exit_year_config = sim_param_configs.get(VariableParam.EXIT_YEAR)
+    if exit_year_config is None:
+        return
+
+    if exit_year_config.min < 1 or exit_year_config.max > MAX_EXIT_YEAR:
+        raise ValueError("sim_param_configs.exit_year range must stay within [1, 20].")
+
+    if (
+        not float(exit_year_config.min).is_integer()
+        or not float(exit_year_config.max).is_integer()
+    ):
+        raise ValueError("sim_param_configs.exit_year min/max must be whole numbers.")
 
 
 # --- Cap Table Models ---
@@ -415,13 +453,16 @@ class MonteCarloRequest(BaseModel):
     @model_validator(mode="after")
     def validate_num_simulations_against_config(self) -> Self:
         """Validate num_simulations against the configured MAX_SIMULATIONS limit."""
-        from worth_it.config import settings
+        # Deferred import to avoid circular dependency: config imports models
+        from worth_it.config import settings  # noqa: PLC0415
 
         if self.num_simulations > settings.MAX_SIMULATIONS:
             raise ValueError(
                 f"num_simulations ({self.num_simulations}) exceeds the maximum allowed "
                 f"({settings.MAX_SIMULATIONS})."
             )
+
+        validate_exit_year_sim_range(self.sim_param_configs)
         return self
 
 
@@ -435,12 +476,18 @@ class SensitivityAnalysisRequest(BaseModel):
     base_params: TypedBaseParams
     sim_param_configs: dict[VariableParam, SimParamRange]
 
+    @model_validator(mode="after")
+    def validate_sim_ranges(self) -> Self:
+        """Validate domain-specific simulation parameter ranges."""
+        validate_exit_year_sim_range(self.sim_param_configs)
+        return self
+
 
 class DilutionFromValuationRequest(BaseModel):
     """Request model for calculating dilution from valuation."""
 
     pre_money_valuation: float = Field(..., ge=0)
-    amount_raised: float = Field(..., ge=0)
+    amount_raised: float = Field(..., gt=0)
 
 
 # --- Response Models ---
@@ -840,7 +887,7 @@ class FirstChicagoRequest(BaseModel):
     def validate_probabilities_sum_to_one(self) -> Self:
         """Probabilities must sum to approximately 1.0."""
         total = sum(s.probability for s in self.scenarios)
-        if not (0.99 <= total <= 1.01):  # Allow small floating point tolerance
+        if not (PROBABILITY_TOLERANCE_LOW <= total <= PROBABILITY_TOLERANCE_HIGH):
             raise ValueError(f"Scenario probabilities must sum to 1.0 (got {total:.4f})")
         return self
 
@@ -906,7 +953,15 @@ class BerkusRequest(BaseModel):
     """
 
     sound_idea: float = Field(..., ge=0, le=500_000, description="Value for basic value/idea")
-    prototype: float = Field(..., ge=0, le=500_000, description="Value for technology/prototype")
+    prototype: float | None = Field(
+        default=None, ge=0, le=500_000, description="Value for technology/prototype"
+    )
+    prototype_value: float | None = Field(
+        default=None,
+        ge=0,
+        le=500_000,
+        description="Alias for prototype value (frontend-safe key)",
+    )
     quality_team: float = Field(
         ..., ge=0, le=500_000, description="Value for execution/management team"
     )
@@ -919,6 +974,15 @@ class BerkusRequest(BaseModel):
     max_per_criterion: float = Field(
         default=500_000, ge=0, description="Maximum value per criterion"
     )
+
+    @model_validator(mode="after")
+    def normalize_prototype_fields(self) -> Self:
+        """Accept either `prototype` or `prototype_value` and normalize to `prototype`."""
+        if self.prototype is None and self.prototype_value is None:
+            raise ValueError("Either prototype or prototype_value is required")
+        if self.prototype is None and self.prototype_value is not None:
+            self.prototype = self.prototype_value
+        return self
 
 
 class BerkusResponse(BaseModel):
