@@ -1,7 +1,7 @@
 name: Playwright Tests
 
 # Disabled automatic runs to reduce CI costs
-# Run locally instead: npm run test:e2e
+# Run locally instead: pnpm test:e2e
 # Or trigger manually from GitHub Actions tab
 on:
   workflow_dispatch:
@@ -28,23 +28,31 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
+        cache: 'pnpm'
+        cache-dependency-path: |
+          pnpm-lock.yaml
+          frontend/pnpm-lock.yaml
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
 
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.13'
+        python-version: '3.14'
 
     - name: Install root dependencies
-      run: npm ci
+      run: pnpm install --frozen-lockfile
 
     - name: Install Playwright Browsers
-      run: npx playwright install --with-deps chromium
+      run: pnpm exec playwright install --with-deps chromium
 
     - name: Install Frontend dependencies
       run: |
         cd frontend
-        npm ci
+        pnpm install --frozen-lockfile
 
     - name: Install uv
       uses: astral-sh/setup-uv@v5
@@ -73,7 +81,7 @@ jobs:
     - name: Start Frontend Server
       run: |
         cd frontend
-        npm run dev &
+        pnpm dev &
         # Wait for frontend to be ready
         for i in {1..30}; do
           if curl -s http://localhost:3000 > /dev/null; then
@@ -85,7 +93,7 @@ jobs:
         done
 
     - name: Run Playwright tests
-      run: npm run test:e2e
+      run: pnpm test:e2e
 
     - name: Upload Playwright Report
       uses: actions/upload-artifact@v4

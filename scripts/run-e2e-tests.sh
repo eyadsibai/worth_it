@@ -54,7 +54,7 @@ done
 # Start frontend server
 echo -e "\n${YELLOW}Starting frontend server...${NC}"
 cd frontend
-npm run dev &
+pnpm dev &
 FRONTEND_PID=$!
 cd ..
 
@@ -74,7 +74,7 @@ done
 
 # Run Playwright tests
 echo -e "\n${GREEN}Running Playwright tests...${NC}\n"
-npx playwright test "$@"
+pnpm exec playwright test "$@"
 TEST_EXIT_CODE=$?
 
 # Exit with test exit code

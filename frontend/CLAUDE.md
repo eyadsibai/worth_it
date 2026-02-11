@@ -361,8 +361,8 @@ const FundcyTooltip = ({ active, payload, label }) => {
 
 ```bash
 cd frontend
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Visit <http://localhost:3000> once running.
@@ -371,28 +371,28 @@ Visit <http://localhost:3000> once running.
 
 ```bash
 # TypeScript type checking (REQUIRED before committing)
-npm run type-check
+pnpm type-check
 
 # ESLint (REQUIRED before committing)
-npm run lint
+pnpm lint
 
 # Auto-fix linting issues
-npm run lint -- --fix
+pnpm lint -- --fix
 
 # Run unit tests
-npm run test:unit
+pnpm test:unit
 
 # Run unit tests with coverage
-npm run test:unit:coverage
+pnpm test:unit:coverage
 ```
 
-**Total: 663 frontend unit tests** (run `npm run test:unit` to verify)
+**Total: 663 frontend unit tests** (run `pnpm test:unit` to verify)
 
 ### Pre-Commit Checklist
 
-- [ ] `npm run type-check`
-- [ ] `npm run lint`
-- [ ] `npm run test:unit`
+- [ ] `pnpm type-check`
+- [ ] `pnpm lint`
+- [ ] `pnpm test:unit`
 
 ### Unit Testing
 
@@ -493,7 +493,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 - Check Node version: `node --version` (need 18+)
 - Clear Next.js cache: `rm -rf .next`
-- Reinstall dependencies: `rm -rf node_modules && npm install`
+- Reinstall dependencies: `rm -rf node_modules && pnpm install`
 
 ## Important Files
 

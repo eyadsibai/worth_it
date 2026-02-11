@@ -43,7 +43,7 @@ if [ -z "$frontend_running" ] || [ -z "$backend_running" ]; then
     if [ -z "$frontend_running" ]; then
         echo "Starting frontend..."
         cd ../frontend
-        npm run dev > /tmp/frontend.log 2>&1 &
+        pnpm dev > /tmp/frontend.log 2>&1 &
         FRONTEND_PID=$!
         sleep 5
     fi
@@ -58,7 +58,7 @@ echo "================================="
 echo ""
 
 # Run tests without starting servers (they're already running)
-npx playwright test --config playwright.config.ts --reporter=list
+pnpm exec playwright test --config playwright.config.ts --reporter=list
 
 TEST_EXIT_CODE=$?
 

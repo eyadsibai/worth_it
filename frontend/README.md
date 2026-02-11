@@ -6,19 +6,19 @@ Modern Next.js frontend with shadcn/ui for the Worth It job offer financial anal
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Run development server
-npm run dev
+pnpm dev
 
 # Build for production
-npm run build
+pnpm build
 
 # Type check
-npm run type-check
+pnpm type-check
 
 # Lint
-npm run lint
+pnpm lint
 ```
 
 Visit <http://localhost:3000> once running.

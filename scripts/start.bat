@@ -17,10 +17,10 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-REM Check if npm is installed
-where npm >nul 2>nul
+REM Check if pnpm is installed
+where pnpm >nul 2>nul
 if %errorlevel% neq 0 (
-    echo ERROR: npm not found. Please install Node.js from https://nodejs.org/
+    echo ERROR: pnpm not found. Install it with: npm install -g pnpm
     pause
     exit /b 1
 )
@@ -33,9 +33,9 @@ uv sync
 
 REM Install frontend dependencies
 echo.
-echo Installing frontend dependencies with npm...
+echo Installing frontend dependencies with pnpm...
 cd /d "%PROJECT_ROOT%\frontend"
-call npm install
+call pnpm install --frozen-lockfile
 
 REM Start FastAPI backend in background
 echo.
@@ -61,7 +61,7 @@ REM Start Next.js frontend
 echo.
 echo Starting Next.js frontend on http://localhost:3000...
 cd /d "%PROJECT_ROOT%\frontend"
-start "Worth It Frontend" npm run dev
+start "Worth It Frontend" pnpm dev
 
 echo.
 echo ============================================

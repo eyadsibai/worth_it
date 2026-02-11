@@ -8,7 +8,7 @@
 #
 # Requirements:
 #   - Python with uv (for backend)
-#   - Node.js with npm (for frontend, openapi-zod-client)
+#   - Node.js with pnpm (for frontend, openapi-zod-client)
 #   - Perl (for regex replacement in generated files)
 #
 
@@ -59,7 +59,7 @@ mkdir -p "$FRONTEND_DIR/lib/generated"
 echo "⚙️  Step 3: Generating Zod schemas..."
 cd "$FRONTEND_DIR"
 
-npx openapi-zod-client "$OPENAPI_FILE" \
+pnpm exec openapi-zod-client "$OPENAPI_FILE" \
     --output "$GENERATED_FILE" \
     --export-schemas \
     --with-description \
@@ -93,7 +93,7 @@ mv "$TEMP_FILE" "$GENERATED_FILE"
 
 # Step 6: Format the generated file with prettier
 echo "✨ Step 6: Formatting generated file..."
-npx prettier --write "$GENERATED_FILE" 2>/dev/null || echo "   (prettier not configured, skipping)"
+pnpm exec prettier --write "$GENERATED_FILE" 2>/dev/null || echo "   (prettier not configured, skipping)"
 
 # Step 7: Clean up
 echo "🧹 Step 7: Cleaning up..."

@@ -122,12 +122,12 @@ if ! command -v uv &> /dev/null; then
 fi
 echo -e "${GREEN}✓ uv is installed${NC}"
 
-# Check if npm is installed
-if ! command -v npm &> /dev/null; then
-    echo -e "${RED}ERROR: npm not found. Please install Node.js from https://nodejs.org/${NC}"
+# Check if pnpm is installed
+if ! command -v pnpm &> /dev/null; then
+    echo -e "${RED}ERROR: pnpm not found. Install it with: npm install -g pnpm${NC}"
     exit 1
 fi
-echo -e "${GREEN}✓ npm is installed${NC}"
+echo -e "${GREEN}✓ pnpm is installed${NC}"
 
 # Check for port conflicts
 echo ""
@@ -184,12 +184,12 @@ uv sync
 
 # Install frontend dependencies
 echo ""
-echo "Installing frontend dependencies with npm..."
+echo "Installing frontend dependencies with pnpm..."
 if ! cd "$PROJECT_ROOT/frontend"; then
     echo -e "${RED}ERROR: Frontend directory not found at $PROJECT_ROOT/frontend${NC}"
     exit 1
 fi
-npm install
+pnpm install --frozen-lockfile
 
 # Start FastAPI backend in background
 echo ""
@@ -239,7 +239,7 @@ if ! cd "$PROJECT_ROOT/frontend"; then
     kill $BACKEND_PID 2>/dev/null
     exit 1
 fi
-npm run dev &
+pnpm dev &
 FRONTEND_PID=$!
 
 # Wait for frontend to start

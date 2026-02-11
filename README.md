@@ -1,7 +1,7 @@
 # Worth It - Job Offer Financial Analyzer
 
 [![Test Suite](https://github.com/eyadsibai/worth_it/actions/workflows/test.yml/badge.svg)](https://github.com/eyadsibai/worth_it/actions/workflows/test.yml)
-[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.14+](https://img.shields.io/badge/python-3.14+-blue.svg)](https://www.python.org/downloads/)
 [![Next.js 16](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org/)
 
 Modern financial analysis tool for evaluating startup job offers with real-time calculations, Monte Carlo simulations, cap table modeling, and interactive visualizations. Features both **Employee Mode** (analyze job offers) and **Founder Mode** (cap table & waterfall analysis).
@@ -46,8 +46,8 @@ uv run uvicorn worth_it.api:app --reload --port 8000
 
 ```bash
 cd frontend
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 **Visit:**
@@ -167,9 +167,9 @@ uv run pytest --cov=src --cov-report   # With coverage
 
 ```bash
 cd frontend
-npm run test:unit     # Run all unit tests
-npm run type-check    # TypeScript validation
-npm run lint          # ESLint
+pnpm test:unit     # Run all unit tests
+pnpm type-check    # TypeScript validation
+pnpm lint          # ESLint
 ```
 
 **E2E Tests (17 test suites):**
@@ -178,9 +178,9 @@ npm run lint          # ESLint
 ./scripts/run-e2e-tests.sh    # Convenience script (recommended)
 
 # Or manually:
-cd playwright && npx playwright test           # Run all E2E tests
-cd playwright && npx playwright test --ui      # UI mode
-cd playwright && npx playwright test --headed  # Visible browser
+cd playwright && pnpm exec playwright test           # Run all E2E tests
+cd playwright && pnpm exec playwright test --ui      # UI mode
+cd playwright && pnpm exec playwright test --headed  # Visible browser
 ```
 
 See [playwright/README.md](playwright/README.md) for detailed E2E testing documentation.
@@ -215,7 +215,7 @@ See [playwright/README.md](playwright/README.md) for detailed E2E testing docume
 3. Make your changes
 4. Run tests:
    - Backend: `cd backend && uv run pytest`
-   - Frontend: `cd frontend && npm run test:unit && npm run type-check && npm run lint`
+   - Frontend: `cd frontend && pnpm test:unit && pnpm type-check && pnpm lint`
    - E2E: `./scripts/run-e2e-tests.sh`
 5. Submit a pull request
 
@@ -225,4 +225,4 @@ MIT License - See LICENSE file for details
 
 ---
 
-**Monorepo** | **Python 3.13+** | **Node 18+** | **Production Ready**
+**Monorepo** | **Python 3.14+** | **Node 18+** | **Production Ready**

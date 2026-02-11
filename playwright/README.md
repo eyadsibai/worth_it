@@ -30,7 +30,7 @@ playwright/
 ## Prerequisites
 
 1. **Node.js**: Version 18 or higher
-2. **Python**: Version 3.13 or higher (for backend)
+2. **Python**: Version 3.14 or higher (for backend)
 3. **Backend**: Python backend must be runnable on port 8000
 4. **Frontend**: Next.js frontend must be runnable on port 3000
 
@@ -40,10 +40,10 @@ From the **root** of the repository:
 
 ```bash
 # Install Playwright and dependencies
-npm install
+pnpm install
 
 # Install Playwright browsers
-npx playwright install chromium
+pnpm exec playwright install chromium
 ```
 
 ## Running Tests
@@ -56,7 +56,7 @@ npx playwright install chromium
 
 ```bash
 cd backend
-# Ensure Python 3.13+ is installed
+# Ensure Python 3.14+ is installed
 python3 -m uvicorn worth_it.api:app --host 0.0.0.0 --port 8000
 ```
 
@@ -64,27 +64,27 @@ python3 -m uvicorn worth_it.api:app --host 0.0.0.0 --port 8000
 
 ```bash
 cd frontend
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 **Terminal 3 - Run Tests:**
 
 ```bash
 # Wait for both servers to be ready, then run tests
-npm run test:e2e
+pnpm test:e2e
 ```
 
 ### Run All Tests
 
 ```bash
-npm run test:e2e
+pnpm test:e2e
 ```
 
 ### Run Tests in UI Mode (Recommended for Development)
 
 ```bash
-npm run test:e2e:ui
+pnpm test:e2e:ui
 ```
 
 This opens the Playwright UI where you can:
@@ -98,13 +98,13 @@ This opens the Playwright UI where you can:
 ### Run Tests in Headed Mode (See Browser)
 
 ```bash
-npm run test:e2e:headed
+pnpm test:e2e:headed
 ```
 
 ### Debug Tests
 
 ```bash
-npm run test:e2e:debug
+pnpm test:e2e:debug
 ```
 
 This opens the Playwright Inspector for step-by-step debugging.
@@ -114,19 +114,19 @@ This opens the Playwright Inspector for step-by-step debugging.
 After running tests, view the HTML report:
 
 ```bash
-npm run test:e2e:report
+pnpm test:e2e:report
 ```
 
 ### Run Specific Test File
 
 ```bash
-npx playwright test playwright/tests/01-api-health.spec.ts
+pnpm exec playwright test playwright/tests/01-api-health.spec.ts
 ```
 
 ### Run Tests by Name Pattern
 
 ```bash
-npx playwright test -g "RSU"
+pnpm exec playwright test -g "RSU"
 ```
 
 ## Test Coverage
@@ -249,13 +249,13 @@ Tests can be integrated into GitHub Actions:
 
 ```yaml
 - name: Install dependencies
-  run: npm ci
+  run: pnpm install --frozen-lockfile
 
 - name: Install Playwright browsers
-  run: npx playwright install --with-deps chromium
+  run: pnpm exec playwright install --with-deps chromium
 
 - name: Run Playwright tests
-  run: npm run test:e2e
+  run: pnpm test:e2e
 
 - name: Upload test results
   if: always()
@@ -270,7 +270,7 @@ Tests can be integrated into GitHub Actions:
 ### 1. Use UI Mode for Development
 
 ```bash
-npm run test:e2e:ui
+pnpm test:e2e:ui
 ```
 
 Best for writing and debugging tests interactively.
@@ -278,7 +278,7 @@ Best for writing and debugging tests interactively.
 ### 2. Use Debug Mode for Failing Tests
 
 ```bash
-npm run test:e2e:debug
+pnpm test:e2e:debug
 ```
 
 Opens Playwright Inspector for step-by-step execution.
@@ -292,7 +292,7 @@ await page.screenshot({ path: 'debug.png', fullPage: true });
 ### 4. Use Trace Viewer
 
 ```bash
-npx playwright show-trace trace.zip
+pnpm exec playwright show-trace trace.zip
 ```
 
 ### 5. Slow Down Execution
@@ -375,7 +375,7 @@ await expect(page.getByRole('button', { name: 'Submit' })).toBeEnabled();
 - Ensure dependencies are installed
 - Check that ports 8000 and 3000 are available
 - Verify backend can start: `cd backend && uvicorn worth_it.api:app`
-- Verify frontend can start: `cd frontend && npm run dev`
+- Verify frontend can start: `cd frontend && pnpm dev`
 
 ### Tests Timing Out
 

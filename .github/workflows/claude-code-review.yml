@@ -36,7 +36,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.14"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -47,14 +47,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Install backend dependencies
         run: cd backend && uv sync
 
       - name: Install frontend dependencies
-        run: cd frontend && npm ci
+        run: cd frontend && pnpm install --frozen-lockfile
 
       - name: Run Claude Code Review
         id: claude-review
@@ -99,7 +104,7 @@ jobs:
             ## Testing
             Run tests when reviewing code changes:
             - Backend: `cd backend && uv run pytest -v`
-            - Frontend: `cd frontend && npm run type-check && npm run lint`
+            - Frontend: `cd frontend && pnpm type-check && pnpm lint`
 
             Be thorough but constructive. Prioritize security and correctness over style.
 
@@ -107,12 +112,12 @@ jobs:
           use_sticky_comment: true
 
           # Allow Claude to run comprehensive tests
-          allowed_tools: "Bash(cd backend && uv run pytest:*),Bash(cd backend && uv run ruff check:*),Bash(cd backend && uv run ruff format:*),Bash(cd backend && uv run mypy:*),Bash(cd backend && uv sync:*),Bash(cd frontend && npm run type-check:*),Bash(cd frontend && npm run lint:*),Bash(cd frontend && npm run build:*),Bash(cd frontend && npm ci:*)"
+          allowed_tools: "Bash(cd backend && uv run pytest:*),Bash(cd backend && uv run ruff check:*),Bash(cd backend && uv run ruff format:*),Bash(cd backend && uv run mypy:*),Bash(cd backend && uv sync:*),Bash(cd frontend && pnpm type-check:*),Bash(cd frontend && pnpm lint:*),Bash(cd frontend && pnpm build:*),Bash(cd frontend && pnpm install:*)"
 
           # Custom instructions for this project
           custom_instructions: |
             This is a monorepo with:
-            - Backend: FastAPI + Pydantic + WebSocket (Python 3.13, uv package manager)
+            - Backend: FastAPI + Pydantic + WebSocket (Python 3.14, uv package manager)
             - Frontend: Next.js 16 + shadcn/ui + TanStack Query (TypeScript, Turbopack)
 
             Key patterns:
