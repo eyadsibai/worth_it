@@ -1,5 +1,13 @@
 "use client";
 
+/** Time-of-day thresholds for greetings */
+const MORNING_END_HOUR = 12;
+const AFTERNOON_END_HOUR = 18;
+/** Threshold for showing "View All" scenarios button */
+const VIEW_ALL_THRESHOLD = 5;
+/** Minimum scenarios for comparison feature */
+const MIN_COMPARE_SCENARIOS = 2;
+
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
@@ -112,8 +120,8 @@ export default function DashboardPage() {
   // Get greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
+    if (hour < MORNING_END_HOUR) return "Good morning";
+    if (hour < AFTERNOON_END_HOUR) return "Good afternoon";
     return "Good evening";
   };
 
@@ -145,7 +153,7 @@ export default function DashboardPage() {
               <RecentScenarios
                 scenarios={recentScenarios}
                 onLoadScenario={handleLoadScenario}
-                onViewAll={stats.totalScenarios > 5 ? handleViewAll : undefined}
+                onViewAll={stats.totalScenarios > VIEW_ALL_THRESHOLD ? handleViewAll : undefined}
                 maxItems={5}
               />
             </div>
@@ -156,7 +164,7 @@ export default function DashboardPage() {
                 onNewEmployeeAnalysis={handleNewEmployeeAnalysis}
                 onNewFounderAnalysis={handleNewFounderAnalysis}
                 onLoadExample={handleLoadExample}
-                onCompareAll={stats.employeeScenarios >= 2 ? handleCompareAll : undefined}
+                onCompareAll={stats.employeeScenarios >= MIN_COMPARE_SCENARIOS ? handleCompareAll : undefined}
                 hasScenarios={stats.totalScenarios > 0}
               />
 

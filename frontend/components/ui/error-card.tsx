@@ -1,5 +1,8 @@
 "use client";
 
+/** Clipboard copy feedback duration in ms */
+const COPY_FEEDBACK_DURATION_MS = 2000;
+
 import * as React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -76,7 +79,7 @@ export function ErrorCard({
     try {
       await navigator.clipboard.writeText(textToCopy);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), COPY_FEEDBACK_DURATION_MS);
     } catch (err) {
       console.error("Failed to copy error details:", err);
     }

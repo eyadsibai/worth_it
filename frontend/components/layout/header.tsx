@@ -1,14 +1,31 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { TrendingUp, Search } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { useCommandPalette } from "@/components/command-palette";
 import { TourLauncher } from "@/components/walkthrough";
+import { cn } from "@/lib/utils";
+
+function isMacPlatform(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
+  const platform = nav.userAgentData?.platform ?? navigator.platform ?? "";
+  return /mac/i.test(platform) || navigator.userAgent?.includes("Mac");
+}
 
 export function Header() {
   const { setOpen } = useCommandPalette();
+  const pathname = usePathname();
+  const modifierKey = isMacPlatform() ? "⌘" : "Ctrl";
+
+  const navItems = [
+    { href: "/", label: "Analysis" },
+    { href: "/valuation", label: "Valuation" },
+    { href: "/about", label: "About" },
+  ];
 
   return (
     <header className="border-border/50 bg-background/95 no-print fixed top-0 right-0 left-0 z-50 border-b backdrop-blur-sm">
@@ -24,24 +41,24 @@ export function Header() {
 
         <div className="flex items-center gap-1">
           <nav className="mr-2 hidden items-center md:flex">
-            <Link
-              href="/"
-              className="hover:bg-secondary text-foreground rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
-            >
-              Analysis
-            </Link>
-            <Link
-              href="/valuation"
-              className="hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
-            >
-              Valuation
-            </Link>
-            <Link
-              href="/about"
-              className="hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
-            >
-              About
-            </Link>
+            {navItems.map(({ href, label }) => {
+              const isActive = href === "/" ? pathname === "/" : pathname?.startsWith(href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-current={isActive ? "page" : undefined}
+                  className={cn(
+                    "hover:bg-secondary rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                    isActive
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {label}
+                </Link>
+              );
+            })}
           </nav>
 
           <div className="bg-border mx-2 hidden h-4 w-px md:block" />
@@ -55,7 +72,7 @@ export function Header() {
             <Search className="h-4 w-4" />
             <span className="text-xs">Search</span>
             <kbd className="bg-muted pointer-events-none hidden h-5 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100 select-none sm:flex">
-              <span className="text-xs">⌘</span>K
+              <span className="text-xs">{modifierKey}</span>K
             </kbd>
           </Button>
 

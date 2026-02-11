@@ -154,13 +154,8 @@ export function CompanyStageSelector({ form, onChange }: CompanyStageSelectorPro
               (typeof STAGE_DEFINITIONS)[CompanyStage],
             ][]
           ).map(([stage, config]) => (
-            <SelectItem key={stage} value={stage}>
-              <div className="flex w-full items-center justify-between gap-4">
-                <div>
-                  <span className="font-medium">{config.label}</span>
-                  <span className="text-muted-foreground ml-2 text-xs">{config.description}</span>
-                </div>
-              </div>
+            <SelectItem key={stage} value={stage} description={config.description}>
+              {config.label}
             </SelectItem>
           ))}
         </SelectContent>

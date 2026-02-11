@@ -1,5 +1,8 @@
 "use client";
 
+/** Fraction of viewport height to scroll to for results view */
+const RESULTS_SCROLL_FRACTION = 0.6;
+
 import * as React from "react";
 import { FileText, BarChart2, Save, MoreHorizontal, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,7 +32,7 @@ function NavItem({
       type="button"
       onClick={onClick}
       data-active={isActive ? "true" : undefined}
-      aria-current={isActive ? "page" : undefined}
+      aria-pressed={isActive ? true : undefined}
       className={cn(
         "relative flex min-w-[64px] flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 transition-colors",
         "focus-visible:ring-accent focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
@@ -83,7 +86,7 @@ export function BottomNav({ onSaveClick, onMoreClick }: BottomNavProps) {
       mobileView.setActiveView("results");
     } else {
       // Fallback: scroll to results area
-      window.scrollTo({ top: window.innerHeight * 0.6, behavior: "smooth" });
+      window.scrollTo({ top: window.innerHeight * RESULTS_SCROLL_FRACTION, behavior: "smooth" });
     }
   }, [mobileView]);
 

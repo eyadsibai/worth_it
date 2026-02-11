@@ -14,9 +14,9 @@ import {
   useBeforeUnload,
   useReducedMotion,
 } from "@/lib/hooks";
+import { safeParseDraftData } from "@/lib/hooks/use-draft-auto-save";
 import { useFirstVisit } from "@/lib/hooks/use-first-visit";
 import { toast } from "sonner";
-import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
 
 export default function Home() {
   // Global state from Zustand store
@@ -80,20 +80,22 @@ export default function Home() {
     const draft = getDraft();
     if (draft) {
       try {
-        const { data } = draft;
-        if (data.globalSettings) {
-          setGlobalSettings(data.globalSettings as Parameters<typeof setGlobalSettings>[0]);
+        const parsed = safeParseDraftData(draft.data);
+        if (parsed.globalSettings) {
+          setGlobalSettings(parsed.globalSettings);
         }
-        if (data.currentJob) {
-          setCurrentJob(data.currentJob as Parameters<typeof setCurrentJob>[0]);
+        if (parsed.currentJob) {
+          setCurrentJob(parsed.currentJob);
         }
-        if (data.equityDetails) {
-          setEquityDetails(data.equityDetails as RSUForm | StockOptionsForm);
+        if (parsed.equityDetails) {
+          setEquityDetails(parsed.equityDetails);
         }
-        toast.success("Draft restored", {
-          description: "Your previous work has been restored",
-          duration: 3000,
-        });
+        if (parsed.globalSettings || parsed.currentJob || parsed.equityDetails) {
+          toast.success("Draft restored", {
+            description: "Your previous work has been restored",
+            duration: 3000,
+          });
+        }
       } catch (error) {
         console.error("Failed to restore draft:", error);
         toast.error("Could not restore draft", {
@@ -113,9 +115,8 @@ export default function Home() {
         <div className="space-y-4">
           <h1 className="text-foreground text-3xl font-semibold tracking-tight md:text-4xl">
             <AnimatedText
-              text={appMode === "employee" ? "Offer" : "Cap Table"}
+              text={appMode === "employee" ? "Offer " : "Cap Table "}
               as="span"
-              className="mr-2"
             />
             <AnimatedText
               text={appMode === "employee" ? "Analysis" : "Modeling"}

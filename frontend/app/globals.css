@@ -157,6 +157,14 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  html[lang^="ar"] body {
+    font-family: var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  html[dir="rtl"] body {
+    direction: rtl;
+  }
+
   /* Smooth scrolling and stable layout */
   html {
     scroll-behavior: smooth;
@@ -193,7 +201,7 @@
 
 /* Fundcy Finance Components */
 @layer components {
-  /* Fundcy card style - NO borders, very subtle shadow, large radius */
+  /* Fundcy card style - NO borders in light, subtle border in dark, large radius */
   .terminal-card {
     @apply bg-card rounded-2xl;
     @apply transition-all duration-200 ease-out;
@@ -202,10 +210,20 @@
       0 2px 8px rgba(0, 0, 0, 0.04);
   }
 
+  :is(.dark *).terminal-card {
+    box-shadow: none;
+    border: 1px solid var(--border);
+  }
+
   .terminal-card:hover {
     box-shadow:
       0 2px 4px rgba(0, 0, 0, 0.04),
       0 4px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  :is(.dark *).terminal-card:hover {
+    box-shadow: none;
+    border-color: oklch(50% 0.01 250);
   }
 
   /* Compact terminal card - for smaller UI elements like status indicators */
@@ -217,10 +235,20 @@
       0 2px 8px rgba(0, 0, 0, 0.04);
   }
 
+  :is(.dark *).terminal-card-sm {
+    box-shadow: none;
+    border: 1px solid var(--border);
+  }
+
   .terminal-card-sm:hover {
     box-shadow:
       0 2px 4px rgba(0, 0, 0, 0.04),
       0 4px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  :is(.dark *).terminal-card-sm:hover {
+    box-shadow: none;
+    border-color: oklch(50% 0.01 250);
   }
 
   /* Data card - for numbers and metrics */
@@ -487,6 +515,10 @@
 
 /* Reduced Motion - Disable animations for users who prefer it */
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+
   *,
   *::before,
   *::after {

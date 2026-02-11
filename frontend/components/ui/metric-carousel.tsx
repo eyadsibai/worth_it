@@ -89,8 +89,8 @@ export function MetricCarousel({ children, className, showDots = true }: MetricC
           // Mobile: horizontal scroll with snap
           // scrollbar-hide class handles all vendor prefixes for hiding scrollbar
           "scrollbar-hide flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2",
-          // Desktop: grid layout
-          "lg:grid lg:grid-cols-5 lg:gap-4 lg:overflow-visible lg:pb-0"
+          // Desktop: 3-column grid (top 3 + bottom 2 wrap naturally)
+          "lg:grid lg:grid-cols-3 lg:gap-4 lg:overflow-visible lg:pb-0"
         )}
       >
         {childrenArray.map((child, index) => (
