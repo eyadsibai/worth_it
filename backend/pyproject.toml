@@ -117,6 +117,10 @@ max-complexity = 12
 "tests/**" = [
     "PLR2004", # Magic values are acceptable in test assertions
     "T20",     # Print statements acceptable in tests for debugging
+    "PLC0415", # Imports inside functions acceptable in tests (e.g., testing import errors)
+    "RUF012",  # Mutable class attributes in test classes don't need ClassVar
+    "RUF015",  # Single-element slice is idiomatic in test assertions
+    "RUF043",  # Regex metacharacters in pytest.raises match= are intentional
 ]
 
 [tool.ruff.format]
