@@ -113,9 +113,9 @@ test.describe("Accessibility Tests", () => {
         // Simplified contrast calculation
         const getLuminance = (rgb: string) => {
           const values = rgb.match(/\d+/g)?.map(Number) || [0, 0, 0];
-          const [r, g, b] = values.map((val) => {
-            val = val / 255;
-            return val <= 0.03928 ? val / 12.92 : Math.pow((val + 0.055) / 1.055, 2.4);
+          const [r, g, b] = values.map((v) => {
+            const normalized = v / 255;
+            return normalized <= 0.03928 ? normalized / 12.92 : Math.pow((normalized + 0.055) / 1.055, 2.4);
           });
           return 0.2126 * r + 0.7152 * g + 0.0722 * b;
         };
