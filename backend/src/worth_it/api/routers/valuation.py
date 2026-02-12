@@ -309,6 +309,8 @@ async def calculate_berkus_valuation(request: Request, body: BerkusRequest):
     Ideal for pre-seed startups with idea/prototype stage.
     """
     try:
+        # body.prototype is validated non-None by Pydantic model_validator
+        assert body.prototype is not None
         params = calculations.BerkusParams(
             sound_idea=body.sound_idea,
             prototype=body.prototype,
