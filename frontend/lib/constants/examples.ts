@@ -55,6 +55,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           salary_change: 0,
           enabled: true,
           status: "completed",
+          dilution_method: "percentage",
         },
         {
           round_name: "Seed",
@@ -66,6 +67,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           salary_change: 0,
           enabled: true,
           status: "completed",
+          dilution_method: "percentage",
         },
         // UPCOMING: Future rounds to model
         {
@@ -78,6 +80,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           salary_change: 1000,
           enabled: true,
           status: "upcoming",
+          dilution_method: "percentage",
         },
         {
           round_name: "Series B",
@@ -89,6 +92,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           salary_change: 2000,
           enabled: true,
           status: "upcoming",
+          dilution_method: "percentage",
         },
       ],
       exit_valuation: 100000000,
@@ -128,6 +132,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           salary_change: 0,
           enabled: true,
           status: "completed",
+          dilution_method: "percentage",
         },
         {
           round_name: "Series A",
@@ -139,6 +144,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           salary_change: 0,
           enabled: true,
           status: "completed",
+          dilution_method: "percentage",
         },
         {
           round_name: "Series B",
@@ -150,6 +156,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           salary_change: 0,
           enabled: true,
           status: "completed",
+          dilution_method: "percentage",
         },
         // UPCOMING: Future rounds to model
         {
@@ -162,6 +169,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           salary_change: 1500,
           enabled: true,
           status: "upcoming",
+          dilution_method: "percentage",
         },
         {
           round_name: "Series D",
@@ -173,6 +181,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           salary_change: 2000,
           enabled: false,
           status: "upcoming",
+          dilution_method: "percentage",
         },
       ],
       exit_valuation: 500000000,
@@ -212,6 +221,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           salary_change: 0,
           enabled: true,
           status: "completed",
+          dilution_method: "percentage",
         },
         {
           round_name: "Series A",
@@ -223,6 +233,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           salary_change: 0,
           enabled: true,
           status: "completed",
+          dilution_method: "percentage",
         },
         {
           round_name: "Series B",
@@ -234,6 +245,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           salary_change: 0,
           enabled: true,
           status: "completed",
+          dilution_method: "percentage",
         },
         {
           round_name: "Series C",
@@ -245,6 +257,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           salary_change: 0,
           enabled: true,
           status: "completed",
+          dilution_method: "percentage",
         },
         {
           round_name: "Series D",
@@ -256,6 +269,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           salary_change: 0,
           enabled: true,
           status: "completed",
+          dilution_method: "percentage",
         },
         // UPCOMING: No more dilution expected before IPO
       ],

@@ -39,6 +39,9 @@ export type VariableParam = z.infer<typeof VariableParamEnum>;
 export const RoundTypeEnum = z.enum(["SAFE_NOTE", "PRICED_ROUND"]);
 export type RoundType = z.infer<typeof RoundTypeEnum>;
 
+export const DilutionMethodEnum = z.enum(["percentage", "valuation"]);
+export type DilutionMethod = z.infer<typeof DilutionMethodEnum>;
+
 export const RoundStatusEnum = z.enum(["completed", "upcoming"]);
 export type RoundStatus = z.infer<typeof RoundStatusEnum>;
 
@@ -397,6 +400,7 @@ export const DilutionRoundFormSchema = z.object({
   salary_change: z.number(),
   enabled: z.boolean(),
   status: RoundStatusEnum.default("upcoming"), // NEW: completed = past, upcoming = future
+  dilution_method: DilutionMethodEnum.default("percentage"),
 });
 export type DilutionRoundForm = z.infer<typeof DilutionRoundFormSchema>;
 

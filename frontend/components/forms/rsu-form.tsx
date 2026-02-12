@@ -139,6 +139,7 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
       salary_change: 0,
       enabled: false,
       status: "upcoming",
+      dilution_method: "percentage",
     };
 
     form.setValue("dilution_rounds", [...currentRounds, newRound]);

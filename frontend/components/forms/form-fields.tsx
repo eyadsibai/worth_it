@@ -33,6 +33,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   parseShorthand,
@@ -927,6 +929,58 @@ export function CheckboxField({ form, name, label, description, tooltip }: FormF
             <LabelWithTooltip label={label} tooltip={tooltip} />
             {description && <FormDescription>{description}</FormDescription>}
           </div>
+        </FormItem>
+      )}
+    />
+  );
+}
+
+interface RadioFieldProps extends FormFieldProps {
+  options: { value: string; label: string }[];
+  /** Layout direction: "horizontal" renders options in a row, "vertical" in a column */
+  direction?: "horizontal" | "vertical";
+}
+
+/**
+ * Radio group field wrapper with label and description.
+ * Follows the same FormField pattern as SelectField and CheckboxField.
+ */
+export function RadioField({
+  form,
+  name,
+  label,
+  description,
+  tooltip,
+  options,
+  direction = "horizontal",
+}: RadioFieldProps) {
+  return (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <LabelWithTooltip label={label} tooltip={tooltip} />
+          <FormControl>
+            <RadioGroup
+              onValueChange={field.onChange}
+              value={field.value}
+              className={
+                direction === "horizontal" ? "flex flex-row gap-4" : "flex flex-col gap-2"
+              }
+            >
+              {options.map((option) => (
+                <div key={option.value} className="flex items-center gap-2">
+                  <RadioGroupItem value={option.value} id={`${name}-${option.value}`} />
+                  <Label htmlFor={`${name}-${option.value}`} className="text-sm font-normal">
+                    {option.label}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </FormControl>
+          {description && <FormDescription>{description}</FormDescription>}
+          <FormMessage />
         </FormItem>
       )}
     />

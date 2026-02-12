@@ -34,6 +34,7 @@ export const DEFAULT_DILUTION_ROUNDS: DilutionRoundForm[] = [
     amount_raised: 500_000, // SAR 500K
     salary_change: 0,
     status: "upcoming",
+    dilution_method: "percentage",
   },
   {
     round_name: "Seed",
@@ -45,6 +46,7 @@ export const DEFAULT_DILUTION_ROUNDS: DilutionRoundForm[] = [
     amount_raised: 1_500_000, // SAR 1.5M
     salary_change: 0,
     status: "upcoming",
+    dilution_method: "percentage",
   },
   {
     round_name: "Series A",
@@ -56,6 +58,7 @@ export const DEFAULT_DILUTION_ROUNDS: DilutionRoundForm[] = [
     amount_raised: 5_000_000, // SAR 5M
     salary_change: 0,
     status: "upcoming",
+    dilution_method: "percentage",
   },
   {
     round_name: "Series B",
@@ -67,6 +70,7 @@ export const DEFAULT_DILUTION_ROUNDS: DilutionRoundForm[] = [
     amount_raised: 10_000_000, // SAR 10M
     salary_change: 0,
     status: "upcoming",
+    dilution_method: "percentage",
   },
   {
     round_name: "Series C",
@@ -78,6 +82,7 @@ export const DEFAULT_DILUTION_ROUNDS: DilutionRoundForm[] = [
     amount_raised: 15_000_000, // SAR 15M
     salary_change: 0,
     status: "upcoming",
+    dilution_method: "percentage",
   },
   {
     round_name: "Series D",
@@ -89,6 +94,7 @@ export const DEFAULT_DILUTION_ROUNDS: DilutionRoundForm[] = [
     amount_raised: 20_000_000, // SAR 20M
     salary_change: 0,
     status: "upcoming",
+    dilution_method: "percentage",
   },
 ];
 

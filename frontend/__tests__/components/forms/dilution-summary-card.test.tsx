@@ -14,6 +14,7 @@ describe("DilutionSummaryCard", () => {
     amount_raised: 2_000_000,
     salary_change: 0,
     status: "upcoming",
+    dilution_method: "percentage",
     ...overrides,
   });
 
