@@ -1,6 +1,15 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Calculator Form UI/UX", () => {
+/**
+ * QUARANTINED - this file tests a different product.
+ *
+ * It drives a vehicle-affordability calculator ("Vehicle Information", "Insurance",
+ * hourly wage, purchase price, down payment). Worth It models startup equity, so
+ * these can never pass here and are skipped rather than left failing.
+ *
+ * Pending a decision to delete; kept in tree so the call is reviewable.
+ */
+test.describe.skip("Calculator Form UI/UX", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");

@@ -1,6 +1,15 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Results Visualization UI/UX", () => {
+/**
+ * QUARANTINED - this file tests a different product.
+ *
+ * Its setup fills hourly wage, purchase price and down payment: a vehicle
+ * affordability calculator, not Worth It. Results coverage for this app lives in
+ * playwright/tests/05-rsu-scenario-flow.spec.ts and 06-stock-options-scenario-flow.
+ *
+ * Pending a decision to delete; kept in tree so the call is reviewable.
+ */
+test.describe.skip("Results Visualization UI/UX", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");

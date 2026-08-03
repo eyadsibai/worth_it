@@ -1,6 +1,15 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("Monte Carlo WebSocket Simulation", () => {
+/**
+ * QUARANTINED - this file tests a different product.
+ *
+ * Its setup fills hourly wage, purchase price and down payment: a vehicle
+ * affordability calculator, not Worth It. The real WebSocket Monte Carlo coverage
+ * for this app lives in playwright/tests/14-websocket-integration.spec.ts.
+ *
+ * Pending a decision to delete; kept in tree so the call is reviewable.
+ */
+test.describe.skip("Monte Carlo WebSocket Simulation", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
