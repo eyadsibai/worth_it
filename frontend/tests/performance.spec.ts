@@ -63,13 +63,16 @@ test.describe("Performance Tests", () => {
     const totalSize = resources.reduce((sum, r) => sum + r.size, 0);
     const totalSizeMB = totalSize / (1024 * 1024);
 
-    // In production, bundle should be under 1MB (gzipped)
-    const isProduction =
-      process.env.NODE_ENV === "production" || page.url().includes("localhost:3000");
+    // Not a page.url() check: next dev and next start both serve :3000, so the
+    // old `isProduction` was true under either and gated nothing - the budget
+    // was being applied to dev's unminified one-chunk-per-module graph, which
+    // says nothing about what ships.
+    test.skip(
+      await servedByDevServer(page),
+      "next dev serves unminified chunks per module, so total transfer size is not the shipped bundle; run under playwright.config.prod.ts"
+    );
 
-    if (isProduction) {
-      expect(totalSizeMB).toBeLessThan(2); // 2MB threshold for all JS/CSS
-    }
+    expect(totalSizeMB).toBeLessThan(2); // 2MB threshold for all JS/CSS
   });
 
   test("should have good Core Web Vitals", async ({ page }) => {
@@ -319,6 +322,10 @@ test.describe("Performance Tests", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
+    // Without this the loop below body-passes on an empty list, reporting a
+    // green image-optimisation check for a page that requested no images.
+    test.skip(images.length === 0, "the page requested no images, so there is nothing to assert");
+
     // Check image optimization
     for (const image of images) {
       const sizeMB = image.size / (1024 * 1024);
@@ -326,16 +333,16 @@ test.describe("Performance Tests", () => {
       // Images should be optimized (under 500KB each)
       expect(sizeMB).toBeLessThan(0.5);
 
-      // Should use modern formats in production
+      // Asserted unconditionally: the old localhost:3000 guard was true under
+      // both next dev and next start, so it never gated anything, and
+      // next/image serves modern formats in dev too.
       const isModernFormat =
         image.url.includes(".webp") ||
         image.url.includes(".avif") ||
-        image.url.includes("_next/image");
+        image.url.includes("_next/image") ||
+        image.url.includes(".svg");
 
-      // Next.js Image component optimization
-      if (page.url().includes("localhost:3000")) {
-        expect(isModernFormat || image.url.includes(".svg")).toBeTruthy();
-      }
+      expect(isModernFormat, `${image.url} is not a modern image format`).toBeTruthy();
     }
   });
 
