@@ -1,4 +1,30 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+/**
+ * Matches the hot-reload runtime Next.js injects only under `next dev`
+ * (`hmr-client` under Turbopack, `webpack-hmr`/`react-refresh` under Webpack).
+ * A production build never ships it, so misdetection can only point the wrong
+ * way: an unrecognised dev server makes the build-sensitive tests below fail
+ * loudly, it can never make them skip silently against production.
+ */
+const DEV_ONLY_RUNTIME = /hmr[-_]?client|webpack-hmr|react-refresh|\/_next\/static\/development\//i;
+
+/**
+ * `next dev` and `next start` are different products where performance is
+ * concerned: dev emits one unminified chunk per module, compiles routes on
+ * first request, and sends `Cache-Control: no-store` for `_next/static/chunks`.
+ * Asserting on caching or bundle cost against dev measures the dev server, not
+ * this app, so those tests skip unless the target is a real production build.
+ * `playwright.config.prod.ts` builds and serves one.
+ */
+async function servedByDevServer(page: Page): Promise<boolean> {
+  return page.evaluate((pattern) => {
+    const devRuntime = new RegExp(pattern, "i");
+    return performance
+      .getEntriesByType("resource")
+      .some((entry) => devRuntime.test(decodeURIComponent(entry.name)));
+  }, DEV_ONLY_RUNTIME.source);
+}
 
 test.describe("Performance Tests", () => {
   test("should load quickly", async ({ page }) => {
@@ -132,32 +158,58 @@ test.describe("Performance Tests", () => {
   });
 
   test("should cache static assets", async ({ page }) => {
-    // First load
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-
-    // Track cached resources on reload
-    const cachedResources: string[] = [];
+    // Listen before the first navigation: the test context starts with a cold
+    // HTTP cache, so this is the one load where every asset is fetched over the
+    // wire and its caching contract is observable.
+    const advertisedCaching = new Map<string, string>();
 
     page.on("response", (response) => {
-      const status = response.status();
-      const url = response.url();
-
-      // 304 means cached
-      if (status === 304) {
-        cachedResources.push(url);
+      if (response.url().includes("/_next/static/")) {
+        advertisedCaching.set(response.url(), response.headers()["cache-control"] ?? "");
       }
     });
 
-    // Reload page
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    test.skip(
+      await servedByDevServer(page),
+      "next dev serves /_next/static/chunks with `Cache-Control: no-store, must-revalidate` by design; run under playwright.config.prod.ts to exercise real asset caching"
+    );
+
+    // Build output is content-hashed, so it must be cacheable without
+    // revalidation. Exact numbers are not pinned -- the regression this guards
+    // against is `no-store`/`no-cache`/`max-age=0` creeping into the config.
+    const oneDay = 60 * 60 * 24;
+    expect(advertisedCaching.size).toBeGreaterThan(0);
+    for (const [url, cacheControl] of advertisedCaching) {
+      const maxAge = Number(/max-age=(\d+)/.exec(cacheControl)?.[1] ?? 0);
+      expect(cacheControl, `${url} must be cacheable`).not.toMatch(/no-store|no-cache/);
+      expect(maxAge, `${url} must stay fresh for at least a day`).toBeGreaterThanOrEqual(oneDay);
+    }
+
     await page.reload();
     await page.waitForLoadState("networkidle");
 
-    // In production, static assets should be cached
-    const isProduction = page.url().includes("localhost:3000");
-    if (isProduction) {
-      expect(cachedResources.length).toBeGreaterThan(0);
-    }
+    // And the browser must actually reuse them. A hit on a fingerprinted
+    // `immutable` asset is a silent zero-byte read, never a 304 -- counting 304s
+    // here would prove nothing, because a correctly cached asset is never
+    // revalidated in the first place.
+    const reuse = await page.evaluate(() => {
+      const buildAssets = (
+        performance.getEntriesByType("resource") as PerformanceResourceTiming[]
+      ).filter((entry) => entry.name.includes("/_next/static/"));
+
+      return {
+        total: buildAssets.length,
+        fromCache: buildAssets.filter((entry) => entry.transferSize === 0).length,
+      };
+    });
+
+    expect(reuse.total).toBeGreaterThan(0);
+    expect(reuse.fromCache, "reload refetched every build asset from the network").toBeGreaterThan(
+      0
+    );
   });
 
   test("should handle slow network gracefully", async ({ page, context }) => {
@@ -289,31 +341,34 @@ test.describe("Performance Tests", () => {
 
   test("should minimize JavaScript execution time", async ({ page }) => {
     await page.goto("/");
+    // networkidle, not just `load`: chunks pulled in during hydration are part
+    // of the cost being measured.
+    await page.waitForLoadState("networkidle");
 
-    // Measure JavaScript execution time
+    test.skip(
+      await servedByDevServer(page),
+      "next dev compiles routes on demand and emits one chunk per module, so this measures compile time and an unbundled graph rather than the shipped bundle; run under playwright.config.prod.ts"
+    );
+
     const metrics = await page.evaluate(() => {
-      const scripts = performance
-        .getEntriesByType("resource")
-        .filter((entry) => entry.name.includes(".js"));
-
-      let totalScriptTime = 0;
-      scripts.forEach((script) => {
-        totalScriptTime += script.duration;
-      });
+      const scripts = (
+        performance.getEntriesByType("resource") as PerformanceResourceTiming[]
+      ).filter((entry) => entry.name.includes(".js"));
 
       return {
         scriptCount: scripts.length,
-        totalTime: totalScriptTime,
+        // Resource `duration` is request-start to response-end, so this is the
+        // cost of getting script bytes ready to run, summed across chunks -- not
+        // V8 execution time, despite the test name.
+        totalTime: scripts.reduce((total, script) => total + script.duration, 0),
       };
     });
 
-    // JavaScript execution should be optimized
-    expect(metrics.totalTime).toBeLessThan(2000); // Under 2 seconds
+    expect(metrics.totalTime).toBeLessThan(2000);
 
-    // In production, scripts should be bundled (fewer files)
-    if (page.url().includes("localhost:3000")) {
-      expect(metrics.scriptCount).toBeLessThan(20); // Reasonable number of chunks
-    }
+    // A production build bundles the module graph; dozens of chunks means code
+    // splitting has regressed into request waterfalls.
+    expect(metrics.scriptCount).toBeLessThan(20);
   });
 
   test("should have no render-blocking resources", async ({ page }) => {

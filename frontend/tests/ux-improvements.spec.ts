@@ -1,4 +1,31 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+/**
+ * Waits until React has taken over the server-rendered markup.
+ *
+ * The welcome modal is opened by a mount effect, so asserting that it is absent
+ * before hydration would pass for the wrong reason. Opening a client-only
+ * control (the salary slider's inline editor) proves React is live and its
+ * effects have already run.
+ *
+ * CSS locators and dispatchEvent rather than getByRole and click: a modal that
+ * wrongly reappears puts the rest of the page behind aria-hidden and swallows
+ * pointer events, and the probe must not be what fails in that case - the
+ * caller's assertion about the modal should be.
+ */
+async function waitForHydration(page: Page) {
+  const currentJobCard = page.locator('[data-tour="current-job-card"]');
+  const editButton = currentJobCard.locator('button[aria-label="Edit Monthly Salary value"]');
+  const valueInput = currentJobCard.locator('input[aria-label="Monthly Salary value"]');
+
+  await expect(async () => {
+    // Idempotent: a retry must not re-open an editor that is already open.
+    if (!(await valueInput.isVisible())) {
+      await editButton.dispatchEvent("click");
+    }
+    await expect(valueInput).toBeVisible({ timeout: 500 });
+  }).toPass({ timeout: 10000 });
+}
 
 test.describe("UX Improvements - Issues #128, #129, #147", () => {
   /**
@@ -6,6 +33,15 @@ test.describe("UX Improvements - Issues #128, #129, #147", () => {
    * Tests that keyboard users can skip navigation and jump to main content
    */
   test.describe("Skip Link (#147)", () => {
+    test.beforeEach(async ({ context }) => {
+      // Arrive as a returning visitor. On a first visit the welcome modal owns a
+      // focus trap, so Tab lands inside the dialog and never reaches the skip
+      // link - which is correct dialog behaviour, not a skip link bug.
+      await context.addInitScript(() => {
+        localStorage.setItem("worth_it_onboarded", "true");
+      });
+    });
+
     test("skip link appears when focused via Tab key", async ({ page }) => {
       await page.goto("/");
       await page.waitForLoadState("networkidle");
@@ -58,8 +94,13 @@ test.describe("UX Improvements - Issues #128, #129, #147", () => {
    */
   test.describe("Onboarding Modal (#129)", () => {
     test.beforeEach(async ({ context }) => {
-      // Clear localStorage to simulate first visit
+      // Simulate a first visit. Init scripts re-run on every navigation, so a
+      // sessionStorage sentinel keeps the reset to the first document load:
+      // otherwise a reload would wipe the flag the app just wrote and the
+      // return-visit test below could never observe it.
       await context.addInitScript(() => {
+        if (sessionStorage.getItem("e2e_onboarding_reset")) return;
+        sessionStorage.setItem("e2e_onboarding_reset", "1");
         localStorage.removeItem("worth_it_onboarded");
       });
     });
@@ -83,42 +124,45 @@ test.describe("UX Improvements - Issues #128, #129, #147", () => {
       // Wait for modal
       const modal = page.getByRole("dialog");
       await expect(modal).toBeVisible({ timeout: 5000 });
+      await expect(modal.getByTestId("step-indicator")).toHaveCount(3);
 
-      // Step 1: Welcome
-      await expect(page.getByText(/welcome to worth it/i)).toBeVisible();
+      // Step 1: Welcome. The wizard advances with "Get Started", not a generic
+      // "Next" button.
+      await expect(modal.getByRole("heading", { name: /welcome to worth it/i })).toBeVisible();
+      await modal.getByRole("button", { name: /get started/i }).click();
 
-      // Click Next
-      await page.getByRole("button", { name: /next/i }).click();
+      // Step 2: Mode selection - picking a mode is what moves the wizard on
+      await expect(modal.getByRole("heading", { name: /employee or founder/i })).toBeVisible();
+      await modal.getByRole("button", { name: /^employee/i }).click();
 
-      // Step 2: Features/How it works
-      await expect(page.getByText(/how it works|what you'll get/i)).toBeVisible();
-
-      // Click Next
-      await page.getByRole("button", { name: /next/i }).click();
-
-      // Step 3: Mode selection
-      await expect(page.getByText(/choose.*mode|get started/i)).toBeVisible();
+      // Step 3: Confirmation
+      await expect(modal.getByRole("heading", { name: /you're all set/i })).toBeVisible();
     });
 
-    test("can select Quick mode in onboarding", async ({ page }) => {
+    test("can select a mode in onboarding", async ({ page }) => {
       await page.goto("/");
       await page.waitForLoadState("networkidle");
 
       // Wait for modal
-      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5000 });
+      const modal = page.getByRole("dialog");
+      await expect(modal).toBeVisible({ timeout: 5000 });
 
-      // Navigate to mode selection (step 3)
-      await page.getByRole("button", { name: /next/i }).click();
-      await page.getByRole("button", { name: /next/i }).click();
+      // Navigate to mode selection (step 2)
+      await modal.getByRole("button", { name: /get started/i }).click();
 
-      // Select Quick mode
-      const quickButton = page.getByRole("button", { name: /quick/i });
-      if (await quickButton.isVisible()) {
-        await quickButton.click();
-      }
+      // Founder rather than Employee: employee is the store default, so only the
+      // founder choice proves the selection actually reached the app.
+      await modal.getByRole("button", { name: /^founder/i }).click();
 
-      // Modal should close
-      await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 3000 });
+      // Selecting a mode lands on the final step; the modal closes on "Got it!"
+      await modal.getByRole("button", { name: /got it/i }).click();
+      await expect(modal).not.toBeVisible({ timeout: 3000 });
+
+      // The chosen mode is applied to the app behind the modal
+      await expect(page.getByRole("tab", { name: /cap table/i })).toHaveAttribute(
+        "aria-selected",
+        "true"
+      );
     });
 
     test("can skip onboarding", async ({ page }) => {
@@ -152,8 +196,10 @@ test.describe("UX Improvements - Issues #128, #129, #147", () => {
       await page.reload();
       await page.waitForLoadState("networkidle");
 
-      // Modal should NOT appear this time
-      await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 2000 });
+      // Modal should NOT appear this time - but only once React is live, since
+      // the modal is opened from a mount effect
+      await waitForHydration(page);
+      await expect(page.getByRole("dialog")).toBeHidden();
     });
 
     test("onboarding state persists in localStorage", async ({ page }) => {
@@ -194,12 +240,14 @@ test.describe("UX Improvements - Issues #128, #129, #147", () => {
     });
 
     test("salary field has example placeholder", async ({ page }) => {
-      // Find the monthly salary input
-      const salaryInput = page.locator('input[name*="salary"], input[name*="monthly"]').first();
+      // Salary is entered through a currency slider, so the numeric input - and
+      // with it the example placeholder - only exists once the value chip next
+      // to the slider is clicked.
+      const currentJobCard = page.locator('[data-tour="current-job-card"]');
+      await currentJobCard.getByRole("button", { name: /edit monthly salary value/i }).click();
 
-      // Check placeholder contains example value format
-      const placeholder = await salaryInput.getAttribute("placeholder");
-      expect(placeholder).toMatch(/e\.g\.|example|\d+/i);
+      const salaryInput = currentJobCard.getByRole("textbox", { name: /monthly salary value/i });
+      await expect(salaryInput).toHaveAttribute("placeholder", /e\.g\./i);
     });
 
     test("equity percentage field shows hint", async ({ page }) => {
