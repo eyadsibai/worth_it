@@ -7,6 +7,8 @@ This router handles cap table operations:
 - Dilution preview for new funding rounds
 """
 
+import logging
+
 import anyio.to_thread
 from fastapi import APIRouter, HTTPException, Request
 
@@ -25,6 +27,7 @@ from worth_it.models import (
     DilutionPreviewRequest,
     DilutionPreviewResponse,
     DilutionResultItem,
+    ErrorCode,
     StakeholderPayout,
     WaterfallDistribution,
     WaterfallRequest,
@@ -32,7 +35,9 @@ from worth_it.models import (
     WaterfallStep,
 )
 
-from ..dependencies import cap_table_service, limiter
+from ..dependencies import cap_table_service, create_error_response, limiter
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api",
@@ -174,6 +179,17 @@ async def calculate_waterfall(request: Request, body: WaterfallRequest):
         # thread so concurrent requests on this worker keep being served.
         return await anyio.to_thread.run_sync(
             _build_waterfall_response, body, abandon_on_cancel=True
+        )
+    except CalculationError as e:
+        # The engine refuses to report a distribution that does not add up, and
+        # its message names the cap table field that made it so. The app-wide
+        # handler would flatten that into "calculation failed", leaving the
+        # caller with a correctable input and no idea which one.
+        logger.warning(f"Waterfall refused an unbalanced distribution: {e}")
+        return create_error_response(
+            code=ErrorCode.CALCULATION_ERROR,
+            message=str(e),
+            status_code=400,
         )
     except (ValueError, TypeError, KeyError) as e:
         raise CalculationError("Invalid parameters for waterfall analysis") from e

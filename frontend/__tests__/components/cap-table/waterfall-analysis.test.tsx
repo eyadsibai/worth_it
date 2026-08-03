@@ -7,6 +7,9 @@
  * even when their dates are missing, and must sweep a valuation range that is
  * anchored on the scenario's own exit assumption.
  */
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -30,8 +33,30 @@ const LEGACY_MIN_VALUATION = 1_000_000;
 const LEGACY_MAX_VALUATION = 500_000_000;
 /** Fallback anchor when the scenario carries no exit assumption. */
 const DEFAULT_EXIT_VALUATION = 50_000_000;
-/** Mirrors MAX_EXIT_VALUATIONS in backend/src/worth_it/models.py */
-const MAX_EXIT_VALUATIONS = 100;
+/**
+ * The API rejects an over-long exit_valuations list with a 400 - it does not clip
+ * it - so the cap is a contract, not a hint. Read it out of the Pydantic model
+ * rather than copying the number here: a duplicated literal stays green while the
+ * backend tightens the bound underneath it, and the waterfall tab 400s in prod.
+ */
+const BACKEND_MODELS = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../../../backend/src/worth_it/models.py"
+);
+
+function backendLimit(name: string): number {
+  // Tolerates a type annotation (`MAX_EXIT_VALUATIONS: Final[int] = 100`) so a
+  // typing pass on the backend does not read as a moved contract.
+  const declaration = new RegExp(`^${name}(?::[^=]+)?\\s*=\\s*([0-9_]+)`, "m").exec(
+    readFileSync(BACKEND_MODELS, "utf8")
+  );
+  if (!declaration) {
+    throw new Error(`${name} is no longer declared in ${BACKEND_MODELS}`);
+  }
+  return Number(declaration[1].replace(/_/g, ""));
+}
+
+const MAX_EXIT_VALUATIONS = backendLimit("MAX_EXIT_VALUATIONS");
 
 function createWrapper() {
   const queryClient = new QueryClient({

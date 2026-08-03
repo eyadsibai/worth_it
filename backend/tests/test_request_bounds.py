@@ -1,13 +1,16 @@
-"""Request-size bounds and Monte Carlo seed plumbing.
+"""Request-size bounds, waterfall refusals, and Monte Carlo seed plumbing.
 
 Waterfall cost is the product of stakeholder count and exit valuation count, so
-each list needs its own cap plus a combined guard. Monte Carlo runs need an
-explicit seed so a result can be reproduced and shared.
+each list needs its own cap plus a combined guard. A request that clears the
+bounds can still be arithmetically impossible, and the caller has to be told
+which field made it so. Monte Carlo runs need an explicit seed so a result can
+be reproduced and shared.
 """
 
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from typing import Any
 
 import pytest
@@ -18,78 +21,95 @@ from worth_it.models import MAX_EXIT_VALUATIONS, MAX_STAKEHOLDERS, MAX_WATERFALL
 
 client = TestClient(app)
 
-
-def make_stakeholders(count: int) -> list[dict[str, Any]]:
-    """Build `count` valid common stakeholders."""
-    return [
-        {
-            "id": f"holder-{index}",
-            "name": f"Holder {index}",
-            "type": "employee",
-            "shares": 1000,
-            "ownership_pct": 100.0 / count,
-            "share_class": "common",
-        }
-        for index in range(count)
-    ]
-
-
-def waterfall_body(stakeholder_count: int, valuation_count: int) -> dict[str, Any]:
-    """Build a waterfall request of the requested dimensions."""
-    return {
-        "cap_table": {
-            "stakeholders": make_stakeholders(stakeholder_count),
-            "total_shares": 1000 * stakeholder_count,
-            "option_pool_pct": 0,
-        },
-        "preference_tiers": [],
-        "exit_valuations": [1_000_000.0 * (index + 1) for index in range(valuation_count)],
-    }
+WaterfallBody = Callable[[int, int], dict[str, Any]]
 
 
 class TestWaterfallRequestBounds:
-    """A single unauthenticated POST must not be able to buy minutes of CPU."""
+    """A single unauthenticated POST must not be able to buy minutes of CPU.
 
-    def test_exit_valuations_beyond_the_cap_are_rejected(self) -> None:
+    Two rejection paths, two status codes, deliberately. A per-list cap is
+    expressible in the schema, so Pydantic rejects it and the app's
+    `RequestValidationError` handler normalizes it to 400 with field details -
+    the shape every other invalid request in this API gets. The product of two
+    individually-legal list lengths is not expressible in a schema, so the
+    handler checks it before dispatching any work and answers with the
+    unprocessable-entity code plus the arithmetic needed to shrink the request.
+    """
+
+    def test_exit_valuations_beyond_the_cap_are_rejected(
+        self, waterfall_body: WaterfallBody
+    ) -> None:
         body = waterfall_body(1, MAX_EXIT_VALUATIONS + 1)
 
         response = client.post("/api/waterfall", json=body)
 
         assert response.status_code == 400
+        assert response.json()["error"]["code"] == "VALIDATION_ERROR"
 
-    def test_exit_valuations_at_the_cap_are_accepted(self) -> None:
+    def test_exit_valuations_at_the_cap_are_accepted(self, waterfall_body: WaterfallBody) -> None:
         body = waterfall_body(1, MAX_EXIT_VALUATIONS)
 
         response = client.post("/api/waterfall", json=body)
 
         assert response.status_code == 200
 
-    def test_stakeholders_beyond_the_cap_are_rejected(self) -> None:
+    def test_stakeholders_beyond_the_cap_are_rejected(self, waterfall_body: WaterfallBody) -> None:
         body = waterfall_body(MAX_STAKEHOLDERS + 1, 1)
 
         response = client.post("/api/waterfall", json=body)
 
         assert response.status_code == 400
+        assert response.json()["error"]["code"] == "VALIDATION_ERROR"
 
-    def test_combined_product_guard_rejects_pathological_requests(self) -> None:
+    def test_combined_product_guard_rejects_pathological_requests(
+        self, waterfall_body: WaterfallBody
+    ) -> None:
         body = waterfall_body(MAX_STAKEHOLDERS, MAX_EXIT_VALUATIONS)
         cells = MAX_STAKEHOLDERS * MAX_EXIT_VALUATIONS
         assert cells > MAX_WATERFALL_CELLS
 
         response = client.post("/api/waterfall", json=body)
 
+        # Not 400 like the per-list caps above: no schema can express the
+        # product, so this is the handler's own pre-dispatch guard rather than a
+        # Pydantic field error, and it carries the numbers instead of a field path.
         assert response.status_code == 422
         detail = json.dumps(response.json())
         assert str(MAX_WATERFALL_CELLS) in detail
         assert str(MAX_STAKEHOLDERS) in detail
 
-    def test_realistic_frontend_sweep_still_works(self) -> None:
+    def test_realistic_frontend_sweep_still_works(self, waterfall_body: WaterfallBody) -> None:
         body = waterfall_body(50, 20)
 
         response = client.post("/api/waterfall", json=body)
 
         assert response.status_code == 200
         assert len(response.json()["distributions_by_valuation"]) == 20
+
+
+class TestWaterfallRefusalsNameTheInputToFix:
+    """The engine's invariant messages are the only clue the caller gets.
+
+    A distribution that does not add up to the exit is always a cap table the
+    user can correct, so the correction has to survive the trip to the client
+    instead of being flattened into "calculation failed".
+    """
+
+    def test_an_over_subscribed_cap_table_reports_the_field_to_correct(
+        self, waterfall_body: WaterfallBody
+    ) -> None:
+        body = waterfall_body(2, 1)
+        # Two holders of 1,000 shares each against a 1,000-share cap table: the
+        # engine would hand out 200% of the exit, so it refuses to report at all.
+        body["cap_table"]["total_shares"] = 1000
+
+        response = client.post("/api/waterfall", json=body)
+
+        assert response.status_code == 400
+        error = response.json()["error"]
+        assert error["code"] == "CALCULATION_ERROR"
+        assert "total_shares" in error["message"]
+        assert "exceeds exit valuation" in error["message"]
 
 
 class TestMonteCarloSeedPlumbing:

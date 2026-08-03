@@ -668,7 +668,9 @@ class WaterfallPipeline:
         """Finalize pipeline and return WaterfallResult.
 
         Raises:
-            CalculationError: If total payouts exceed the exit valuation.
+            CalculationError: If total payouts exceed the exit valuation, or fall
+                short of the amount payable from it. The message names the cap
+                table field to correct and reaches the caller unchanged.
         """
         self._validate_total_distribution()
 

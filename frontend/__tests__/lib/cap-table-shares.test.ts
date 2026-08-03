@@ -36,4 +36,12 @@ describe("totalSharesCovering", () => {
     const stakeholders = [{ shares: 6_000_000 }, { shares: Number.NaN }];
     expect(totalSharesCovering(stakeholders, 10_000_000)).toBe(10_000_000);
   });
+
+  it("falls back to the issued shares when the total itself is non-finite", () => {
+    // A NaN total would flow into the payload as total_shares and make every
+    // shares/total_shares payout NaN; Infinity would make them all zero.
+    const stakeholders = [{ shares: 6_000_000 }, { shares: 2_000_000 }];
+    expect(totalSharesCovering(stakeholders, Number.NaN)).toBe(8_000_000);
+    expect(totalSharesCovering(stakeholders, Number.POSITIVE_INFINITY)).toBe(8_000_000);
+  });
 });

@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactElement } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ExportButton } from "@/components/valuation/export-button";
 import type {
@@ -46,10 +46,8 @@ describe("ExportButton", () => {
     factors: [{ name: "Sound Idea", value: 500000 }],
   };
 
-  const defaultProps = {
+  const commonProps = {
     companyName: "Test Company",
-    methodType: "first-chicago" as const,
-    result: firstChicagoResult,
     params: { discount_rate: 0.25 },
   };
 
@@ -76,29 +74,50 @@ describe("ExportButton", () => {
   });
 
   type ExportButtonProps = ComponentProps<typeof ExportButton>;
+  type FirstChicagoProps = Extract<ExportButtonProps, { methodType: "first-chicago" }>;
+  type PreRevenueProps = Extract<ExportButtonProps, { methodType: "pre-revenue" }>;
 
-  const renderComponent = (props: Partial<ExportButtonProps> = {}) => {
-    return render(
-      <QueryClientProvider client={queryClient}>
-        <ExportButton {...({ ...defaultProps, ...props } as ExportButtonProps)} />
-      </QueryClientProvider>
+  const renderWithClient = (ui: ReactElement) =>
+    render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+
+  // One helper per union member. A shared `Partial<ExportButtonProps>` merge
+  // needs a cast to satisfy the discriminated union, and that cast hides the
+  // very mistake the union exists to catch: a `methodType` paired with the
+  // other variant's `result`.
+  const renderFirstChicago = (overrides: Partial<Omit<FirstChicagoProps, "methodType">> = {}) =>
+    renderWithClient(
+      <ExportButton
+        {...commonProps}
+        methodType="first-chicago"
+        result={firstChicagoResult}
+        {...overrides}
+      />
     );
-  };
+
+  const renderPreRevenue = (overrides: Partial<Omit<PreRevenueProps, "methodType">> = {}) =>
+    renderWithClient(
+      <ExportButton
+        {...commonProps}
+        methodType="pre-revenue"
+        result={preRevenueResult}
+        {...overrides}
+      />
+    );
 
   describe("Rendering", () => {
     it("renders export button with correct text", () => {
-      renderComponent();
+      renderFirstChicago();
       expect(screen.getByRole("button", { name: /export/i })).toBeInTheDocument();
     });
 
     it("renders download icon by default", () => {
-      renderComponent();
+      renderFirstChicago();
       const button = screen.getByRole("button", { name: /export/i });
       expect(button.querySelector("svg")).toBeInTheDocument();
     });
 
     it("is disabled when disabled prop is true", () => {
-      renderComponent({ disabled: true });
+      renderFirstChicago({ disabled: true });
       expect(screen.getByRole("button", { name: /export/i })).toBeDisabled();
     });
   });
@@ -106,7 +125,7 @@ describe("ExportButton", () => {
   describe("Dropdown Menu", () => {
     it("shows format options when clicked", async () => {
       const user = userEvent.setup();
-      renderComponent();
+      renderFirstChicago();
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);
@@ -121,7 +140,7 @@ describe("ExportButton", () => {
   describe("Export Functionality", () => {
     it("calls exportFirstChicago when methodType is first-chicago", async () => {
       const user = userEvent.setup();
-      renderComponent({ methodType: "first-chicago" });
+      renderFirstChicago();
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);
@@ -143,11 +162,7 @@ describe("ExportButton", () => {
 
     it("calls exportPreRevenue when methodType is pre-revenue", async () => {
       const user = userEvent.setup();
-      renderComponent({
-        methodType: "pre-revenue",
-        methodName: "Berkus Method",
-        result: preRevenueResult,
-      });
+      renderPreRevenue({ methodName: "Berkus Method" });
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);
@@ -169,7 +184,7 @@ describe("ExportButton", () => {
 
     it("exports CSV format correctly", async () => {
       const user = userEvent.setup();
-      renderComponent();
+      renderFirstChicago();
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);
@@ -186,7 +201,7 @@ describe("ExportButton", () => {
 
     it("includes industry when provided", async () => {
       const user = userEvent.setup();
-      renderComponent({ industry: "saas" });
+      renderFirstChicago({ industry: "saas" });
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);
@@ -208,7 +223,7 @@ describe("ExportButton", () => {
         num_simulations: 10000,
         percentiles: { p50: 1000000 },
       };
-      renderComponent({ monteCarloResult });
+      renderFirstChicago({ monteCarloResult });
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);
@@ -225,7 +240,7 @@ describe("ExportButton", () => {
 
     it("creates object URL for blob download on successful export", async () => {
       const user = userEvent.setup();
-      renderComponent();
+      renderFirstChicago();
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);
@@ -247,7 +262,7 @@ describe("ExportButton", () => {
         isPending: true,
       } as unknown as ReturnType<typeof useExportFirstChicago>);
 
-      renderComponent();
+      renderFirstChicago();
 
       const button = screen.getByRole("button");
       expect(button).toBeDisabled();
@@ -261,7 +276,7 @@ describe("ExportButton", () => {
         isPending: true,
       } as unknown as ReturnType<typeof useExportPreRevenue>);
 
-      renderComponent({ methodType: "pre-revenue" });
+      renderPreRevenue();
 
       expect(screen.getByRole("button")).toBeDisabled();
     });
@@ -273,7 +288,7 @@ describe("ExportButton", () => {
       const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
       mockExportFirstChicago.mutateAsync.mockRejectedValue(new Error("Export failed"));
 
-      renderComponent();
+      renderFirstChicago();
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);
@@ -293,7 +308,7 @@ describe("ExportButton", () => {
       vi.spyOn(console, "error").mockImplementation(() => {});
       mockExportFirstChicago.mutateAsync.mockRejectedValue(new Error("Export failed"));
 
-      renderComponent();
+      renderFirstChicago();
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);

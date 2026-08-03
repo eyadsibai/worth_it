@@ -59,11 +59,17 @@ def stakeholder(
     }
 
 
-def cap_table_of(*stakeholders: dict[str, Any], total_shares: int = 10_000_000) -> dict[str, Any]:
-    """Build a cap table around the given stakeholders."""
+def cap_table_of(*stakeholders: dict[str, Any], total_shares: int | None = None) -> dict[str, Any]:
+    """Build a cap table around the given stakeholders.
+
+    total_shares defaults to the shares actually held, so a table is fully allocated
+    unless a test opts into an unallocated option pool by passing a larger total.
+    """
     return {
         "stakeholders": list(stakeholders),
-        "total_shares": total_shares,
+        "total_shares": (
+            sum(s["shares"] for s in stakeholders) if total_shares is None else total_shares
+        ),
         "option_pool_pct": 0,
     }
 
@@ -804,6 +810,22 @@ class TestValueConservation:
                 cap_table=cap_table, preference_tiers=tiers, exit_valuation=exit_valuation
             )
             assert_conserves_value(result, exit_valuation)
+
+    def test_fully_allocated_cap_table_distributes_the_whole_exit(self):
+        """With no pool declared, every share is held and every dollar is payable."""
+        cap_table = cap_table_of(
+            stakeholder("founder-1", "Founder", 6_000_000, "common", "founder"),
+            stakeholder("investor-1", "Investor", 2_000_000, "preferred"),
+        )
+
+        result = calculate_waterfall(
+            cap_table=cap_table, preference_tiers=[], exit_valuation=10_000_000
+        )
+
+        # 8M shares outstanding, split 75/25.
+        assert_conserves_value(result, 10_000_000)
+        assert payout_for(result, "Founder") == pytest.approx(7_500_000)
+        assert payout_for(result, "Investor") == pytest.approx(2_500_000)
 
     def test_unallocated_option_pool_is_not_a_leak(self):
         """Shares held by nobody dilute everyone, and their slice is not payable."""

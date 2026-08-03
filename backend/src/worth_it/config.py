@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 from typing import Annotated, Any
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -82,6 +82,18 @@ class EnvSettings(BaseSettings):
             for entry in value
             if not isinstance(entry, str) or entry.strip()
         )
+
+    @model_validator(mode="after")
+    def _default_api_base_url(self) -> EnvSettings:
+        """Fill in the localhost URL implied by API_PORT.
+
+        A default that happens to depend on another setting is still a default,
+        so it lives here rather than behind a property: every reader, class or
+        instance, then sees the same resolved value.
+        """
+        if self.API_BASE_URL is None:
+            self.API_BASE_URL = f"http://localhost:{self.API_PORT}"
+        return self
 
 
 _ENV_CACHE: dict[object, EnvSettings] = {}
@@ -162,14 +174,6 @@ class Settings(metaclass=_SettingsMeta):
         if name.startswith("_"):
             raise AttributeError(f"{type(self).__name__!r} has no attribute {name!r}")
         return getattr(self._resolved, name)
-
-    @property
-    def API_BASE_URL(self) -> str:
-        """Get API base URL, using API_PORT if not explicitly set."""
-        configured = self._resolved.API_BASE_URL
-        if configured is not None:
-            return configured
-        return f"http://localhost:{self.API_PORT}"
 
     # CORS Configuration
     @classmethod

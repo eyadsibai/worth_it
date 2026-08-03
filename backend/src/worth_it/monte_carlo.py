@@ -4,6 +4,12 @@ Monte Carlo simulation and sensitivity analysis functions.
 This module provides probabilistic modeling capabilities for financial analysis,
 including PERT distribution generation, vectorized and iterative Monte Carlo
 simulations, and sensitivity analysis.
+
+Simulated exit prices come in two units: RSUs are priced off a whole-company exit
+valuation, stock options off a price per share. Both are returned under the
+``simulated_valuations`` key, whose name predates stock-options support and is now
+part of the API contract, so callers that display or format the series must read
+the scenario's ``equity_type`` to know which unit they hold.
 """
 
 from __future__ import annotations
@@ -132,7 +138,9 @@ def run_monte_carlo_simulation(
         seed: Optional seed making the run reproducible
 
     Returns:
-        Dictionary with 'net_outcomes' and 'simulated_valuations' arrays
+        Dictionary with 'net_outcomes' and 'simulated_valuations' arrays.
+        'simulated_valuations' holds whole-company exit valuations for RSUs and
+        per-share exit prices for stock options.
 
     Raises:
         CalculationError: If num_simulations exceeds MAX_SIMULATIONS
@@ -224,7 +232,9 @@ def run_monte_carlo_simulation_vectorized(  # noqa: C901 - inherently complex ve
         rng: Optional Generator, used in preference to `seed`
 
     Returns:
-        Dictionary with 'net_outcomes' and 'simulated_valuations' arrays
+        Dictionary with 'net_outcomes' and 'simulated_valuations' arrays.
+        'simulated_valuations' holds whole-company exit valuations for RSUs and
+        per-share exit prices for stock options.
     """
     rng = _resolve_rng(seed, rng)
     exit_year = base_params["exit_year"]
@@ -412,7 +422,9 @@ def run_monte_carlo_simulation_iterative(
         rng: Optional Generator, used in preference to `seed`
 
     Returns:
-        Dictionary with 'net_outcomes' and 'simulated_valuations' arrays
+        Dictionary with 'net_outcomes' and 'simulated_valuations' arrays.
+        'simulated_valuations' holds whole-company exit valuations for RSUs and
+        per-share exit prices for stock options.
     """
     rng = _resolve_rng(seed, rng)
     sim_params: dict[str, Any] = {}

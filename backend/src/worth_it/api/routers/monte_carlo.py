@@ -226,7 +226,15 @@ async def websocket_monte_carlo(websocket: WebSocket):  # noqa: C901 - complex W
     - Input (JSON): Same as MonteCarloRequest
     - Output (JSON):
         - {"type": "progress", "current": N, "total": TOTAL, "percentage": PCT}
-        - {"type": "complete", "net_outcomes": [...], "simulated_valuations": [...]}
+          Sent exactly twice: 0% as the run is handed to a worker thread and
+          100% once it returns. The run is deliberately unbatched (see
+          `_run_simulation_with_progress`), so there is nothing to report in
+          between.
+        - {"type": "complete", "net_outcomes": [...], "simulated_valuations": [...],
+           "seed": SEED}
+          `seed` is the caller's seed, or the one generated for this run when it
+          was omitted. Replaying it through POST /api/monte-carlo reproduces
+          these exact numbers.
         - {"type": "error", "error": {"code": "...", "message": "...", "details": [...]}}
     """
     client_ip = get_client_ip(websocket)

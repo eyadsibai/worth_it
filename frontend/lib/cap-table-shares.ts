@@ -24,6 +24,10 @@ export function sharesForOwnership(ownershipPct: number, totalShares: number): n
  * a 0.5% advisor is an ordinary way to fill the wizard. Issuing more shares than the
  * total would distribute more than the exit produced, which the backend rejects
  * outright, so the total expands to match rather than the payouts silently overflowing.
+ *
+ * A non-finite `totalShares` is discarded rather than carried into the result: NaN would
+ * make every `shares / total_shares` payout NaN and Infinity would zero them all, so the
+ * issued count is the only total that still pays stakeholders what they hold.
  */
 export function totalSharesCovering(
   stakeholders: readonly { shares: number }[],
@@ -33,5 +37,5 @@ export function totalSharesCovering(
     (sum, s) => sum + (Number.isFinite(s.shares) ? s.shares : 0),
     0
   );
-  return Math.max(totalShares, issued);
+  return Math.max(Number.isFinite(totalShares) ? totalShares : 0, issued);
 }

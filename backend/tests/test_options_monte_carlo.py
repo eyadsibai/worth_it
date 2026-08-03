@@ -26,6 +26,9 @@ from worth_it.services.serializers import (
 )
 
 NUM_SIMULATIONS = 200
+# The iterative path rebuilds a monthly grid per simulation, so it gets a smaller
+# sample. Unit assertions only need enough draws to span the configured range.
+NUM_ITERATIVE_SIMULATIONS = 40
 NUM_OPTIONS = 10_000
 STRIKE_PRICE = 1.0
 EXIT_PRICE_PER_SHARE = 50.0
@@ -113,6 +116,21 @@ def _deterministic_net_outcome(internal_base: dict[str, Any]) -> float:
     return float(results["final_payout_value"] - results["final_opportunity_cost"])
 
 
+def _assert_is_a_distribution(values: np.ndarray, label: str) -> None:
+    """Fail when `values` is a point mass dressed up as a simulation."""
+    spread = float(values.max() - values.min())
+    scale = float(np.abs(np.median(values))) or 1.0
+
+    assert float(np.std(values)) > 0.0, f"{label} has zero standard deviation"
+    assert spread / scale > MIN_RELATIVE_SPREAD, (
+        f"{label} spans only {spread:,.6g} around a median of {scale:,.6g} "
+        f"({spread / scale:.2%} relative spread) - every simulation is identical"
+    )
+
+    p5, p50, p95 = (float(v) for v in np.percentile(values, [5, 50, 95]))
+    assert p5 < p50 < p95, f"{label} percentiles collapsed: p5={p5}, p50={p50}, p95={p95}"
+
+
 def test_options_simulation_is_not_driven_by_company_valuation():
     """A simulated company exit valuation must not be used as a price per share."""
     internal_base = _to_internal(_options_startup_params())
@@ -190,6 +208,74 @@ def test_rsu_simulation_still_uses_company_valuation():
     )
 
 
+# --- Units survive the switch to the iterative simulation path ---
+#
+# Simulating the exit year forces the per-simulation path, which rebuilds the
+# exit price from a different branch than the vectorised one. `simulated_valuations`
+# is reported straight back to the user, so both branches have to keep it in the
+# units the scenario was written in. A branch that reads the wrong key does not
+# raise - it falls back to the scenario's constant target price - so the range
+# assertions below are paired with a spread assertion.
+
+
+def test_iterative_options_simulation_reports_per_share_units():
+    """A simulated exit year must not turn the per-share price into a valuation."""
+    internal_base = _to_internal(_options_startup_params())
+    min_price, max_price = 40.0, 60.0
+    sim_param_configs = convert_sim_param_configs_to_internal(
+        {
+            VariableParam.EXIT_YEAR: SimParamRange(min=3.0, max=7.0),
+            VariableParam.EXIT_PRICE_PER_SHARE: SimParamRange(min=min_price, max=max_price),
+        }
+    )
+
+    results = run_monte_carlo_simulation(
+        num_simulations=NUM_ITERATIVE_SIMULATIONS,
+        base_params=internal_base,
+        sim_param_configs=sim_param_configs,
+    )
+
+    simulated = np.asarray(results["simulated_valuations"])
+    assert len(simulated) == NUM_ITERATIVE_SIMULATIONS
+    assert simulated.min() >= min_price
+    assert simulated.max() <= max_price
+    assert (
+        EXIT_PRICE_PER_SHARE / ORDER_OF_MAGNITUDE
+        < float(np.median(simulated))
+        < EXIT_PRICE_PER_SHARE * ORDER_OF_MAGNITUDE
+    ), "iterative options simulated values are not in per-share units"
+    _assert_is_a_distribution(simulated, "iterative options simulated price per share")
+
+
+def test_iterative_rsu_simulation_reports_whole_company_units():
+    """Control: the same path keeps RSU results in whole-company valuation units."""
+    internal_base = _to_internal(_rsu_startup_params())
+    min_valuation, max_valuation = 25_000_000.0, 75_000_000.0
+    sim_param_configs = convert_sim_param_configs_to_internal(
+        {
+            VariableParam.EXIT_YEAR: SimParamRange(min=3.0, max=7.0),
+            VariableParam.EXIT_VALUATION: SimParamRange(min=min_valuation, max=max_valuation),
+        }
+    )
+
+    results = run_monte_carlo_simulation(
+        num_simulations=NUM_ITERATIVE_SIMULATIONS,
+        base_params=internal_base,
+        sim_param_configs=sim_param_configs,
+    )
+
+    simulated = np.asarray(results["simulated_valuations"])
+    assert len(simulated) == NUM_ITERATIVE_SIMULATIONS
+    assert simulated.min() >= min_valuation
+    assert simulated.max() <= max_valuation
+    assert (
+        EXIT_VALUATION / ORDER_OF_MAGNITUDE
+        < float(np.median(simulated))
+        < EXIT_VALUATION * ORDER_OF_MAGNITUDE
+    ), "iterative RSU simulated values are not in whole-company units"
+    _assert_is_a_distribution(simulated, "iterative RSU simulated valuation")
+
+
 # --- End-to-end guards on the payload the Monte Carlo form actually sends ---
 #
 # frontend/components/forms/monte-carlo-form.tsx picks the sim-param key from
@@ -239,21 +325,6 @@ def _post_monte_carlo(
     assert response.status_code == 200, response.text
     body: dict[str, Any] = response.json()
     return body
-
-
-def _assert_is_a_distribution(values: np.ndarray, label: str) -> None:
-    """Fail when `values` is a point mass dressed up as a simulation."""
-    spread = float(values.max() - values.min())
-    scale = float(np.abs(np.median(values))) or 1.0
-
-    assert float(np.std(values)) > 0.0, f"{label} has zero standard deviation"
-    assert spread / scale > MIN_RELATIVE_SPREAD, (
-        f"{label} spans only {spread:,.6g} around a median of {scale:,.6g} "
-        f"({spread / scale:.2%} relative spread) - every simulation is identical"
-    )
-
-    p5, p50, p95 = (float(v) for v in np.percentile(values, [5, 50, 95]))
-    assert p5 < p50 < p95, f"{label} percentiles collapsed: p5={p5}, p50={p50}, p95={p95}"
 
 
 def test_options_monte_carlo_endpoint_simulates_the_configured_price_range():

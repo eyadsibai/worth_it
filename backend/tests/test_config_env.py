@@ -109,6 +109,30 @@ class TestEnvFileLoading:
         assert config.EnvSettings.model_config["env_file"] == backend_env
 
 
+class TestApiBaseUrl:
+    """The derived localhost fallback must hold however the setting is read."""
+
+    def test_derived_from_api_port_on_the_class(self, env_file: Path) -> None:
+        env_file.write_text("API_PORT=9001\n")
+
+        assert config.Settings.API_BASE_URL == "http://localhost:9001"
+
+    def test_derived_from_api_port_on_an_instance(self, env_file: Path) -> None:
+        env_file.write_text("API_PORT=9001\n")
+
+        assert config.Settings().API_BASE_URL == "http://localhost:9001"
+
+    def test_configured_value_wins_on_the_class(self, env_file: Path) -> None:
+        env_file.write_text("API_PORT=9001\nAPI_BASE_URL=https://api.example.com\n")
+
+        assert config.Settings.API_BASE_URL == "https://api.example.com"
+
+    def test_configured_value_wins_on_an_instance(self, env_file: Path) -> None:
+        env_file.write_text("API_PORT=9001\nAPI_BASE_URL=https://api.example.com\n")
+
+        assert config.Settings().API_BASE_URL == "https://api.example.com"
+
+
 class TestProductionCorsOrigins:
     """A production deploy must not silently get the development CORS list."""
 

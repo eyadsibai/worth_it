@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import json
 import threading
+from collections.abc import Callable
 from typing import Any
 
 import pytest
@@ -30,33 +31,7 @@ client = TestClient(app)
 BLOCKING_HANDSHAKE_TIMEOUT = 5.0
 IDLE_REQUEST_TIMEOUT = 2.0
 
-
-def _stakeholders(count: int) -> list[dict[str, Any]]:
-    """Build `count` valid common stakeholders."""
-    return [
-        {
-            "id": f"holder-{index}",
-            "name": f"Holder {index}",
-            "type": "employee",
-            "shares": 1000,
-            "ownership_pct": 100.0 / count,
-            "share_class": "common",
-        }
-        for index in range(count)
-    ]
-
-
-def _waterfall_body(stakeholder_count: int, valuation_count: int) -> dict[str, Any]:
-    """Build a waterfall request of the requested dimensions."""
-    return {
-        "cap_table": {
-            "stakeholders": _stakeholders(stakeholder_count),
-            "total_shares": 1000 * stakeholder_count,
-            "option_pool_pct": 0,
-        },
-        "preference_tiers": [],
-        "exit_valuations": [1_000_000.0 * (index + 1) for index in range(valuation_count)],
-    }
+WaterfallBody = Callable[[int, int], dict[str, Any]]
 
 
 def _monte_carlo_payload(num_simulations: int, seed: int | None = None) -> dict[str, Any]:
@@ -101,7 +76,7 @@ class TestWaterfallLeavesTheEventLoopAlone:
     """Blocker 7 capped the request size; the CPU cost still has to move off-loop."""
 
     def test_waterfall_computation_runs_on_a_worker_thread(
-        self, monkeypatch: pytest.MonkeyPatch
+        self, monkeypatch: pytest.MonkeyPatch, waterfall_body: WaterfallBody
     ) -> None:
         """The synchronous service call must not execute on the event loop thread."""
         original = cap_table_service.calculate_waterfall
@@ -118,7 +93,7 @@ class TestWaterfallLeavesTheEventLoopAlone:
 
         monkeypatch.setattr(cap_table_service, "calculate_waterfall", recording)
 
-        response = client.post("/api/waterfall", json=_waterfall_body(50, 20))
+        response = client.post("/api/waterfall", json=waterfall_body(50, 20))
 
         assert response.status_code == 200
         assert ran_on_event_loop == [False], (
@@ -127,7 +102,7 @@ class TestWaterfallLeavesTheEventLoopAlone:
         )
 
     def test_other_requests_are_served_while_a_waterfall_is_computing(
-        self, monkeypatch: pytest.MonkeyPatch
+        self, monkeypatch: pytest.MonkeyPatch, waterfall_body: WaterfallBody
     ) -> None:
         """A slow waterfall must not freeze unrelated traffic on the same worker."""
         original = cap_table_service.calculate_waterfall
@@ -150,7 +125,7 @@ class TestWaterfallLeavesTheEventLoopAlone:
             def post_waterfall() -> None:
                 waterfall_status.append(
                     shared_loop_client.post(
-                        "/api/waterfall", json=_waterfall_body(50, 20)
+                        "/api/waterfall", json=waterfall_body(50, 20)
                     ).status_code
                 )
 

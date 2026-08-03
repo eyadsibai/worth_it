@@ -36,6 +36,9 @@ client = TestClient(app)
 # Port 9 (discard) on loopback: reachable without DNS, refuses immediately.
 HOSTILE_IMG_MARKUP = '<img src="http://127.0.0.1:9/pwn.png"/>'
 
+# Only a deadlock breaker: the concurrency tests wait on signals, not on time.
+DRAIN_TIMEOUT_SECONDS = 10.0
+
 FIRST_CHICAGO_RESULT: dict[str, Any] = {
     "weighted_value": 23_750_000.0,
     "present_value": 7_782_387.0,
@@ -547,6 +550,25 @@ class TestPdfRenderConcurrency:
             params=dict(FIRST_CHICAGO_PARAMS),
         )
 
+    @staticmethod
+    def _drain_render_pool() -> None:
+        """Block until every render already queued on the pool has finished.
+
+        One barrier task per worker slot, submitted last: the pool dispatches
+        FIFO and a worker parked in the barrier cannot take further work, so the
+        barrier can only trip once every slot is free of the renders ahead of
+        it. That is a completion signal — a sleep is only a guess that happens
+        to be long enough, and it stops being one on a loaded machine.
+        """
+        slots = export_router.MAX_CONCURRENT_PDF_RENDERS
+        barrier = threading.Barrier(slots + 1)  # every worker slot, plus this thread
+        for _ in range(slots):
+            export_router._pdf_render_pool.submit(barrier.wait, timeout=DRAIN_TIMEOUT_SECONDS)
+        try:
+            barrier.wait(timeout=DRAIN_TIMEOUT_SECONDS)
+        except threading.BrokenBarrierError:
+            pytest.fail("abandoned renders never drained")
+
     def test_concurrent_renders_are_capped(self, monkeypatch: pytest.MonkeyPatch) -> None:
         lock = threading.Lock()
         live = 0
@@ -579,11 +601,15 @@ class TestPdfRenderConcurrency:
     ) -> None:
         lock = threading.Lock()
         workers: set[int] = set()
+        finish_render = threading.Event()
 
         def slow_generate(report_data: Any) -> bytes:
             with lock:
                 workers.add(threading.get_ident())
-            time.sleep(0.3)
+            # Outlive the request timeout, then end on the test's signal rather
+            # than a duration the drain below would have to out-guess. The cap
+            # keeps a regression from hanging the suite.
+            finish_render.wait(timeout=DRAIN_TIMEOUT_SECONDS)
             return b"%PDF-1.4 stub"
 
         monkeypatch.setattr(export_router, "PDF_GENERATION_TIMEOUT_SECONDS", 0.05)
@@ -599,10 +625,15 @@ class TestPdfRenderConcurrency:
         outcomes = asyncio.run(render_burst())
 
         assert all(isinstance(outcome, HTTPException) for outcome in outcomes)
-        time.sleep(0.6)  # let the abandoned renders drain before the next test
+
+        finish_render.set()
+        self._drain_render_pool()
+
         with lock:
             spawned = len(workers)
-        assert spawned < self.RENDER_BURST, f"{spawned} threads for {self.RENDER_BURST} timeouts"
+        assert spawned <= export_router.MAX_CONCURRENT_PDF_RENDERS, (
+            f"{spawned} threads for {self.RENDER_BURST} timeouts"
+        )
 
 
 class TestCapTableTextBounds:

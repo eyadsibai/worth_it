@@ -376,10 +376,16 @@ export const WSProgressMessageSchema = z.object({
 });
 export type WSProgressMessage = z.infer<typeof WSProgressMessageSchema>;
 
+/**
+ * Terminal message of a Monte Carlo run. `seed` names the run that produced
+ * these numbers: replaying it through POST /api/monte-carlo returns the same
+ * draws. The backend always sends it, generating one when the caller omits it.
+ */
 export const WSCompleteMessageSchema = z.object({
   type: z.literal("complete"),
   net_outcomes: z.array(z.number()),
   simulated_valuations: z.array(z.number()),
+  seed: z.number().int(),
 });
 export type WSCompleteMessage = z.infer<typeof WSCompleteMessageSchema>;
 
@@ -1757,13 +1763,31 @@ export const ExportRequestSchema = z.object({
 });
 export type ExportRequest = z.infer<typeof ExportRequestSchema>;
 
-/** Mirrors backend `FirstChicagoExportResult`. */
-export const FirstChicagoExportResultSchema = z.object({
-  weighted_value: z.number(),
-  present_value: z.number(),
-  scenario_values: ScenarioMapSchema.default({}),
-  scenario_present_values: ScenarioMapSchema.default({}),
-});
+/**
+ * Mirrors backend `FirstChicagoExportResult`, including its cross-map rule: the
+ * report renders one row per scenario and quotes that scenario's present value,
+ * so a name in one map and absent from the other is incoherent input that the
+ * backend answers with a 400. Catching it here saves the round trip.
+ */
+export const FirstChicagoExportResultSchema = z
+  .object({
+    weighted_value: z.number(),
+    present_value: z.number(),
+    scenario_values: ScenarioMapSchema.default({}),
+    scenario_present_values: ScenarioMapSchema.default({}),
+  })
+  .refine(
+    (result) => {
+      const exitNames = Object.keys(result.scenario_values);
+      const presentNames = new Set(Object.keys(result.scenario_present_values));
+      return (
+        exitNames.length === presentNames.size && exitNames.every((name) => presentNames.has(name))
+      );
+    },
+    {
+      message: "scenario_values and scenario_present_values must describe the same scenarios",
+    }
+  );
 export type FirstChicagoExportResult = z.infer<typeof FirstChicagoExportResultSchema>;
 
 /** Mirrors backend `ExportMonteCarloResult`. */

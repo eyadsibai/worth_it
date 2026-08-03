@@ -160,20 +160,25 @@ class TestWaterfallPipeline:
         """Liquidation preferences should be paid in seniority order."""
         # Each series is held by its own stakeholder: one share count cannot back two
         # tiers, and the engine rejects that shape outright.
+        total_shares = 12_000_000
         cap_table = {
             **simple_cap_table,
+            # Issuing to a third holder redenominates the table, so every stake is
+            # restated against the new total rather than left describing a 10M company.
             "stakeholders": [
-                *simple_cap_table["stakeholders"],
-                {
-                    "id": "investor-2",
-                    "name": "Series B Investor",
-                    "type": "investor",
-                    "shares": 2_000_000,
-                    "ownership_pct": 20.0,
-                    "share_class": "preferred",
-                },
+                {**s, "ownership_pct": round(s["shares"] / total_shares * 100, 2)}
+                for s in (
+                    *simple_cap_table["stakeholders"],
+                    {
+                        "id": "investor-2",
+                        "name": "Series B Investor",
+                        "type": "investor",
+                        "shares": 2_000_000,
+                        "share_class": "preferred",
+                    },
+                )
             ],
-            "total_shares": 12_000_000,
+            "total_shares": total_shares,
         }
         two_tier = [
             {

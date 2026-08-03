@@ -428,8 +428,29 @@ describe("WSCompleteMessageSchema", () => {
       type: "complete",
       net_outcomes: [10000, 20000, 30000],
       simulated_valuations: [500000, 750000, 1000000],
+      seed: 424242,
     };
     expect(() => WSCompleteMessageSchema.parse(validData)).not.toThrow();
+  });
+
+  it("keeps the seed that replays the run", () => {
+    const message = WSCompleteMessageSchema.parse({
+      type: "complete",
+      net_outcomes: [10000],
+      simulated_valuations: [500000],
+      seed: 424242,
+    });
+    expect(message.seed).toBe(424242);
+  });
+
+  it("rejects a complete message without a seed", () => {
+    expect(
+      WSCompleteMessageSchema.safeParse({
+        type: "complete",
+        net_outcomes: [10000],
+        simulated_valuations: [500000],
+      }).success
+    ).toBe(false);
   });
 });
 
@@ -480,6 +501,7 @@ describe("WSMessageSchema (discriminated union)", () => {
       type: "complete",
       net_outcomes: [1000],
       simulated_valuations: [500000],
+      seed: 424242,
     });
     expect(message.type).toBe("complete");
     if (message.type === "complete") {
@@ -1033,6 +1055,41 @@ describe("FirstChicagoExportRequestSchema", () => {
     expect(FirstChicagoExportRequestSchema.safeParse({ ...validRequest, params: {} }).success).toBe(
       true
     );
+    // The backend field is `float | None`, so an explicit null is as valid as
+    // an omitted key and both reach the report as "no discount rate quoted".
+    expect(
+      FirstChicagoExportRequestSchema.safeParse({
+        ...validRequest,
+        params: { discount_rate: null },
+      }).success
+    ).toBe(true);
+  });
+
+  it("rejects scenario maps that name different scenarios", () => {
+    expect(
+      FirstChicagoExportRequestSchema.safeParse({
+        ...validRequest,
+        result: { ...validRequest.result, scenario_present_values: { Upside: 3_500_000 } },
+      }).success,
+      "a scenario with no present value should be rejected"
+    ).toBe(false);
+    expect(
+      FirstChicagoExportRequestSchema.safeParse({
+        ...validRequest,
+        result: {
+          ...validRequest.result,
+          scenario_present_values: { Base: 3_500_000, Upside: 9_000_000 },
+        },
+      }).success,
+      "a present value with no matching scenario should be rejected"
+    ).toBe(false);
+    expect(
+      FirstChicagoExportRequestSchema.safeParse({
+        ...validRequest,
+        result: { weighted_value: 5_000_000, present_value: 3_500_000 },
+      }).success,
+      "both maps omitted default to empty and stay consistent"
+    ).toBe(true);
   });
 
   it("rejects an unsafe scenario label", () => {

@@ -278,9 +278,9 @@ async def export_pre_revenue(
     elif body.format == "json":
         return _create_file_response(
             json.dumps(_report_to_dict(build()), indent=2),
-            f"{safe_name}_valuation.json",
+            f"{safe_name}_{method_slug}_valuation.json",
             "application/json",
-            f"{body.company_name}_valuation.json",
+            f"{body.company_name}_{body.method_name.lower()}_valuation.json",
         )
 
     elif body.format == "csv":
@@ -294,9 +294,9 @@ async def export_pre_revenue(
             writer.writerow([factor.name, factor.value])
         return _create_file_response(
             output.getvalue(),
-            f"{safe_name}_valuation.csv",
+            f"{safe_name}_{method_slug}_valuation.csv",
             "text/csv",
-            f"{body.company_name}_valuation.csv",
+            f"{body.company_name}_{body.method_name.lower()}_valuation.csv",
         )
 
     else:
