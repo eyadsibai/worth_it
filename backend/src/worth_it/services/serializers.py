@@ -125,9 +125,9 @@ def convert_equity_type_in_startup_params(
 
 
 # Mapping from VariableParam enum values to internal sim_param_configs keys
-# Note: Both exit_valuation (RSU) and exit_price_per_share (stock options)
-# map to "valuation" because the internal monte carlo code uses a single
-# "valuation" key to represent the varying price parameter for both equity types.
+# Note: exit_valuation (RSU, whole-company value) and exit_price_per_share
+# (stock options, per-share value) are different quantities that differ by
+# orders of magnitude. They must never share an internal key.
 _VARIABLE_PARAM_TO_INTERNAL_KEY: dict[str, str] = {
     "exit_valuation": "valuation",
     "exit_year": "exit_year",
@@ -139,7 +139,7 @@ _VARIABLE_PARAM_TO_INTERNAL_KEY: dict[str, str] = {
     "total_equity_grant_pct": "equity_pct",
     "num_options": "num_options",
     "strike_price": "strike_price",
-    "exit_price_per_share": "valuation",  # Maps to same key as exit_valuation
+    "exit_price_per_share": "price_per_share",
 }
 
 

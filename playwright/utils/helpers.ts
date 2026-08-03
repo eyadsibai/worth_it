@@ -2,6 +2,51 @@ import { Page, Locator, expect } from '@playwright/test';
 import { TEST_DATA, SELECTORS, TIMEOUTS } from './test-data';
 import path from 'path';
 
+/** Multipliers for the magnitude suffixes produced by formatLargeNumber(). */
+const MAGNITUDE_SUFFIXES: Record<string, number> = {
+  k: 1_000,
+  m: 1_000_000,
+  b: 1_000_000_000,
+};
+
+/**
+ * `aria-valuetext` is an abbreviated, rounded rendering of the underlying value
+ * ("$12.3M" for 12,345,678), so it is compared with a tolerance matching that
+ * display precision rather than demanding exact equality.
+ */
+const VALUE_TEXT_TOLERANCE_RATIO = 0.005;
+
+/**
+ * Parse the human-readable value a slider thumb exposes via `aria-valuetext`.
+ *
+ * Sliders in this app label themselves as "$100M", "$12,500", "5 years" or "0.5%".
+ * Returns NaN when the text carries no parseable number.
+ */
+export function parseSliderValueText(valueText: string | null): number {
+  if (!valueText) return NaN;
+
+  // Drop currency symbols, thousands separators and whitespace so the number
+  // and any magnitude suffix sit next to each other: "$1.5M" -> "1.5M".
+  const cleaned = valueText.replace(/[$\s,]/g, '');
+  const match = cleaned.match(/-?\d*\.?\d+/);
+  if (!match) return NaN;
+
+  const numeric = Number(match[0]);
+  if (Number.isNaN(numeric)) return NaN;
+
+  const suffix = cleaned.slice(match.index! + match[0].length).charAt(0).toLowerCase();
+  return numeric * (MAGNITUDE_SUFFIXES[suffix] ?? 1);
+}
+
+/** Whether a slider's `aria-valuetext` describes the requested value. */
+function valueTextMatches(valueText: string | null, targetValue: number): boolean {
+  const parsed = parseSliderValueText(valueText);
+  if (Number.isNaN(parsed)) return false;
+
+  const tolerance = Math.max(Math.abs(targetValue) * VALUE_TEXT_TOLERANCE_RATIO, 0);
+  return Math.abs(parsed - targetValue) <= tolerance;
+}
+
 /**
  * Helper class for common page interactions in Worth It tests
  */
@@ -116,9 +161,35 @@ export class WorthItHelpers {
       }
     }
 
-    // Verify the slider value was set (check the slider's aria-valuenow)
+    // Verify the slider actually holds the target value.
+    //
+    // Linear sliders expose the value directly on `aria-valuenow`. Logarithmic
+    // sliders (e.g. Exit Valuation, $1M-$10B) map the value onto a 0-100
+    // *position*, so their `aria-valuenow` is that position and the real value
+    // is only exposed via `aria-valuetext` ("$100M"). Accept either
+    // representation so this helper works for both kinds of slider.
     const slider = formItem.locator('[role="slider"]');
-    await expect(slider).toHaveAttribute('aria-valuenow', targetValue.toString(), { timeout: TIMEOUTS.formInput });
+    await expect
+      .poll(
+        async () => {
+          const [valueNow, valueText] = await Promise.all([
+            slider.getAttribute('aria-valuenow'),
+            slider.getAttribute('aria-valuetext'),
+          ]);
+
+          const matches =
+            (valueNow !== null && Number(valueNow) === targetValue) ||
+            valueTextMatches(valueText, targetValue);
+
+          // Returning the target on success keeps the failure diff readable.
+          return matches ? targetValue : `aria-valuenow="${valueNow}" aria-valuetext="${valueText}"`;
+        },
+        {
+          timeout: TIMEOUTS.formInput,
+          message: `Slider "${labelText}" never reported the value ${targetValue}`,
+        }
+      )
+      .toBe(targetValue);
   }
 
   /**
@@ -350,6 +421,11 @@ export class WorthItHelpers {
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
     expect(data.status).toBe('healthy');
+
+    // `{"status": "healthy"}` is a common shape, so a stray unrelated service
+    // squatting on the API port would otherwise satisfy this check. Worth It's
+    // /health also reports a version, so require it.
+    expect(data.version).toBeTruthy();
   }
 
   /**

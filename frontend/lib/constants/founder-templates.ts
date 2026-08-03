@@ -11,6 +11,16 @@ export interface FounderTemplate {
 }
 
 /**
+ * Stable ids for the preferred shareholders a preference tier points at.
+ *
+ * A tier with no `stakeholder_ids` claims a liquidation preference for nobody,
+ * so the waterfall silently drops it. Hoisting the id lets the stakeholder and
+ * its tier be declared from the same source.
+ */
+const POST_SEED_PREFERRED_ID = generateId();
+const SERIES_A_SEED_INVESTORS_ID = generateId();
+
+/**
  * Pre-configured cap table templates for Founder mode.
  * Each template represents a common startup scenario with realistic values.
  */
@@ -128,7 +138,7 @@ export const FOUNDER_TEMPLATES: FounderTemplate[] = [
           share_class: "common",
         },
         {
-          id: generateId(),
+          id: POST_SEED_PREFERRED_ID,
           name: "SAFE Investors (converted)",
           type: "investor",
           shares: 1500000,
@@ -173,7 +183,7 @@ export const FOUNDER_TEMPLATES: FounderTemplate[] = [
         investment_amount: 750000,
         liquidation_multiplier: 1,
         participating: false,
-        stakeholder_ids: [],
+        stakeholder_ids: [POST_SEED_PREFERRED_ID],
       },
     ] as PreferenceTier[],
   },
@@ -200,7 +210,7 @@ export const FOUNDER_TEMPLATES: FounderTemplate[] = [
           share_class: "common",
         },
         {
-          id: generateId(),
+          id: SERIES_A_SEED_INVESTORS_ID,
           name: "Seed Investors",
           type: "investor",
           shares: 1500000,
@@ -250,7 +260,7 @@ export const FOUNDER_TEMPLATES: FounderTemplate[] = [
         investment_amount: 2000000,
         liquidation_multiplier: 1,
         participating: false,
-        stakeholder_ids: [],
+        stakeholder_ids: [SERIES_A_SEED_INVESTORS_ID],
       },
     ] as PreferenceTier[],
   },

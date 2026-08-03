@@ -1,5 +1,8 @@
 name: Playwright PR Review
 
+# Review-only: this workflow critiques changes to the spec files themselves and
+# executes no tests. The E2E gate is the smoke job in playwright.yml, which is
+# what runs for PRs touching backend/ or frontend/.
 on:
   pull_request:
     types: [opened, synchronize]

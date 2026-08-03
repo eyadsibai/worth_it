@@ -1,9 +1,20 @@
 name: Playwright Tests
 
-# Disabled automatic runs to reduce CI costs
-# Run locally instead: pnpm test:e2e
-# Or trigger manually from GitHub Actions tab
+# A PR that touches backend/ or frontend/ runs the SMOKE_SPECS subset below.
+# The full suite is too expensive to run per-PR, so it stays on the nightly
+# schedule and on manual dispatch.
 on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "playwright/**"
+      - "playwright.config.ts"
+      - "package.json"
+      - ".github/workflows/playwright.yml"
+  schedule:
+    - cron: '0 3 * * *'
   workflow_dispatch:
     inputs:
       browser:
@@ -17,12 +28,29 @@ on:
           - webkit
           - all
 
+concurrency:
+  group: playwright-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Smallest set that still covers the three ways this app breaks in production:
+  # the app/API failing to come up, the primary scenario calculation, and the
+  # waterfall panel's preference-stack request.
+  SMOKE_SPECS: >-
+    playwright/tests/01-api-health.spec.ts
+    playwright/tests/05-rsu-scenario-flow.spec.ts
+    playwright/tests/09-waterfall-analysis.spec.ts
+
 jobs:
   test:
-    timeout-minutes: 60
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 30 || 60 }}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+
+    # Must precede setup-node: `cache: pnpm` shells out to pnpm to locate the store.
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -32,11 +60,6 @@ jobs:
         cache-dependency-path: |
           pnpm-lock.yaml
           frontend/pnpm-lock.yaml
-
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: 10
 
     - name: Setup Python
       uses: actions/setup-python@v5
@@ -68,32 +91,39 @@ jobs:
       run: |
         cd backend
         uv run uvicorn worth_it.api:app --host 0.0.0.0 --port 8000 &
-        # Wait for backend to be ready
         for i in {1..30}; do
           if curl -s http://localhost:8000/health > /dev/null; then
             echo "Backend is ready"
-            break
+            exit 0
           fi
           echo "Waiting for backend... ($i/30)"
           sleep 2
         done
+        echo "Backend never became ready"
+        exit 1
 
     - name: Start Frontend Server
       run: |
         cd frontend
         pnpm dev &
-        # Wait for frontend to be ready
         for i in {1..30}; do
           if curl -s http://localhost:3000 > /dev/null; then
             echo "Frontend is ready"
-            break
+            exit 0
           fi
           echo "Waiting for frontend... ($i/30)"
           sleep 2
         done
+        echo "Frontend never became ready"
+        exit 1
 
-    - name: Run Playwright tests
-      run: pnpm test:e2e
+    - name: Run Playwright smoke tests
+      if: github.event_name == 'pull_request'
+      run: pnpm exec playwright test $SMOKE_SPECS
+
+    - name: Run Playwright full suite
+      if: github.event_name != 'pull_request'
+      run: pnpm exec playwright test
 
     - name: Upload Playwright Report
       uses: actions/upload-artifact@v4

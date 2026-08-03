@@ -26,7 +26,6 @@ import type {
   CurrentJobForm,
   RSUForm,
   StockOptionsForm,
-  DilutionRoundForm,
 } from "@/lib/schemas";
 
 /** Safely extract a numeric value from a DataFrame-like row record. */
@@ -35,24 +34,6 @@ function rowNum(row: Record<string, unknown>, key: string, fallback = 0): number
   return typeof v === "number" ? v : fallback;
 }
 
-/**
- * Calculate total dilution percentage from dilution rounds.
- * Returns the total dilution as a decimal (e.g., 0.48 for 48% dilution).
- */
-function calculateTotalDilutionFromRounds(rounds: DilutionRoundForm[] | undefined): number | null {
-  if (!rounds || rounds.length === 0) return null;
-
-  const enabledRounds = rounds.filter((r) => r.enabled);
-  if (enabledRounds.length === 0) return null;
-
-  // Calculate remaining equity factor: product of (1 - dilution_pct/100) for each round
-  const remainingFactor = enabledRounds.reduce((factor, round) => {
-    return factor * (1 - round.dilution_pct / PCT_MULTIPLIER);
-  }, 1);
-
-  // Total dilution = 1 - remaining factor
-  return 1 - remainingFactor;
-}
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { RESULT_EXPLANATIONS, generateResultsSummary } from "@/lib/constants/result-explanations";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -162,15 +143,7 @@ export function ScenarioResults({
   const netBenefit = displayPayoutValue - displayOpportunityCost;
   const isPositive = netBenefit >= 0;
 
-  // Calculate total dilution from form data (more accurate than API response)
-  // This matches the dilution-summary-card calculation for consistency
-  const calculatedTotalDilution = React.useMemo(() => {
-    if (!equityDetails || !("dilution_rounds" in equityDetails)) return null;
-    return calculateTotalDilutionFromRounds(equityDetails.dilution_rounds);
-  }, [equityDetails]);
-
-  // Use calculated dilution if available, otherwise fall back to API response
-  const displayTotalDilution = calculatedTotalDilution ?? displayResults.total_dilution;
+  const displayTotalDilution = displayResults.total_dilution;
 
   // Generate announcement text for screen readers (must be called unconditionally)
   const announcement = React.useMemo(() => {
@@ -187,7 +160,9 @@ export function ScenarioResults({
     () => ({
       netBenefit,
       // Use Monte Carlo profit probability if available, otherwise estimate from net benefit
-      positiveOutcomeProbability: monteCarloStats?.profitProbability ?? (isPositive ? DEFAULT_POSITIVE_PROBABILITY : DEFAULT_NEGATIVE_PROBABILITY),
+      positiveOutcomeProbability:
+        monteCarloStats?.profitProbability ??
+        (isPositive ? DEFAULT_POSITIVE_PROBABILITY : DEFAULT_NEGATIVE_PROBABILITY),
       expectedValue: monteCarloStats?.mean ?? netBenefit,
       isWorthIt: isPositive,
     }),
@@ -601,7 +576,7 @@ export function ScenarioResults({
             </CardContent>
           </Card>
 
-          {/* Dilution (if applicable) - calculated from form rounds for accuracy */}
+          {/* Dilution (if applicable) */}
           {displayTotalDilution !== null && displayTotalDilution !== undefined && (
             <Card className="terminal-card h-full overflow-hidden">
               <CardHeader className="px-4 pt-4 pb-2">
@@ -613,7 +588,10 @@ export function ScenarioResults({
               </CardHeader>
               <CardContent className="px-4 pb-4">
                 <CardTitle className="text-foreground text-lg font-semibold tracking-tight tabular-nums lg:text-xl">
-                  <AnimatedPercentage value={displayTotalDilution * PCT_MULTIPLIER} decimals={PCT_DECIMAL_PLACES} />
+                  <AnimatedPercentage
+                    value={displayTotalDilution * PCT_MULTIPLIER}
+                    decimals={PCT_DECIMAL_PLACES}
+                  />
                 </CardTitle>
                 <p className="text-muted-foreground mt-1 text-xs">
                   Final:{" "}

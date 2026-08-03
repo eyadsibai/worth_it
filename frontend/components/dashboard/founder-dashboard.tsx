@@ -15,6 +15,7 @@ import { motion, AnimatedPercentage } from "@/lib/motion";
 import { useAppStore } from "@/lib/store";
 import { useCapTableHistory } from "@/lib/hooks/use-cap-table-history";
 import { generateId } from "@/lib/utils";
+import { sharesForOwnership, totalSharesCovering } from "@/lib/cap-table-shares";
 import type { Stakeholder, StakeholderFormData } from "@/lib/schemas";
 
 /**
@@ -59,16 +60,17 @@ export function FounderDashboard() {
   // Uses history-aware setter so undo/redo works from the Cap Table toolbar
   const handleAddStakeholder = React.useCallback(
     (formData: StakeholderFormData) => {
+      const shares = sharesForOwnership(formData.ownership_pct, capTable.total_shares);
       const newStakeholder: Stakeholder = {
         id: generateId(),
         name: formData.name,
         type: formData.type,
-        shares: 0,
+        shares,
         ownership_pct: formData.ownership_pct,
         share_class: formData.share_class,
         vesting: formData.has_vesting
           ? {
-              total_shares: 0,
+              total_shares: shares,
               vesting_months: formData.vesting_months,
               cliff_months: formData.cliff_months,
               vested_shares: 0,
@@ -76,10 +78,12 @@ export function FounderDashboard() {
           : undefined,
       };
 
+      const stakeholders = [...capTable.stakeholders, newStakeholder];
       historySetCapTable(
         {
           ...capTable,
-          stakeholders: [...capTable.stakeholders, newStakeholder],
+          stakeholders,
+          total_shares: totalSharesCovering(stakeholders, capTable.total_shares),
         },
         `Add stakeholder: ${newStakeholder.name}`
       );

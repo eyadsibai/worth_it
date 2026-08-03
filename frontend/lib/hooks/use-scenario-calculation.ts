@@ -18,10 +18,42 @@ import type {
   StockOptionsForm,
   GlobalSettingsForm,
   CurrentJobForm,
+  DilutionRoundForm,
+  DilutionRoundWire,
   MonthlyDataGridRequest,
   OpportunityCostRequest,
   StartupScenarioRequest,
 } from "@/lib/schemas";
+
+/**
+ * Translate a form round into the backend's `DilutionRound` wire format.
+ *
+ * Two unit conversions matter here:
+ *
+ * 1. `dilution_pct` is a 0-100 percentage; the backend's calculation engine
+ *    multiplies `(1 - dilution)` and therefore requires a 0-1 fraction.
+ * 2. `salary_change` is an ABSOLUTE monthly salary, not a delta. The backend's
+ *    `create_monthly_data_grid` assigns `new_salary` directly onto
+ *    `StartupSalary` from the round's start month onward, and skips the round
+ *    entirely when the value is `<= 0`. Zero therefore means "salary unchanged",
+ *    which is exactly what the "New Salary" slider in the round form captures.
+ *
+ * Exported for contract tests that pin the shipped example scenarios to the
+ * numbers the backend will actually compute from this payload.
+ */
+export function toDilutionRoundWire(round: DilutionRoundForm): DilutionRoundWire {
+  return {
+    year: round.year,
+    dilution: round.dilution_pct / PERCENT_TO_DECIMAL,
+    new_salary: round.salary_change,
+    is_safe_note: round.round_type === "SAFE_NOTE",
+    status: round.status,
+  };
+}
+
+export function toDilutionRoundWires(rounds: DilutionRoundForm[]): DilutionRoundWire[] {
+  return rounds.filter((r) => r.enabled).map(toDilutionRoundWire);
+}
 
 export interface ScenarioCalculationInput {
   globalSettings: GlobalSettingsForm | null;
@@ -90,17 +122,7 @@ export function useScenarioCalculation(input: ScenarioCalculationInput): Scenari
       current_job_salary_growth_rate: currentJob.annual_salary_growth_rate / PERCENT_TO_DECIMAL,
       dilution_rounds:
         equityDetails.equity_type === "RSU" && equityDetails.simulate_dilution
-          ? equityDetails.dilution_rounds
-              .filter((r) => r.enabled)
-              .map((r) => ({
-                round_name: r.round_name,
-                round_type: r.round_type,
-                year: r.year,
-                dilution_pct: r.dilution_pct ? r.dilution_pct / PERCENT_TO_DECIMAL : undefined,
-                pre_money_valuation: r.pre_money_valuation,
-                amount_raised: r.amount_raised,
-                salary_change: r.salary_change,
-              }))
+          ? toDilutionRoundWires(equityDetails.dilution_rounds)
           : null,
     };
   }, [globalSettings, currentJob, equityDetails]);
@@ -156,17 +178,7 @@ export function useScenarioCalculation(input: ScenarioCalculationInput): Scenari
               exit_valuation: equityDetails.exit_valuation,
               simulate_dilution: equityDetails.simulate_dilution,
               dilution_rounds: equityDetails.simulate_dilution
-                ? equityDetails.dilution_rounds
-                    .filter((r) => r.enabled)
-                    .map((r) => ({
-                      round_name: r.round_name,
-                      round_type: r.round_type,
-                      year: r.year,
-                      dilution_pct: r.dilution_pct ? r.dilution_pct / PERCENT_TO_DECIMAL : undefined,
-                      pre_money_valuation: r.pre_money_valuation,
-                      amount_raised: r.amount_raised,
-                      salary_change: r.salary_change,
-                    }))
+                ? toDilutionRoundWires(equityDetails.dilution_rounds)
                 : null,
             }
           : {

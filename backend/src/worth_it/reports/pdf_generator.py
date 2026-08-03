@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import io
 from typing import TYPE_CHECKING
 
@@ -19,6 +20,26 @@ if TYPE_CHECKING:
 # Brand colors matching frontend
 BRAND_PRIMARY = colors.HexColor("#1A3D2E")  # Deep forest green
 BRAND_SECONDARY = colors.HexColor("#2D5A45")  # Lighter green
+
+
+def escape_paragraph_markup(value: str) -> str:
+    """Neutralize ReportLab Paragraph markup in caller-supplied text.
+
+    Paragraph parses a mini-HTML dialect in which ``<img src="http://...">`` is
+    a server-side fetch, so tag and entity delimiters must not survive verbatim.
+
+    This escaping belongs here and nowhere earlier: Paragraph decodes the
+    entities back before drawing, whereas a plain ``str`` in a Table cell is
+    drawn verbatim by ``canv.drawString`` with no markup parsing at all.
+    Escaping upstream would make ``Smith & Co`` print as ``Smith &amp; Co`` in
+    every table while the Paragraph layers rendered it correctly.
+    """
+    return html.escape(value, quote=False)
+
+
+def _paragraph(text: str, style: ParagraphStyle) -> Paragraph:
+    """Build a Paragraph from untrusted text with markup neutralized."""
+    return Paragraph(escape_paragraph_markup(text), style)
 
 
 def generate_pdf_report(report_data: ValuationReportData) -> bytes:
@@ -45,10 +66,10 @@ def generate_pdf_report(report_data: ValuationReportData) -> bytes:
     styles = _create_styles()
 
     # Title section
-    story.append(Paragraph(report_data.title, styles["Title"]))
+    story.append(_paragraph(report_data.title, styles["Title"]))
     story.append(Spacer(1, 12))
 
-    # Report metadata
+    # Report metadata. Table cells are drawn verbatim, so they stay unescaped.
     meta_data = [
         ["Company:", report_data.company_name],
         ["Date:", report_data.report_date],
@@ -79,11 +100,11 @@ def generate_pdf_report(report_data: ValuationReportData) -> bytes:
 
     # Sections
     for section in report_data.sections:
-        story.append(Paragraph(section.title, styles["Heading1"]))
+        story.append(_paragraph(section.title, styles["Heading1"]))
         story.append(Spacer(1, 6))
 
         if section.content:
-            story.append(Paragraph(section.content, styles["BodyText"]))
+            story.append(_paragraph(section.content, styles["BodyText"]))
             story.append(Spacer(1, 12))
 
         # Section metrics as table
@@ -117,20 +138,20 @@ def generate_pdf_report(report_data: ValuationReportData) -> bytes:
 
     # Assumptions
     if report_data.assumptions:
-        story.append(Paragraph("Key Assumptions", styles["Heading2"]))
+        story.append(_paragraph("Key Assumptions", styles["Heading2"]))
         story.append(Spacer(1, 6))
-        for assumption in report_data.assumptions:
-            bullet = f"• {assumption}"
-            story.append(Paragraph(bullet, styles["BodyText"]))
+        story.extend(
+            _paragraph(f"• {assumption}", styles["BodyText"])
+            for assumption in report_data.assumptions
+        )
         story.append(Spacer(1, 18))
 
     # Disclaimers
     if report_data.disclaimers:
-        story.append(Paragraph("Disclaimers", styles["Heading2"]))
+        story.append(_paragraph("Disclaimers", styles["Heading2"]))
         story.append(Spacer(1, 6))
         story.extend(
-            Paragraph(disclaimer, styles["Disclaimer"])
-            for disclaimer in report_data.disclaimers
+            _paragraph(disclaimer, styles["Disclaimer"]) for disclaimer in report_data.disclaimers
         )
         story.append(Spacer(1, 12))
 

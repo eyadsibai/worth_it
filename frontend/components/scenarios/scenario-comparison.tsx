@@ -69,7 +69,9 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
     }));
 
     compareMutation.mutate({ scenarios: apiScenarios });
-  }, [scenarios, compareMutation]);
+    // compareMutation.mutate is stable (TanStack Query guarantee)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scenarios]);
 
   // Transform API response to frontend format
   const winner: FrontendWinnerResult | null = React.useMemo(() => {
@@ -92,7 +94,8 @@ export function ScenarioComparison({ scenarios, onClose }: ScenarioComparisonPro
   }
 
   // Show loading state for comparison data
-  const isLoadingComparison = scenarios.length >= MIN_SCENARIOS_FOR_COMPARISON && compareMutation.isPending;
+  const isLoadingComparison =
+    scenarios.length >= MIN_SCENARIOS_FOR_COMPARISON && compareMutation.isPending;
 
   // Find best net outcome for highlighting
   const netOutcomes = scenarios.map((s) => s.results.netOutcome);

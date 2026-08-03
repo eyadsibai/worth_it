@@ -4,6 +4,9 @@
 const STEP_IDX = { OPTION_POOL: 2, ADVISORS: 3, FUNDING: 4, COMPLETE: 5 } as const;
 /** Default pre-money valuation when not specified */
 const DEFAULT_PRE_MONEY_VALUATION = 10_000_000;
+/** Authorized shares the wizard starts every cap table with */
+const DEFAULT_TOTAL_SHARES = 10_000_000;
+/** Percent basis used to convert an ownership percentage into a share count */
 
 import * as React from "react";
 import { Card } from "@/components/ui/card";
@@ -12,6 +15,7 @@ import { WizardProgress } from "./wizard-progress";
 import { StepFounders, StepOptionPool, StepAdvisors, StepFunding, StepComplete } from "./steps";
 import { DEFAULT_WIZARD_DATA, ADVISOR_VESTING, type WizardData, type WizardStep } from "./types";
 import { generateId } from "@/lib/utils";
+import { sharesForOwnership, totalSharesCovering } from "@/lib/cap-table-shares";
 import type {
   CapTable,
   Stakeholder,
@@ -104,7 +108,7 @@ export function CapTableWizard({ onComplete, onSkip }: CapTableWizardProps) {
         id: generateId(),
         name: founder.name,
         type: "founder",
-        shares: 0,
+        shares: sharesForOwnership(founder.ownershipPct, DEFAULT_TOTAL_SHARES),
         ownership_pct: founder.ownershipPct,
         share_class: "common",
       });
@@ -113,15 +117,16 @@ export function CapTableWizard({ onComplete, onSkip }: CapTableWizardProps) {
     // Add advisors (with vesting)
     const validAdvisors = data.advisors.filter((a) => a.name.trim() !== "");
     for (const advisor of validAdvisors) {
+      const advisorShares = sharesForOwnership(advisor.ownershipPct, DEFAULT_TOTAL_SHARES);
       stakeholders.push({
         id: generateId(),
         name: advisor.name,
         type: "advisor",
-        shares: 0,
+        shares: advisorShares,
         ownership_pct: advisor.ownershipPct,
         share_class: "common",
         vesting: {
-          total_shares: 0,
+          total_shares: advisorShares,
           vesting_months: ADVISOR_VESTING.vestingMonths,
           cliff_months: ADVISOR_VESTING.cliffMonths,
           vested_shares: 0,
@@ -131,7 +136,7 @@ export function CapTableWizard({ onComplete, onSkip }: CapTableWizardProps) {
 
     const capTable: CapTable = {
       stakeholders,
-      total_shares: 10_000_000, // Default 10M shares
+      total_shares: totalSharesCovering(stakeholders, DEFAULT_TOTAL_SHARES),
       option_pool_pct: data.optionPoolPct,
     };
 

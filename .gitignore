@@ -41,9 +41,11 @@ coverage.xml
 .mypy_cache/
 
 # Playwright
-/playwright-report/
+# Unanchored: reports and results land next to whichever config produced them
+# (repo root for the E2E suite, frontend/ for the ones run from there).
+playwright-report/
 /playwright/.cache/
-/test-results/
+test-results/
 playwright/screenshots/*.png
 .playwright-mcp/
 

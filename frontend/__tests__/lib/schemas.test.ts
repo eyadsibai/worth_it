@@ -4,11 +4,20 @@
  */
 import { describe, it, expect } from "vitest";
 import { monteCarloRequestRSU } from "@/__tests__/fixtures/typed-payloads";
+import { EXAMPLE_SCENARIOS, type ExampleScenario } from "@/lib/constants/examples";
+import { toDilutionRoundWires } from "@/lib/hooks/use-scenario-calculation";
+import type { DilutionRoundWire } from "@/lib/schemas";
 import {
   // Enums
   EquityTypeEnum,
   InvestmentFrequencyEnum,
   RoundTypeEnum,
+  // Wire schemas
+  DilutionRoundWireSchema,
+  // Export schemas (must mirror backend Pydantic export models)
+  ExportRequestSchema,
+  FirstChicagoExportRequestSchema,
+  PreRevenueExportRequestSchema,
   // Request schemas
   MonthlyDataGridRequestSchema,
   IRRRequestSchema,
@@ -126,13 +135,13 @@ describe("MonthlyDataGridRequestSchema", () => {
     expect(() => MonthlyDataGridRequestSchema.parse(invalidData)).toThrow();
   });
 
-  it("accepts optional dilution_rounds", () => {
+  it("accepts optional dilution_rounds in the backend wire shape", () => {
     const withRounds = {
       exit_year: 5,
       current_job_monthly_salary: 15000,
       startup_monthly_salary: 12000,
       current_job_salary_growth_rate: 0.05,
-      dilution_rounds: [{ round_name: "Series A", dilution_pct: 20 }],
+      dilution_rounds: [{ year: 2, dilution: 0.2, status: "upcoming" }],
     };
     const withNull = {
       exit_year: 5,
@@ -143,6 +152,76 @@ describe("MonthlyDataGridRequestSchema", () => {
     };
     expect(() => MonthlyDataGridRequestSchema.parse(withRounds)).not.toThrow();
     expect(() => MonthlyDataGridRequestSchema.parse(withNull)).not.toThrow();
+  });
+
+  it("rejects dilution_rounds sent in the form shape the backend silently discards", () => {
+    // `year` IS present, so this round is only rejectable because the remaining
+    // keys are unknown to the wire contract. Without a strict object the extra
+    // keys are stripped, the round parses as `{ year: 2 }`, and the backend
+    // computes zero dilution while the payout is silently overstated.
+    const formShaped = {
+      exit_year: 5,
+      current_job_monthly_salary: 15000,
+      startup_monthly_salary: 12000,
+      current_job_salary_growth_rate: 0.05,
+      dilution_rounds: [
+        {
+          year: 2,
+          round_name: "Series A",
+          round_type: "PRICED_ROUND",
+          dilution_pct: 20,
+          pre_money_valuation: 20000000,
+          amount_raised: 5000000,
+          salary_change: 10000,
+        },
+      ],
+    };
+    expect(() => MonthlyDataGridRequestSchema.parse(formShaped)).toThrow();
+  });
+
+  it("rejects dilution expressed as a 0-100 percentage", () => {
+    const percentScaled = {
+      exit_year: 5,
+      current_job_monthly_salary: 15000,
+      startup_monthly_salary: 12000,
+      current_job_salary_growth_rate: 0.05,
+      dilution_rounds: [{ year: 2, dilution: 20 }],
+    };
+    expect(() => MonthlyDataGridRequestSchema.parse(percentScaled)).toThrow();
+  });
+});
+
+describe("DilutionRoundWireSchema", () => {
+  it("accepts the exact keys the backend DilutionRound TypedDict declares", () => {
+    const wire = {
+      year: 2,
+      dilution: 0.2,
+      new_salary: 10000,
+      is_safe_note: false,
+      valuation_at_sale: 20000000,
+      percent_to_sell: 0.1,
+      status: "upcoming",
+    };
+    expect(DilutionRoundWireSchema.parse(wire)).toEqual(wire);
+  });
+
+  it("rejects unknown keys instead of silently stripping them", () => {
+    // Pydantic drops keys a TypedDict does not declare rather than raising, so
+    // this guard has to live on the client. `dilution_pct` is the form's key
+    // name: stripping it would send a round with no `dilution` at all.
+    const result = DilutionRoundWireSchema.safeParse({ year: 2, dilution_pct: 20 });
+    expect(result.success).toBe(false);
+  });
+
+  it("never yields a round whose dilution was dropped on the floor", () => {
+    const result = DilutionRoundWireSchema.safeParse({ year: 2, dilution_pct: 20 });
+    // The regression this pins: parse used to SUCCEED with `{ year: 2 }`.
+    expect(result.success ? result.data : null).not.toEqual({ year: 2 });
+  });
+
+  it("rejects a misnamed salary key rather than dropping the salary change", () => {
+    const result = DilutionRoundWireSchema.safeParse({ year: 2, salary_change: 10000 });
+    expect(result.success).toBe(false);
   });
 });
 
@@ -550,8 +629,14 @@ describe("DilutionRoundFormSchema", () => {
     expect(() => DilutionRoundFormSchema.parse(invalidData)).toThrow();
   });
 
-  it("accepts negative salary_change (salary decrease)", () => {
-    const validData = {
+  // REWRITTEN: this test used to be "accepts negative salary_change (salary
+  // decrease)" and asserted that -500 parses. That codified the delta reading of
+  // the field. `salary_change` is an ABSOLUTE monthly salary (backend
+  // `new_salary`), so a negative value is meaningless - the backend's `> 0`
+  // guard would silently ignore it, which is exactly the silent-drop class of
+  // bug this contract layer exists to prevent.
+  it("rejects a negative salary_change: the field is an absolute salary, not a delta", () => {
+    const invalidData = {
       round_name: "Down Round",
       round_type: "PRICED_ROUND",
       year: 3,
@@ -559,6 +644,20 @@ describe("DilutionRoundFormSchema", () => {
       pre_money_valuation: 5000000,
       amount_raised: 1000000,
       salary_change: -500,
+      enabled: true,
+    };
+    expect(() => DilutionRoundFormSchema.parse(invalidData)).toThrow();
+  });
+
+  it("accepts 0 salary_change as 'salary unchanged'", () => {
+    const validData = {
+      round_name: "Down Round",
+      round_type: "PRICED_ROUND",
+      year: 3,
+      dilution_pct: 30,
+      pre_money_valuation: 5000000,
+      amount_raised: 1000000,
+      salary_change: 0,
       enabled: true,
     };
     expect(() => DilutionRoundFormSchema.parse(validData)).not.toThrow();
@@ -707,5 +806,308 @@ describe("StockOptionsFormSchema", () => {
       exit_price_per_share: 15,
     };
     expect(() => StockOptionsFormSchema.parse(invalidData)).toThrow();
+  });
+});
+
+// =============================================================================
+// Shipped Example Scenarios - wire contract pinning
+//
+// The examples are the first thing a new user loads. `salary_change` on a
+// funding round is an ABSOLUTE monthly salary (the form labels it "New Salary"),
+// and `toDilutionRoundWire` forwards it to the backend as `new_salary`, which
+// `create_monthly_data_grid` assigns straight onto StartupSalary from that
+// round's start month onward. A delta smuggled into that field silently
+// collapses the startup salary and roughly triples the reported opportunity
+// cost, so every shipped example is pinned to an exact expected number here.
+// =============================================================================
+
+const MONTHS_PER_YEAR = 12;
+
+/** Mirror of backend `create_monthly_data_grid` StartupSalary column. */
+function startupSalaryByMonth(
+  baseMonthlySalary: number,
+  rounds: DilutionRoundWire[],
+  totalMonths: number
+): number[] {
+  const salaries = new Array<number>(totalMonths).fill(baseMonthlySalary);
+  const sorted = [...rounds].sort((a, b) => a.year - b.year);
+  for (const round of sorted) {
+    const newSalary = round.new_salary ?? 0;
+    if (newSalary > 0) {
+      const startMonth = Math.max(0, (round.year - 1) * MONTHS_PER_YEAR);
+      for (let month = startMonth; month < totalMonths; month += 1) {
+        salaries[month] = newSalary;
+      }
+    }
+  }
+  return salaries;
+}
+
+/** Mirror of backend `create_monthly_data_grid` CurrentJobSalary column. */
+function currentJobSalaryByMonth(
+  baseMonthlySalary: number,
+  annualGrowthPct: number,
+  totalMonths: number
+): number[] {
+  return Array.from(
+    { length: totalMonths },
+    (_, month) =>
+      baseMonthlySalary * (1 + annualGrowthPct / 100) ** Math.floor(month / MONTHS_PER_YEAR)
+  );
+}
+
+interface ExampleProjection {
+  totalMonths: number;
+  startupSalaries: number[];
+  currentJobSalaries: number[];
+  /** Cumulative nominal salary surplus forgone across the whole horizon. */
+  principalForgone: number;
+}
+
+function projectExample(example: ExampleScenario): ExampleProjection {
+  const equity = example.equityDetails;
+  if (equity.equity_type !== "RSU") {
+    throw new Error(`Example ${example.id} is not an RSU scenario`);
+  }
+  const totalMonths = example.globalSettings.exit_year * MONTHS_PER_YEAR;
+  const wireRounds = equity.simulate_dilution ? toDilutionRoundWires(equity.dilution_rounds) : [];
+  const startupSalaries = startupSalaryByMonth(equity.monthly_salary, wireRounds, totalMonths);
+  const currentJobSalaries = currentJobSalaryByMonth(
+    example.currentJob.monthly_salary,
+    example.currentJob.annual_salary_growth_rate,
+    totalMonths
+  );
+  const principalForgone = currentJobSalaries.reduce(
+    (sum, salary, month) => sum + (salary - startupSalaries[month]),
+    0
+  );
+  return { totalMonths, startupSalaries, currentJobSalaries, principalForgone };
+}
+
+describe("EXAMPLE_SCENARIOS wire contract", () => {
+  it("emits wire rounds that satisfy DilutionRoundWireSchema", () => {
+    for (const example of EXAMPLE_SCENARIOS) {
+      const equity = example.equityDetails;
+      if (equity.equity_type !== "RSU") continue;
+      for (const wire of toDilutionRoundWires(equity.dilution_rounds)) {
+        const result = DilutionRoundWireSchema.safeParse(wire);
+        expect(result.success, `${example.id} produced an invalid wire round`).toBe(true);
+      }
+    }
+  });
+
+  it("never treats salary_change as a delta: every round is 0 or a real salary", () => {
+    for (const example of EXAMPLE_SCENARIOS) {
+      const equity = example.equityDetails;
+      if (equity.equity_type !== "RSU") continue;
+      for (const round of equity.dilution_rounds) {
+        if (round.salary_change === 0) continue;
+        expect(
+          round.salary_change,
+          `${example.id}/${round.round_name}: salary_change ${round.salary_change} is a raise ` +
+            `amount, not an absolute monthly salary (base is ${equity.monthly_salary})`
+        ).toBeGreaterThanOrEqual(equity.monthly_salary);
+      }
+    }
+  });
+
+  it("never lets a funding round cut the startup salary below its starting value", () => {
+    for (const example of EXAMPLE_SCENARIOS) {
+      const equity = example.equityDetails;
+      if (equity.equity_type !== "RSU") continue;
+      const { startupSalaries } = projectExample(example);
+      for (const salary of startupSalaries) {
+        expect(salary, `${example.id} startup salary dipped below its base`).toBeGreaterThanOrEqual(
+          equity.monthly_salary
+        );
+      }
+    }
+  });
+
+  it.each([
+    { id: "early-stage", principalForgone: 171690.9, finalStartupSalary: 12000 },
+    { id: "growth-stage", principalForgone: 134363.52, finalStartupSalary: 13500 },
+    { id: "late-stage", principalForgone: 54480, finalStartupSalary: 16000 },
+    { id: "big-tech", principalForgone: -42763.776, finalStartupSalary: 20000 },
+  ])(
+    "pins $id to a principal-forgone of $principalForgone",
+    ({ id, principalForgone, finalStartupSalary }) => {
+      const example = EXAMPLE_SCENARIOS.find((scenario) => scenario.id === id);
+      expect(example, `example ${id} is missing`).toBeDefined();
+      const projection = projectExample(example as ExampleScenario);
+      expect(projection.principalForgone).toBeCloseTo(principalForgone, 2);
+      expect(projection.startupSalaries[projection.totalMonths - 1]).toBe(finalStartupSalary);
+    }
+  );
+
+  it("keeps the flagship early-stage demo from swinging wildly negative", () => {
+    const example = EXAMPLE_SCENARIOS.find((scenario) => scenario.id === "early-stage");
+    const { principalForgone } = projectExample(example as ExampleScenario);
+    // The delta-vs-absolute regression pushed this to ~$627K.
+    expect(principalForgone).toBeLessThan(250_000);
+  });
+});
+
+// =============================================================================
+// Export Schemas - must mirror backend Pydantic export models
+// (backend/src/worth_it/models.py: ExportRequest, ExportParams,
+//  FirstChicagoExportResult, PreRevenueExportResult, ExportFactor)
+// =============================================================================
+
+const UNSAFE_REPORT_TEXT = "<script>Acme</script>";
+
+describe("ExportRequestSchema", () => {
+  it("defaults format to json, matching the backend default", () => {
+    expect(ExportRequestSchema.parse({ company_name: "Acme Inc" }).format).toBe("json");
+  });
+
+  it("rejects an empty company_name", () => {
+    expect(ExportRequestSchema.safeParse({ company_name: "" }).success).toBe(false);
+  });
+
+  it("rejects a company_name longer than the backend max of 120", () => {
+    expect(ExportRequestSchema.safeParse({ company_name: "A".repeat(121) }).success).toBe(false);
+    expect(ExportRequestSchema.safeParse({ company_name: "A".repeat(120) }).success).toBe(true);
+  });
+
+  it("rejects a company_name with characters ReportLab would parse as markup", () => {
+    expect(ExportRequestSchema.safeParse({ company_name: UNSAFE_REPORT_TEXT }).success).toBe(false);
+  });
+
+  it("accepts the punctuation the backend pattern allows", () => {
+    const result = ExportRequestSchema.safeParse({
+      company_name: "Acme, Sons & Co. (Holdings) - Series-A/B +1",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an industry label with unsafe characters or over 60 chars", () => {
+    expect(
+      ExportRequestSchema.safeParse({ company_name: "Acme", industry: UNSAFE_REPORT_TEXT }).success
+    ).toBe(false);
+    expect(
+      ExportRequestSchema.safeParse({ company_name: "Acme", industry: "A".repeat(61) }).success
+    ).toBe(false);
+  });
+});
+
+describe("FirstChicagoExportRequestSchema", () => {
+  const validRequest = {
+    company_name: "Acme Inc",
+    result: {
+      weighted_value: 5_000_000,
+      present_value: 3_500_000,
+      scenario_values: { Base: 5_000_000 },
+      scenario_present_values: { Base: 3_500_000 },
+    },
+    params: { discount_rate: 0.25 },
+  };
+
+  it("accepts a fully typed payload", () => {
+    expect(FirstChicagoExportRequestSchema.safeParse(validRequest).success).toBe(true);
+  });
+
+  it("requires the numeric fields the backend declares on result", () => {
+    expect(
+      FirstChicagoExportRequestSchema.safeParse({ ...validRequest, result: { foo: "bar" } }).success
+    ).toBe(false);
+  });
+
+  it("enforces 0 < discount_rate < 1 on params", () => {
+    for (const discount_rate of [0, 1, 1.5, -0.2]) {
+      expect(
+        FirstChicagoExportRequestSchema.safeParse({ ...validRequest, params: { discount_rate } })
+          .success,
+        `discount_rate ${discount_rate} should be rejected`
+      ).toBe(false);
+    }
+    expect(
+      FirstChicagoExportRequestSchema.safeParse({
+        ...validRequest,
+        params: { discount_rate: 0.99 },
+      }).success
+    ).toBe(true);
+  });
+
+  it("allows a null discount_rate, matching the backend default", () => {
+    expect(FirstChicagoExportRequestSchema.safeParse({ ...validRequest, params: {} }).success).toBe(
+      true
+    );
+  });
+
+  it("rejects an unsafe scenario label", () => {
+    expect(
+      FirstChicagoExportRequestSchema.safeParse({
+        ...validRequest,
+        result: { ...validRequest.result, scenario_values: { [UNSAFE_REPORT_TEXT]: 1 } },
+      }).success
+    ).toBe(false);
+  });
+
+  it("validates the optional monte_carlo_result shape", () => {
+    expect(
+      FirstChicagoExportRequestSchema.safeParse({
+        ...validRequest,
+        monte_carlo_result: { mean: 1, num_simulations: -1, percentiles: {} },
+      }).success
+    ).toBe(false);
+    expect(
+      FirstChicagoExportRequestSchema.safeParse({
+        ...validRequest,
+        monte_carlo_result: { mean: 1, num_simulations: 10000, percentiles: { p50: 2 } },
+      }).success
+    ).toBe(true);
+  });
+});
+
+describe("PreRevenueExportRequestSchema", () => {
+  const validRequest = {
+    company_name: "Acme Inc",
+    method_name: "Berkus",
+    result: { valuation: 2_000_000, factors: [{ name: "Sound Idea", value: 500_000 }] },
+    params: { discount_rate: 0.3 },
+  };
+
+  it("accepts a fully typed payload", () => {
+    expect(PreRevenueExportRequestSchema.safeParse(validRequest).success).toBe(true);
+  });
+
+  it("rejects a non-numeric valuation", () => {
+    expect(
+      PreRevenueExportRequestSchema.safeParse({
+        ...validRequest,
+        result: { valuation: "a lot" },
+      }).success
+    ).toBe(false);
+  });
+
+  it("rejects an unsafe method_name or factor name", () => {
+    expect(
+      PreRevenueExportRequestSchema.safeParse({ ...validRequest, method_name: UNSAFE_REPORT_TEXT })
+        .success
+    ).toBe(false);
+    expect(
+      PreRevenueExportRequestSchema.safeParse({
+        ...validRequest,
+        result: { valuation: 1, factors: [{ name: UNSAFE_REPORT_TEXT, value: 1 }] },
+      }).success
+    ).toBe(false);
+  });
+
+  it("caps factors at the backend maximum of 30", () => {
+    const factors = Array.from({ length: 31 }, (_, i) => ({ name: `Factor ${i}`, value: 1 }));
+    expect(
+      PreRevenueExportRequestSchema.safeParse({
+        ...validRequest,
+        result: { valuation: 1, factors },
+      }).success
+    ).toBe(false);
+  });
+
+  it("enforces 0 < discount_rate < 1 on params", () => {
+    expect(
+      PreRevenueExportRequestSchema.safeParse({ ...validRequest, params: { discount_rate: 1 } })
+        .success
+    ).toBe(false);
   });
 });

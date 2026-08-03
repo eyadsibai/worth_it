@@ -14,6 +14,7 @@ import pandas as pd
 
 from worth_it.calculations.base import EquityType
 from worth_it.calculations.dilution_engine import calculate_dilution_schedule
+from worth_it.exceptions import CalculationError
 
 
 def calculate_startup_scenario(
@@ -59,6 +60,15 @@ def calculate_startup_scenario(
             "payout_label": "Your Equity Value",
             "breakeven_label": "Breakeven Value",
         }
+
+    # The index IS the year number below; a frame rebuilt from
+    # to_dict(orient="records") comes back zero-based and vests a year late.
+    first_year = opportunity_cost_df.index[0]
+    if first_year != 1:
+        raise CalculationError(
+            "opportunity_cost_df must carry its one-based Year index "
+            f"(index starts at {first_year!r}, expected 1)."
+        )
 
     results_df = opportunity_cost_df.copy()
 

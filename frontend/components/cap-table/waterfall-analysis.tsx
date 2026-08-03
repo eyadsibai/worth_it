@@ -1,13 +1,20 @@
 "use client";
 
-/** Default selected exit valuation ($50M) */
+/** Fallback exit valuation ($50M) when the scenario has none */
 const DEFAULT_EXIT_VALUATION = 50_000_000;
 /** Number of exit valuation data points for chart */
 const EXIT_VALUATION_COUNT = 20;
-/** Minimum exit valuation for chart range ($1M) */
-const CHART_MIN_VALUATION = 1_000_000;
-/** Maximum exit valuation for chart range ($500M) */
-const CHART_MAX_VALUATION = 500_000_000;
+/** Low end of the anchored sweep (20% of the scenario exit valuation) */
+const CHART_RANGE_LOW_MULTIPLIER = 0.2;
+/** High end of the anchored sweep (200% of the scenario exit valuation) */
+const CHART_RANGE_HIGH_MULTIPLIER = 2;
+/**
+ * The sweep always spans at least $1M-$500M. Anchoring on the scenario's exit
+ * is what makes the chart relevant; it must never make a valuation the user
+ * could previously model unreachable.
+ */
+const MIN_REACHABLE_VALUATION = 1_000_000;
+const MAX_REACHABLE_VALUATION = 500_000_000;
 
 import * as React from "react";
 import { FORMATTING } from "@/lib/constants";
@@ -23,36 +30,101 @@ import { ValuationSlider } from "./valuation-slider";
 import { useCalculateWaterfall } from "@/lib/api-client";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { generateId } from "@/lib/utils";
-import type { CapTable, PreferenceTier, PricedRound } from "@/lib/schemas";
+import type { CapTable, PreferenceTier, PricedRound, Stakeholder } from "@/lib/schemas";
 import { formatLargeNumber } from "@/lib/format-utils";
 
 interface WaterfallAnalysisProps {
   capTable: CapTable;
   pricedRounds?: PricedRound[];
+  /** Scenario exit assumption; anchors the valuation range the chart sweeps */
+  exitValuation?: number;
+  /**
+   * Tiers the caller already knows about - from a template or a saved scenario.
+   * They take precedence over tiers inferred from priced rounds, which can only
+   * guess at holders by name.
+   */
+  preferenceTiers?: PreferenceTier[];
 }
 
-// Generate exit valuations for chart
-function generateExitValuations(min: number, max: number, count: number): number[] {
-  const step = (max - min) / (count - 1);
-  return Array.from({ length: count }, (_, i) => min + step * i);
+/**
+ * Sample the valuation range for the chart.
+ *
+ * Spacing is geometric because valuation is a multiplicative quantity: equal
+ * ratios give a $5M acquihire the same resolution as a $500M exit, which a
+ * linear sweep across three orders of magnitude cannot. The sample nearest the
+ * anchor is snapped onto it so the scenario's own exit is priced exactly.
+ */
+function generateExitValuations(min: number, max: number, count: number, anchor: number): number[] {
+  const ratio = (max / min) ** (1 / (count - 1));
+  const valuations = Array.from({ length: count }, (_, i) => Math.round(min * ratio ** i));
+
+  let nearest = 0;
+  for (let i = 1; i < valuations.length; i++) {
+    if (Math.abs(valuations[i] - anchor) < Math.abs(valuations[nearest] - anchor)) {
+      nearest = i;
+    }
+  }
+  valuations[nearest] = anchor;
+
+  return valuations;
 }
 
-export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnalysisProps) {
-  // Initialize preference tiers from priced rounds
-  const [preferenceTiers, setPreferenceTiers] = React.useState<PreferenceTier[]>(() => {
-    if (pricedRounds.length === 0) return [];
+function normalizeName(value: string): string {
+  return value.trim().toLowerCase();
+}
 
-    // Auto-generate preference tiers from priced rounds (reverse order = most recent is senior)
-    return pricedRounds
-      .filter((r) => r.type === "PRICED_ROUND")
-      .sort((a, b) => {
-        // Sort by date if available, otherwise by round order
-        if (a.date && b.date) {
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        }
-        return 0;
-      })
-      .map((round, index) => ({
+function roundTimestamp(round: PricedRound): number {
+  return round.date ? new Date(round.date).getTime() : NaN;
+}
+
+interface OrderedRound {
+  round: PricedRound;
+  index: number;
+}
+
+// Most recent round is the most senior; declaration order breaks ties and covers missing dates
+function compareSeniority(a: OrderedRound, b: OrderedRound): number {
+  const aTime = roundTimestamp(a.round);
+  const bTime = roundTimestamp(b.round);
+  if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) {
+    return bTime - aTime;
+  }
+  return b.index - a.index;
+}
+
+function matchStakeholderIds(round: PricedRound, available: Stakeholder[]): string[] {
+  if (round.lead_investor) {
+    const lead = normalizeName(round.lead_investor);
+    const byLeadInvestor = available.filter((s) => normalizeName(s.name) === lead);
+    if (byLeadInvestor.length > 0) {
+      return byLeadInvestor.map((s) => s.id);
+    }
+  }
+
+  const roundName = normalizeName(round.round_name);
+  return available
+    .filter((s) => s.share_class === "preferred" && normalizeName(s.name).includes(roundName))
+    .map((s) => s.id);
+}
+
+function buildTiersFromRounds(
+  pricedRounds: PricedRound[],
+  stakeholders: Stakeholder[]
+): PreferenceTier[] {
+  const unclaimed = [...stakeholders];
+
+  return pricedRounds
+    .filter((r) => r.type === "PRICED_ROUND")
+    .map((round, index) => ({ round, index }))
+    .sort(compareSeniority)
+    .map(({ round }, index) => {
+      const stakeholderIds = matchStakeholderIds(round, unclaimed);
+      for (const id of stakeholderIds) {
+        const claimedAt = unclaimed.findIndex((s) => s.id === id);
+        if (claimedAt >= 0) unclaimed.splice(claimedAt, 1);
+      }
+
+      return {
         id: generateId(),
         name: round.round_name,
         seniority: index + 1,
@@ -60,12 +132,38 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
         liquidation_multiplier: round.liquidation_multiplier,
         participating: round.participating,
         participation_cap: round.participation_cap ?? undefined,
-        stakeholder_ids: [],
-      }));
-  });
+        stakeholder_ids: stakeholderIds,
+      };
+    });
+}
+
+export function WaterfallAnalysis({
+  capTable,
+  pricedRounds = [],
+  exitValuation = DEFAULT_EXIT_VALUATION,
+  preferenceTiers: providedTiers,
+}: WaterfallAnalysisProps) {
+  const anchorValuation = exitValuation > 0 ? exitValuation : DEFAULT_EXIT_VALUATION;
+
+  // Tiers the caller supplied win; otherwise infer them from the priced rounds.
+  const [preferenceTiers, setPreferenceTiers] = React.useState<PreferenceTier[]>(() =>
+    providedTiers?.length
+      ? providedTiers
+      : buildTiersFromRounds(pricedRounds, capTable.stakeholders)
+  );
+
+  // Adopt caller-supplied tiers when they change - loading a template or switching
+  // scenarios replaces the stack wholesale.
+  const lastProvidedTiers = React.useRef(providedTiers);
+  React.useEffect(() => {
+    if (providedTiers?.length && providedTiers !== lastProvidedTiers.current) {
+      setPreferenceTiers(providedTiers);
+    }
+    lastProvidedTiers.current = providedTiers;
+  }, [providedTiers]);
 
   // Exit valuation state
-  const [selectedValuation, setSelectedValuation] = React.useState(DEFAULT_EXIT_VALUATION);
+  const [selectedValuation, setSelectedValuation] = React.useState(anchorValuation);
   const [activeView, setActiveView] = React.useState<"chart" | "table">("chart");
 
   // Debounce valuation changes to avoid too many API calls
@@ -74,10 +172,37 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
   // Calculate waterfall using API
   const waterfallMutation = useCalculateWaterfall();
 
-  // Generate exit valuations for chart (from $1M to $500M)
+  // Sweep the chart around the scenario's own exit assumption, without ever
+  // narrowing the range below what the user could always reach.
+  const chartMinValuation = Math.min(
+    MIN_REACHABLE_VALUATION,
+    anchorValuation * CHART_RANGE_LOW_MULTIPLIER
+  );
+  const chartMaxValuation = Math.max(
+    MAX_REACHABLE_VALUATION,
+    anchorValuation * CHART_RANGE_HIGH_MULTIPLIER
+  );
   const exitValuations = React.useMemo(
-    () => generateExitValuations(CHART_MIN_VALUATION, CHART_MAX_VALUATION, EXIT_VALUATION_COUNT),
-    []
+    () =>
+      generateExitValuations(
+        chartMinValuation,
+        chartMaxValuation,
+        EXIT_VALUATION_COUNT,
+        anchorValuation
+      ),
+    [chartMinValuation, chartMaxValuation, anchorValuation]
+  );
+
+  // A tier whose holders are unknown claims a preference for nobody: the engine
+  // has no one to pay, so the preference silently disappears. Keep those tiers
+  // in the editor where the user can assign holders, but never send them.
+  const assignedTiers = React.useMemo(
+    () => preferenceTiers.filter((t) => t.stakeholder_ids.length > 0),
+    [preferenceTiers]
+  );
+  const unassignedTiers = React.useMemo(
+    () => preferenceTiers.filter((t) => t.stakeholder_ids.length === 0),
+    [preferenceTiers]
   );
 
   // Trigger waterfall calculation when inputs change
@@ -86,12 +211,12 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
 
     waterfallMutation.mutate({
       cap_table: capTable,
-      preference_tiers: preferenceTiers,
+      preference_tiers: assignedTiers,
       exit_valuations: exitValuations,
     });
     // waterfallMutation.mutate is stable (TanStack Query guarantee)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [capTable, preferenceTiers, exitValuations]);
+  }, [capTable, assignedTiers, exitValuations]);
 
   // Find the distribution for the selected valuation
   const selectedDistribution = React.useMemo(() => {
@@ -130,6 +255,28 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
         stakeholders={capTable.stakeholders}
       />
 
+      {/* Tiers we could not attach to a holder. Excluded from the calculation —
+          say so, because what the user cannot see they cannot correct. */}
+      {unassignedTiers.length > 0 && (
+        <Card role="status" className="terminal-card border-amber-500/20 bg-amber-500/10">
+          <CardContent className="flex items-start gap-3 py-4">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">
+                {unassignedTiers.length === 1
+                  ? "1 preference tier has no holders"
+                  : `${unassignedTiers.length} preference tiers have no holders`}
+              </p>
+              <p className="text-muted-foreground text-sm">
+                {unassignedTiers.map((t) => t.name).join(", ")} — left out of the waterfall until
+                you assign holders. Use <span className="font-medium">Holders</span> on the tier
+                above to pick who owns it.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Waterfall Analysis Results */}
       {hasStakeholders ? (
         <>
@@ -137,6 +284,8 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
           <ValuationSlider
             value={selectedValuation}
             onChange={setSelectedValuation}
+            min={chartMinValuation}
+            max={chartMaxValuation}
             breakevenPoints={breakevenPoints}
           />
 
@@ -181,7 +330,7 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
                   onClick={() =>
                     waterfallMutation.mutate({
                       cap_table: capTable,
-                      preference_tiers: preferenceTiers,
+                      preference_tiers: assignedTiers,
                       exit_valuations: exitValuations,
                     })
                   }

@@ -117,6 +117,34 @@ export const SimParamRangeSchema = z
 export type SimParamRange = z.infer<typeof SimParamRangeSchema>;
 
 /**
+ * Wire format for a dilution round, mirroring the backend `DilutionRound`
+ * TypedDict in `worth_it/types.py`.
+ *
+ * Pydantic validates against that TypedDict and drops unrecognised keys without
+ * raising, so a misnamed field is silently discarded and the round contributes
+ * nothing instead of erroring. This schema is therefore STRICT: an unknown key
+ * is a contract bug and must fail loudly on the client, because it will never
+ * fail on the server.
+ */
+export const DilutionRoundWireSchema = z.strictObject({
+  year: z.number(),
+  /** Fraction of equity given up in this round, 0-1 (NOT 0-100). */
+  dilution: z.number().min(0).max(1).optional(),
+  /**
+   * ABSOLUTE monthly salary from this round onward - not a raise amount.
+   * The backend assigns it straight onto `StartupSalary` and skips the round
+   * when the value is <= 0, so 0 means "salary unchanged".
+   */
+  new_salary: z.number().optional(),
+  is_safe_note: z.boolean().optional(),
+  valuation_at_sale: z.number().optional(),
+  /** Fraction of equity sold in a secondary, 0-1. */
+  percent_to_sell: z.number().min(0).max(1).optional(),
+  status: RoundStatusEnum.optional(),
+});
+export type DilutionRoundWire = z.infer<typeof DilutionRoundWireSchema>;
+
+/**
  * RSU (Restricted Stock Unit) parameters for typed API payloads.
  * Uses flat structure with all RSU-specific fields at top level.
  */
@@ -124,24 +152,15 @@ export const RSUParamsSchema = z.object({
   equity_type: z.literal("RSU"),
   monthly_salary: z.number().min(0),
   total_equity_grant_pct: z.number().min(0).max(VALIDATION.PCT_MAX), // Percentage (0-100)
-  vesting_period: z.number().int().min(VALIDATION.VESTING_PERIOD_MIN).max(VALIDATION.VESTING_PERIOD_MAX),
+  vesting_period: z
+    .number()
+    .int()
+    .min(VALIDATION.VESTING_PERIOD_MIN)
+    .max(VALIDATION.VESTING_PERIOD_MAX),
   cliff_period: z.number().int().min(VALIDATION.CLIFF_PERIOD_MIN).max(VALIDATION.CLIFF_PERIOD_MAX),
   exit_valuation: z.number().min(0),
   simulate_dilution: z.boolean().default(false),
-  dilution_rounds: z
-    .array(
-      z.object({
-        round_name: z.string().optional(),
-        round_type: RoundTypeEnum.optional(),
-        year: z.number(),
-        dilution_pct: z.number().optional(),
-        pre_money_valuation: z.number().optional(),
-        amount_raised: z.number().optional(),
-        salary_change: z.number().optional(),
-      })
-    )
-    .nullable()
-    .optional(),
+  dilution_rounds: z.array(DilutionRoundWireSchema).nullable().optional(),
   discount_rate: z.number().min(0).max(1).nullable().optional(), // For NPV calculation
 });
 export type RSUParams = z.infer<typeof RSUParamsSchema>;
@@ -155,7 +174,11 @@ export const StockOptionsParamsSchema = z.object({
   monthly_salary: z.number().min(0),
   num_options: z.number().int().min(0),
   strike_price: z.number().min(0),
-  vesting_period: z.number().int().min(VALIDATION.VESTING_PERIOD_MIN).max(VALIDATION.VESTING_PERIOD_MAX),
+  vesting_period: z
+    .number()
+    .int()
+    .min(VALIDATION.VESTING_PERIOD_MIN)
+    .max(VALIDATION.VESTING_PERIOD_MAX),
   cliff_period: z.number().int().min(VALIDATION.CLIFF_PERIOD_MIN).max(VALIDATION.CLIFF_PERIOD_MAX),
   exit_price_per_share: z.number().min(0),
   exercise_strategy: ExerciseStrategyEnum.default("AT_EXIT"),
@@ -219,7 +242,7 @@ export const MonthlyDataGridRequestSchema = z.object({
   current_job_monthly_salary: z.number().min(0),
   startup_monthly_salary: z.number().min(0),
   current_job_salary_growth_rate: z.number().min(0).max(1),
-  dilution_rounds: z.array(z.record(z.string(), z.unknown())).optional().nullable(),
+  dilution_rounds: z.array(DilutionRoundWireSchema).optional().nullable(),
 });
 export type MonthlyDataGridRequest = z.infer<typeof MonthlyDataGridRequestSchema>;
 
@@ -397,7 +420,14 @@ export const DilutionRoundFormSchema = z.object({
   dilution_pct: z.number().min(0).max(VALIDATION.PCT_MAX),
   pre_money_valuation: z.number().min(0),
   amount_raised: z.number().min(0),
-  salary_change: z.number(),
+  /**
+   * ABSOLUTE new monthly salary from this round onward, despite the legacy
+   * field name. The round form labels it "New Salary", the timeline renders it
+   * as "salary increases to X/mo", and `toDilutionRoundWire` forwards it to the
+   * backend's `new_salary`, which overwrites `StartupSalary` outright. Use 0 for
+   * "no change" - never a raise amount, or the startup salary collapses to it.
+   */
+  salary_change: z.number().min(0),
   enabled: z.boolean(),
   status: RoundStatusEnum.default("upcoming"), // NEW: completed = past, upcoming = future
   dilution_method: DilutionMethodEnum.default("percentage"),
@@ -408,8 +438,18 @@ export const RSUFormSchema = z.object({
   equity_type: z.literal("RSU"),
   monthly_salary: z.number().min(0),
   total_equity_grant_pct: z.number().min(0).max(VALIDATION.PCT_MAX),
-  vesting_period: z.number().int().min(VALIDATION.VESTING_PERIOD_MIN).max(VALIDATION.VESTING_PERIOD_MAX).default(VALIDATION.VESTING_PERIOD_DEFAULT),
-  cliff_period: z.number().int().min(VALIDATION.CLIFF_PERIOD_MIN).max(VALIDATION.CLIFF_PERIOD_MAX).default(VALIDATION.CLIFF_PERIOD_DEFAULT),
+  vesting_period: z
+    .number()
+    .int()
+    .min(VALIDATION.VESTING_PERIOD_MIN)
+    .max(VALIDATION.VESTING_PERIOD_MAX)
+    .default(VALIDATION.VESTING_PERIOD_DEFAULT),
+  cliff_period: z
+    .number()
+    .int()
+    .min(VALIDATION.CLIFF_PERIOD_MIN)
+    .max(VALIDATION.CLIFF_PERIOD_MAX)
+    .default(VALIDATION.CLIFF_PERIOD_DEFAULT),
   simulate_dilution: z.boolean().default(false),
   company_stage: CompanyStageEnum.optional(), // NEW: helps auto-configure rounds
   dilution_rounds: z.array(DilutionRoundFormSchema),
@@ -422,8 +462,18 @@ export const StockOptionsFormSchema = z.object({
   monthly_salary: z.number().min(0),
   num_options: z.number().int().min(0),
   strike_price: z.number().min(0),
-  vesting_period: z.number().int().min(VALIDATION.VESTING_PERIOD_MIN).max(VALIDATION.VESTING_PERIOD_MAX).default(VALIDATION.VESTING_PERIOD_DEFAULT),
-  cliff_period: z.number().int().min(VALIDATION.CLIFF_PERIOD_MIN).max(VALIDATION.CLIFF_PERIOD_MAX).default(VALIDATION.CLIFF_PERIOD_DEFAULT),
+  vesting_period: z
+    .number()
+    .int()
+    .min(VALIDATION.VESTING_PERIOD_MIN)
+    .max(VALIDATION.VESTING_PERIOD_MAX)
+    .default(VALIDATION.VESTING_PERIOD_DEFAULT),
+  cliff_period: z
+    .number()
+    .int()
+    .min(VALIDATION.CLIFF_PERIOD_MIN)
+    .max(VALIDATION.CLIFF_PERIOD_MAX)
+    .default(VALIDATION.CLIFF_PERIOD_DEFAULT),
   exercise_strategy: z.enum(["AT_EXIT", "AFTER_VESTING"]).default("AT_EXIT"),
   exercise_year: z.number().int().min(1).max(VALIDATION.EXIT_YEAR_MAX).optional(),
   exit_price_per_share: z.number().min(0),
@@ -448,8 +498,18 @@ export type ShareClass = z.infer<typeof ShareClassEnum>;
 
 export const VestingScheduleSchema = z.object({
   total_shares: z.number().min(0),
-  vesting_months: z.number().int().min(VALIDATION.VESTING_MONTHS_MIN).max(VALIDATION.VESTING_MONTHS_MAX).default(VALIDATION.VESTING_MONTHS_DEFAULT),
-  cliff_months: z.number().int().min(VALIDATION.CLIFF_MONTHS_MIN).max(VALIDATION.CLIFF_MONTHS_MAX).default(VALIDATION.CLIFF_MONTHS_DEFAULT),
+  vesting_months: z
+    .number()
+    .int()
+    .min(VALIDATION.VESTING_MONTHS_MIN)
+    .max(VALIDATION.VESTING_MONTHS_MAX)
+    .default(VALIDATION.VESTING_MONTHS_DEFAULT),
+  cliff_months: z
+    .number()
+    .int()
+    .min(VALIDATION.CLIFF_MONTHS_MIN)
+    .max(VALIDATION.CLIFF_MONTHS_MAX)
+    .default(VALIDATION.CLIFF_MONTHS_DEFAULT),
   start_date: z.string().optional(), // ISO date string
   vested_shares: z.number().min(0).default(0),
 });
@@ -469,7 +529,11 @@ export type Stakeholder = z.infer<typeof StakeholderSchema>;
 export const CapTableSchema = z.object({
   stakeholders: z.array(StakeholderSchema).default([]),
   total_shares: z.number().min(0).default(VALIDATION.DEFAULT_TOTAL_SHARES), // 10M shares default
-  option_pool_pct: z.number().min(0).max(VALIDATION.PCT_MAX).default(VALIDATION.DEFAULT_OPTION_POOL_PCT), // 10% default
+  option_pool_pct: z
+    .number()
+    .min(0)
+    .max(VALIDATION.PCT_MAX)
+    .default(VALIDATION.DEFAULT_OPTION_POOL_PCT), // 10% default
 });
 export type CapTable = z.infer<typeof CapTableSchema>;
 
@@ -480,8 +544,18 @@ export const StakeholderFormSchema = z.object({
   ownership_pct: z.number().min(0).max(VALIDATION.PCT_MAX),
   share_class: ShareClassEnum.default("common"),
   has_vesting: z.boolean().default(false),
-  vesting_months: z.number().int().min(VALIDATION.VESTING_MONTHS_MIN).max(VALIDATION.VESTING_MONTHS_MAX).default(VALIDATION.VESTING_MONTHS_DEFAULT),
-  cliff_months: z.number().int().min(VALIDATION.CLIFF_MONTHS_MIN).max(VALIDATION.CLIFF_MONTHS_MAX).default(VALIDATION.CLIFF_MONTHS_DEFAULT),
+  vesting_months: z
+    .number()
+    .int()
+    .min(VALIDATION.VESTING_MONTHS_MIN)
+    .max(VALIDATION.VESTING_MONTHS_MAX)
+    .default(VALIDATION.VESTING_MONTHS_DEFAULT),
+  cliff_months: z
+    .number()
+    .int()
+    .min(VALIDATION.CLIFF_MONTHS_MIN)
+    .max(VALIDATION.CLIFF_MONTHS_MAX)
+    .default(VALIDATION.CLIFF_MONTHS_DEFAULT),
 });
 export type StakeholderFormData = z.infer<typeof StakeholderFormSchema>;
 
@@ -542,7 +616,12 @@ export const ConvertibleNoteSchema = z.object({
   interest_type: InterestTypeEnum.default("simple"), // Simple or compound interest
   valuation_cap: z.number().min(0).optional(),
   discount_pct: z.number().min(0).max(VALIDATION.PCT_MAX).optional(),
-  maturity_months: z.number().int().min(VALIDATION.MATURITY_MONTHS_MIN).max(VALIDATION.MATURITY_MONTHS_MAX).default(VALIDATION.MATURITY_MONTHS_DEFAULT),
+  maturity_months: z
+    .number()
+    .int()
+    .min(VALIDATION.MATURITY_MONTHS_MIN)
+    .max(VALIDATION.MATURITY_MONTHS_MAX)
+    .default(VALIDATION.MATURITY_MONTHS_DEFAULT),
   date: z.string().optional(),
   status: InstrumentStatusEnum.default("outstanding"),
   // Conversion details
@@ -563,7 +642,11 @@ export const PricedRoundSchema = z.object({
   price_per_share: z.number().min(0),
   date: z.string().optional(),
   // Liquidation preference
-  liquidation_multiplier: z.number().min(VALIDATION.LIQUIDATION_MULTIPLIER_MIN).max(VALIDATION.LIQUIDATION_MULTIPLIER_MAX).default(VALIDATION.LIQUIDATION_MULTIPLIER_DEFAULT), // 1x, 2x, etc.
+  liquidation_multiplier: z
+    .number()
+    .min(VALIDATION.LIQUIDATION_MULTIPLIER_MIN)
+    .max(VALIDATION.LIQUIDATION_MULTIPLIER_MAX)
+    .default(VALIDATION.LIQUIDATION_MULTIPLIER_DEFAULT), // 1x, 2x, etc.
   participating: z.boolean().default(false),
   participation_cap: z.number().optional(), // Only if participating
   // New shares issued
@@ -595,11 +678,20 @@ export type SAFEFormData = z.infer<typeof SAFEFormSchema>;
 export const ConvertibleNoteFormSchema = z.object({
   investor_name: z.string().min(1, "Investor name is required"),
   principal_amount: z.number().min(0),
-  interest_rate: z.number().min(0).max(VALIDATION.PCT_MAX).default(VALIDATION.INTEREST_RATE_DEFAULT),
+  interest_rate: z
+    .number()
+    .min(0)
+    .max(VALIDATION.PCT_MAX)
+    .default(VALIDATION.INTEREST_RATE_DEFAULT),
   interest_type: InterestTypeEnum.default("simple"),
   valuation_cap: z.number().min(0).optional(),
   discount_pct: z.number().min(0).max(VALIDATION.PCT_MAX).optional(),
-  maturity_months: z.number().int().min(VALIDATION.MATURITY_MONTHS_MIN).max(VALIDATION.MATURITY_MONTHS_MAX).default(VALIDATION.MATURITY_MONTHS_DEFAULT),
+  maturity_months: z
+    .number()
+    .int()
+    .min(VALIDATION.MATURITY_MONTHS_MIN)
+    .max(VALIDATION.MATURITY_MONTHS_MAX)
+    .default(VALIDATION.MATURITY_MONTHS_DEFAULT),
 });
 export type ConvertibleNoteFormData = z.infer<typeof ConvertibleNoteFormSchema>;
 
@@ -608,7 +700,11 @@ export const PricedRoundFormSchema = z.object({
   lead_investor: z.string().optional(),
   pre_money_valuation: z.number().min(0),
   amount_raised: z.number().min(0),
-  liquidation_multiplier: z.number().min(VALIDATION.LIQUIDATION_MULTIPLIER_MIN).max(VALIDATION.LIQUIDATION_MULTIPLIER_MAX).default(VALIDATION.LIQUIDATION_MULTIPLIER_DEFAULT),
+  liquidation_multiplier: z
+    .number()
+    .min(VALIDATION.LIQUIDATION_MULTIPLIER_MIN)
+    .max(VALIDATION.LIQUIDATION_MULTIPLIER_MAX)
+    .default(VALIDATION.LIQUIDATION_MULTIPLIER_DEFAULT),
   participating: z.boolean().default(false),
 });
 export type PricedRoundFormData = z.infer<typeof PricedRoundFormSchema>;
@@ -685,7 +781,10 @@ export const PreferenceTierSchema = z.object({
   name: z.string().min(1, "Name is required"), // e.g., "Series B", "Series A"
   seniority: z.number().int().min(VALIDATION.PREFERENCE_SENIORITY_MIN), // 1 = most senior (paid first)
   investment_amount: z.number().min(0), // Total invested at this tier
-  liquidation_multiplier: z.number().min(VALIDATION.PREFERENCE_MULTIPLIER_MIN).default(VALIDATION.PREFERENCE_MULTIPLIER_DEFAULT), // 1x, 2x, etc.
+  liquidation_multiplier: z
+    .number()
+    .min(VALIDATION.PREFERENCE_MULTIPLIER_MIN)
+    .default(VALIDATION.PREFERENCE_MULTIPLIER_DEFAULT), // 1x, 2x, etc.
   participating: z.boolean().default(false),
   participation_cap: z.number().min(VALIDATION.PARTICIPATION_CAP_MIN).optional(), // e.g., 3.0 for 3x cap
   stakeholder_ids: z.array(z.string()).default([]), // Links to Stakeholder records
@@ -743,7 +842,10 @@ export const PreferenceTierFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   seniority: z.number().int().min(VALIDATION.PREFERENCE_SENIORITY_MIN),
   investment_amount: z.number().min(0),
-  liquidation_multiplier: z.number().min(VALIDATION.PREFERENCE_MULTIPLIER_MIN).default(VALIDATION.PREFERENCE_MULTIPLIER_DEFAULT),
+  liquidation_multiplier: z
+    .number()
+    .min(VALIDATION.PREFERENCE_MULTIPLIER_MIN)
+    .default(VALIDATION.PREFERENCE_MULTIPLIER_DEFAULT),
   participating: z.boolean().default(false),
   participation_cap: z.number().min(VALIDATION.PARTICIPATION_CAP_MIN).optional(),
 });
@@ -1019,7 +1121,11 @@ export const VCMethodRequestSchema = z.object({
   exit_year: z.number().int().min(1).max(VALIDATION.EXIT_YEAR_VC_MAX),
   target_return_multiple: z.number().gt(1).optional(),
   target_irr: z.number().gt(0).max(VALIDATION.VC_TARGET_IRR_MAX).optional(),
-  expected_dilution: z.number().min(0).max(VALIDATION.VC_DILUTION_MAX).default(VALIDATION.VC_DILUTION_DEFAULT),
+  expected_dilution: z
+    .number()
+    .min(0)
+    .max(VALIDATION.VC_DILUTION_MAX)
+    .default(VALIDATION.VC_DILUTION_DEFAULT),
   investment_amount: z.number().gt(0).optional(),
   exit_probability: z.number().gt(0).max(1).default(VALIDATION.VC_EXIT_PROBABILITY_DEFAULT),
 });
@@ -1194,8 +1300,15 @@ export function transformValuationComparison(
  */
 export const RevenueMultipleFormSchema = z.object({
   annualRevenue: z.number().min(0, "Revenue must be positive"),
-  revenueMultiple: z.number().gt(0, "Multiple must be positive").max(VALIDATION.REVENUE_MULTIPLE_MAX, "Multiple too high"),
-  growthRate: z.number().min(VALIDATION.PCT_MIN_REVENUE_GROWTH).max(VALIDATION.PCT_MAX_REVENUE_GROWTH).optional(),
+  revenueMultiple: z
+    .number()
+    .gt(0, "Multiple must be positive")
+    .max(VALIDATION.REVENUE_MULTIPLE_MAX, "Multiple too high"),
+  growthRate: z
+    .number()
+    .min(VALIDATION.PCT_MIN_REVENUE_GROWTH)
+    .max(VALIDATION.PCT_MAX_REVENUE_GROWTH)
+    .optional(),
   industryBenchmarkMultiple: z.number().gt(0).optional(),
 });
 export type RevenueMultipleFormData = z.infer<typeof RevenueMultipleFormSchema>;
@@ -1208,7 +1321,10 @@ export const DCFFormSchema = z.object({
   projectedCashFlows: z
     .array(z.object({ value: z.number() }))
     .min(1, "At least one cash flow required"),
-  discountRate: z.number().gt(0, "Discount rate must be positive").max(VALIDATION.PCT_MAX, "Rate too high"),
+  discountRate: z
+    .number()
+    .gt(0, "Discount rate must be positive")
+    .max(VALIDATION.PCT_MAX, "Rate too high"),
   terminalGrowthRate: z.number().min(0).max(VALIDATION.PCT_MAX).optional(),
 });
 export type DCFFormData = z.infer<typeof DCFFormSchema>;
@@ -1254,7 +1370,11 @@ export const FirstChicagoScenarioSchema = z.object({
   name: z.string().min(1, "Scenario name is required").max(VALIDATION.SCENARIO_NAME_MAX_LENGTH),
   probability: z.number().min(0, "Probability must be >= 0").max(1, "Probability must be <= 1"),
   exit_value: z.number().gt(0, "Exit value must be positive"),
-  years_to_exit: z.number().int().min(1, "At least 1 year").max(VALIDATION.FIRST_CHICAGO_EXIT_YEAR_MAX, "Max 20 years"),
+  years_to_exit: z
+    .number()
+    .int()
+    .min(1, "At least 1 year")
+    .max(VALIDATION.FIRST_CHICAGO_EXIT_YEAR_MAX, "Max 20 years"),
 });
 export type FirstChicagoScenario = z.infer<typeof FirstChicagoScenarioSchema>;
 
@@ -1262,7 +1382,10 @@ export type FirstChicagoScenario = z.infer<typeof FirstChicagoScenarioSchema>;
  * Request schema for First Chicago Method API endpoint.
  */
 export const FirstChicagoRequestSchema = z.object({
-  scenarios: z.array(FirstChicagoScenarioSchema).min(1, "At least one scenario required").max(VALIDATION.SCENARIOS_MAX_COUNT),
+  scenarios: z
+    .array(FirstChicagoScenarioSchema)
+    .min(1, "At least one scenario required")
+    .max(VALIDATION.SCENARIOS_MAX_COUNT),
   discount_rate: z
     .number()
     .gt(0, "Discount rate must be positive")
@@ -1523,8 +1646,14 @@ export type BerkusFormData = z.infer<typeof BerkusFormSchema>;
  */
 export const ScorecardFactorFormSchema = z.object({
   name: z.string().min(1, "Factor name is required").max(VALIDATION.SCORECARD_NAME_MAX_LENGTH),
-  weight: z.number().min(0, "Weight must be positive").max(VALIDATION.SCORECARD_WEIGHT_MAX, "Weight must be \u2264 1"),
-  score: z.number().min(0, "Score must be positive").max(VALIDATION.SCORECARD_SCORE_MAX, "Score must be \u2264 2"),
+  weight: z
+    .number()
+    .min(0, "Weight must be positive")
+    .max(VALIDATION.SCORECARD_WEIGHT_MAX, "Weight must be \u2264 1"),
+  score: z
+    .number()
+    .min(0, "Score must be positive")
+    .max(VALIDATION.SCORECARD_SCORE_MAX, "Score must be \u2264 2"),
 });
 export type ScorecardFactorFormData = z.infer<typeof ScorecardFactorFormSchema>;
 
@@ -1572,32 +1701,111 @@ export const ExportFormatSchema = z.enum(["pdf", "json", "csv"]);
 export type ExportFormat = z.infer<typeof ExportFormatSchema>;
 
 /**
- * Base export request schema.
+ * Report text is rendered through ReportLab's `Paragraph` parser, which reads a
+ * mini-HTML dialect. The backend excludes every character that can open a tag or
+ * an entity via `SAFE_REPORT_TEXT_PATTERN` in `worth_it/models.py`.
+ *
+ * Python's `\w` is Unicode-aware for `str` patterns, so `\p{L}\p{N}_` is used
+ * here rather than JavaScript's ASCII-only `\w` to keep the two in step.
+ */
+const SAFE_REPORT_TEXT_PATTERN = /^[\p{L}\p{N}_ .,'&()\-+/]+$/u;
+const SAFE_REPORT_TEXT_MESSAGE = "Contains characters that cannot be rendered in a report";
+const MAX_COMPANY_NAME_LENGTH = 120;
+const MAX_REPORT_LABEL_LENGTH = 60;
+const MAX_REPORT_SCENARIOS = 20;
+const MAX_REPORT_FACTORS = 30;
+/** Backend `ExportMonteCarloResult.num_simulations` default. */
+const DEFAULT_EXPORT_SIMULATIONS = 10_000;
+
+/** Mirrors the backend `ReportLabel` annotated string. */
+const ReportLabelSchema = z
+  .string()
+  .min(1)
+  .max(MAX_REPORT_LABEL_LENGTH)
+  .regex(SAFE_REPORT_TEXT_PATTERN, SAFE_REPORT_TEXT_MESSAGE);
+
+/** Mirrors the backend `CompanyName` annotated string. */
+const CompanyNameSchema = z
+  .string()
+  .min(1)
+  .max(MAX_COMPANY_NAME_LENGTH)
+  .regex(SAFE_REPORT_TEXT_PATTERN, SAFE_REPORT_TEXT_MESSAGE);
+
+/** Mirrors the backend `ScenarioMap` (labelled floats, capped in count). */
+const ScenarioMapSchema = z
+  .record(ReportLabelSchema, z.number())
+  .refine((map) => Object.keys(map).length <= MAX_REPORT_SCENARIOS, {
+    message: `At most ${MAX_REPORT_SCENARIOS} scenarios are allowed`,
+  });
+
+/**
+ * Valuation inputs echoed into a report. Mirrors backend `ExportParams`:
+ * only `discount_rate` is rendered, and it must be a strict 0-1 fraction.
+ */
+export const ExportParamsSchema = z.object({
+  discount_rate: z.number().gt(0).lt(1).nullable().optional(),
+});
+export type ExportParams = z.infer<typeof ExportParamsSchema>;
+
+/**
+ * Base export request schema. Mirrors backend `ExportRequest`.
  */
 export const ExportRequestSchema = z.object({
-  company_name: z.string().min(1),
-  format: ExportFormatSchema.default("pdf"),
-  industry: z.string().nullable().optional(),
+  company_name: CompanyNameSchema,
+  format: ExportFormatSchema.default("json"),
+  industry: ReportLabelSchema.nullable().optional(),
 });
 export type ExportRequest = z.infer<typeof ExportRequestSchema>;
 
+/** Mirrors backend `FirstChicagoExportResult`. */
+export const FirstChicagoExportResultSchema = z.object({
+  weighted_value: z.number(),
+  present_value: z.number(),
+  scenario_values: ScenarioMapSchema.default({}),
+  scenario_present_values: ScenarioMapSchema.default({}),
+});
+export type FirstChicagoExportResult = z.infer<typeof FirstChicagoExportResultSchema>;
+
+/** Mirrors backend `ExportMonteCarloResult`. */
+export const ExportMonteCarloResultSchema = z.object({
+  mean: z.number().default(0),
+  num_simulations: z.number().int().min(0).default(DEFAULT_EXPORT_SIMULATIONS),
+  percentiles: ScenarioMapSchema.default({}),
+});
+export type ExportMonteCarloResult = z.infer<typeof ExportMonteCarloResultSchema>;
+
+/** Mirrors backend `ExportFactor`. */
+export const ExportFactorSchema = z.object({
+  name: ReportLabelSchema,
+  value: z.number(),
+});
+export type ExportFactor = z.infer<typeof ExportFactorSchema>;
+
+/** Mirrors backend `PreRevenueExportResult`. */
+export const PreRevenueExportResultSchema = z.object({
+  valuation: z.number().default(0),
+  factors: z.array(ExportFactorSchema).max(MAX_REPORT_FACTORS).nullable().optional(),
+});
+export type PreRevenueExportResult = z.infer<typeof PreRevenueExportResultSchema>;
+
 /**
- * First Chicago method export request.
+ * First Chicago method export request. Mirrors backend `FirstChicagoExportRequest`.
  */
 export const FirstChicagoExportRequestSchema = ExportRequestSchema.extend({
-  result: z.record(z.string(), z.unknown()),
-  params: z.record(z.string(), z.unknown()),
-  monte_carlo_result: z.record(z.string(), z.unknown()).nullable().optional(),
+  result: FirstChicagoExportResultSchema,
+  params: ExportParamsSchema,
+  monte_carlo_result: ExportMonteCarloResultSchema.nullable().optional(),
 });
 export type FirstChicagoExportRequest = z.infer<typeof FirstChicagoExportRequestSchema>;
 
 /**
  * Pre-revenue method export request (Berkus, Scorecard, etc.).
+ * Mirrors backend `PreRevenueExportRequest`.
  */
 export const PreRevenueExportRequestSchema = ExportRequestSchema.extend({
-  method_name: z.string().min(1),
-  result: z.record(z.string(), z.unknown()),
-  params: z.record(z.string(), z.unknown()),
+  method_name: ReportLabelSchema,
+  result: PreRevenueExportResultSchema,
+  params: ExportParamsSchema,
 });
 export type PreRevenueExportRequest = z.infer<typeof PreRevenueExportRequestSchema>;
 
@@ -1626,7 +1834,12 @@ export const EnhancedDCFRequestSchema = z.object({
   base_revenue: z.number().positive("Base revenue must be positive"),
   stages: z.array(DCFStageSchema).min(1).max(VALIDATION.ENHANCED_DCF_STAGES_MAX),
   discount_rate: z.number().positive().max(VALIDATION.ENHANCED_DCF_DISCOUNT_MAX),
-  terminal_growth_rate: z.number().min(0).max(VALIDATION.ENHANCED_DCF_TERMINAL_GROWTH_MAX).nullable().optional(),
+  terminal_growth_rate: z
+    .number()
+    .min(0)
+    .max(VALIDATION.ENHANCED_DCF_TERMINAL_GROWTH_MAX)
+    .nullable()
+    .optional(),
 });
 export type EnhancedDCFRequest = z.infer<typeof EnhancedDCFRequestSchema>;
 

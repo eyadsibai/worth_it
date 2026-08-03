@@ -2,15 +2,44 @@
 
 /** Monte Carlo schema bounds */
 const MC = {
-  SIM_MIN: 100, SIM_MAX: 10000,
-  GROWTH_MIN: -50, GROWTH_MAX: 100,
-  ROI_MEAN_MAX: 50, ROI_STD_MAX: 20,
+  SIM_MIN: 100,
+  SIM_MAX: 10000,
+  GROWTH_MIN: -50,
+  GROWTH_MAX: 100,
+  ROI_MEAN_MAX: 50,
+  ROI_STD_MAX: 20,
   EXIT_YEAR_MAX: 20,
   DILUTION_MAX: 100,
   /** Standard deviations for 95% confidence interval */
   STD_DEV_FACTOR: 2,
   /** Percentage to decimal divisor */
   PCT_DIVISOR: 100,
+  /** Logarithmic slider bounds for a whole-company exit valuation (RSU scenarios) */
+  VALUATION_MIN: 1_000_000,
+  VALUATION_MAX: 10_000_000_000,
+  VALUATION_STD_MAX: 5_000_000_000,
+  /** Linear slider bounds for a per-share exit price (matches stock-options-form) */
+  PRICE_PER_SHARE_MIN: 0,
+  PRICE_PER_SHARE_MAX: 500,
+  PRICE_PER_SHARE_STEP: 1,
+  /** Used only when the scenario has not supplied an exit price yet */
+  FALLBACK_VALUATION: 100_000_000,
+  FALLBACK_PRICE_PER_SHARE: 50,
+  /** Default spread: half the expected exit price */
+  DEFAULT_STD_FRACTION: 0.5,
+} as const;
+
+/**
+ * Tooltips for the per-share exit price sliders.
+ *
+ * These live here rather than in `lib/constants/tooltips.ts` so that the
+ * per-share wording stays adjacent to the fields it describes; the valuation
+ * equivalents (`TOOLTIPS.exitValuationMean` / `exitValuationStd`) talk about a
+ * whole-company valuation and would be actively misleading here.
+ */
+const PRICE_PER_SHARE_TOOLTIPS = {
+  mean: "Expected (average) price of a single share at exit. The simulation generates share prices centered around this number.",
+  std: "Standard deviation measures uncertainty. Higher values mean more variance in simulated exit share prices. ~68% of outcomes fall within ±1 std dev of the mean.",
 } as const;
 
 import * as React from "react";
@@ -21,7 +50,7 @@ import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { InformationBox } from "@/components/ui/information-box";
-import { SliderField, LogarithmicSliderField } from "./form-fields";
+import { SliderField, LogarithmicSliderField, CurrencySliderField } from "./form-fields";
 import { DistributionSection } from "./distribution-section";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, PlayCircle, CheckCircle2 } from "lucide-react";
@@ -31,9 +60,12 @@ import type { MonteCarloRequest, TypedBaseParams, SimParamConfigs } from "@/lib/
 
 const MonteCarloFormSchema = z.object({
   num_simulations: z.number().int().min(MC.SIM_MIN).max(MC.SIM_MAX),
-  // Exit Valuation (normal distribution)
+  // Exit Valuation (normal distribution) - RSU scenarios only
   exit_valuation_mean: z.number().min(0),
   exit_valuation_std: z.number().min(0),
+  // Exit Price Per Share (normal distribution) - stock option scenarios only
+  exit_price_per_share_mean: z.number().min(0),
+  exit_price_per_share_std: z.number().min(0),
   // Salary Growth Rate (PERT distribution)
   growth_rate_enabled: z.boolean(),
   growth_rate_min: z.number().min(MC.GROWTH_MIN).max(MC.GROWTH_MAX),
@@ -55,7 +87,122 @@ const MonteCarloFormSchema = z.object({
   dilution_max: z.number().min(0).max(MC.DILUTION_MAX),
 });
 
-type MonteCarloForm = z.infer<typeof MonteCarloFormSchema>;
+export type MonteCarloForm = z.infer<typeof MonteCarloFormSchema>;
+
+type StartupParams = TypedBaseParams["startup_params"];
+type EquityType = StartupParams["equity_type"];
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+/** Mean/std slider pair converted to the min/max range the API expects. */
+function toRange(mean: number, stdDev: number): { min: number; max: number } {
+  // +/- 2 standard deviations captures ~95% of the normal distribution.
+  return {
+    min: Math.max(0, mean - MC.STD_DEV_FACTOR * stdDev),
+    max: mean + MC.STD_DEV_FACTOR * stdDev,
+  };
+}
+
+/** The scenario's own exit assumption, in the units of its equity type. */
+function scenarioExitPriceOf(startupParams: StartupParams): number {
+  return startupParams.equity_type === "STOCK_OPTIONS"
+    ? startupParams.exit_price_per_share
+    : startupParams.exit_valuation;
+}
+
+/**
+ * Seed the exit-price sliders from the scenario itself.
+ *
+ * RSU payouts are priced off the whole company; option payouts off a single
+ * share. The two differ by orders of magnitude, so each equity type gets its
+ * own slider with its own units - a $60M-$140M range is nonsense as a share
+ * price, and $30-$70 is nonsense as a company valuation. Only the slider pair
+ * matching `equityType` is seeded from the scenario; the other keeps a generic
+ * fallback so it is sensible if the user switches equity type later.
+ */
+function deriveExitPriceSeed(equityType: EquityType, scenarioExitPrice: number) {
+  const isStockOptions = equityType === "STOCK_OPTIONS";
+  const valuationCenter =
+    !isStockOptions && scenarioExitPrice > 0
+      ? clamp(scenarioExitPrice, MC.VALUATION_MIN, MC.VALUATION_MAX)
+      : MC.FALLBACK_VALUATION;
+  const priceCenter =
+    isStockOptions && scenarioExitPrice > 0
+      ? clamp(scenarioExitPrice, MC.PRICE_PER_SHARE_MIN, MC.PRICE_PER_SHARE_MAX)
+      : MC.FALLBACK_PRICE_PER_SHARE;
+
+  return {
+    exit_valuation_mean: valuationCenter,
+    exit_valuation_std: clamp(
+      valuationCenter * MC.DEFAULT_STD_FRACTION,
+      MC.VALUATION_MIN,
+      MC.VALUATION_STD_MAX
+    ),
+    exit_price_per_share_mean: priceCenter,
+    exit_price_per_share_std: clamp(
+      priceCenter * MC.DEFAULT_STD_FRACTION,
+      MC.PRICE_PER_SHARE_MIN,
+      MC.PRICE_PER_SHARE_MAX
+    ),
+  };
+}
+
+/**
+ * Translate the form state into the typed `sim_param_configs` wire payload.
+ *
+ * The exit-price key MUST match the scenario's equity type. The backend picks
+ * the driving parameter from `equity_type` (RSU -> `exit_valuation`,
+ * STOCK_OPTIONS -> `exit_price_per_share`) and silently ignores a key that does
+ * not apply - which turns the whole simulation into a zero-variance point mass
+ * that still looks plausible on a chart.
+ */
+export function buildSimParamConfigs(
+  equityType: EquityType,
+  data: MonteCarloForm
+): SimParamConfigs {
+  const sim_param_configs: SimParamConfigs = {};
+
+  // Exit price - always simulated, keyed by equity type.
+  if (equityType === "STOCK_OPTIONS") {
+    sim_param_configs.exit_price_per_share = toRange(
+      data.exit_price_per_share_mean,
+      data.exit_price_per_share_std
+    );
+  } else {
+    sim_param_configs.exit_valuation = toRange(data.exit_valuation_mean, data.exit_valuation_std);
+  }
+
+  // Salary Growth Rate - convert PERT to simple range (drop mode)
+  if (data.growth_rate_enabled) {
+    sim_param_configs.current_job_salary_growth_rate = {
+      min: data.growth_rate_min / MC.PCT_DIVISOR,
+      max: data.growth_rate_max / MC.PCT_DIVISOR,
+    };
+  }
+
+  // ROI - convert from normal to min/max range
+  if (data.roi_enabled) {
+    sim_param_configs.annual_roi = toRange(
+      data.roi_mean / MC.PCT_DIVISOR,
+      data.roi_std / MC.PCT_DIVISOR
+    );
+  }
+
+  // Exit Year - convert PERT to simple range
+  if (data.exit_year_enabled) {
+    sim_param_configs.exit_year = {
+      min: data.exit_year_min,
+      max: data.exit_year_max,
+    };
+  }
+
+  // Note: Dilution is not currently in the typed API format
+  // It would need to be added to VariableParamEnum if needed
+
+  return sim_param_configs;
+}
 
 interface MonteCarloFormComponentProps {
   baseParams: TypedBaseParams;
@@ -63,13 +210,17 @@ interface MonteCarloFormComponentProps {
 }
 
 export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFormComponentProps) {
+  const equityType = baseParams.startup_params.equity_type;
+  const isStockOptions = equityType === "STOCK_OPTIONS";
+  const scenarioExitPrice = scenarioExitPriceOf(baseParams.startup_params);
+
   const form = useForm<MonteCarloForm>({
     resolver: zodResolver(MonteCarloFormSchema),
     defaultValues: {
       num_simulations: 1000,
-      // Exit Valuation (normal distribution)
-      exit_valuation_mean: 100000000, // MC.PCT_DIVISORM
-      exit_valuation_std: 50000000, // 50M
+      // Exit price (normal distribution) - seeded from the scenario's own
+      // exit assumption so the units match the equity type.
+      ...deriveExitPriceSeed(equityType, scenarioExitPrice),
       // Salary Growth Rate (PERT distribution)
       growth_rate_enabled: false,
       growth_rate_min: 2,
@@ -94,6 +245,22 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
 
   const monteCarloMutation = useRunMonteCarlo();
 
+  // The scenario's equity type can flip while this form stays mounted. A
+  // per-share price and a whole-company valuation are not interchangeable, so
+  // re-seed the exit-price sliders whenever the type changes. Deliberate slider
+  // edits survive everything else - only an equity-type switch re-seeds.
+  const { setValue } = form;
+  const [seededEquityType, setSeededEquityType] = React.useState(equityType);
+  React.useEffect(() => {
+    if (seededEquityType === equityType) return;
+    setSeededEquityType(equityType);
+    const seed = deriveExitPriceSeed(equityType, scenarioExitPrice);
+    setValue("exit_valuation_mean", seed.exit_valuation_mean);
+    setValue("exit_valuation_std", seed.exit_valuation_std);
+    setValue("exit_price_per_share_mean", seed.exit_price_per_share_mean);
+    setValue("exit_price_per_share_std", seed.exit_price_per_share_std);
+  }, [equityType, seededEquityType, scenarioExitPrice, setValue]);
+
   // Call onComplete when result is available
   React.useEffect(() => {
     if (monteCarloMutation.data && onComplete) {
@@ -107,46 +274,10 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
   const onSubmit = (data: MonteCarloForm) => {
     // Issue #248: Use simple min/max ranges for typed API format
     // Backend conversion layer transforms to PERT/Normal distributions
-    const sim_param_configs: SimParamConfigs = {};
-
-    // Exit Valuation - convert from normal (mean ± 2*std) to min/max range
-    // Using ±2 standard deviations captures ~95% of the distribution
-    sim_param_configs.exit_valuation = {
-      min: Math.max(0, data.exit_valuation_mean - MC.STD_DEV_FACTOR * data.exit_valuation_std),
-      max: data.exit_valuation_mean + MC.STD_DEV_FACTOR * data.exit_valuation_std,
-    };
-
-    // Salary Growth Rate - convert PERT to simple range (drop mode)
-    if (data.growth_rate_enabled) {
-      sim_param_configs.current_job_salary_growth_rate = {
-        min: data.growth_rate_min / MC.PCT_DIVISOR,
-        max: data.growth_rate_max / MC.PCT_DIVISOR,
-      };
-    }
-
-    // ROI - convert from normal to min/max range
-    if (data.roi_enabled) {
-      sim_param_configs.annual_roi = {
-        min: Math.max(0, data.roi_mean / MC.PCT_DIVISOR - (MC.STD_DEV_FACTOR * data.roi_std) / MC.PCT_DIVISOR),
-        max: data.roi_mean / MC.PCT_DIVISOR + (MC.STD_DEV_FACTOR * data.roi_std) / MC.PCT_DIVISOR,
-      };
-    }
-
-    // Exit Year - convert PERT to simple range
-    if (data.exit_year_enabled) {
-      sim_param_configs.exit_year = {
-        min: data.exit_year_min,
-        max: data.exit_year_max,
-      };
-    }
-
-    // Note: Dilution is not currently in the typed API format
-    // It would need to be added to VariableParamEnum if needed
-
     const request: MonteCarloRequest = {
       num_simulations: data.num_simulations,
       base_params: baseParams,
-      sim_param_configs,
+      sim_param_configs: buildSimParamConfigs(baseParams.startup_params.equity_type, data),
     };
 
     monteCarloMutation.mutate(request);
@@ -176,28 +307,59 @@ export function MonteCarloFormComponent({ baseParams, onComplete }: MonteCarloFo
               formatValue={(value) => `${value.toLocaleString()}`}
             />
 
-            {/* Exit Valuation - Always enabled */}
-            <InformationBox title="Exit Valuation Distribution (Normal)" className="space-y-4">
-              <LogarithmicSliderField
-                form={form}
-                name="exit_valuation_mean"
-                label="Mean Valuation"
-                description="Expected exit valuation"
-                tooltip={TOOLTIPS.exitValuationMean}
-                min={1000000}
-                max={10000000000}
-              />
+            {/* Exit price - always enabled, units follow the scenario's equity type */}
+            {isStockOptions ? (
+              <InformationBox
+                title="Exit Price Per Share Distribution (Normal)"
+                className="space-y-4"
+              >
+                <CurrencySliderField
+                  form={form}
+                  name="exit_price_per_share_mean"
+                  label="Mean Exit Price Per Share"
+                  description="Expected price of one share at exit"
+                  tooltip={PRICE_PER_SHARE_TOOLTIPS.mean}
+                  min={MC.PRICE_PER_SHARE_MIN}
+                  max={MC.PRICE_PER_SHARE_MAX}
+                  step={MC.PRICE_PER_SHARE_STEP}
+                  displayFormat="full"
+                />
 
-              <LogarithmicSliderField
-                form={form}
-                name="exit_valuation_std"
-                label="Standard Deviation"
-                description="Uncertainty in valuation"
-                tooltip={TOOLTIPS.exitValuationStd}
-                min={1000000}
-                max={5000000000}
-              />
-            </InformationBox>
+                <CurrencySliderField
+                  form={form}
+                  name="exit_price_per_share_std"
+                  label="Standard Deviation"
+                  description="Uncertainty in the exit share price"
+                  tooltip={PRICE_PER_SHARE_TOOLTIPS.std}
+                  min={MC.PRICE_PER_SHARE_MIN}
+                  max={MC.PRICE_PER_SHARE_MAX}
+                  step={MC.PRICE_PER_SHARE_STEP}
+                  displayFormat="full"
+                />
+              </InformationBox>
+            ) : (
+              <InformationBox title="Exit Valuation Distribution (Normal)" className="space-y-4">
+                <LogarithmicSliderField
+                  form={form}
+                  name="exit_valuation_mean"
+                  label="Mean Valuation"
+                  description="Expected exit valuation"
+                  tooltip={TOOLTIPS.exitValuationMean}
+                  min={MC.VALUATION_MIN}
+                  max={MC.VALUATION_MAX}
+                />
+
+                <LogarithmicSliderField
+                  form={form}
+                  name="exit_valuation_std"
+                  label="Standard Deviation"
+                  description="Uncertainty in valuation"
+                  tooltip={TOOLTIPS.exitValuationStd}
+                  min={MC.VALUATION_MIN}
+                  max={MC.VALUATION_STD_MAX}
+                />
+              </InformationBox>
+            )}
 
             {/* Salary Growth Rate */}
             <DistributionSection

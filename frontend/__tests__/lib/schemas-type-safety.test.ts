@@ -19,7 +19,33 @@ import {
 
 describe("Bug #9: z.any() replaced with specific types", () => {
   describe("RSUParamsSchema.dilution_rounds", () => {
-    it("should accept properly typed dilution round objects", () => {
+    it("should accept dilution rounds in the backend wire shape", () => {
+      const result = RSUParamsSchema.safeParse({
+        equity_type: "RSU",
+        monthly_salary: 12000,
+        total_equity_grant_pct: 0.5,
+        vesting_period: 4,
+        cliff_period: 1,
+        exit_valuation: 100_000_000,
+        simulate_dilution: true,
+        dilution_rounds: [
+          {
+            year: 2,
+            dilution: 0.2,
+            new_salary: 14000,
+            is_safe_note: false,
+            status: "upcoming",
+          },
+        ],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("should reject dilution rounds sent in the form shape instead of the wire shape", () => {
+      // The form field names (round_name/dilution_pct/salary_change/...) are NOT
+      // the backend `DilutionRound` TypedDict keys. Pydantic drops undeclared
+      // keys silently, so such a round reaches the engine with zero dilution.
+      // `toDilutionRoundWire` is the only sanctioned form -> wire translation.
       const result = RSUParamsSchema.safeParse({
         equity_type: "RSU",
         monthly_salary: 12000,
@@ -40,7 +66,21 @@ describe("Bug #9: z.any() replaced with specific types", () => {
           },
         ],
       });
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
+    });
+
+    it("should reject dilution rounds whose dilution is a 0-100 percentage", () => {
+      const result = RSUParamsSchema.safeParse({
+        equity_type: "RSU",
+        monthly_salary: 12000,
+        total_equity_grant_pct: 0.5,
+        vesting_period: 4,
+        cliff_period: 1,
+        exit_valuation: 100_000_000,
+        simulate_dilution: true,
+        dilution_rounds: [{ year: 2, dilution: 20 }],
+      });
+      expect(result.success).toBe(false);
     });
 
     it("should reject dilution_rounds with non-object elements", () => {
@@ -60,7 +100,23 @@ describe("Bug #9: z.any() replaced with specific types", () => {
   });
 
   describe("MonthlyDataGridRequestSchema.dilution_rounds", () => {
-    it("should accept properly typed dilution round records", () => {
+    it("should accept dilution rounds in the backend wire shape", () => {
+      const result = MonthlyDataGridRequestSchema.safeParse({
+        exit_year: 5,
+        current_job_monthly_salary: 15000,
+        startup_monthly_salary: 12000,
+        current_job_salary_growth_rate: 0.05,
+        dilution_rounds: [
+          {
+            year: 1,
+            dilution: 0.15,
+          },
+        ],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("should reject dilution rounds sent in the form shape instead of the wire shape", () => {
       const result = MonthlyDataGridRequestSchema.safeParse({
         exit_year: 5,
         current_job_monthly_salary: 15000,
@@ -74,7 +130,7 @@ describe("Bug #9: z.any() replaced with specific types", () => {
           },
         ],
       });
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
     });
 
     it("should reject dilution_rounds with non-object elements", () => {

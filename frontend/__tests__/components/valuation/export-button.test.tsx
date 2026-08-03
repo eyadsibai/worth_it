@@ -1,8 +1,14 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { ComponentProps } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ExportButton } from "@/components/valuation/export-button";
+import type {
+  ExportMonteCarloResult,
+  FirstChicagoExportResult,
+  PreRevenueExportResult,
+} from "@/lib/schemas";
 
 // Mock the API client hooks
 vi.mock("@/lib/api-client", () => ({
@@ -25,10 +31,25 @@ describe("ExportButton", () => {
 
   const mockBlob = new Blob(["test content"], { type: "application/pdf" });
 
+  // Mirrors the backend `FirstChicagoExportResult`: both scenario maps must
+  // name the same scenarios or the request is rejected with a 400.
+  const firstChicagoResult: FirstChicagoExportResult = {
+    weighted_value: 1000000,
+    present_value: 800000,
+    scenario_values: { Base: 1000000 },
+    scenario_present_values: { Base: 800000 },
+  };
+
+  // Mirrors the backend `PreRevenueExportResult`.
+  const preRevenueResult: PreRevenueExportResult = {
+    valuation: 1000000,
+    factors: [{ name: "Sound Idea", value: 500000 }],
+  };
+
   const defaultProps = {
     companyName: "Test Company",
     methodType: "first-chicago" as const,
-    result: { valuation: 1000000 },
+    result: firstChicagoResult,
     params: { discount_rate: 0.25 },
   };
 
@@ -54,10 +75,12 @@ describe("ExportButton", () => {
     global.URL.revokeObjectURL = vi.fn();
   });
 
-  const renderComponent = (props = {}) => {
+  type ExportButtonProps = ComponentProps<typeof ExportButton>;
+
+  const renderComponent = (props: Partial<ExportButtonProps> = {}) => {
     return render(
       <QueryClientProvider client={queryClient}>
-        <ExportButton {...defaultProps} {...props} />
+        <ExportButton {...({ ...defaultProps, ...props } as ExportButtonProps)} />
       </QueryClientProvider>
     );
   };
@@ -110,7 +133,7 @@ describe("ExportButton", () => {
         expect(mockExportFirstChicago.mutateAsync).toHaveBeenCalledWith({
           company_name: "Test Company",
           format: "pdf",
-          result: { valuation: 1000000 },
+          result: firstChicagoResult,
           params: { discount_rate: 0.25 },
           industry: undefined,
           monte_carlo_result: undefined,
@@ -123,6 +146,7 @@ describe("ExportButton", () => {
       renderComponent({
         methodType: "pre-revenue",
         methodName: "Berkus Method",
+        result: preRevenueResult,
       });
 
       const button = screen.getByRole("button", { name: /export/i });
@@ -136,7 +160,7 @@ describe("ExportButton", () => {
           company_name: "Test Company",
           format: "json",
           method_name: "Berkus Method",
-          result: { valuation: 1000000 },
+          result: preRevenueResult,
           params: { discount_rate: 0.25 },
           industry: undefined,
         });
@@ -179,7 +203,11 @@ describe("ExportButton", () => {
 
     it("includes monte carlo result when provided", async () => {
       const user = userEvent.setup();
-      const monteCarloResult = { mean: 1000000, std_dev: 100000 };
+      const monteCarloResult: ExportMonteCarloResult = {
+        mean: 1000000,
+        num_simulations: 10000,
+        percentiles: { p50: 1000000 },
+      };
       renderComponent({ monteCarloResult });
 
       const button = screen.getByRole("button", { name: /export/i });

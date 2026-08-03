@@ -36,6 +36,7 @@ import { TemplatePicker } from "@/components/templates/template-picker";
 import { ActionableEmptyState } from "@/components/dashboard/actionable-empty-state";
 import { useAppStore } from "@/lib/store";
 import { isValidEquityData, getFirstInvalidEquityField } from "@/lib/validation";
+import { toDilutionRoundWires } from "@/lib/hooks/use-scenario-calculation";
 import { toast } from "sonner";
 import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
 
@@ -278,19 +279,7 @@ export function EmployeeDashboard() {
                                 exit_valuation: debouncedEquityDetails.exit_valuation,
                                 simulate_dilution: debouncedEquityDetails.simulate_dilution,
                                 dilution_rounds: debouncedEquityDetails.simulate_dilution
-                                  ? debouncedEquityDetails.dilution_rounds
-                                      .filter((r) => r.enabled)
-                                      .map((r) => ({
-                                        round_name: r.round_name,
-                                        round_type: r.round_type,
-                                        year: r.year,
-                                        dilution_pct: r.dilution_pct
-                                          ? r.dilution_pct / PCT_DIVISOR
-                                          : undefined,
-                                        pre_money_valuation: r.pre_money_valuation,
-                                        amount_raised: r.amount_raised,
-                                        salary_change: r.salary_change,
-                                      }))
+                                  ? toDilutionRoundWires(debouncedEquityDetails.dilution_rounds)
                                   : null,
                               }
                             : {

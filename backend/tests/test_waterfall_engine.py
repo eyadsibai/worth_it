@@ -158,6 +158,23 @@ class TestWaterfallPipeline:
 
     def test_pay_liquidation_preferences_pays_senior_first(self, simple_cap_table):
         """Liquidation preferences should be paid in seniority order."""
+        # Each series is held by its own stakeholder: one share count cannot back two
+        # tiers, and the engine rejects that shape outright.
+        cap_table = {
+            **simple_cap_table,
+            "stakeholders": [
+                *simple_cap_table["stakeholders"],
+                {
+                    "id": "investor-2",
+                    "name": "Series B Investor",
+                    "type": "investor",
+                    "shares": 2_000_000,
+                    "ownership_pct": 20.0,
+                    "share_class": "preferred",
+                },
+            ],
+            "total_shares": 12_000_000,
+        }
         two_tier = [
             {
                 "id": "tier-b",
@@ -166,7 +183,7 @@ class TestWaterfallPipeline:
                 "investment_amount": 3_000_000,
                 "liquidation_multiplier": 1.0,
                 "participating": False,
-                "stakeholder_ids": ["investor-1"],
+                "stakeholder_ids": ["investor-2"],
             },
             {
                 "id": "tier-a",
@@ -181,16 +198,17 @@ class TestWaterfallPipeline:
 
         # Exit at $4M - enough for Series B but not fully for Series A
         pipeline = (
-            WaterfallPipeline(cap_table=simple_cap_table, exit_valuation=4_000_000)
+            WaterfallPipeline(cap_table=cap_table, exit_valuation=4_000_000)
             .with_preference_tiers(two_tier)
             .initialize_payouts()
             .build_tier_lookups()
             .pay_liquidation_preferences()
         )
 
-        # Series B should get full $3M, Series A gets remaining $1M
+        # Series B is senior: it takes its full $3M before Series A sees anything.
+        assert pipeline._payouts["investor-2"]["payout_amount"] == pytest.approx(3_000_000)
+        assert pipeline._payouts["investor-1"]["payout_amount"] == pytest.approx(1_000_000)
         assert pipeline._remaining_proceeds == pytest.approx(0)
-        # Check waterfall steps show seniority order
         assert len(pipeline._waterfall_steps) >= 1
 
 

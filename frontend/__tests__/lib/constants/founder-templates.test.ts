@@ -63,6 +63,36 @@ describe("FOUNDER_TEMPLATES", () => {
             });
           }
         });
+
+        /**
+         * A tier with no holders claims a liquidation preference for nobody: the
+         * backend has nothing to pay it to, so the preference silently vanishes.
+         */
+        it("never ships a preference tier with no assigned holders", () => {
+          for (const tier of template.preferenceTiers ?? []) {
+            expect(tier.stakeholder_ids.length).toBeGreaterThan(0);
+          }
+        });
+
+        it("assigns every preference tier to stakeholders that exist in the template", () => {
+          const knownIds = new Set(template.capTable.stakeholders.map((s) => s.id));
+          for (const tier of template.preferenceTiers ?? []) {
+            for (const id of tier.stakeholder_ids) {
+              expect(knownIds.has(id)).toBe(true);
+            }
+          }
+        });
+
+        it("only grants liquidation preference to preferred shareholders", () => {
+          const shareClassById = new Map(
+            template.capTable.stakeholders.map((s) => [s.id, s.share_class])
+          );
+          for (const tier of template.preferenceTiers ?? []) {
+            for (const id of tier.stakeholder_ids) {
+              expect(shareClassById.get(id)).toBe("preferred");
+            }
+          }
+        });
       });
     });
   });

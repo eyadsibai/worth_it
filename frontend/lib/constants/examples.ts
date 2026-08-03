@@ -19,6 +19,13 @@ export interface ExampleScenario {
  * Funding rounds have a `status` field:
  * - "completed": Past rounds that already happened (dilution applied to starting equity)
  * - "upcoming": Future rounds that will dilute your equity going forward
+ *
+ * `salary_change` is the ABSOLUTE new monthly salary from that round onward, not
+ * a raise amount. It is sent to the backend as `new_salary`, which overwrites
+ * `StartupSalary` outright from the round's start month. Use 0 for "unchanged";
+ * any non-zero value must be at least the scenario's starting `monthly_salary`,
+ * or the demo silently reports a collapsed salary and a wildly inflated
+ * opportunity cost.
  */
 export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
   {
@@ -77,7 +84,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           dilution_pct: 20,
           pre_money_valuation: 20000000,
           amount_raised: 5000000,
-          salary_change: 1000,
+          salary_change: 10000, // absolute: $8K -> $10K/mo after Series A
           enabled: true,
           status: "upcoming",
           dilution_method: "percentage",
@@ -89,7 +96,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           dilution_pct: 15,
           pre_money_valuation: 80000000,
           amount_raised: 15000000,
-          salary_change: 2000,
+          salary_change: 12000, // absolute: $10K -> $12K/mo after Series B
           enabled: true,
           status: "upcoming",
           dilution_method: "percentage",
@@ -166,7 +173,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           dilution_pct: 12,
           pre_money_valuation: 400000000,
           amount_raised: 50000000,
-          salary_change: 1500,
+          salary_change: 13500, // absolute: $12K -> $13.5K/mo after Series C
           enabled: true,
           status: "upcoming",
           dilution_method: "percentage",
@@ -178,7 +185,7 @@ export const EXAMPLE_SCENARIOS: ExampleScenario[] = [
           dilution_pct: 10,
           pre_money_valuation: 800000000,
           amount_raised: 80000000,
-          salary_change: 2000,
+          salary_change: 15000, // absolute: $13.5K -> $15K/mo after Series D
           enabled: false,
           status: "upcoming",
           dilution_method: "percentage",
