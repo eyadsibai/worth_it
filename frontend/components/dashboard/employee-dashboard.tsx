@@ -35,7 +35,11 @@ import { ExampleLoader } from "@/components/forms/example-loader";
 import { TemplatePicker } from "@/components/templates/template-picker";
 import { ActionableEmptyState } from "@/components/dashboard/actionable-empty-state";
 import { useAppStore } from "@/lib/store";
-import { isValidEquityData, getFirstInvalidEquityField } from "@/lib/validation";
+import {
+  isValidEquityData,
+  getFirstInvalidEquityField,
+  firstRequiredEquityField,
+} from "@/lib/validation";
 import { toDilutionRoundWires } from "@/lib/hooks/use-scenario-calculation";
 import { toast } from "sonner";
 import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
@@ -90,17 +94,26 @@ export function EmployeeDashboard() {
 
   // Handler to focus the first missing field from empty state
   const handleFocusMissingField = React.useCallback(() => {
-    const fieldName = getFirstInvalidEquityField(equityDetails);
+    // On a pristine dashboard equityDetails is still null, which is exactly
+    // when the empty state renders this button - and getFirstInvalidEquityField
+    // has no form object to inspect, so it can only answer from the type.
+    const fieldName = equityDetails
+      ? getFirstInvalidEquityField(equityDetails)
+      : firstRequiredEquityField("RSU");
     if (!fieldName) return;
 
-    // Find and focus the input by name attribute
-    const input = document.querySelector<HTMLInputElement>(`input[name="${fieldName}"]`);
+    // Every field getFirstInvalidEquityField can name is a Radix slider, and
+    // these forms render no input[name] at all - the old selector matched
+    // nothing, so this button silently did nothing. The focusable control is
+    // the thumb inside the field wrapper.
+    const control = document.querySelector<HTMLElement>(
+      `[data-field="${fieldName}"] [role="slider"]`
+    );
+    if (!control) return;
 
-    if (input) {
-      input.scrollIntoView({ behavior: "smooth", block: "center" });
-      // Small delay to ensure scroll completes before focus
-      setTimeout(() => input.focus(), FORMATTING.DEBOUNCE_MS);
-    }
+    control.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Small delay to ensure scroll completes before focus
+    setTimeout(() => control.focus(), FORMATTING.DEBOUNCE_MS);
   }, [equityDetails]);
 
   // Use the custom hook for chained calculations

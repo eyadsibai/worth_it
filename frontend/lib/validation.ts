@@ -98,3 +98,15 @@ export function getFirstInvalidEquityField(
 
   return null;
 }
+
+/**
+ * The field to send a user to when no equity data has been entered at all.
+ *
+ * getFirstInvalidEquityField needs a form object to inspect and returns null
+ * without one, but "nothing entered yet" is precisely when the empty state
+ * offers to jump to the first missing field. The equity type is enough to name
+ * it, and these match the fields ActionableEmptyState lists as required.
+ */
+export function firstRequiredEquityField(equityType: "RSU" | "STOCK_OPTIONS"): EquityFieldName {
+  return equityType === "STOCK_OPTIONS" ? "num_options" : "total_equity_grant_pct";
+}
