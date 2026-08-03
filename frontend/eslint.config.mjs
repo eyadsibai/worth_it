@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Written by scripts/generate-types.sh from the backend OpenAPI spec. Style
+    // rules cannot be satisfied here without editing a file the next run
+    // overwrites, and the bounds it mirrors are meant to read as the numbers the
+    // backend enforces.
+    "lib/generated/**",
   ]),
   // Strict rules - enforce code quality standards
   {
