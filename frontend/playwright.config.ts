@@ -8,6 +8,9 @@ import { defineConfig, devices } from "@playwright/test";
 // import path from 'path';
 // dotenv.config({ path: path.resolve(__dirname, '.env') });
 
+/** Port the backend is expected on. 8000 is the project default; see webServer below. */
+const BACKEND_PORT = process.env.BACKEND_PORT ?? "8000";
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -73,8 +76,12 @@ export default defineConfig({
       stderr: "pipe",
     },
     {
-      command: "cd ../backend && uv run uvicorn worth_it.api:app --port 8000",
-      url: "http://localhost:8000",
+      // Overridable because `reuseExistingServer` adopts whatever already answers
+      // on this port without checking that it is this app. An unrelated service
+      // squatting on 8000 is then silently treated as the backend, and every test
+      // fails somewhere far from the cause. Set BACKEND_PORT to step around it.
+      command: `cd ../backend && uv run uvicorn worth_it.api:app --port ${BACKEND_PORT}`,
+      url: `http://localhost:${BACKEND_PORT}`,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
       stderr: "pipe",
