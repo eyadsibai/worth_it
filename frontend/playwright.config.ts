@@ -81,7 +81,10 @@ export default defineConfig({
       // squatting on 8000 is then silently treated as the backend, and every test
       // fails somewhere far from the cause. Set BACKEND_PORT to step around it.
       command: `cd ../backend && uv run uvicorn worth_it.api:app --port ${BACKEND_PORT}`,
-      url: `http://localhost:${BACKEND_PORT}`,
+      // /health, not /: the API serves no root route, so probing / waits out the
+      // timeout against a healthy backend. This only ever passed because an
+      // unrelated service that does answer / happened to hold the port.
+      url: `http://localhost:${BACKEND_PORT}/health`,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
       stderr: "pipe",

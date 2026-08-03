@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+/** Port the backend is expected on. 8000 is the project default; see webServer below. */
+const BACKEND_PORT = process.env.BACKEND_PORT ?? "8000";
+
 /**
  * Production environment testing configuration
  */
@@ -51,8 +54,10 @@ export default defineConfig({
       timeout: 120000, // Longer timeout for production build
     },
     {
-      command: "cd ../backend && uv run uvicorn worth_it.api:app --port 8000",
-      url: "http://localhost:8000",
+      command: `cd ../backend && uv run uvicorn worth_it.api:app --port ${BACKEND_PORT}`,
+      // /health, not /: the API serves no root route, so probing / waits out the
+      // timeout against a healthy backend.
+      url: `http://localhost:${BACKEND_PORT}/health`,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
       stderr: "pipe",
