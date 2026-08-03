@@ -23,6 +23,11 @@ function Slider({
   min = 0,
   max = 100,
   getValueLabel,
+  // Radix puts role="slider" on the thumb, not on Root. A name left on Root
+  // would sit on a role-less span and screen readers would announce the thumb
+  // as an unnamed slider, so pull the name off and hand it to the thumbs.
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   ...props
 }: SliderProps) {
   const _values = React.useMemo(
@@ -61,6 +66,8 @@ function Slider({
           data-slot="slider-thumb"
           key={index}
           className="border-primary ring-ring/50 block size-4 shrink-0 rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
           aria-valuetext={getValueLabel ? getValueLabel(_values[index], index) : undefined}
         />
       ))}

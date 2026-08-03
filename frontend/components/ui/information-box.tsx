@@ -78,12 +78,15 @@ export function InformationBox({
       {(title || description) && (
         <div className={cn("space-y-1", children ? "mb-4" : "")}>
           {title && (
-            <h4 className="flex items-center gap-2 text-sm font-semibold">
+            // h2, not h4: card titles in this app render as plain text, so an
+            // InformationBox title is the first heading under the page h1.
+            // Jumping straight to h4 skips two levels; the size stays text-sm.
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
               {accentColor && (
                 <div className={cn("h-1.5 w-1.5 rounded-full", accentColorMap[accentColor])} />
               )}
               {title}
-            </h4>
+            </h2>
           )}
           {description && (
             <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>

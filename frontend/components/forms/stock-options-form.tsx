@@ -154,7 +154,9 @@ export function StockOptionsFormComponent({
         </div>
 
         <div className="border-border bg-muted/50 space-y-4 rounded-lg border p-4">
-          <h4 className="text-sm font-medium">Exercise Strategy</h4>
+          {/* h2 to match InformationBox: card titles are not headings, so a
+              section box title is the first level under the page h1. */}
+          <h2 className="text-sm font-medium">Exercise Strategy</h2>
 
           <SelectField
             form={form}

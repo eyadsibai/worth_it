@@ -23,7 +23,11 @@ describe("FormWarning", () => {
   it("renders with amber/warning styling", () => {
     render(<FormWarning>Warning message</FormWarning>);
     const alert = screen.getByRole("alert");
-    expect(alert).toHaveClass("text-amber-600");
+    // Shade-agnostic on purpose. Pinning one amber locked in text-amber-600, which
+    // fails WCAG AA on the card background, so this assertion actively fought the
+    // fix for it. Contrast is measured by axe in tests/accessibility.spec.ts; all
+    // this needs to guard is that the warning still reads as amber.
+    expect(alert.className).toMatch(/\btext-amber-\d{2,3}\b/);
   });
 
   it("renders nothing when children is null", () => {
