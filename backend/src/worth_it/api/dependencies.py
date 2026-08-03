@@ -111,7 +111,11 @@ def resolve_client_ip(connection: HTTPConnection) -> str:
     if not trusted or not _is_trusted_peer(peer, trusted):
         return peer
 
-    forwarded = connection.headers.get("x-forwarded-for")
+    # getlist, not get: a proxy may append its hop as a separate X-Forwarded-For
+    # line instead of extending the first one, and RFC 9110 5.3 says repeated
+    # field lines are one comma-joined list. Reading only the first line would
+    # hand the client the entire chain, putting its own text right-most-untrusted.
+    forwarded = ",".join(connection.headers.getlist("x-forwarded-for"))
     if not forwarded:
         return peer
 

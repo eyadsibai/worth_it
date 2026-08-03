@@ -121,15 +121,22 @@ class TestProductionCorsOrigins:
         assert "https://localhost:3001" not in origins
 
     def test_production_from_environment_excludes_development_origins(
-        self, monkeypatch: pytest.MonkeyPatch
+        self, env_file: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.delenv("CORS_ORIGINS", raising=False)
+        # env_file, not just monkeypatch: deleting CORS_ORIGINS from the process
+        # environment still leaves backend/.env readable, and any value there
+        # short-circuits the production-default branch this test exists to cover.
+        assert not env_file.exists()
         monkeypatch.setenv("ENVIRONMENT", "production")
 
         origins = config.Settings.get_cors_origins()
 
         assert "https://localhost:3000" not in origins
         assert "https://localhost:3001" not in origins
+        # Prove the default branch actually ran rather than asserting nothing: an
+        # explicit CORS_ORIGINS returns only what it names, so a built-in default
+        # being present is the tell that no override short-circuited the branch.
+        assert "http://localhost:3000" in origins
 
     def test_explicit_cors_origins_from_env_file_are_used(self, env_file: Path) -> None:
         env_file.write_text(

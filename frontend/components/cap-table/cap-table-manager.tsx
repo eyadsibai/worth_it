@@ -166,7 +166,7 @@ export function CapTableManager({
   const {
     setCapTable,
     setInstruments,
-    // setPreferenceTiers - available but not currently used
+    setPreferenceTiers,
     setAll,
     undo,
     redo,
@@ -643,6 +643,7 @@ export function CapTableManager({
             pricedRounds={pricedRounds}
             exitValuation={anchorExitValuation}
             preferenceTiers={preferenceTiers}
+            onPreferenceTiersChange={setPreferenceTiers}
           />
         </TabsContent>
       </Tabs>

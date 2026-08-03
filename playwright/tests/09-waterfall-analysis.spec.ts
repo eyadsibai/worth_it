@@ -284,6 +284,23 @@ test.describe('Waterfall Tab - Preference Tiers', () => {
     await expect(page.getByText(/\$5\.0M invested/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
+  test('should keep preference tiers after leaving and returning to the tab', async ({ page }) => {
+    // Radix unmounts a deselected tab panel, so a stack held only in the panel's
+    // own state is destroyed by this round trip - silently, and a save would then
+    // persist the empty stack.
+    await page.locator('input[placeholder="Series A"]').fill(TEST_PREFERENCE_TIER.name);
+    await page.locator('input[placeholder="5000000"]').fill(TEST_PREFERENCE_TIER.investmentAmount);
+    await page.getByRole('button', { name: /Add Preference Tier/i }).click();
+    await expect(page.getByText(/Preference Stack \(1 tier/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+
+    await page.getByRole('tab', { name: 'Cap Table', exact: true }).click();
+    await expect(page.getByText(/Add Preference Tier/i)).toBeHidden({ timeout: TIMEOUTS.elementVisible });
+    await page.getByRole('tab', { name: /Waterfall/i }).click();
+
+    await expect(page.getByText(/Preference Stack \(1 tier/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    await expect(page.getByText('Series A', { exact: true })).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+  });
+
   test('should display preference stack count after adding tiers', async ({ page }) => {
     // Add first tier
     await page.locator('input[placeholder="Series A"]').fill('Series A');

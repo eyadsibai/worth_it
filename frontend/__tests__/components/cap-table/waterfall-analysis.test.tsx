@@ -9,9 +9,10 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WaterfallAnalysis } from "@/components/cap-table/waterfall-analysis";
-import type { CapTable, PricedRound, WaterfallRequest } from "@/lib/schemas";
+import type { CapTable, PreferenceTier, PricedRound, WaterfallRequest } from "@/lib/schemas";
 import * as apiClient from "@/lib/api-client";
 
 vi.mock("@/lib/api-client", async () => {
@@ -313,5 +314,106 @@ describe("WaterfallAnalysis unmatched preference tiers", () => {
     );
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+});
+
+describe("WaterfallAnalysis tiers referencing deleted stakeholders", () => {
+  beforeEach(() => {
+    mutate.mockClear();
+    vi.mocked(apiClient.useCalculateWaterfall).mockReturnValue({
+      mutate,
+      data: undefined,
+      isPending: false,
+      isError: false,
+      error: null,
+    } as unknown as ReturnType<typeof apiClient.useCalculateWaterfall>);
+  });
+
+  /** A tier still naming a holder the user has since deleted from the cap table. */
+  const staleTier: PreferenceTier = {
+    id: "tier-stale",
+    name: "Series Seed",
+    seniority: 1,
+    investment_amount: 2_000_000,
+    liquidation_multiplier: 1,
+    participating: false,
+    stakeholder_ids: ["deleted-investor"],
+  };
+
+  const liveTier: PreferenceTier = {
+    id: "tier-live",
+    name: "Series A",
+    seniority: 2,
+    investment_amount: 5_000_000,
+    liquidation_multiplier: 1,
+    participating: false,
+    stakeholder_ids: ["investor-a"],
+  };
+
+  it("never sends a stakeholder id the cap table does not contain", () => {
+    // The engine raises "Stakeholder not found" and the API turns that into a 400,
+    // so one deleted holder takes down the whole waterfall view, not just its tier.
+    render(<WaterfallAnalysis capTable={mockCapTable} preferenceTiers={[staleTier, liveTier]} />, {
+      wrapper: createWrapper(),
+    });
+
+    const known = new Set(mockCapTable.stakeholders.map((s) => s.id));
+    for (const tier of lastRequest().preference_tiers) {
+      for (const id of tier.stakeholder_ids) {
+        expect(known).toContain(id);
+      }
+    }
+  });
+
+  it("keeps the tiers that still have live holders", () => {
+    render(<WaterfallAnalysis capTable={mockCapTable} preferenceTiers={[staleTier, liveTier]} />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(lastRequest().preference_tiers.map((t) => t.name)).toEqual(["Series A"]);
+  });
+
+  it("tells the user the stale tier was left out instead of dropping it silently", () => {
+    render(<WaterfallAnalysis capTable={mockCapTable} preferenceTiers={[staleTier]} />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(screen.getByRole("status")).toHaveTextContent(/Series Seed/);
+  });
+});
+
+describe("WaterfallAnalysis preference tier persistence", () => {
+  beforeEach(() => {
+    mutate.mockClear();
+    vi.mocked(apiClient.useCalculateWaterfall).mockReturnValue({
+      mutate,
+      data: undefined,
+      isPending: false,
+      isError: false,
+      error: null,
+    } as unknown as ReturnType<typeof apiClient.useCalculateWaterfall>);
+  });
+
+  it("reports tier edits to the caller so they survive a remount", async () => {
+    // Radix unmounts a non-selected TabsContent, so state held only in this
+    // component is destroyed by switching tabs and a Save persists the stale stack.
+    const onPreferenceTiersChange = vi.fn();
+    const user = userEvent.setup();
+
+    render(
+      <WaterfallAnalysis
+        capTable={mockCapTable}
+        pricedRounds={[
+          pricedRound({ id: "r1", round_name: "Series A", lead_investor: "Acme Ventures" }),
+        ]}
+        onPreferenceTiersChange={onPreferenceTiersChange}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    await user.click(screen.getByRole("button", { name: /Remove Series A/i }));
+
+    expect(onPreferenceTiersChange).toHaveBeenCalled();
+    expect(onPreferenceTiersChange.mock.calls.at(-1)?.[0]).toEqual([]);
   });
 });

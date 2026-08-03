@@ -44,6 +44,12 @@ interface WaterfallAnalysisProps {
    * guess at holders by name.
    */
   preferenceTiers?: PreferenceTier[];
+  /**
+   * Report edits back to whoever owns the stack. Without this the tiers live only
+   * here, and Radix unmounts a deselected tab - so switching tabs discards the
+   * user's edits and a save persists the stale stack.
+   */
+  onPreferenceTiersChange?: (tiers: PreferenceTier[]) => void;
 }
 
 /**
@@ -142,6 +148,7 @@ export function WaterfallAnalysis({
   pricedRounds = [],
   exitValuation = DEFAULT_EXIT_VALUATION,
   preferenceTiers: providedTiers,
+  onPreferenceTiersChange,
 }: WaterfallAnalysisProps) {
   const anchorValuation = exitValuation > 0 ? exitValuation : DEFAULT_EXIT_VALUATION;
 
@@ -161,6 +168,16 @@ export function WaterfallAnalysis({
     }
     lastProvidedTiers.current = providedTiers;
   }, [providedTiers]);
+
+  // Local state stays the source of truth for rendering, but every edit is echoed
+  // upward so the owner can put it through history and persistence.
+  const handleTiersChange = React.useCallback(
+    (next: PreferenceTier[]) => {
+      setPreferenceTiers(next);
+      onPreferenceTiersChange?.(next);
+    },
+    [onPreferenceTiersChange]
+  );
 
   // Exit valuation state
   const [selectedValuation, setSelectedValuation] = React.useState(anchorValuation);
@@ -193,16 +210,31 @@ export function WaterfallAnalysis({
     [chartMinValuation, chartMaxValuation, anchorValuation]
   );
 
+  // A tier outlives the holder it names: deleting a stakeholder leaves the stack
+  // untouched, and the engine rejects an unknown id outright with a 400 that takes
+  // down the whole panel rather than just that tier. Prune to the live cap table
+  // first; a tier left claiming nobody then falls into the visible warning below.
+  const liveTiers = React.useMemo(() => {
+    const known = new Set(capTable.stakeholders.map((s) => s.id));
+    return preferenceTiers.map((tier) =>
+      // Same object back when nothing was stale, so the request effect below does
+      // not see a new identity on every render.
+      tier.stakeholder_ids.every((id) => known.has(id))
+        ? tier
+        : { ...tier, stakeholder_ids: tier.stakeholder_ids.filter((id) => known.has(id)) }
+    );
+  }, [preferenceTiers, capTable.stakeholders]);
+
   // A tier whose holders are unknown claims a preference for nobody: the engine
   // has no one to pay, so the preference silently disappears. Keep those tiers
   // in the editor where the user can assign holders, but never send them.
   const assignedTiers = React.useMemo(
-    () => preferenceTiers.filter((t) => t.stakeholder_ids.length > 0),
-    [preferenceTiers]
+    () => liveTiers.filter((t) => t.stakeholder_ids.length > 0),
+    [liveTiers]
   );
   const unassignedTiers = React.useMemo(
-    () => preferenceTiers.filter((t) => t.stakeholder_ids.length === 0),
-    [preferenceTiers]
+    () => liveTiers.filter((t) => t.stakeholder_ids.length === 0),
+    [liveTiers]
   );
 
   // Trigger waterfall calculation when inputs change
@@ -251,7 +283,7 @@ export function WaterfallAnalysis({
       {/* Preference Stack Editor */}
       <PreferenceStackEditor
         tiers={preferenceTiers}
-        onTiersChange={setPreferenceTiers}
+        onTiersChange={handleTiersChange}
         stakeholders={capTable.stakeholders}
       />
 

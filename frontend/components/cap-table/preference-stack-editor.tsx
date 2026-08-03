@@ -464,6 +464,7 @@ export function PreferenceStackEditor({
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveTier(tier.id)}
+                          aria-label={`Remove ${tier.name}`}
                           className="text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />

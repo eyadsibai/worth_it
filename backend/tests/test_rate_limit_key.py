@@ -11,7 +11,7 @@ nothing about production.
 """
 
 import inspect
-from collections.abc import Iterator, MutableMapping
+from collections.abc import Iterator, MutableMapping, Sequence
 from ipaddress import ip_network
 from pathlib import Path
 from typing import Any
@@ -30,12 +30,18 @@ from worth_it.api.dependencies import (
     resolve_client_ip,
 )
 
+# A mapping cannot hold the same header name twice, but HTTP can send it twice and
+# RFC 9110 5.3 says the recipient must read those lines as one comma-joined list.
+# Accepting pairs as well as a mapping is what makes that shape testable at all.
+RawHeaders = dict[str, str] | Sequence[tuple[str, str]]
 
-def _encode_headers(headers: dict[str, str] | None) -> list[tuple[bytes, bytes]]:
-    return [(key.lower().encode(), value.encode()) for key, value in (headers or {}).items()]
+
+def _encode_headers(headers: RawHeaders | None) -> list[tuple[bytes, bytes]]:
+    pairs = headers.items() if isinstance(headers, dict) else (headers or ())
+    return [(key.lower().encode(), value.encode()) for key, value in pairs]
 
 
-def _make_websocket(peer_host: str | None, headers: dict[str, str] | None = None) -> WebSocket:
+def _make_websocket(peer_host: str | None, headers: RawHeaders | None = None) -> WebSocket:
     scope = {
         "type": "websocket",
         "asgi": {"version": "3.0"},
@@ -60,7 +66,7 @@ def _make_websocket(peer_host: str | None, headers: dict[str, str] | None = None
     return WebSocket(scope, receive=receive, send=send)
 
 
-def _make_request(peer_host: str | None, headers: dict[str, str] | None = None) -> Request:
+def _make_request(peer_host: str | None, headers: RawHeaders | None = None) -> Request:
     scope = {
         "type": "http",
         "asgi": {"version": "3.0"},
@@ -258,6 +264,40 @@ class TestForwardedChain:
         )
 
         assert get_client_ip(websocket) == "203.0.113.9"
+
+    def test_repeated_header_lines_are_read_as_one_chain(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # A proxy is free to append its hop as a second X-Forwarded-For line rather
+        # than extending the first (HAProxy's `option forwardfor` does exactly this).
+        # Reading only the first line hands the client the whole chain, so its own
+        # spoofed value would sit right-most-untrusted and become the bucket key.
+        request = _make_request(
+            "10.0.0.5",
+            [("x-forwarded-for", "1.2.3.4"), ("x-forwarded-for", "203.0.113.9")],
+        )
+        _trust(monkeypatch, "10.0.0.0/8")
+
+        assert get_http_client_ip(request) == "203.0.113.9"
+
+    def test_a_spoofed_first_line_cannot_mint_fresh_buckets(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # The bucket key must not move when the client varies text it controls;
+        # if it does, rotating the value defeats every per-IP limit in the app.
+        _trust(monkeypatch, "10.0.0.0/8")
+
+        keys = {
+            get_http_client_ip(
+                _make_request(
+                    "10.0.0.5",
+                    [("x-forwarded-for", spoofed), ("x-forwarded-for", "203.0.113.9")],
+                )
+            )
+            for spoofed in ("1.1.1.1", "2.2.2.2", "3.3.3.3")
+        }
+
+        assert keys == {"203.0.113.9"}
 
     def test_fully_trusted_chain_resolves_to_the_origin_hop(
         self, monkeypatch: pytest.MonkeyPatch
