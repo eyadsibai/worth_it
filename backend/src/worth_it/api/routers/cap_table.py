@@ -10,7 +10,7 @@ This router handles cap table operations:
 import logging
 
 import anyio.to_thread
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 
 from worth_it import calculations
 from worth_it.config import settings
@@ -165,13 +165,20 @@ async def calculate_waterfall(request: Request, body: WaterfallRequest):
     valuation_count = len(body.exit_valuations)
     cells = stakeholder_count * valuation_count
     if cells > MAX_WATERFALL_CELLS:
-        raise HTTPException(
-            status_code=422,
-            detail=(
+        # The envelope, not a raw HTTPException: no schema can express the
+        # product of two individually-legal list lengths, but that is an
+        # implementation detail of *where* the check runs. To the caller this is
+        # still an invalid request, and it must arrive in the one error shape
+        # this API speaks - a bare {"detail": ...} would slip past every client
+        # that reads error.code.
+        return create_error_response(
+            code=ErrorCode.VALIDATION_ERROR,
+            message=(
                 f"Waterfall request too large: {stakeholder_count} stakeholders x "
                 f"{valuation_count} exit valuations is {cells} payouts, above the "
                 f"{MAX_WATERFALL_CELLS} limit. Request fewer exit valuations."
             ),
+            status_code=422,
         )
 
     try:

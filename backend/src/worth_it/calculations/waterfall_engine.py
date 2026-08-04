@@ -12,10 +12,13 @@ exit proceeds distribution. It handles:
 from __future__ import annotations
 
 import dataclasses
+import logging
 from dataclasses import dataclass, field
 from typing import Any
 
 from worth_it.exceptions import CalculationError
+
+logger = logging.getLogger(__name__)
 
 # Tolerances for the "never distribute more than the exit" invariant.
 _ABSOLUTE_TOLERANCE = 1e-6
@@ -24,6 +27,10 @@ _RELATIVE_TOLERANCE = 1e-9
 # Stands in for shares no stakeholder holds (an unallocated option pool). It dilutes
 # every real holder, but its slice of the exit is not payable to anyone.
 _POOL_KEY = "__unallocated_pool__"
+
+# Mirrors the default on ``worth_it.models.CapTable.total_shares``. A cap table that
+# says nothing about its share count is describing this one.
+_DEFAULT_TOTAL_SHARES = 10_000_000
 
 
 @dataclass(frozen=True)
@@ -288,11 +295,24 @@ class WaterfallPipeline:
 
         return residual_shares
 
+    def _total_shares(self) -> float:
+        """The share count every pro-rata split divides by.
+
+        Mirrors ``CapTable.total_shares``: a cap table that omits the field - or carries
+        an explicit ``None`` - describes the model's default share count. It is never
+        inferred from what the stakeholders happen to hold, because that would make an
+        unallocated option pool vanish. Every path reads the denominator from here so the
+        payout split and the pool calculation cannot disagree.
+        """
+        total_shares = self.cap_table.get("total_shares")
+        if total_shares is None:
+            return float(_DEFAULT_TOTAL_SHARES)
+        return float(total_shares)
+
     def _unallocated_shares(self) -> float:
         """Shares in the cap table that no stakeholder holds."""
-        total_shares = float(self.cap_table.get("total_shares", 0) or 0)
         allocated = sum(float(s["shares"]) for s in self.cap_table.get("stakeholders", []))
-        return max(0.0, total_shares - allocated)
+        return max(0.0, self._total_shares() - allocated)
 
     def _participation_caps(self, converted: frozenset[str]) -> dict[str, float]:
         """Ceiling on each holder's total payout, for holders in a capped tier.
@@ -399,12 +419,19 @@ class WaterfallPipeline:
         Each tier's choice changes the residual pool and the shares dividing it, which
         changes what every other tier would get by converting. The choices are therefore
         solved to a fixed point rather than decided independently in one pass.
+
+        The search can in principle cycle instead of settling. The payout invariant still
+        holds on that path, so the result would otherwise be indistinguishable from a
+        solved one while a tier holds a decision worse than its own preference. Rather
+        than fail a cap table that is arithmetically sound, the engine keeps the last
+        trial state and logs the cycle so it is diagnosable.
         """
         candidates = [t for t in self._active_tiers() if not t.get("participating", False)]
         if not candidates:
             return frozenset()
 
         converted: frozenset[str] = frozenset()
+        converged = False
         for _ in range(len(candidates) + 1):
             updated = converted
             for candidate in candidates:
@@ -416,8 +443,20 @@ class WaterfallPipeline:
                 updated = trial if converts else updated - {tier_id}
 
             if updated == converted:
+                converged = True
                 break
             converted = updated
+
+        if not converged:
+            logger.warning(
+                "Waterfall conversion decisions did not converge after %d passes over %d "
+                "non-participating tier(s) at exit valuation %s. Using the last trial state "
+                "%s; a tier may hold a non-optimal conversion decision.",
+                len(candidates) + 1,
+                len(candidates),
+                self.exit_valuation,
+                sorted(converted) or "(none converted)",
+            )
 
         return converted
 
@@ -480,7 +519,7 @@ class WaterfallPipeline:
     def _distribute_common_only(self) -> WaterfallPipeline:
         """Distribute all proceeds pro-rata when no preference tiers."""
         stakeholders = self.cap_table.get("stakeholders", [])
-        total_shares = self.cap_table.get("total_shares", 10_000_000)
+        total_shares = self._total_shares()
         payouts = dict(self._payouts)
         steps = list(self._waterfall_steps)
         step_num = self._step_number
@@ -494,8 +533,7 @@ class WaterfallPipeline:
 
         # Shares in an unallocated option pool dilute everyone but belong to no
         # stakeholder, so their slice of the exit is not payable to anyone here.
-        allocated_shares = sum(s["shares"] for s in stakeholders)
-        unallocated = max(0.0, float(total_shares) - allocated_shares)
+        unallocated = self._unallocated_shares()
         unallocated_proceeds = (
             unallocated / total_shares * self.exit_valuation if total_shares > 0 else 0.0
         )

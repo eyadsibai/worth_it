@@ -14,10 +14,15 @@ from worth_it.calculations import EquityType
 class DilutionRound(TypedDict, total=False):
     """Configuration for a dilution funding round.
 
-    Callers must send `dilution` as a fraction, not a percentage: this TypedDict is
-    used directly as a Pydantic field type, and Pydantic drops keys it does not
-    declare instead of rejecting them, so a misnamed or misscaled field is silently
-    discarded and the round contributes zero dilution.
+    Callers must send `dilution` as a fraction, not a percentage. Neither mistake is
+    rejected, and the two fail differently:
+
+    - Misscaled: `{"dilution": 20}` is a declared key, so it survives validation and
+      the engine computes a dilution factor of `1 - 20 == -19`, flipping the sign of
+      every downstream equity value instead of diluting it.
+    - Misnamed: `{"dilution_pct": 20}` is an undeclared key, and Pydantic drops keys
+      it does not declare rather than rejecting them, so the round silently
+      contributes zero dilution.
 
     Attributes:
         year: The year when the dilution round occurs (negative = years ago for completed rounds)

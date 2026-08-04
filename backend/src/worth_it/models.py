@@ -41,7 +41,12 @@ EntityName = Annotated[str, StringConstraints(min_length=1, max_length=MAX_ENTIT
 MAX_SEED = 2**32 - 1
 
 # Report text is rendered through ReportLab's Paragraph parser, which reads a
-# mini-HTML dialect: any character that can open a tag or an entity is excluded.
+# mini-HTML dialect. Escaping that dialect is pdf_generator.escape_paragraph_markup's
+# job, at the Paragraph boundary; this pattern is the defence-in-depth layer, so it
+# excludes the tag delimiters "<" and ">" outright. "&" stays allowed because real
+# company names carry it ("O'Neill, Smith & Co."), and it is inert on its own: an
+# entity reference also needs a closing ";", which the class does not admit.
+# Note "\w" is Unicode-aware here, so non-ASCII letters, digits and "_" pass too.
 SAFE_REPORT_TEXT_PATTERN = r"^[\w .,'&()\-+/]+$"
 MAX_COMPANY_NAME_LENGTH = 120
 MAX_REPORT_LABEL_LENGTH = 60

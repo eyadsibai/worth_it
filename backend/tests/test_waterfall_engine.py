@@ -7,6 +7,8 @@ calculate_waterfall tests in test_calculations.py verify backward compatibility.
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 
 from worth_it.calculations.waterfall_engine import (
@@ -308,3 +310,103 @@ class TestWaterfallConvenienceFunction:
         assert investor["payout_amount"] == pytest.approx(15_000_000)
         # 70% of $50M = $35M
         assert founder["payout_amount"] == pytest.approx(35_000_000)
+
+
+class TestConversionFixedPointConvergence:
+    """A conversion decision that never settles must not pass for a settled one.
+
+    ``_solve_conversions`` searches for a fixed point by best response. The payout
+    invariant holds either way, so a set of tier choices that merely oscillates looks
+    exactly like a solved one from the outside. The engine says so instead.
+    """
+
+    @pytest.fixture
+    def two_tier_cap_table(self):
+        return {
+            "stakeholders": [
+                {
+                    "id": "investor-a",
+                    "name": "Investor A",
+                    "type": "investor",
+                    "shares": 4_000_000,
+                    "ownership_pct": 40.0,
+                    "share_class": "preferred",
+                },
+                {
+                    "id": "investor-b",
+                    "name": "Investor B",
+                    "type": "investor",
+                    "shares": 6_000_000,
+                    "ownership_pct": 60.0,
+                    "share_class": "preferred",
+                },
+            ],
+            "total_shares": 10_000_000,
+            "option_pool_pct": 0,
+        }
+
+    @pytest.fixture
+    def two_non_participating_tiers(self):
+        return [
+            {
+                "id": "tier-a",
+                "name": "Series A",
+                "seniority": 1,
+                "investment_amount": 2_000_000,
+                "liquidation_multiplier": 1.0,
+                "participating": False,
+                "participation_cap": None,
+                "stakeholder_ids": ["investor-a"],
+            },
+            {
+                "id": "tier-b",
+                "name": "Series B",
+                "seniority": 2,
+                "investment_amount": 3_000_000,
+                "liquidation_multiplier": 1.0,
+                "participating": False,
+                "participation_cap": None,
+                "stakeholder_ids": ["investor-b"],
+            },
+        ]
+
+    @staticmethod
+    def _oscillating_conversion_value(pipeline, tier, converted):
+        """A best response with no fixed point: A converts iff B did not, B iff A did."""
+        preference = pipeline._tier_preference(tier)
+        if tier["id"] == "tier-a":
+            return preference - 1 if "tier-b" in converted else preference + 1
+        return preference + 1 if "tier-a" in converted else preference - 1
+
+    def test_non_convergent_conversion_search_is_reported(
+        self, monkeypatch, caplog, two_tier_cap_table, two_non_participating_tiers
+    ):
+        monkeypatch.setattr(
+            WaterfallPipeline,
+            "_as_converted_value",
+            self._oscillating_conversion_value,
+        )
+
+        with caplog.at_level(logging.WARNING, logger="worth_it.calculations.waterfall_engine"):
+            calculate_waterfall(
+                cap_table=two_tier_cap_table,
+                preference_tiers=two_non_participating_tiers,
+                exit_valuation=20_000_000,
+            )
+
+        warnings = [r for r in caplog.records if r.levelno >= logging.WARNING]
+        assert warnings, "a conversion search that never settles must be reported"
+        assert "converge" in warnings[0].getMessage()
+
+    def test_a_settled_conversion_search_reports_nothing(
+        self, caplog, two_tier_cap_table, two_non_participating_tiers
+    ):
+        """The negative case: a normal waterfall must stay silent."""
+        with caplog.at_level(logging.WARNING, logger="worth_it.calculations.waterfall_engine"):
+            calculate_waterfall(
+                cap_table=two_tier_cap_table,
+                preference_tiers=two_non_participating_tiers,
+                exit_valuation=20_000_000,
+            )
+
+        assert [r for r in caplog.records if r.levelno >= logging.WARNING] == []

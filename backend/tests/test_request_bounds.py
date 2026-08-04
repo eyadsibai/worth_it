@@ -74,9 +74,14 @@ class TestWaterfallRequestBounds:
         # product, so this is the handler's own pre-dispatch guard rather than a
         # Pydantic field error, and it carries the numbers instead of a field path.
         assert response.status_code == 422
-        detail = json.dumps(response.json())
-        assert str(MAX_WATERFALL_CELLS) in detail
-        assert str(MAX_STAKEHOLDERS) in detail
+        # Read the envelope rather than json.dumps-ing the whole body and looking
+        # for substrings anywhere in it: that form passed both before and after
+        # this guard adopted create_error_response, so it could not tell the
+        # structured envelope from a bare {"detail": ...}.
+        error = response.json()["error"]
+        assert error["code"] == "VALIDATION_ERROR"
+        assert str(MAX_WATERFALL_CELLS) in error["message"]
+        assert str(MAX_STAKEHOLDERS) in error["message"]
 
     def test_realistic_frontend_sweep_still_works(self, waterfall_body: WaterfallBody) -> None:
         body = waterfall_body(50, 20)

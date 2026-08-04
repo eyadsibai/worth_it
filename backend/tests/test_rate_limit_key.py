@@ -11,10 +11,10 @@ nothing about production.
 """
 
 import inspect
-from collections.abc import Iterator, MutableMapping, Sequence
+from collections.abc import Callable, Iterator, MutableMapping, Sequence
 from ipaddress import ip_network
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from pydantic import ValidationError
@@ -23,6 +23,7 @@ from starlette.websockets import WebSocket
 
 from worth_it import config
 from worth_it.api.dependencies import (
+    WebSocketConnectionTracker,
     get_client_ip,
     get_http_client_ip,
     get_trusted_proxies,
@@ -497,22 +498,102 @@ class TestSettingsResolutionIsCached:
         assert get_trusted_proxies() == ()
 
 
+class TestConnectionTrackerBucketLifetime:
+    """The per-IP bucket map is fed by unauthenticated peers, so it must not grow forever.
+
+    Every bucket is keyed by a source address the tracker does not control, and
+    only an address that completes a connection is ever cleaned up. Any read
+    that inserts on miss therefore turns "an IP touched us once" into a
+    permanent entry, and a scan across a /64 is enough to exhaust the worker's
+    memory without ever opening a socket.
+
+    The map itself is the invariant under test, so these assertions read it
+    directly; `get_active_connections` returns 0 for a leaked bucket and a
+    live one alike.
+    """
+
+    @pytest.mark.asyncio
+    async def test_a_capacity_check_leaves_no_bucket_behind(self) -> None:
+        tracker = WebSocketConnectionTracker()
+
+        assert await tracker.can_connect("203.0.113.7") is True
+
+        assert tracker._connections == {}
+
+    @pytest.mark.asyncio
+    async def test_a_closed_connection_leaves_no_bucket_behind(self) -> None:
+        tracker = WebSocketConnectionTracker()
+
+        assert await tracker.register_connection("203.0.113.8") is True
+        await tracker.unregister_connection("203.0.113.8")
+
+        assert tracker._connections == {}
+
+    @pytest.mark.asyncio
+    async def test_an_unmatched_close_leaves_no_bucket_behind(self) -> None:
+        tracker = WebSocketConnectionTracker()
+
+        await tracker.unregister_connection("203.0.113.9")
+
+        assert tracker._connections == {}
+
+    @pytest.mark.asyncio
+    async def test_a_live_connection_keeps_its_bucket(self) -> None:
+        tracker = WebSocketConnectionTracker()
+
+        assert await tracker.register_connection("203.0.113.10") is True
+
+        assert tracker.get_active_connections("203.0.113.10") == 1
+
+    @pytest.mark.asyncio
+    async def test_capacity_is_refused_once_the_limit_is_reached(self) -> None:
+        tracker = WebSocketConnectionTracker()
+        for _ in range(config.Settings.WS_MAX_CONCURRENT_PER_IP):
+            assert await tracker.register_connection("203.0.113.11") is True
+
+        assert await tracker.can_connect("203.0.113.11") is False
+        assert await tracker.register_connection("203.0.113.11") is False
+
+
+def _limiter_key_func() -> Callable[..., str]:
+    """Return the function slowapi will actually call to bucket a request.
+
+    slowapi exposes no public accessor for it, so this is the suite's single
+    point of contact with `Limiter._key_func`. Keeping it to one place means a
+    slowapi upgrade that moves the attribute fails once, saying so, instead of
+    failing three times as a confusing assertion about client IPs -- and it
+    still fails, deliberately: skipping would leave the trusted-proxy wiring
+    untested, which is the whole point of these tests.
+    """
+    key_func = getattr(limiter, "_key_func", None)
+    assert callable(key_func), (
+        "slowapi no longer exposes Limiter._key_func. Re-point this helper at "
+        "whatever now holds the key function; do not delete the assertion, or "
+        "the limiter can silently fall back to the raw socket peer again."
+    )
+    return cast(Callable[..., str], key_func)
+
+
 class TestLimiterWiring:
     """The limiter must actually use the shared resolver, not the raw socket peer."""
 
     def test_limiter_key_func_is_the_trusted_proxy_resolver(self) -> None:
-        assert limiter._key_func is get_http_client_ip
+        assert _limiter_key_func() is get_http_client_ip
 
-    def test_limiter_key_func_exposes_a_request_parameter(self) -> None:
-        # slowapi only forwards the request when the key func's parameter is named "request".
-        assert "request" in inspect.signature(limiter._key_func).parameters
+    def test_key_func_exposes_a_request_parameter(self) -> None:
+        # slowapi only forwards the request when the key func's parameter is named
+        # "request" (see slowapi.extension: `if "request" in signature(...)`), so the
+        # requirement is on our own signature and is checked without reaching into it.
+        assert "request" in inspect.signature(get_http_client_ip).parameters
 
-    def test_limiter_key_separates_clients_behind_a_trusted_proxy(
+    def test_key_separates_clients_behind_a_trusted_proxy(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        # The test above pins that this is the limiter's key function; what it
+        # returns is then a property of our resolver, not of slowapi's internals.
         _trust(monkeypatch, "10.0.0.0/8")
         first = _make_request("10.0.0.5", {"x-forwarded-for": "203.0.113.9"})
         second = _make_request("10.0.0.5", {"x-forwarded-for": "198.51.100.4"})
 
-        assert limiter._key_func(first) == "203.0.113.9"
-        assert limiter._key_func(second) == "198.51.100.4"
+        assert get_http_client_ip(first) == "203.0.113.9"
+        assert get_http_client_ip(second) == "198.51.100.4"

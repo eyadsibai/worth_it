@@ -222,7 +222,11 @@ async def export_first_chicago(
             f"{body.company_name}_valuation.json",
         )
 
-    elif body.format == "csv":
+    # csv, and nothing else: `format` is a Literal, so Pydantic has already
+    # answered every other value with the standard 400 envelope before this
+    # handler runs. A trailing "unsupported format" arm could only ever answer
+    # in a shape no client parses, and no test could reach it to notice.
+    else:
         output = StringIO()
         writer = csv.writer(output)
         writer.writerow(["Metric", "Value"])
@@ -238,9 +242,6 @@ async def export_first_chicago(
             "text/csv",
             f"{body.company_name}_valuation.csv",
         )
-
-    else:
-        raise HTTPException(status_code=400, detail=f"Unsupported format: {body.format}")
 
 
 @router.post("/pre-revenue")
@@ -283,7 +284,8 @@ async def export_pre_revenue(
             f"{body.company_name}_{body.method_name.lower()}_valuation.json",
         )
 
-    elif body.format == "csv":
+    # csv, and nothing else: see the note on the First Chicago export above.
+    else:
         output = StringIO()
         writer = csv.writer(output)
         writer.writerow(["Metric", "Value"])
@@ -298,9 +300,6 @@ async def export_pre_revenue(
             "text/csv",
             f"{body.company_name}_{body.method_name.lower()}_valuation.csv",
         )
-
-    else:
-        raise HTTPException(status_code=400, detail=f"Unsupported format: {body.format}")
 
 
 @router.post("/negotiation-range")

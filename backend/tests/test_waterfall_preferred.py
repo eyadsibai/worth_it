@@ -453,6 +453,26 @@ class TestTotalDistributionInvariant:
 
         assert total_distributed(result) == pytest.approx(10_000_000)
 
+    def test_proceeds_with_nowhere_to_go_raise_calculation_error(self):
+        """Money left over that no share can claim is a leak, not a rounding gap.
+
+        Every share count is zero, so nothing divides the residual and no option pool
+        absorbs it either. The engine must say the proceeds went unassigned rather than
+        return a result that quietly drops them.
+        """
+        cap_table = cap_table_of(
+            stakeholder("investor-1", "Investor", 0, "preferred"),
+            total_shares=0,
+        )
+        tiers = [tier("tier-a", "Series A", 1, 1_000_000, ["investor-1"])]
+
+        with pytest.raises(CalculationError, match="unassigned"):
+            calculate_waterfall(
+                cap_table=cap_table,
+                preference_tiers=tiers,
+                exit_valuation=5_000_000,
+            )
+
 
 class TestStakeholderInTwoTiers:
     """One share count cannot back two series, so the ambiguity is rejected loudly."""
@@ -865,3 +885,88 @@ class TestValueConservation:
             payout_for(without_tiers, "Founder")
         )
         assert total_distributed(with_tiers) == pytest.approx(8_000_000)
+
+    def test_pool_still_dilutes_when_no_one_shares_the_residual(self):
+        """The last residual holder can be the pool itself, and it is still withheld.
+
+        Nobody holds common, the only tier is non-participating and declines to convert,
+        and proceeds are left over after its preference. The residual therefore has no
+        stakeholder to reach - only the option pool - so it must stay withheld rather
+        than fall back to paying the tier more than its preference.
+        """
+        cap_table = cap_table_of(
+            stakeholder("investor-1", "Investor", 1_000_000, "preferred"),
+            total_shares=10_000_000,
+        )
+        tiers = [tier("tier-a", "Series A", 1, 5_000_000, ["investor-1"])]
+
+        result = calculate_waterfall(
+            cap_table=cap_table, preference_tiers=tiers, exit_valuation=10_000_000
+        )
+
+        # Converting would buy 1M/10M of the exit, below the 5M preference, so the tier
+        # declines. The 5M residual belongs to the 9M unheld shares and is not payable.
+        assert payout_for(result, "Investor") == pytest.approx(5_000_000)
+        assert total_distributed(result) == pytest.approx(5_000_000)
+        assert_within_exit_valuation(result, 10_000_000)
+
+
+class TestTotalSharesDefault:
+    """Every path must read the share denominator the same way.
+
+    ``CapTable.total_shares`` defaults to 10,000,000, so a cap table that omits the
+    field - or carries an explicit ``None`` - describes exactly that many shares. The
+    pro-rata payout and the unallocated-pool calculation must agree on it, otherwise
+    adding a preference tier silently changes how much of the exit is payable.
+    """
+
+    def test_missing_total_shares_uses_the_model_default_on_both_paths(self):
+        """Omitting total_shares must withhold the same pool with and without tiers."""
+        cap_table: dict[str, Any] = {
+            "stakeholders": [
+                stakeholder("founder-1", "Founder", 6_000_000, "common", "founder"),
+                stakeholder("investor-1", "Investor", 2_000_000, "preferred"),
+            ],
+            "option_pool_pct": 0,
+        }
+        tiers = [tier("tier-a", "Series A", 1, 1_000_000, ["investor-1"])]
+
+        without_tiers = calculate_waterfall(
+            cap_table=cap_table, preference_tiers=[], exit_valuation=10_000_000
+        )
+        with_tiers = calculate_waterfall(
+            cap_table=cap_table, preference_tiers=tiers, exit_valuation=10_000_000
+        )
+
+        # The default 10M total leaves 2M unheld, so only 80% of the exit is payable.
+        assert total_distributed(without_tiers) == pytest.approx(8_000_000)
+        assert total_distributed(with_tiers) == pytest.approx(8_000_000)
+        assert payout_for(with_tiers, "Founder") == pytest.approx(
+            payout_for(without_tiers, "Founder")
+        )
+
+    def test_null_total_shares_matches_the_missing_field(self):
+        """An explicit None is the absence of a value, not a share count of zero."""
+        stakeholders = [
+            stakeholder("founder-1", "Founder", 6_000_000, "common", "founder"),
+            stakeholder("investor-1", "Investor", 2_000_000, "preferred"),
+        ]
+        missing: dict[str, Any] = {"stakeholders": stakeholders, "option_pool_pct": 0}
+        explicit_none: dict[str, Any] = {**missing, "total_shares": None}
+        tiers = [tier("tier-a", "Series A", 1, 1_000_000, ["investor-1"])]
+
+        for preference_tiers in ([], tiers):
+            from_missing = calculate_waterfall(
+                cap_table=missing, preference_tiers=preference_tiers, exit_valuation=10_000_000
+            )
+            from_none = calculate_waterfall(
+                cap_table=explicit_none,
+                preference_tiers=preference_tiers,
+                exit_valuation=10_000_000,
+            )
+
+            assert total_distributed(from_none) == pytest.approx(total_distributed(from_missing))
+            assert payout_for(from_none, "Founder") == pytest.approx(
+                payout_for(from_missing, "Founder")
+            )
+            assert total_distributed(from_none) == pytest.approx(8_000_000)

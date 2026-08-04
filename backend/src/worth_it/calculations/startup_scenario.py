@@ -61,13 +61,16 @@ def calculate_startup_scenario(
             "breakeven_label": "Breakeven Value",
         }
 
-    # The index IS the year number below; a frame rebuilt from
-    # to_dict(orient="records") comes back zero-based and vests a year late.
-    first_year = opportunity_cost_df.index[0]
-    if first_year != 1:
+    # Every label of the index IS the year number below, so the whole index has to
+    # be the contiguous run 1..n, not merely start at 1: a frame rebuilt from
+    # to_dict(orient="records") comes back zero-based and vests a year late, and a
+    # gappy, duplicated or reordered index vests individual rows against the wrong
+    # year just as silently.
+    expected_years = pd.RangeIndex(1, len(opportunity_cost_df) + 1)
+    if not opportunity_cost_df.index.equals(expected_years):
         raise CalculationError(
             "opportunity_cost_df must carry its one-based Year index "
-            f"(index starts at {first_year!r}, expected 1)."
+            f"(expected {list(expected_years)}, got {list(opportunity_cost_df.index)})."
         )
 
     results_df = opportunity_cost_df.copy()

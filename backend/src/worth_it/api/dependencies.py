@@ -10,7 +10,6 @@ This module contains shared infrastructure used across all API routers:
 
 import asyncio
 import ipaddress
-from collections import defaultdict
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -216,7 +215,13 @@ class WebSocketConnectionTracker:
     """
 
     def __init__(self) -> None:
-        self._connections: dict[str, int] = defaultdict(int)
+        # A plain dict, deliberately: every key is a source address supplied by
+        # an unauthenticated peer, and only an address that completes a
+        # connection is ever cleaned up. defaultdict.__getitem__ inserts on
+        # miss, so a mere *read* of an unknown IP would pin a bucket for it
+        # forever and let a scan across an address range exhaust this worker.
+        # Reads go through .get; the only insertion is a registration.
+        self._connections: dict[str, int] = {}
         self._lock = asyncio.Lock()
 
     async def can_connect(self, client_ip: str) -> bool:
@@ -227,7 +232,7 @@ class WebSocketConnectionTracker:
         """
         max_concurrent: int = settings.WS_MAX_CONCURRENT_PER_IP
         async with self._lock:
-            return self._connections[client_ip] < max_concurrent
+            return self._connections.get(client_ip, 0) < max_concurrent
 
     async def register_connection(self, client_ip: str) -> bool:
         """Register a new WebSocket connection for the given IP.
@@ -236,17 +241,20 @@ class WebSocketConnectionTracker:
         False if the client has exceeded the limit.
         """
         async with self._lock:
-            if self._connections[client_ip] >= settings.WS_MAX_CONCURRENT_PER_IP:
+            active = self._connections.get(client_ip, 0)
+            if active >= settings.WS_MAX_CONCURRENT_PER_IP:
                 return False
-            self._connections[client_ip] += 1
+            self._connections[client_ip] = active + 1
             return True
 
     async def unregister_connection(self, client_ip: str) -> None:
         """Unregister a WebSocket connection when it closes."""
         async with self._lock:
-            self._connections[client_ip] = max(0, self._connections[client_ip] - 1)
-            if self._connections[client_ip] == 0:
-                del self._connections[client_ip]
+            remaining = self._connections.get(client_ip, 0) - 1
+            if remaining > 0:
+                self._connections[client_ip] = remaining
+            else:
+                self._connections.pop(client_ip, None)
 
     def get_active_connections(self, client_ip: str) -> int:
         """Get the number of active connections for an IP (for monitoring).

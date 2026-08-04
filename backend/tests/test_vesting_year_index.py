@@ -131,20 +131,68 @@ def test_service_hands_a_one_indexed_frame_to_the_calculation(
     assert list(seen[0]) == [1, 2, 3, 4]
 
 
-def test_calculation_rejects_a_zero_indexed_frame():
-    """A future serialization round-trip must not silently reintroduce the shift."""
+def _four_year_opportunity_cost_df() -> pd.DataFrame:
     monthly_df = create_monthly_data_grid(
         exit_year=4,
         current_job_monthly_salary=10_000,
         startup_monthly_salary=8_000,
         current_job_salary_growth_rate=0.0,
     )
-    opportunity_cost_df = calculate_annual_opportunity_cost(
+    return calculate_annual_opportunity_cost(
         monthly_df=monthly_df,
         annual_roi=0.05,
         investment_frequency="Annually",
     )
-    zero_indexed = opportunity_cost_df.reset_index(drop=True)
+
+
+def test_calculation_rejects_a_zero_indexed_frame():
+    """A future serialization round-trip must not silently reintroduce the shift."""
+    zero_indexed = _four_year_opportunity_cost_df().reset_index(drop=True)
 
     with pytest.raises(CalculationError, match="one-based"):
         calculate_startup_scenario(zero_indexed, _options_params(4, 4, 1))
+
+
+def test_calculation_accepts_the_canonical_one_based_index():
+    """The guard must not reject the index the producer actually emits."""
+    opportunity_cost_df = _four_year_opportunity_cost_df()
+    assert list(opportunity_cost_df.index) == [1, 2, 3, 4]
+
+    results = calculate_startup_scenario(opportunity_cost_df, _options_params(4, 4, 1))
+
+    assert results["results_df"]["Vested Equity (%)"].iloc[-1] == pytest.approx(100.0)
+
+
+@pytest.mark.parametrize(
+    ("label", "broken_index"),
+    [
+        # Starts at 1 but skips year 3: year 4's row would vest as if it were year 5.
+        ("gappy", [1, 2, 4, 5]),
+        # Starts at 1 but repeats it: two rows claim the same vesting year.
+        ("duplicated", [1, 1, 2, 3]),
+        # Starts at 1 but is out of order: rows vest against the wrong year.
+        ("reordered", [1, 3, 2, 4]),
+        # Starts at 1 but is one row short of its own span.
+        ("short", [1, 2, 3, 5]),
+    ],
+)
+def test_calculation_rejects_a_malformed_index_that_merely_starts_at_one(
+    label: str, broken_index: list[int]
+) -> None:
+    """Starting at 1 is not enough: vesting reads every label, not just the first."""
+    malformed = _four_year_opportunity_cost_df()
+    malformed.index = pd.Index(broken_index, name="Year")
+
+    with pytest.raises(CalculationError, match="one-based"):
+        calculate_startup_scenario(malformed, _options_params(4, 4, 1))
+
+
+def test_malformed_index_error_names_the_offending_index():
+    """The message has to say what arrived, or the caller cannot fix it."""
+    malformed = _four_year_opportunity_cost_df()
+    malformed.index = pd.Index([1, 2, 4, 5], name="Year")
+
+    with pytest.raises(CalculationError) as exc_info:
+        calculate_startup_scenario(malformed, _options_params(4, 4, 1))
+
+    assert "[1, 2, 4, 5]" in str(exc_info.value)
