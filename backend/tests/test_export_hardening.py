@@ -396,19 +396,34 @@ class TestPdfGenerationIsolation:
         assert observed["off_loop"] is True
 
     def test_slow_pdf_generation_times_out(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """The request gives up on the render; it does not wait for it.
+
+        The render blocks on a signal rather than a sleep, so the elapsed bound
+        is not a duration a loaded runner has to beat. A sleep the same length as
+        the bound leaves the round trip, the pool dispatch and the event loop
+        sharing whatever is left of it, and that is a flake, not a regression.
+        """
+        finish_render = threading.Event()
+
         def slow_generate(report_data: Any) -> bytes:
-            time.sleep(0.5)
+            finish_render.wait(timeout=DRAIN_TIMEOUT_SECONDS)
             return b"%PDF-1.4 stub"
 
         monkeypatch.setattr(export_router, "PDF_GENERATION_TIMEOUT_SECONDS", 0.05)
         monkeypatch.setattr(export_router, "generate_pdf_report", slow_generate)
 
         started = time.monotonic()
-        response = client.post("/api/export/first-chicago", json=first_chicago_body())
-        elapsed = time.monotonic() - started
+        try:
+            response = client.post("/api/export/first-chicago", json=first_chicago_body())
+            elapsed = time.monotonic() - started
+        finally:
+            # Release the abandoned worker back to the pool for the next test.
+            finish_render.set()
 
         assert response.status_code == 504
-        assert elapsed < 0.5
+        # Half the render's own ceiling: a request that waited for the render
+        # cannot land here, and no amount of unrelated overhead reaches it.
+        assert elapsed < DRAIN_TIMEOUT_SECONDS / 2
 
 
 class TestScenarioMapConsistency:

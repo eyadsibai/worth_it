@@ -36,7 +36,7 @@ function TestFormWrapper({
   onSubmit?: (data: TestFormData) => void;
 }) {
   const form = useForm<TestFormData>({
-    resolver: zodResolver(TestSchema) as unknown as undefined,
+    resolver: zodResolver(TestSchema),
     defaultValues: {
       name: "",
       email: "",
@@ -238,7 +238,7 @@ describe("NumberInputField", () => {
     defaultValue?: number;
   }) {
     const form = useForm<NumberTestFormData>({
-      resolver: zodResolver(NumberTestSchema) as unknown as undefined,
+      resolver: zodResolver(NumberTestSchema),
       defaultValues: { amount: defaultValue },
     });
 
@@ -334,7 +334,7 @@ describe("NumberInputField with hint and example props", () => {
     defaultValue?: number;
   }) {
     const form = useForm<NumberTestFormData>({
-      resolver: zodResolver(NumberTestSchema) as unknown as undefined,
+      resolver: zodResolver(NumberTestSchema),
       defaultValues: { salary: defaultValue },
     });
 
@@ -468,7 +468,7 @@ describe("SliderField", () => {
     defaultValues?: SliderTestFormData;
   }) {
     const form = useForm<SliderTestFormData>({
-      resolver: zodResolver(SliderTestSchema) as unknown as undefined,
+      resolver: zodResolver(SliderTestSchema),
       defaultValues,
     });
 
@@ -601,7 +601,7 @@ describe("LogarithmicSliderField accessibility", () => {
     defaultValues?: LogTestFormData;
   }) {
     const form = useForm<LogTestFormData>({
-      resolver: zodResolver(LogTestSchema) as unknown as undefined,
+      resolver: zodResolver(LogTestSchema),
       defaultValues,
     });
 

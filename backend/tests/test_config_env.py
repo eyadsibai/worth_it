@@ -22,6 +22,7 @@ SETTING_ENV_VARS = (
     "RATE_LIMIT_MONTE_CARLO_PER_MINUTE",
     "WS_MAX_CONCURRENT_PER_IP",
     "WS_SIMULATION_TIMEOUT_SECONDS",
+    "TRUSTED_PROXIES",
 )
 
 
@@ -37,6 +38,35 @@ def env_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     path = tmp_path / ".env"
     monkeypatch.setitem(config.EnvSettings.model_config, "env_file", path)
     return path
+
+
+@pytest.fixture
+def ambient_trusted_proxies(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A TRUSTED_PROXIES inherited from the surrounding shell.
+
+    Requested *before* `env_file` so it is set while the fixture that is supposed
+    to drop inherited overrides runs, which is the only way to reproduce what a
+    developer's exported environment does to these tests.
+    """
+    monkeypatch.setenv("TRUSTED_PROXIES", "203.0.113.0/24")
+
+
+class TestFixtureIsolation:
+    """These tests assert on defaults, so any inherited setting is a false result."""
+
+    def test_every_declared_setting_is_cleared(self) -> None:
+        """A field missing from SETTING_ENV_VARS silently reaches config.Settings()."""
+        assert set(SETTING_ENV_VARS) == set(config.EnvSettings.model_fields), (
+            "SETTING_ENV_VARS has drifted from EnvSettings; the fixture only clears "
+            "what it lists, so the unlisted fields leak in from the environment"
+        )
+
+    def test_inherited_trusted_proxies_do_not_reach_settings(
+        self, ambient_trusted_proxies: None, env_file: Path
+    ) -> None:
+        assert not env_file.exists()
+
+        assert config.Settings().TRUSTED_PROXIES == ()
 
 
 class TestEnvFileLoading:

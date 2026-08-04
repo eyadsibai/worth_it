@@ -17,6 +17,25 @@ describe("sharesForOwnership", () => {
     expect(sharesForOwnership(Number.NaN, 10_000_000)).toBe(0);
     expect(sharesForOwnership(50, Number.NaN)).toBe(0);
   });
+
+  it("issues at least one share for a stake too small to round up to one", () => {
+    // 0.000001% of 10M is 0.1 shares. Rounding that to zero pays the holder
+    // nothing at exit, which is the failure this module exists to prevent.
+    expect(sharesForOwnership(0.000001, 10_000_000)).toBe(1);
+  });
+
+  it("issues nothing for a zero stake", () => {
+    // The floor of one share is for holders that own something, not for rows
+    // left at 0% - those must stay out of the issued total.
+    expect(sharesForOwnership(0, 10_000_000)).toBe(0);
+  });
+
+  it("refuses to issue negative shares for a negative ownership percentage", () => {
+    // A negative share count is not a short position: it shrinks the issued
+    // total and produces a negative payout at exit.
+    expect(sharesForOwnership(-10, 10_000_000)).toBe(0);
+    expect(sharesForOwnership(-0.000001, 10_000_000)).toBe(0);
+  });
 });
 
 describe("totalSharesCovering", () => {
@@ -35,6 +54,13 @@ describe("totalSharesCovering", () => {
   it("ignores non-finite share counts rather than propagating NaN", () => {
     const stakeholders = [{ shares: 6_000_000 }, { shares: Number.NaN }];
     expect(totalSharesCovering(stakeholders, 10_000_000)).toBe(10_000_000);
+  });
+
+  it("never lets a negative share count shrink the issued total", () => {
+    // A negative row would hide over-issuance: 11M real shares against a 10M
+    // total must still expand the total, whatever nonsense sits beside it.
+    const stakeholders = [{ shares: 11_000_000 }, { shares: -2_000_000 }];
+    expect(totalSharesCovering(stakeholders, 10_000_000)).toBe(11_000_000);
   });
 
   it("falls back to the issued shares when the total itself is non-finite", () => {

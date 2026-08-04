@@ -46,6 +46,17 @@ MIN_RELATIVE_SPREAD = 0.05
 FORM_STD_DEV_FACTOR = 2
 FORM_DEFAULT_STD_FRACTION = 0.5
 
+# Direct simulation calls draw from the global NumPy stream unless a seed is
+# given, which makes every assertion below depend on the run. The assertions
+# hold for any seed - each was replayed across a sweep before these were pinned -
+# so the seed buys reproducibility rather than a passing grade. Distinct values
+# keep five tests from all riding on the luck of one draw.
+SEED_OPTIONS_VS_VALUATION = 1_000_001
+SEED_OPTIONS_PRICE_RANGE = 1_000_002
+SEED_RSU_VALUATION = 1_000_003
+SEED_ITERATIVE_OPTIONS = 1_000_004
+SEED_ITERATIVE_RSU = 1_000_005
+
 
 def _base_payload(startup_params: dict[str, Any]) -> dict[str, Any]:
     return {
@@ -142,6 +153,7 @@ def test_options_simulation_is_not_driven_by_company_valuation():
         num_simulations=NUM_SIMULATIONS,
         base_params=internal_base,
         sim_param_configs=sim_param_configs,
+        seed=SEED_OPTIONS_VS_VALUATION,
     )
 
     expected = _deterministic_net_outcome(internal_base)
@@ -166,6 +178,7 @@ def test_options_simulation_varies_with_simulated_price_per_share():
         num_simulations=NUM_SIMULATIONS,
         base_params=internal_base,
         sim_param_configs=sim_param_configs,
+        seed=SEED_OPTIONS_PRICE_RANGE,
     )
 
     simulated = np.asarray(results["simulated_valuations"])
@@ -191,6 +204,7 @@ def test_rsu_simulation_still_uses_company_valuation():
         num_simulations=NUM_SIMULATIONS,
         base_params=internal_base,
         sim_param_configs=sim_param_configs,
+        seed=SEED_RSU_VALUATION,
     )
 
     simulated = np.asarray(results["simulated_valuations"])
@@ -233,6 +247,7 @@ def test_iterative_options_simulation_reports_per_share_units():
         num_simulations=NUM_ITERATIVE_SIMULATIONS,
         base_params=internal_base,
         sim_param_configs=sim_param_configs,
+        seed=SEED_ITERATIVE_OPTIONS,
     )
 
     simulated = np.asarray(results["simulated_valuations"])
@@ -262,6 +277,7 @@ def test_iterative_rsu_simulation_reports_whole_company_units():
         num_simulations=NUM_ITERATIVE_SIMULATIONS,
         base_params=internal_base,
         sim_param_configs=sim_param_configs,
+        seed=SEED_ITERATIVE_RSU,
     )
 
     simulated = np.asarray(results["simulated_valuations"])
