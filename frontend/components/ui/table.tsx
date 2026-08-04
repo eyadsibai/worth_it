@@ -57,6 +57,10 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       data-slot="table-head"
+      // Column headers need scope to be associated with their column: without it
+      // a screen reader does not announce the header when moving through cells,
+      // and the role engine will not resolve these as columnheader.
+      scope="col"
       className={cn(
         "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
