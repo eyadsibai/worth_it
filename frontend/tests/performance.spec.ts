@@ -20,13 +20,59 @@ const DEV_ONLY_RUNTIME = /hmr[-_]?client|webpack-hmr|react-refresh|\/_next\/stat
 async function servedByDevServer(page: Page): Promise<boolean> {
   return page.evaluate((pattern) => {
     const devRuntime = new RegExp(pattern, "i");
+    // A URL may carry a `%` that is not a valid escape sequence, and
+    // decodeURIComponent throws URIError on those. Unguarded, one such entry
+    // aborts `some` and surfaces as a page.evaluate failure in whichever
+    // performance test happened to ask -- so fall back to the undecoded name,
+    // which still carries everything the pattern looks for.
+    const readable = (name: string) => {
+      try {
+        return decodeURIComponent(name);
+      } catch {
+        return name;
+      }
+    };
+
     return performance
       .getEntriesByType("resource")
-      .some((entry) => devRuntime.test(decodeURIComponent(entry.name)));
+      .some((entry) => devRuntime.test(readable(entry.name)));
   }, DEV_ONLY_RUNTIME.source);
 }
 
 test.describe("Performance Tests", () => {
+  test("dev-server detection survives a resource URL that is not valid percent-encoding", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // `%E0%A4%A` is a truncated escape: legal in a URL, but decodeURIComponent
+    // throws URIError on it. That error escapes `some` and page.evaluate, so a
+    // single such request fails every build-sensitive test in this file with
+    // something that has nothing to do with performance.
+    //
+    // The entry is stubbed rather than really requested because neither real
+    // route can prove anything: under `next dev` the hmr chunk already sits
+    // earlier in the timeline and short-circuits `some` before the malformed
+    // name is reached, and clearing the buffer to isolate a probe stops the
+    // browser recording new entries at all.
+    const stubResourceEntries = (name: string) =>
+      page.evaluate((entryName) => {
+        (performance as unknown as { getEntriesByType: unknown }).getEntriesByType = (
+          type: string
+        ) => (type === "resource" ? [{ name: entryName }] : []);
+      }, name);
+
+    await stubResourceEntries(`${new URL(page.url()).origin}/chunk-%E0%A4%A.js`);
+    expect(await servedByDevServer(page)).toBe(false);
+
+    // Falling back to the raw name, not to `false`: a URL that fails to decode
+    // is still evidence of a dev server when it names the dev runtime.
+    await stubResourceEntries(
+      `${new URL(page.url()).origin}/_next/static/chunks/hmr-client-%E0%A4%A.js`
+    );
+    expect(await servedByDevServer(page)).toBe(true);
+  });
+
   test("should load quickly", async ({ page }) => {
     const startTime = Date.now();
 

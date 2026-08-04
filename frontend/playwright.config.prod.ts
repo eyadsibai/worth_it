@@ -55,9 +55,11 @@ export default defineConfig({
     },
     {
       command: `cd ../backend && uv run uvicorn worth_it.api:app --port ${BACKEND_PORT}`,
-      // /health, not /: the API serves no root route, so probing / waits out the
-      // timeout against a healthy backend.
-      url: `http://localhost:${BACKEND_PORT}/health`,
+      // Not /, which the API does not serve, and not /health, which is rate
+      // limited at RATE_LIMIT_PER_MINUTE and so can 429 a continuous readiness
+      // poll into a timeout. /openapi.json is unauthenticated, unlimited, and
+      // only answers once every router is mounted. See playwright.config.ts.
+      url: `http://localhost:${BACKEND_PORT}/openapi.json`,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
       stderr: "pipe",

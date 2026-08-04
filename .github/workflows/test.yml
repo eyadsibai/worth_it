@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [ master, main, develop ]
 
+# Every job here installs dependencies and executes tooling from PR-authored
+# files. Without this block the GITHUB_TOKEN inherits the repository default,
+# which may include write scopes. `contents: read` is all `actions/checkout`
+# needs; the Codecov upload authenticates with CODECOV_TOKEN, not this token.
+# Declared at workflow level so a newly added job cannot silently opt out.
+permissions:
+  contents: read
+
 jobs:
   backend-test:
     runs-on: ubuntu-latest

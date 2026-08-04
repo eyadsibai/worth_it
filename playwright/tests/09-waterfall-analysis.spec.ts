@@ -92,6 +92,9 @@ async function skipCapTableWizard(page: Page) {
   }
 }
 
+/** Multipliers for the magnitude suffixes `formatLargeNumber` emits. */
+const CURRENCY_SUFFIX_SCALE: Record<string, number> = { K: 1e3, M: 1e6, B: 1e9 };
+
 /**
  * Read a rendered payout back as a number.
  *
@@ -99,8 +102,6 @@ async function skipCapTableWizard(page: Page) {
  * is not a currency amount returns NaN so the comparison fails loudly instead
  * of coercing to 0 and passing.
  */
-const CURRENCY_SUFFIX_SCALE: Record<string, number> = { K: 1e3, M: 1e6, B: 1e9 };
-
 function parsePayout(text: string): number {
   const match = /^(-?)\$([\d,]+(?:\.\d+)?)([KMB])?$/.exec(text.trim());
   if (!match) return Number.NaN;
@@ -108,17 +109,37 @@ function parsePayout(text: string): number {
   return Number(match[2].replace(/,/g, '')) * scale * (match[1] === '-' ? -1 : 1);
 }
 
-/** The payout cell of the row a stakeholder owns in the Stakeholder Payouts table. */
+/** Stakeholder | Investment | Payout | % of Exit | ROI */
+const PAYOUT_COLUMN_INDEX = 2;
+
+/**
+ * The "Stakeholder Payouts" table.
+ *
+ * Identified by its own Payout header rather than by the surrounding card, so
+ * the handle names exactly the table PAYOUT_COLUMN_INDEX is an index into.
+ * Matched on the `th` element rather than the `columnheader` role: these
+ * headers carry no `scope`, and Playwright's role engine does not resolve them.
+ */
+function payoutsTable(page: Page) {
+  return page.locator('table').filter({ has: page.locator('th', { hasText: /^Payout$/ }) });
+}
+
+/**
+ * The payout cell of the row a stakeholder owns in the Stakeholder Payouts table.
+ *
+ * Scoped to that one table: an unscoped row lookup also matches rows in every
+ * other table on the page, and `.nth()` then counts cells across the merged
+ * list -- landing on a neighbour table's column without raising strict mode.
+ * `.first()` pins the row so the index stays within it.
+ */
 function payoutCell(page: Page, stakeholderName: string) {
-  return page
+  return payoutsTable(page)
     .getByRole('row')
     .filter({ hasText: stakeholderName })
+    .first()
     .getByRole('cell')
     .nth(PAYOUT_COLUMN_INDEX);
 }
-
-/** Stakeholder | Investment | Payout | % of Exit | ROI */
-const PAYOUT_COLUMN_INDEX = 2;
 
 const TEST_PREFERENCE_TIER = {
   name: 'Series A',
@@ -279,8 +300,8 @@ test.describe('Waterfall Tab - Preference Tiers', () => {
     // Submit form
     await page.getByRole('button', { name: /Add Preference Tier/i }).click();
 
-    // Verify tier appears in list (use exact match since "Series A" also appears in waterfall steps text)
-    await expect(page.getByText('Series A', { exact: true })).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    // Verify tier appears in list (exact match: the name also appears inside the waterfall steps text)
+    await expect(page.getByText(TEST_PREFERENCE_TIER.name, { exact: true })).toBeVisible({ timeout: TIMEOUTS.elementVisible });
     await expect(page.getByText(/\$5\.0M invested/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
@@ -298,7 +319,7 @@ test.describe('Waterfall Tab - Preference Tiers', () => {
     await page.getByRole('tab', { name: /Waterfall/i }).click();
 
     await expect(page.getByText(/Preference Stack \(1 tier/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
-    await expect(page.getByText('Series A', { exact: true })).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    await expect(page.getByText(TEST_PREFERENCE_TIER.name, { exact: true })).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display preference stack count after adding tiers', async ({ page }) => {
@@ -450,6 +471,36 @@ test.describe('Waterfall Tab - Chart and Table Views', () => {
     // Verify table headers
     await expect(page.getByText(/Stakeholder Payouts/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
     await expect(page.getByText(/Exit:/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+  });
+
+  test('should read payouts from the payouts table, not another table naming the same stakeholder', async ({
+    page,
+  }) => {
+    // `payoutCell` looked rows up across the whole page. Every other table here
+    // has a different column layout, so as soon as one of them mentions a
+    // stakeholder the payout column index addresses the wrong cell -- and
+    // silently, because `.nth()` never raises a strict-mode error.
+    //
+    // The decoy stands in for that neighbour table (the cap table listing, the
+    // exit calculator, the dilution table): same name, columns that do not line
+    // up. Injected rather than waited for so the guard does not depend on which
+    // of those happens to be mounted today.
+    await page.getByRole('tab', { name: 'Table', exact: true }).click();
+    await expect(payoutsTable(page)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+
+    await page.evaluate((name) => {
+      const decoy = document.createElement('table');
+      const row = decoy.insertRow();
+      for (const text of [name, 'Founder', '40.0%', 'Common', '-']) {
+        row.insertCell().textContent = text;
+      }
+      document.body.prepend(decoy);
+    }, TEST_STAKEHOLDERS.founder.name);
+
+    const payout = parsePayout(
+      await payoutCell(page, TEST_STAKEHOLDERS.founder.name).innerText()
+    );
+    expect(payout).toBeGreaterThan(0);
   });
 
   test('should pay each stakeholder a real amount, in proportion to ownership', async ({

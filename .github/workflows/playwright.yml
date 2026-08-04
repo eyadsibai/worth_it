@@ -28,6 +28,13 @@ on:
           - webkit
           - all
 
+# This job builds and serves the app from PR-authored source. Nothing it does
+# needs a writable token, and checkout already runs with persist-credentials
+# false, so pin the GITHUB_TOKEN to read-only rather than inheriting the
+# repository default.
+permissions:
+  contents: read
+
 concurrency:
   group: playwright-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -96,8 +103,12 @@ jobs:
       run: |
         cd backend
         uv run uvicorn worth_it.api:app --host 0.0.0.0 --port 8000 &
+        # --fail: a completed 4xx/5xx is not readiness. --max-time: a server that
+        # accepts the connection and then hangs must not stall the retry budget.
+        # 30 attempts x 2s sleep stays under the backend's 60 req/min limit on
+        # /health, so a 429 cannot be mistaken for an unhealthy server here.
         for i in {1..30}; do
-          if curl -s http://localhost:8000/health > /dev/null; then
+          if curl --fail --silent --show-error --max-time 5 http://localhost:8000/health > /dev/null; then
             echo "Backend is ready"
             exit 0
           fi
@@ -111,8 +122,11 @@ jobs:
       run: |
         cd frontend
         pnpm dev &
+        # Same contract as the backend probe. A Next dev server that renders the
+        # root route as a 500 is not ready, and the first request triggers a
+        # compile that can outlast --max-time; that attempt just retries.
         for i in {1..30}; do
-          if curl -s http://localhost:3000 > /dev/null; then
+          if curl --fail --silent --show-error --max-time 5 http://localhost:3000 > /dev/null; then
             echo "Frontend is ready"
             exit 0
           fi

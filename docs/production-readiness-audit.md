@@ -9,6 +9,17 @@ verifiers instructed to refute it, and two gap-hunt rounds chased uncovered grou
 The three math blockers and the render-loop blocker were independently re-verified
 against the source before this report was filed.
 
+> **This is a point-in-time snapshot, not a live backlog.** Every finding below
+> describes the tree as it stood on 2026-08-02. PR #295 (`fix/production-blockers`)
+> was opened to remediate it, so much of what follows has already been fixed *by
+> the same branch that carries this document*. Each finding therefore starts with
+> a **Status** line — `Fixed in #295`, `Partially fixed in #295`, or `Open` —
+> re-verified against the working tree, so nobody refiles work that is already
+> done. The prose after each Status line is left in its original past-tense form:
+> it is the record of what was wrong and why, and it is what the regression tests
+> exist to defend. **All 7 launch blockers are fixed; the NO-GO verdict in §1 is
+> historical.** What remains open is listed in §4.
+
 ---
 
 ## 1. Verdict
@@ -18,56 +29,109 @@ against the source before this report was filed.
 ## 2. Launch blockers
 
 **1. Stock-options Monte Carlo consumes exit valuation as price-per-share**
+*Status: **Fixed in #295.** `serializers.py` now maps `exit_price_per_share` to
+its own internal key `price_per_share`, and `monte_carlo.py` branches on
+`equity_type` to pick the right unit before computing `profit_per_share`.*
 `backend/src/worth_it/services/serializers.py:142` — `"exit_price_per_share": "valuation",  # Maps to same key as exit_valuation`. Both RSU's `exit_valuation` and options' `exit_price_per_share` collapse into one internal key, and `backend/src/worth_it/monte_carlo.py:305` consumes it per-share: `profit_per_share = np.maximum(0, sim_params["valuation"] - options_params.get("strike_price", 0))`. **Failure:** a $50M exit with 10,000 options at a $1 strike yields ~$5e11 instead of ~$490K. Every options user sees a fantasy number, and the simulation's percentile bands, breakeven, and "worth it" verdict are all built on it. **Fix:** give options a distinct internal key (`price_per_share`) in `_VARIABLE_PARAM_TO_INTERNAL_KEY` and branch on `equity_type` in `monte_carlo.py` so RSU reads a valuation and options reads a share price. Add a regression test asserting an options scenario's median net outcome sits within the same order of magnitude as the deterministic result.
 
 **2. Lost pandas index shifts all vesting one year late**
+*Status: **Fixed in #295.** `startup_service.py` re-establishes the index with
+`set_index("Year", drop=False)` after the round-trip, and `startup_scenario.py`
+derives vesting from `opportunity_cost_df.index[0]` rather than assuming a
+0-based `RangeIndex`.*
 `backend/src/worth_it/services/startup_service.py:145` — `opportunity_cost_df = pd.DataFrame(opportunity_cost_data)` rebuilds the frame from `to_dict(orient="records")` output with no `set_index`, producing a 0-based `RangeIndex`. `backend/src/worth_it/calculations/startup_scenario.py:66-71` then derives vesting positionally: `years = results_df.index` / `np.where(years >= cliff_years, np.clip((years / total_vesting_years) * 100, 0, 100), 0)`. **Failure:** year 1 lands at index 0, below a 1-year cliff, and reports 0% vested; a 4-year exit on a 4-year vest reports 75% (750,000 of 1,000,000 shares). Every payout, net outcome, and breakeven year is understated. It also silently desynchronizes the PDF export from the Monte Carlo mean. **Fix:** `set_index("year")` (or restore the index explicitly) at `startup_service.py:145`, and assert `results_df.index[0] == 1` in `startup_scenario.py` so the contract can never be re-broken by a serialization round-trip.
 
 **3. Waterfall returns HTTP 400 for any cap table with preferred stock**
+*Status: **Fixed in #295.** The engine now derives `shares_for_remaining` from
+the full residual-share map instead of common-only, and enforces an explicit
+"the exit is distributed exactly" invariant. The preference-stack editor gained
+a stakeholder picker, so `stakeholder_ids` is populated from the UI and
+`waterfall-analysis.tsx` separates assigned from unassigned tiers.*
 `backend/src/worth_it/calculations/waterfall_engine.py:320` sets `shares_for_remaining = common_shares` and only adds tier shares for converted or participating tiers. Any preferred stakeholder not attached to a tier falls through to the common branch at `:356` (`share_pct = s["shares"] / shares_for_remaining`), dividing by a denominator that excludes its own shares — `share_pct` exceeds 1.0. Separately, `:372` pays converted preferred `share_pct * self.exit_valuation` while common is paid from `remaining`, double-counting proceeds already consumed by senior preferences. Totals exceed the exit, `common_pct` at `:445` exceeds 100, and `backend/src/worth_it/models.py:719` (`Field(..., ge=0, le=100)`) raises a `ValidationError` — a `ValueError` subclass caught at `backend/src/worth_it/api/routers/cap_table.py:150` and re-raised as `CalculationError`. This is guaranteed to fire because the UI *never* populates tiers: both `frontend/components/cap-table/waterfall-analysis.tsx:63` and `frontend/components/cap-table/preference-stack-editor.tsx:93` hardcode `stakeholder_ids: []`. **Fix:** include all non-tiered preferred shares in `shares_for_remaining`; change `:372` to `share_pct * remaining`; add a stakeholder-picker to the tier editor so `stakeholder_ids` is actually populated; add an engine invariant asserting `sum(payouts) <= exit_valuation + epsilon`.
 
 **4. Frontend recomputes dilution and masks a backend contract mismatch**
+*Status: **Fixed in #295.** `calculateTotalDilutionFromRounds` is deleted;
+`scenario-results.tsx` renders `displayResults.total_dilution` from the API and
+nothing else.*
 `frontend/components/results/scenario-results.tsx:42-55` defines `calculateTotalDilutionFromRounds`, reading `round.dilution_pct`, and `:173` prefers it over the API: `const displayTotalDilution = calculatedTotalDilution ?? displayResults.total_dilution;`. The backend's `DilutionRound` TypedDict (`backend/src/worth_it/types.py:14-33`) uses `dilution` as a 0-1 fraction, while `frontend/lib/hooks/use-scenario-calculation.ts:165` sends `dilution_pct` already divided by 100. **Failure:** the card shows a large dilution percentage next to a payout figure that was computed without it — internally contradictory advice on the primary results screen — and it violates the project's own rule that no business logic lives in the frontend. **Fix:** delete `calculateTotalDilutionFromRounds`, render `displayResults.total_dilution` only, and reconcile the `dilution_pct` / `dilution` field name across `types.py`, `models.py`, and `frontend/lib/schemas.ts`.
 
 **5. TanStack mutation objects in effect dependency arrays cause unbounded request loops**
+*Status: **Fixed in #295.** Both dependency arrays now list only the inputs;
+each carries the same "mutate is stable (TanStack Query guarantee)" comment and
+lint suppression that `waterfall-analysis.tsx` already used.*
 `frontend/components/cap-table/dilution-preview.tsx:62` lists `dilutionMutation` in the deps of the effect that calls `dilutionMutation.mutate(...)`; `frontend/components/scenarios/scenario-comparison.tsx:72` does the same with `compareMutation`. The mutation result object is a new identity on every state transition, so mutate → state change → effect → mutate. **Failure:** opening either panel pins a CPU core and floods the backend (measured ~700 req/s) until the tab is closed; with a shared rate-limit key this takes the API down for everyone. **Fix:** drop the mutation object from both dep arrays — `waterfall-analysis.tsx:92-94` already does exactly this with the correct comment ("mutate is stable"); apply the same treatment. Add an ESLint guard or a test that asserts one mutate call per input change.
 
 **6. Unauthenticated SSRF and indefinite event-loop stall in PDF export**
+*Status: **Fixed in #295.** `company_name` is a constrained `CompanyName`
+annotated type, rendering runs on a bounded `_pdf_render_pool` thread pool under
+`PDF_GENERATION_TIMEOUT_SECONDS`, `_safe_filename` is hardened for the
+`Content-Disposition` header, and every export route carries the shared
+`@limiter.limit`.*
 `backend/src/worth_it/api/routers/export.py:123` — `async def export_first_chicago(...)` calls `pdf_bytes = generate_pdf_report(report_data)` inline on the event loop. `company_name` (`backend/src/worth_it/models.py:1108`, `Field(..., description=...)` with no `max_length`, no `pattern`, no validator) flows unescaped into ReportLab `Paragraph` markup, where `<img src="http://169.254.169.254/...">` is parsed and fetched via `urlopen`. `_safe_filename` only replaces spaces and slashes, so quotes and CRLF survive into the `Content-Disposition` header. `grep -c "limiter" backend/src/worth_it/api/routers/export.py` returns **0** — the only router with no rate limiting at all. **Failure:** one unauthenticated POST reaches internal network endpoints from the server, and a `src` pointing at a non-responsive host blocks the entire worker indefinitely (ReportLab's `trustedHosts` guard is inert when unset). **Fix:** constrain `company_name` with `max_length` and a `pattern`, HTML-escape it before it reaches `Paragraph`, harden `_safe_filename` against quotes and control characters, move `generate_pdf_report` into `run_in_threadpool` with a timeout, and attach the shared limiter from `backend/src/worth_it/api/dependencies.py:29` to this router.
 
 **7. Unbounded `/api/waterfall` request body**
+*Status: **Fixed in #295**, with one deliberate carve-out. `exit_valuations` is
+capped at `MAX_EXIT_VALUATIONS = 100` and stakeholder lists at
+`MAX_STAKEHOLDERS = 200`, which bounds the product at 20,000 cells. The
+suggested ASGI-layer request-body size limit was **not** added — it belongs to
+the deployment ingress, not the app — so a large body is still parsed before
+Pydantic rejects it.*
 `backend/src/worth_it/models.py:728` — `exit_valuations: list[float] = Field(..., min_length=1)` with no `max_length`, and `cap_table.stakeholders` is likewise unbounded; cost is the product of the two. **Failure:** a 99KB request produced 13.7s of synchronous event-loop-blocking CPU, a 158MB response, and 2.0GB RSS. Four uvicorn workers are trivially exhausted by four requests. **Fix:** cap `exit_valuations` (`max_length=100`) and stakeholders, add a combined-product guard in the router before calling the engine, and enforce a request body size limit at the ASGI layer.
 
 ## 3. Fix before you have real traffic
 
-**1. Monte Carlo is unseedable and non-reproducible.** `backend/src/worth_it/monte_carlo.py:310` and `:435` use the legacy global RNG (`np.random.rand(num_simulations)`); no `seed` parameter or `default_rng` exists anywhere in the module. Two identical runs give different advice, and no deterministic test can pin the simulation. Replace with `np.random.default_rng(seed)` threaded through the request model.
+*All six items in this section were remediated in #295.*
 
-**2. Rate limiting keys on the socket peer address.** `backend/src/worth_it/api/dependencies.py:29` — `Limiter(key_func=get_remote_address, ...)`. Behind any reverse proxy, CDN, or PaaS router every user collapses into a single bucket, so 60 req/min is the limit for the entire internet. Meanwhile the WebSocket path at `dependencies.py:~189` trusts `x-forwarded-for` unconditionally — its own docstring admits the values are spoofable. Pick one trust model: parse `X-Forwarded-For` against a configured trusted-proxy list, and use it consistently for both HTTP and WS.
+**1. Monte Carlo is unseedable and non-reproducible.** *Status: **Fixed in #295.**
+`_resolve_rng` builds a `np.random.default_rng(seed)` when a seed is supplied,
+the global stream is used only when it is not, and `seed` is threaded through
+both the request and the response models.* `backend/src/worth_it/monte_carlo.py:310` and `:435` use the legacy global RNG (`np.random.rand(num_simulations)`); no `seed` parameter or `default_rng` exists anywhere in the module. Two identical runs give different advice, and no deterministic test can pin the simulation. Replace with `np.random.default_rng(seed)` threaded through the request model.
 
-**3. The documented `.env` file is never loaded.** `backend/src/worth_it/config.py:21-86` reads every setting via `os.getenv` at class-definition time, with no `load_dotenv()` and no pydantic `BaseSettings`/`env_file`. `backend/CLAUDE.md` documents a `backend/.env`; it has no effect. Production deploys silently get `API_HOST=127.0.0.1`, `ENVIRONMENT=development`, and the default CORS list. Adopt `pydantic-settings` with `env_file` support.
+**2. Rate limiting keys on the socket peer address.** *Status: **Fixed in #295.**
+The limiter is now `Limiter(key_func=get_http_client_ip, ...)`, which resolves the
+client address against a configured trusted-proxy model shared by the HTTP and
+WebSocket paths.* `backend/src/worth_it/api/dependencies.py:29` — `Limiter(key_func=get_remote_address, ...)`. Behind any reverse proxy, CDN, or PaaS router every user collapses into a single bucket, so 60 req/min is the limit for the entire internet. Meanwhile the WebSocket path at `dependencies.py:~189` trusts `x-forwarded-for` unconditionally — its own docstring admits the values are spoofable. Pick one trust model: parse `X-Forwarded-For` against a configured trusted-proxy list, and use it consistently for both HTTP and WS.
 
-**4. E2E never gates a backend or frontend change.** `.github/workflows/playwright.yml` is `workflow_dispatch:` only ("Disabled automatic runs to reduce CI costs"), and `.github/workflows/playwright-pr.yaml` triggers only on `paths: ["playwright/**"]`. A PR touching `backend/` or `frontend/` runs zero E2E. This is precisely why a Waterfall panel that 400s on every non-empty preference stack shipped. Run at least a smoke subset on every PR.
+**3. The documented `.env` file is never loaded.** *Status: **Fixed in #295.**
+`config.py` defines an `EnvSettings(BaseSettings)` from `pydantic-settings` with
+`env_file` / `env_file_encoding` configured, so `backend/.env` is loaded as
+documented.* `backend/src/worth_it/config.py:21-86` reads every setting via `os.getenv` at class-definition time, with no `load_dotenv()` and no pydantic `BaseSettings`/`env_file`. `backend/CLAUDE.md` documents a `backend/.env`; it has no effect. Production deploys silently get `API_HOST=127.0.0.1`, `ENVIRONMENT=development`, and the default CORS list. Adopt `pydantic-settings` with `env_file` support.
 
-**5. Type checking is scoped to hide failures.** `.github/workflows/test.yml:82` and `:85` run mypy and pyright against four paths only, excluding `monte_carlo.py`, `config.py`, `types.py`, and `exceptions.py`. Repo-wide `lcli typecheck` fails today. Either widen the CI scope or fix the excluded modules — right now the gate reports green on code it never inspected.
+**4. E2E never gates a backend or frontend change.** *Status: **Fixed in #295.**
+`playwright.yml` now triggers on pull requests touching `backend/`, `frontend/`
+or `playwright/` and runs a three-spec smoke subset (API health, the primary RSU
+scenario, the waterfall panel), keeping the full suite on the nightly schedule.
+`playwright-pr.yaml` was narrowed to what it actually is: a review-only job for
+changes to the specs themselves.* `.github/workflows/playwright.yml` is `workflow_dispatch:` only ("Disabled automatic runs to reduce CI costs"), and `.github/workflows/playwright-pr.yaml` triggers only on `paths: ["playwright/**"]`. A PR touching `backend/` or `frontend/` runs zero E2E. This is precisely why a Waterfall panel that 400s on every non-empty preference stack shipped. Run at least a smoke subset on every PR.
 
-**6. Frontend build is skipped on PRs.** `.github/workflows/test.yml:120-123` — "Only build on push to main branches (not needed for PR validation)". A build-breaking change is only discovered after merge.
+**5. Type checking is scoped to hide failures.** *Status: **Fixed in #295.** Both
+gates now run against the whole `src/` tree (`uv run mypy src/`, `uv run pyright
+src/`) instead of a hand-picked path list, so `monte_carlo.py`, `config.py`,
+`types.py` and `exceptions.py` are inspected.* `.github/workflows/test.yml:82` and `:85` run mypy and pyright against four paths only, excluding `monte_carlo.py`, `config.py`, `types.py`, and `exceptions.py`. Repo-wide `lcli typecheck` fails today. Either widen the CI scope or fix the excluded modules — right now the gate reports green on code it never inspected.
+
+**6. Frontend build is skipped on PRs.** *Status: **Fixed in #295.** The `Build`
+step is unconditional — a build-breaking change fails the PR, not the merge.*
+`.github/workflows/test.yml:120-123` — "Only build on push to main branches (not needed for PR validation)". A build-breaking change is only discovered after merge.
 
 ## 4. Worth knowing
 
-| Issue | Location | Fix |
-| --- | --- | --- |
-| Slider thumbs have no accessible name (WCAG 4.1.2); `aria-valuetext` is conditional and no `aria-label`/`aria-labelledby` reaches the `role="slider"` element | `frontend/components/ui/slider.tsx:59-64` | Forward a required label prop to `SliderPrimitive.Thumb` |
-| Breakeven threshold extrapolates outside the tested range; `t` is unclamped so the returned value can fall outside `[low, high]` | `frontend/lib/sensitivity-utils.ts:227-267` | Clamp `t` to `[0,1]` and return `null` when no sign change occurs |
-| Sensitivity threshold assumes a linear response across the range, which the underlying option payoff is not | `frontend/lib/sensitivity-utils.ts:220-226` | Solve on the backend or label the value as an approximation |
-| `result` and `params` accepted as unbounded `dict[str, Any]` on the export endpoint | `backend/src/worth_it/models.py:1131-1135` | Replace with typed models |
-| `format` defaults to `"pdf"`, so the riskiest code path is the default | `backend/src/worth_it/models.py:1120` | Default to `"json"` until blocker 6 lands |
-| Waterfall response `common_pct`/`preferred_pct` bounds are load-bearing validation doing double duty as an error check | `backend/src/worth_it/models.py:719-720` | Keep the bounds, but assert the invariant in the engine so failures surface as engine errors, not 400s |
-| Preference tiers auto-generated from priced rounds sort by date but silently no-op when dates are absent | `frontend/components/cap-table/waterfall-analysis.tsx:48-54` | Fall back to explicit round ordering |
-| `zodResolver` cast through `as any` with a lint suppression, disabling form type safety | `frontend/components/cap-table/preference-stack-editor.tsx:65-66` | Align the Zod schema's input/output types and drop the cast |
-| Chart valuation range is hardcoded $1M–$500M regardless of the user's own exit assumption | `frontend/components/cap-table/waterfall-analysis.tsx:8-10` | Derive the range from the scenario's exit valuation |
-| Currency is USD-hardcoded throughout formatting | `frontend/lib/format-utils.ts` | Thread a currency setting through; low priority for a US-first launch |
-| No `LICENSE` file in a public-looking repo | repo root | Add one |
-| `frontend/node_modules` is a partial install (445 entries; `zustand`, `sonner`, `framer-motion`, `uuid`, `jspdf`, `cmdk`, `date-fns`, several `@radix-ui/*` missing) though all are in `package.json` and `pnpm-lock.yaml` | `frontend/` working tree | `lcli install` — local environment only, not a repo defect |
+*Status re-verified against the working tree. This is the section that still has
+open items.*
+
+| Issue | Location | Fix | Status |
+| --- | --- | --- | --- |
+| Slider thumbs have no accessible name (WCAG 4.1.2); `aria-valuetext` is conditional and no `aria-label`/`aria-labelledby` reaches the `role="slider"` element | `frontend/components/ui/slider.tsx:59-64` | Forward a required label prop to `SliderPrimitive.Thumb` | Fixed in #295 — both `aria-label` and `aria-labelledby` are forwarded to the thumb |
+| Breakeven threshold extrapolates outside the tested range; `t` is unclamped so the returned value can fall outside `[low, high]` | `frontend/lib/sensitivity-utils.ts:227-267` | Clamp `t` to `[0,1]` and return `null` when no sign change occurs | Partially fixed in #295 — a `lowOutcome * highOutcome > 0` guard now returns early, so `t` cannot leave `(0,1)`; the no-crossing case returns `lowValue`, not `null` |
+| Sensitivity threshold assumes a linear response across the range, which the underlying option payoff is not | `frontend/lib/sensitivity-utils.ts:220-226` | Solve on the backend or label the value as an approximation | **Open** |
+| `result` and `params` accepted as unbounded `dict[str, Any]` on the export endpoint | `backend/src/worth_it/models.py:1131-1135` | Replace with typed models | Fixed in #295 — `ExportParams`, `FirstChicagoExportResult`, `PreRevenueExportResult`, `ExportMonteCarloResult` |
+| `format` defaults to `"pdf"`, so the riskiest code path is the default | `backend/src/worth_it/models.py:1120` | Default to `"json"` until blocker 6 lands | Fixed in #295 — `default="json"` |
+| Waterfall response `common_pct`/`preferred_pct` bounds are load-bearing validation doing double duty as an error check | `backend/src/worth_it/models.py:719-720` | Keep the bounds, but assert the invariant in the engine so failures surface as engine errors, not 400s | Fixed in #295 — the engine asserts the distribution invariant with explicit tolerances |
+| Preference tiers auto-generated from priced rounds sort by date but silently no-op when dates are absent | `frontend/components/cap-table/waterfall-analysis.tsx:48-54` | Fall back to explicit round ordering | Fixed in #295 — `compareSeniority` falls back to declaration order when a date is missing |
+| `zodResolver` cast through `as any` with a lint suppression, disabling form type safety | `frontend/components/cap-table/preference-stack-editor.tsx:65-66` | Align the Zod schema's input/output types and drop the cast | **Open** — the cast is still present (now at `:120`) |
+| Chart valuation range is hardcoded $1M–$500M regardless of the user's own exit assumption | `frontend/components/cap-table/waterfall-analysis.tsx:8-10` | Derive the range from the scenario's exit valuation | Fixed in #295 — the sweep is anchored at 0.2x–2x the scenario exit, widened to stay within the previously reachable $1M–$500M span |
+| Currency is USD-hardcoded throughout formatting | `frontend/lib/format-utils.ts` | Thread a currency setting through; low priority for a US-first launch | **Open** |
+| No `LICENSE` file in a public-looking repo | repo root | Add one | **Open** |
+| `frontend/node_modules` is a partial install (445 entries; `zustand`, `sonner`, `framer-motion`, `uuid`, `jspdf`, `cmdk`, `date-fns`, several `@radix-ui/*` missing) though all are in `package.json` and `pnpm-lock.yaml` | `frontend/` working tree | `lcli install` — local environment only, not a repo defect | N/A — local environment, never a repo state |
 
 ## 5. What is genuinely solid
 
@@ -83,6 +147,10 @@ The audit was not one-sided, and several areas came back clean under adversarial
 
 ## 6. Enhancement roadmap
 
+*The dependency notes below were written when the blockers were still open. All
+seven are now fixed in #295, so every "blocked by / requires blocker N" caveat is
+discharged — these items are unblocked, not pending. Item 7 is already done.*
+
 **Top 3 — do these first, in this order.**
 
 **1. Reproducible, seeded simulation.** Thread an explicit seed through `backend/src/worth_it/monte_carlo.py` (replacing the global RNG at `:310`/`:435`) and return it in the response. This is listed as a fix in section 3 *and* is the single highest-leverage enhancement: it makes results shareable ("here is the exact run I saw"), makes regressions testable, and is a hard prerequisite for share links, PDF reproducibility, and any A/B comparison of scenarios. Unlocked by section 3, item 1.
@@ -97,7 +165,7 @@ The audit was not one-sided, and several areas came back clean under adversarial
 
 **6. Cap-table import.** Manual stakeholder entry is the highest-friction step in the Waterfall flow. CSV or Carta-shaped import removes it. Requires blocker 3, since the panel currently 400s on any realistic cap table.
 
-**7. Stakeholder assignment UI for preference tiers.** Currently impossible to express which investors sit in which tier (`preference-stack-editor.tsx:93` hardcodes `stakeholder_ids: []`). This is half of blocker 3's fix and unlocks genuinely useful modeling — pari passu stacks, side letters, seniority experiments.
+**7. Stakeholder assignment UI for preference tiers.** ~~Currently impossible to express which investors sit in which tier (`preference-stack-editor.tsx:93` hardcodes `stakeholder_ids: []`).~~ **Delivered in #295** as half of blocker 3's fix: the tier editor has a stakeholder picker and `waterfall-analysis.tsx` tracks assigned versus unassigned tiers. The modeling it unlocks — pari passu stacks, side letters, seniority experiments — is now reachable.
 
 **8. Scenario-diff view.** Change one assumption, see exactly which downstream numbers moved and by how much. Directly leverages the seeded-run work in item 1.
 
@@ -108,6 +176,9 @@ The audit was not one-sided, and several areas came back clean under adversarial
 **Deliberately not doing:** accounts, persistence, and a backend database. The statelessness is the reason this audit's security section is short. Adding auth and stored user financials would convert a low-blast-radius calculator into a system holding compensation data for identifiable people, and would invalidate most of the "genuinely solid" column above.
 
 ## 7. The one thing
+
+*Done in #295 — all three landed with regression tests. Kept here as the record
+of what the tests defend.*
 
 **Fix the math trio — `backend/src/worth_it/services/serializers.py:142`, `backend/src/worth_it/services/startup_service.py:145`, and `backend/src/worth_it/calculations/waterfall_engine.py:320`/`:372` — and land a regression test for each before touching anything else.**
 

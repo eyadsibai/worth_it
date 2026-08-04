@@ -81,10 +81,21 @@ export default defineConfig({
       // squatting on 8000 is then silently treated as the backend, and every test
       // fails somewhere far from the cause. Set BACKEND_PORT to step around it.
       command: `cd ../backend && uv run uvicorn worth_it.api:app --port ${BACKEND_PORT}`,
-      // /health, not /: the API serves no root route, so probing / waits out the
-      // timeout against a healthy backend. This only ever passed because an
-      // unrelated service that does answer / happened to hold the port.
-      url: `http://localhost:${BACKEND_PORT}/health`,
+      // Not /: the API serves no root route, so probing / waits out the timeout
+      // against a healthy backend. This only ever passed because an unrelated
+      // service that does answer / happened to hold the port.
+      //
+      // Not /health either: it carries @limiter.limit(RATE_LIMIT_PER_MINUTE)
+      // (60/minute by default). Playwright polls this url continuously, so a
+      // backend that takes a while to come up spends the whole budget on the
+      // probe, starts collecting 429s, and keeps failing until the window
+      // rolls -- a readiness timeout against a backend that is already up.
+      //
+      // /openapi.json is unauthenticated, carries no limiter, and is served
+      // from a schema FastAPI builds once and caches, so polling it is cheap.
+      // It is also a stronger readiness signal than a static route: it only
+      // answers once the app and all its routers are mounted.
+      url: `http://localhost:${BACKEND_PORT}/openapi.json`,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
       stderr: "pipe",

@@ -101,6 +101,15 @@ export class WorthItHelpers {
     const pageLabel = this.page.getByText(labelText, { exact: true });
     const formItem = searchContext.locator('[data-slot="form-item"]').filter({ has: pageLabel });
 
+    // One handle for the thumb this helper drives, so the element verified at
+    // the end is the element that was actually changed.
+    //
+    // `.first()` because getAttribute on a locator matching several elements
+    // raises a Playwright strict-mode error, which reads as a crash in this
+    // helper rather than as the value mismatch it almost always is. Nothing is
+    // masked by it: the driving steps below use this same handle.
+    let slider = formItem.locator('[role="slider"]').first();
+
     // Try the fast path: use the "Edit {label} value" button for direct input
     const editButton = formItem.getByRole('button', { name: `Edit ${labelText} value` });
     const hasEditButton = await editButton.count() > 0;
@@ -123,40 +132,36 @@ export class WorthItHelpers {
       // Wait for the edit mode to close (button reappears)
       await editButton.waitFor({ state: 'visible', timeout: TIMEOUTS.formInput });
     } else {
-      // Fallback: Use keyboard navigation for older slider styles
-      const slider = formItem.locator('[role="slider"]');
-
-      // If no form-item found, try alternative: find slider near the label text
-      const sliderCount = await slider.count();
-      let targetSlider = slider;
-
-      if (sliderCount === 0) {
-        // Fallback: look for slider in the same section/card as the label
+      // Fallback: Use keyboard navigation for older slider styles.
+      // If the form-item holds no slider, look for one in the same card as the
+      // label. Reassigned rather than kept in a second variable so the
+      // verification below still watches the thumb that was driven.
+      if ((await formItem.locator('[role="slider"]').count()) === 0) {
         const card = this.page.locator('.terminal-card').filter({ has: label });
-        targetSlider = card.locator('[role="slider"]').first();
+        slider = card.locator('[role="slider"]').first();
       }
 
-      await targetSlider.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
+      await slider.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
 
       // Get slider max value from aria-valuemax
-      const maxValue = parseFloat(await targetSlider.getAttribute('aria-valuemax') || '100');
+      const maxValue = parseFloat(await slider.getAttribute('aria-valuemax') || '100');
 
       // Calculate steps needed from each end
       const stepsFromMin = Math.round((targetValue - min) / step);
       const stepsFromMax = Math.round((maxValue - targetValue) / step);
 
-      await targetSlider.focus();
+      await slider.focus();
 
       // Use the closer end to minimize key presses
       if (stepsFromMin <= stepsFromMax) {
-        await targetSlider.press('Home');
+        await slider.press('Home');
         for (let i = 0; i < Math.min(stepsFromMin, 20); i++) {
-          await targetSlider.press('ArrowRight');
+          await slider.press('ArrowRight');
         }
       } else {
-        await targetSlider.press('End');
+        await slider.press('End');
         for (let i = 0; i < Math.min(stepsFromMax, 20); i++) {
-          await targetSlider.press('ArrowLeft');
+          await slider.press('ArrowLeft');
         }
       }
     }
@@ -168,7 +173,6 @@ export class WorthItHelpers {
     // *position*, so their `aria-valuenow` is that position and the real value
     // is only exposed via `aria-valuetext` ("$100M"). Accept either
     // representation so this helper works for both kinds of slider.
-    const slider = formItem.locator('[role="slider"]');
     await expect
       .poll(
         async () => {
