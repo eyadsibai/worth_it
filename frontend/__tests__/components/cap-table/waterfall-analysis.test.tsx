@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WaterfallAnalysis } from "@/components/cap-table/waterfall-analysis";
@@ -119,17 +119,20 @@ function lastRequest(): WaterfallRequest {
   return mutate.mock.calls[mutate.mock.calls.length - 1][0] as WaterfallRequest;
 }
 
+/** Every suite here inspects the request, so every suite needs the same idle mutation. */
+function stubWaterfallMutation() {
+  mutate.mockClear();
+  vi.mocked(apiClient.useCalculateWaterfall).mockReturnValue({
+    mutate,
+    data: undefined,
+    isPending: false,
+    isError: false,
+    error: null,
+  } as unknown as ReturnType<typeof apiClient.useCalculateWaterfall>);
+}
+
 describe("WaterfallAnalysis request construction", () => {
-  beforeEach(() => {
-    mutate.mockClear();
-    vi.mocked(apiClient.useCalculateWaterfall).mockReturnValue({
-      mutate,
-      data: undefined,
-      isPending: false,
-      isError: false,
-      error: null,
-    } as unknown as ReturnType<typeof apiClient.useCalculateWaterfall>);
-  });
+  beforeEach(stubWaterfallMutation);
 
   it("attaches the lead investor of each priced round to its preference tier", () => {
     render(
@@ -273,16 +276,7 @@ describe("WaterfallAnalysis request construction", () => {
 });
 
 describe("WaterfallAnalysis unmatched preference tiers", () => {
-  beforeEach(() => {
-    mutate.mockClear();
-    vi.mocked(apiClient.useCalculateWaterfall).mockReturnValue({
-      mutate,
-      data: undefined,
-      isPending: false,
-      isError: false,
-      error: null,
-    } as unknown as ReturnType<typeof apiClient.useCalculateWaterfall>);
-  });
+  beforeEach(stubWaterfallMutation);
 
   const unmatchableRound = pricedRound({
     id: "r-unmatched",
@@ -343,16 +337,7 @@ describe("WaterfallAnalysis unmatched preference tiers", () => {
 });
 
 describe("WaterfallAnalysis tiers referencing deleted stakeholders", () => {
-  beforeEach(() => {
-    mutate.mockClear();
-    vi.mocked(apiClient.useCalculateWaterfall).mockReturnValue({
-      mutate,
-      data: undefined,
-      isPending: false,
-      isError: false,
-      error: null,
-    } as unknown as ReturnType<typeof apiClient.useCalculateWaterfall>);
-  });
+  beforeEach(stubWaterfallMutation);
 
   /** A tier still naming a holder the user has since deleted from the cap table. */
   const staleTier: PreferenceTier = {
@@ -405,19 +390,48 @@ describe("WaterfallAnalysis tiers referencing deleted stakeholders", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent(/Series Seed/);
   });
+
+  it("shows the editor the same holders the calculation uses", () => {
+    // The warning card says the tier has no holders. An editor still counting the
+    // deleted one contradicts it, and "Unknown stakeholder" is not something the
+    // user can act on.
+    render(<WaterfallAnalysis capTable={mockCapTable} preferenceTiers={[staleTier]} />, {
+      wrapper: createWrapper(),
+    });
+
+    expect(
+      screen.getByRole("button", { name: /Holders \(0\)\s*for Series Seed/i })
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Unknown stakeholder/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("WaterfallAnalysis rounds without a usable name", () => {
+  beforeEach(stubWaterfallMutation);
+
+  it("does not let a blank round name claim every preferred stakeholder", () => {
+    render(
+      <WaterfallAnalysis
+        capTable={mockCapTable}
+        pricedRounds={[
+          pricedRound({ id: "r1", round_name: "Series A", lead_investor: "Acme Ventures" }),
+          // Declared last, so it is the most senior tier and picks its holders first.
+          // `"   ".includes("")` is true for every name, so an unguarded fallback
+          // hands it the whole preferred class and starves every later tier.
+          pricedRound({ id: "r2", round_name: "   " }),
+        ]}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    const tiers = lastRequest().preference_tiers;
+    expect(tiers.find((t) => t.name === "Series A")?.stakeholder_ids).toEqual(["investor-a"]);
+    expect(tiers.map((t) => t.name)).toEqual(["Series A"]);
+  });
 });
 
 describe("WaterfallAnalysis preference tier persistence", () => {
-  beforeEach(() => {
-    mutate.mockClear();
-    vi.mocked(apiClient.useCalculateWaterfall).mockReturnValue({
-      mutate,
-      data: undefined,
-      isPending: false,
-      isError: false,
-      error: null,
-    } as unknown as ReturnType<typeof apiClient.useCalculateWaterfall>);
-  });
+  beforeEach(stubWaterfallMutation);
 
   it("reports tier edits to the caller so they survive a remount", async () => {
     // Radix unmounts a non-selected TabsContent, so state held only in this
@@ -440,5 +454,121 @@ describe("WaterfallAnalysis preference tier persistence", () => {
 
     expect(onPreferenceTiersChange).toHaveBeenCalled();
     expect(onPreferenceTiersChange.mock.calls.at(-1)?.[0]).toEqual([]);
+  });
+
+  it("publishes the stack it inferred so a save cannot persist an empty one", async () => {
+    // Inference is an edit to the stack, not a rendering detail. If the owner
+    // never hears about it, Save writes an empty preference stack while this
+    // panel shows - and prices - a full one.
+    const onPreferenceTiersChange = vi.fn();
+
+    render(
+      <WaterfallAnalysis
+        capTable={mockCapTable}
+        pricedRounds={[
+          pricedRound({ id: "r1", round_name: "Series A", lead_investor: "Acme Ventures" }),
+          pricedRound({ id: "r2", round_name: "Series B", lead_investor: "Beta Capital" }),
+        ]}
+        preferenceTiers={[]}
+        onPreferenceTiersChange={onPreferenceTiersChange}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    await waitFor(() => expect(onPreferenceTiersChange).toHaveBeenCalled());
+    const published = onPreferenceTiersChange.mock.calls.at(-1)?.[0] as PreferenceTier[];
+    expect(published.map((t) => t.name)).toEqual(["Series B", "Series A"]);
+    // What the owner persists is exactly what the panel priced.
+    expect(published).toEqual(lastRequest().preference_tiers);
+  });
+
+  it("infers a stack for priced rounds that arrive after mount", async () => {
+    const onPreferenceTiersChange = vi.fn();
+    const round = pricedRound({ id: "r1", round_name: "Series A", lead_investor: "Acme Ventures" });
+
+    const { rerender } = render(
+      <WaterfallAnalysis
+        capTable={mockCapTable}
+        pricedRounds={[]}
+        preferenceTiers={[]}
+        onPreferenceTiersChange={onPreferenceTiersChange}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    expect(lastRequest().preference_tiers).toEqual([]);
+
+    rerender(
+      <WaterfallAnalysis
+        capTable={mockCapTable}
+        pricedRounds={[round]}
+        preferenceTiers={[]}
+        onPreferenceTiersChange={onPreferenceTiersChange}
+      />
+    );
+
+    await waitFor(() =>
+      expect(lastRequest().preference_tiers.map((t) => t.name)).toEqual(["Series A"])
+    );
+    expect(onPreferenceTiersChange.mock.calls.at(-1)?.[0]).toEqual(lastRequest().preference_tiers);
+  });
+
+  it("adopts an empty stack from the caller instead of keeping the one it had", async () => {
+    // Clearing the stack is a decision the owner is allowed to make. Only an
+    // absent prop means "uncontrolled - guess for me".
+    const seededTier: PreferenceTier = {
+      id: "tier-seeded",
+      name: "Series A",
+      seniority: 1,
+      investment_amount: 5_000_000,
+      liquidation_multiplier: 1,
+      participating: false,
+      stakeholder_ids: ["investor-a"],
+    };
+
+    const { rerender } = render(
+      <WaterfallAnalysis capTable={mockCapTable} preferenceTiers={[seededTier]} />,
+      { wrapper: createWrapper() }
+    );
+
+    expect(lastRequest().preference_tiers.map((t) => t.name)).toEqual(["Series A"]);
+
+    rerender(<WaterfallAnalysis capTable={mockCapTable} preferenceTiers={[]} />);
+
+    await waitFor(() => expect(lastRequest().preference_tiers).toEqual([]));
+    expect(screen.queryByText(/Preference Stack \(/i)).not.toBeInTheDocument();
+  });
+
+  it("does not resurrect a stack the user emptied", async () => {
+    // The user deleting the last tier and inference filling it straight back in
+    // would make the tier undeletable.
+    const onPreferenceTiersChange = vi.fn();
+    const user = userEvent.setup();
+    const rounds = [
+      pricedRound({ id: "r1", round_name: "Series A", lead_investor: "Acme Ventures" }),
+    ];
+
+    const { rerender } = render(
+      <WaterfallAnalysis
+        capTable={mockCapTable}
+        pricedRounds={rounds}
+        preferenceTiers={[]}
+        onPreferenceTiersChange={onPreferenceTiersChange}
+      />,
+      { wrapper: createWrapper() }
+    );
+
+    await user.click(screen.getByRole("button", { name: /Remove Series A/i }));
+    rerender(
+      <WaterfallAnalysis
+        capTable={mockCapTable}
+        pricedRounds={rounds}
+        preferenceTiers={[]}
+        onPreferenceTiersChange={onPreferenceTiersChange}
+      />
+    );
+
+    await waitFor(() => expect(lastRequest().preference_tiers).toEqual([]));
+    expect(screen.queryByText(/Preference Stack \(/i)).not.toBeInTheDocument();
   });
 });

@@ -276,6 +276,22 @@ describe("CapTableManager waterfall anchoring", () => {
     expect(captured.waterfallProps?.exitValuation).toBe(250_000_000);
   });
 
+  it("anchors on the round the preference stack also treats as most senior", () => {
+    // Undated rounds are ordered by declaration. The manager picks the anchor and
+    // WaterfallAnalysis picks the senior tier; a second copy of that tie-break
+    // would eventually let the two disagree.
+    renderManager({
+      instruments: [
+        pricedRound({ id: "round-1", round_name: "Series A", post_money_valuation: 40_000_000 }),
+        pricedRound({ id: "round-2", round_name: "Series B", post_money_valuation: 250_000_000 }),
+      ],
+    });
+
+    openWaterfallTab();
+
+    expect(captured.waterfallProps?.exitValuation).toBe(250_000_000);
+  });
+
   it("falls back to pre-money plus amount raised when post-money is absent", () => {
     renderManager({
       instruments: [pricedRound({ pre_money_valuation: 30_000_000, amount_raised: 10_000_000 })],

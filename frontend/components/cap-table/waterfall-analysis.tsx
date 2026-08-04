@@ -4,9 +4,9 @@
 const DEFAULT_EXIT_VALUATION = 50_000_000;
 /** Number of exit valuation data points for chart */
 const EXIT_VALUATION_COUNT = 20;
-/** Low end of the anchored sweep (20% of the scenario exit valuation) */
+/** Extends the sweep below $1M when the scenario exit is small (20% of it) */
 const CHART_RANGE_LOW_MULTIPLIER = 0.2;
-/** High end of the anchored sweep (200% of the scenario exit valuation) */
+/** Extends the sweep above $500M when the scenario exit is large (200% of it) */
 const CHART_RANGE_HIGH_MULTIPLIER = 2;
 /**
  * The sweep always spans at least $1M-$500M. Anchoring on the scenario's exit
@@ -29,6 +29,7 @@ import { PreferenceStackEditor } from "./preference-stack-editor";
 import { ValuationSlider } from "./valuation-slider";
 import { useCalculateWaterfall } from "@/lib/api-client";
 import { useDebounce } from "@/lib/hooks/use-debounce";
+import { orderBySeniority } from "@/lib/priced-rounds";
 import { generateId } from "@/lib/utils";
 import type { CapTable, PreferenceTier, PricedRound, Stakeholder } from "@/lib/schemas";
 import { formatLargeNumber } from "@/lib/format-utils";
@@ -79,25 +80,6 @@ function normalizeName(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function roundTimestamp(round: PricedRound): number {
-  return round.date ? new Date(round.date).getTime() : NaN;
-}
-
-interface OrderedRound {
-  round: PricedRound;
-  index: number;
-}
-
-// Most recent round is the most senior; declaration order breaks ties and covers missing dates
-function compareSeniority(a: OrderedRound, b: OrderedRound): number {
-  const aTime = roundTimestamp(a.round);
-  const bTime = roundTimestamp(b.round);
-  if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime !== bTime) {
-    return bTime - aTime;
-  }
-  return b.index - a.index;
-}
-
 function matchStakeholderIds(round: PricedRound, available: Stakeholder[]): string[] {
   if (round.lead_investor) {
     const lead = normalizeName(round.lead_investor);
@@ -107,7 +89,11 @@ function matchStakeholderIds(round: PricedRound, available: Stakeholder[]): stri
     }
   }
 
+  // `name.includes("")` is true for everyone, so a blank round name would claim
+  // the whole preferred class and leave every later tier with no holders.
   const roundName = normalizeName(round.round_name);
+  if (roundName === "") return [];
+
   return available
     .filter((s) => s.share_class === "preferred" && normalizeName(s.name).includes(roundName))
     .map((s) => s.id);
@@ -119,11 +105,8 @@ function buildTiersFromRounds(
 ): PreferenceTier[] {
   const unclaimed = [...stakeholders];
 
-  return pricedRounds
-    .filter((r) => r.type === "PRICED_ROUND")
-    .map((round, index) => ({ round, index }))
-    .sort(compareSeniority)
-    .map(({ round }, index) => {
+  return orderBySeniority(pricedRounds.filter((r) => r.type === "PRICED_ROUND")).map(
+    (round, index) => {
       const stakeholderIds = matchStakeholderIds(round, unclaimed);
       for (const id of stakeholderIds) {
         const claimedAt = unclaimed.findIndex((s) => s.id === id);
@@ -140,7 +123,20 @@ function buildTiersFromRounds(
         participation_cap: round.participation_cap ?? undefined,
         stakeholder_ids: stakeholderIds,
       };
-    });
+    }
+  );
+}
+
+/**
+ * Identifies the inputs an inferred stack was derived from.
+ *
+ * Inference must re-run when new rounds arrive but must never run twice for the
+ * same ones - a stack the user emptied has to stay empty. Comparing ids rather
+ * than array identity keeps that true for a caller that rebuilds its props on
+ * every render.
+ */
+function inferenceKey(pricedRounds: PricedRound[], stakeholders: Stakeholder[]): string {
+  return `${pricedRounds.map((r) => r.id).join(",")}::${stakeholders.map((s) => s.id).join(",")}`;
 }
 
 export function WaterfallAnalysis({
@@ -153,31 +149,75 @@ export function WaterfallAnalysis({
   const anchorValuation = exitValuation > 0 ? exitValuation : DEFAULT_EXIT_VALUATION;
 
   // Tiers the caller supplied win; otherwise infer them from the priced rounds.
+  // Inferring here rather than in an effect keeps the first request from going
+  // out with an empty stack and being superseded a tick later.
   const [preferenceTiers, setPreferenceTiers] = React.useState<PreferenceTier[]>(() =>
     providedTiers?.length
       ? providedTiers
       : buildTiersFromRounds(pricedRounds, capTable.stakeholders)
   );
 
-  // Adopt caller-supplied tiers when they change - loading a template or switching
-  // scenarios replaces the stack wholesale.
-  const lastProvidedTiers = React.useRef(providedTiers);
-  React.useEffect(() => {
-    if (providedTiers?.length && providedTiers !== lastProvidedTiers.current) {
-      setPreferenceTiers(providedTiers);
-    }
-    lastProvidedTiers.current = providedTiers;
-  }, [providedTiers]);
+  // The stack the owner has already been told about. The initial inference has
+  // not been reported yet, hence the caller's own value.
+  const publishedTiers = React.useRef(providedTiers);
 
   // Local state stays the source of truth for rendering, but every edit is echoed
   // upward so the owner can put it through history and persistence.
   const handleTiersChange = React.useCallback(
     (next: PreferenceTier[]) => {
       setPreferenceTiers(next);
+      publishedTiers.current = next;
       onPreferenceTiersChange?.(next);
     },
     [onPreferenceTiersChange]
   );
+
+  // Adopt every caller value - loading a template or switching scenarios replaces
+  // the stack wholesale, and an empty array is a stack the owner deliberately
+  // cleared. Only an absent prop means "uncontrolled, infer for me".
+  const lastProvidedTiers = React.useRef(providedTiers);
+  React.useEffect(() => {
+    if (providedTiers !== lastProvidedTiers.current) {
+      lastProvidedTiers.current = providedTiers;
+      if (providedTiers) {
+        setPreferenceTiers(providedTiers);
+        publishedTiers.current = providedTiers;
+      }
+    }
+  }, [providedTiers]);
+
+  // Inference is a real edit to the stack, not a rendering detail: unless the
+  // owner hears about it, a save persists an empty stack while this panel shows -
+  // and prices - a full one. Re-infer when the rounds change and there is no
+  // stack to preserve; never twice for the same rounds, so a stack the user
+  // emptied stays empty.
+  const roundsKey = inferenceKey(pricedRounds, capTable.stakeholders);
+  const lastInferenceKey = React.useRef(roundsKey);
+  React.useEffect(() => {
+    const roundsChanged = roundsKey !== lastInferenceKey.current;
+    lastInferenceKey.current = roundsKey;
+    if (providedTiers?.length) return;
+
+    let stack = preferenceTiers;
+    if (roundsChanged && stack.length === 0) {
+      const inferred = buildTiersFromRounds(pricedRounds, capTable.stakeholders);
+      if (inferred.length > 0) {
+        setPreferenceTiers(inferred);
+        stack = inferred;
+      }
+    }
+
+    if (stack.length === 0 || stack === publishedTiers.current) return;
+    publishedTiers.current = stack;
+    onPreferenceTiersChange?.(stack);
+  }, [
+    roundsKey,
+    providedTiers,
+    preferenceTiers,
+    pricedRounds,
+    capTable.stakeholders,
+    onPreferenceTiersChange,
+  ]);
 
   // Exit valuation state
   const [selectedValuation, setSelectedValuation] = React.useState(anchorValuation);
@@ -281,8 +321,11 @@ export function WaterfallAnalysis({
   return (
     <div className="space-y-6">
       {/* Preference Stack Editor */}
+      {/* The pruned stack, not the raw one: a tier that lost its holder to a
+          deletion must read as empty here too, or the editor contradicts the
+          warning card below and the request. */}
       <PreferenceStackEditor
-        tiers={preferenceTiers}
+        tiers={liveTiers}
         onTiersChange={handleTiersChange}
         stakeholders={capTable.stakeholders}
       />

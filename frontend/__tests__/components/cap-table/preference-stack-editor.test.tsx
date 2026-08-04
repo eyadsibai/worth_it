@@ -163,6 +163,32 @@ describe("PreferenceStackEditor stakeholder assignment", () => {
     expect(updatedTiers[0].stakeholder_ids).toEqual([]);
   });
 
+  it("points the Holders toggle at the region it opens", async () => {
+    // aria-expanded alone tells a screen reader that something opened, not what.
+    const user = userEvent.setup();
+
+    render(
+      <PreferenceStackEditor
+        tiers={[existingTier]}
+        onTiersChange={vi.fn()}
+        stakeholders={mockStakeholders}
+      />
+    );
+
+    const toggle = screen.getByRole("button", { name: /Holders \(1\)\s*for Series A/i });
+    await user.click(toggle);
+
+    const controlledId = toggle.getAttribute("aria-controls");
+    expect(controlledId).toBeTruthy();
+    const region = document.getElementById(controlledId as string);
+    expect(region).not.toBeNull();
+    expect(
+      within(region as HTMLElement).getByRole("group", {
+        name: "Stakeholders assigned to Series A",
+      })
+    ).toBeInTheDocument();
+  });
+
   it("explains the empty state when the cap table has no stakeholders", () => {
     render(<PreferenceStackEditor tiers={[]} onTiersChange={vi.fn()} stakeholders={[]} />);
 

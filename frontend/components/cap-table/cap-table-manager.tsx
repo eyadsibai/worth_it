@@ -37,6 +37,7 @@ import {
 } from "@/lib/motion";
 import { generateId } from "@/lib/utils";
 import { sharesForOwnership, totalSharesCovering } from "@/lib/cap-table-shares";
+import { latestPricedRound } from "@/lib/priced-rounds";
 import { useConvertInstruments } from "@/lib/api-client";
 import { useCapTableHistory } from "@/lib/hooks";
 import { CapTableWizard } from "./wizard";
@@ -80,23 +81,6 @@ const WIZARD_SKIPPED_KEY = "cap-table-wizard-skipped";
 /** Post-money is what the round valued the company at; derive it when unstated. */
 function roundValuation(round: PricedRound): number {
   return round.post_money_valuation ?? round.pre_money_valuation + round.amount_raised;
-}
-
-function roundTimestamp(round: PricedRound): number {
-  return round.date ? new Date(round.date).getTime() : NaN;
-}
-
-/** The newest round by date; declaration order breaks ties and covers missing dates. */
-function latestPricedRound(rounds: PricedRound[]): PricedRound | undefined {
-  return rounds.reduce<PricedRound | undefined>((latest, round) => {
-    if (!latest) return round;
-    const latestTime = roundTimestamp(latest);
-    const roundTime = roundTimestamp(round);
-    if (Number.isFinite(latestTime) && Number.isFinite(roundTime) && latestTime !== roundTime) {
-      return roundTime > latestTime ? round : latest;
-    }
-    return round;
-  }, undefined);
 }
 
 export function CapTableManager({

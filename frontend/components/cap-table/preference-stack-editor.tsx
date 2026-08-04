@@ -57,6 +57,11 @@ function formatCurrency(value: number): string {
   return `$${value.toFixed(0)}`;
 }
 
+/** Ties the Holders toggle to the region it opens, for assistive technology. */
+function holdersRegionId(tierId: string): string {
+  return `tier-${tierId}-holders`;
+}
+
 interface StakeholderAssignmentProps {
   legend: string;
   description?: string;
@@ -443,6 +448,7 @@ export function PreferenceStackEditor({
                           variant="ghost"
                           size="sm"
                           aria-expanded={expandedTierId === tier.id}
+                          aria-controls={holdersRegionId(tier.id)}
                           onClick={() =>
                             setExpandedTierId(expandedTierId === tier.id ? null : tier.id)
                           }
@@ -483,7 +489,10 @@ export function PreferenceStackEditor({
                     )}
 
                     {expandedTierId === tier.id && (
-                      <div className="border-border border-t pt-3 pl-9">
+                      <div
+                        id={holdersRegionId(tier.id)}
+                        className="border-border border-t pt-3 pl-9"
+                      >
                         <StakeholderAssignment
                           legend={`Stakeholders assigned to ${tier.name}`}
                           hideLegend
