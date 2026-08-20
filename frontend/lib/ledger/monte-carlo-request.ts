@@ -107,6 +107,8 @@ export function buildMonteCarloRequest(input: BuildMonteCarloRequestInput): Mont
   // disabled, so its numeric fields are inert placeholders never read by
   // `buildSimParamConfigs` (see that function's `if (data.*_enabled)` guards).
   const formValues: MonteCarloForm = {
+    // Also inert here: `buildSimParamConfigs` never reads `num_simulations`
+    // at all — the real count goes out on the returned request below.
     num_simulations: numSimulations,
     ...exitPriceSeed,
     growth_rate_enabled: false,

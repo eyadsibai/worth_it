@@ -146,6 +146,43 @@ describe("OutcomesChapter", () => {
     expect(onPercentiles).toHaveBeenCalledWith(percentiles, 0.64, 20260820);
   });
 
+  it("signals a reset with nulls when a new run clears the previous result", () => {
+    const onPercentiles = vi.fn();
+    // Mirrors the real hook's own `runSimulation`, which resets `result` to
+    // null the instant a new run starts.
+    mockRunSimulation.mockImplementation(() => {
+      mockHookReturn = { ...mockHookReturn, result: null };
+    });
+
+    const { rerender } = wrap(
+      <OutcomesChapter
+        index="02"
+        globalSettings={globalSettings}
+        currentJob={currentJob}
+        equityDetails={equityDetails}
+        onPercentiles={onPercentiles}
+      />
+    );
+    onPercentiles.mockClear(); // drop the initial "result landed" call
+
+    screen
+      .getByRole("button", { name: en.chapters.outcomes.run.replace("{runs}", "10,000") })
+      .click();
+    rerender(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <OutcomesChapter
+          index="02"
+          globalSettings={globalSettings}
+          currentJob={currentJob}
+          equityDetails={equityDetails}
+          onPercentiles={onPercentiles}
+        />
+      </NextIntlClientProvider>
+    );
+
+    expect(onPercentiles).toHaveBeenCalledWith(null, null, null);
+  });
+
   it("runs a simulation via the WebSocket hook when the run action is clicked", () => {
     mockHookReturn.result = null;
     wrap(

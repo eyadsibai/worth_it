@@ -79,13 +79,17 @@ export function OutcomesChapter({
   const [seed, setSeed] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!result) return;
+    // Unconditional, not gated on `result` being non-null: `runSimulation`
+    // resets the hook's `result` to null the moment a new run starts, and
+    // the consumer (Task 13's verdict) needs that reset signalled too — a
+    // guard here would leave it holding a stale percentiles/seed from the
+    // PREVIOUS run while this chapter's own table/band correctly blank out.
     onPercentiles(
-      result.net_outcome_percentiles ?? null,
-      result.probability_offer_wins ?? null,
-      result.seed ?? null
+      result?.net_outcome_percentiles ?? null,
+      result?.probability_offer_wins ?? null,
+      result?.seed ?? null
     );
-    // onPercentiles isn't tracked: only a freshly-landed result should retrigger this.
+    // onPercentiles isn't tracked: only a `result` transition should retrigger this.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result]);
 
