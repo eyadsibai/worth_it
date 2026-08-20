@@ -11,8 +11,25 @@ interface FieldProps {
   error?: string;
   min?: number;
   max?: number;
+  /**
+   * Advisory only: kept on the input as a hint for a future `type="number"`
+   * variant. The blur parse does not round to `step` — silently rewriting a
+   * typed 7.35 to 7.4 would surprise users.
+   */
   step?: number;
   className?: string;
+}
+
+/** Clamps `value` into [min, max], leaving either bound open when omitted. */
+function clampToRange(value: number, min: number | undefined, max: number | undefined): number {
+  let clamped = value;
+  if (min !== undefined && clamped < min) {
+    clamped = min;
+  }
+  if (max !== undefined && clamped > max) {
+    clamped = max;
+  }
+  return clamped;
 }
 
 /**
@@ -34,6 +51,7 @@ export function Field({
   className,
 }: FieldProps) {
   const errorId = useId();
+  const hintId = useId();
   const [text, setText] = useState(value === null ? "" : String(value));
   const [touched, setTouched] = useState(false);
   // Adjust the local text during render (rather than in an effect) whenever
@@ -58,10 +76,18 @@ export function Field({
       return;
     }
     const parsed = Number(trimmed);
-    onValueChange(Number.isNaN(parsed) ? null : parsed);
+    if (Number.isNaN(parsed)) {
+      onValueChange(null);
+      return;
+    }
+    const clamped = clampToRange(parsed, min, max);
+    setText(String(clamped));
+    onValueChange(clamped);
   };
 
   const showError = touched && Boolean(error);
+  const showHint = Boolean(hint) && !showError;
+  const describedBy = showError ? errorId : showHint ? hintId : undefined;
 
   return (
     <div className={className}>
@@ -78,7 +104,7 @@ export function Field({
             max={max}
             step={step}
             aria-invalid={showError ? true : undefined}
-            aria-describedby={showError ? errorId : undefined}
+            aria-describedby={describedBy}
             className="text-ink focus-visible:border-market w-28 bg-transparent text-end font-mono text-sm tabular-nums outline-none focus-visible:border-b"
           />
           {unit ? <span className="text-annotation text-xs">{unit}</span> : null}
@@ -89,7 +115,11 @@ export function Field({
           {error}
         </p>
       ) : null}
-      {hint && !showError ? <p className="text-annotation py-1 text-xs">{hint}</p> : null}
+      {showHint ? (
+        <p id={hintId} className="text-annotation py-1 text-xs">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }

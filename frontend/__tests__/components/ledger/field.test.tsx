@@ -89,4 +89,102 @@ describe("Field", () => {
 
     expect(screen.getByText("years")).toBeInTheDocument();
   });
+
+  it("clamps a value below min up to min on blur", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render(<Field label="Percent" value={null} onValueChange={onValueChange} min={0} max={100} />);
+
+    const input = screen.getByRole("textbox", { name: "Percent" });
+    await user.type(input, "-5");
+    await user.tab();
+
+    expect(onValueChange).toHaveBeenCalledWith(0);
+    expect(input).toHaveValue("0");
+  });
+
+  it("clamps a value above max down to max on blur", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render(<Field label="Percent" value={null} onValueChange={onValueChange} min={0} max={100} />);
+
+    const input = screen.getByRole("textbox", { name: "Percent" });
+    await user.type(input, "150");
+    await user.tab();
+
+    expect(onValueChange).toHaveBeenCalledWith(100);
+    expect(input).toHaveValue("100");
+  });
+
+  it("passes an in-range value through untouched", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render(<Field label="Percent" value={null} onValueChange={onValueChange} min={0} max={100} />);
+
+    const input = screen.getByRole("textbox", { name: "Percent" });
+    await user.type(input, "42");
+    await user.tab();
+
+    expect(onValueChange).toHaveBeenCalledWith(42);
+    expect(input).toHaveValue("42");
+  });
+
+  it("calls onValueChange with null when the typed text doesn't parse as a number", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render(<Field label="Salary" value={null} onValueChange={onValueChange} />);
+
+    const input = screen.getByRole("textbox", { name: "Salary" });
+    await user.type(input, "12abc");
+    await user.tab();
+
+    expect(onValueChange).toHaveBeenCalledWith(null);
+  });
+
+  it("calls onValueChange with null for a lone minus sign", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render(
+      <Field label="Salary" value={null} onValueChange={onValueChange} hint="Monthly, before tax" />
+    );
+
+    const input = screen.getByRole("textbox", { name: "Salary" });
+    await user.type(input, "-");
+    await user.tab();
+
+    expect(onValueChange).toHaveBeenCalledWith(null);
+    // No error was supplied, so the hint keeps showing and nothing crashes.
+    expect(screen.getByText("Monthly, before tax")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("describes the input by the hint's id when the hint is showing", () => {
+    render(
+      <Field label="Salary" value={null} onValueChange={vi.fn()} hint="Monthly, before tax" />
+    );
+
+    const input = screen.getByRole("textbox", { name: "Salary" });
+    const hint = screen.getByText("Monthly, before tax");
+    expect(input).toHaveAttribute("aria-describedby", hint.id);
+  });
+
+  it("describes the input by the error's id (not the hint's) once both would show", async () => {
+    const user = userEvent.setup();
+    render(
+      <Field
+        label="Salary"
+        value={-5}
+        onValueChange={vi.fn()}
+        hint="Monthly, before tax"
+        error="Must be positive"
+      />
+    );
+
+    const input = screen.getByRole("textbox", { name: "Salary" });
+    await user.click(input);
+    await user.tab();
+
+    const alert = screen.getByRole("alert");
+    expect(input).toHaveAttribute("aria-describedby", alert.id);
+  });
 });
