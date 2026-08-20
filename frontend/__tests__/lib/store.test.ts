@@ -22,6 +22,7 @@ beforeEach(() => {
     monteCarloResults: null,
     comparisonScenarios: [],
     displayCurrency: "USD",
+    offers: [{ id: "test-offer-0", name: "", equityDetails: null }],
   });
 });
 
@@ -209,6 +210,65 @@ describe("loadExample", () => {
     });
 
     useAppStore.getState().loadExample("early-stage");
+
+    expect(useAppStore.getState().monteCarloResults).toBeNull();
+  });
+
+  it("seeds offers[0] with the example's equity details, preserving its id and name", () => {
+    useAppStore.setState({
+      offers: [
+        { id: "offer-a", name: "My Startup", equityDetails: null },
+        { id: "offer-b", name: "", equityDetails: null },
+      ],
+    });
+
+    useAppStore.getState().loadExample("growth-stage");
+
+    const { offers } = useAppStore.getState();
+    expect(offers).toHaveLength(2);
+    expect(offers[0]).toEqual({
+      id: "offer-a",
+      name: "My Startup",
+      equityDetails: useAppStore.getState().equityDetails,
+    });
+    expect(offers[1]).toEqual({ id: "offer-b", name: "", equityDetails: null });
+  });
+});
+
+describe("clearSample", () => {
+  it("empties currentJob, globalSettings, and equityDetails to null", () => {
+    useAppStore.getState().loadExample("early-stage");
+
+    useAppStore.getState().clearSample();
+
+    const state = useAppStore.getState();
+    expect(state.globalSettings).toBeNull();
+    expect(state.currentJob).toBeNull();
+    expect(state.equityDetails).toBeNull();
+  });
+
+  it("resets offers to a single blank offer", () => {
+    useAppStore.setState({
+      offers: [
+        { id: "offer-a", name: "Atlas", equityDetails: null },
+        { id: "offer-b", name: "Borealis", equityDetails: null },
+      ],
+    });
+
+    useAppStore.getState().clearSample();
+
+    const { offers } = useAppStore.getState();
+    expect(offers).toHaveLength(1);
+    expect(offers[0]).toEqual({ id: expect.any(String), name: "", equityDetails: null });
+  });
+
+  it("clears Monte Carlo results", () => {
+    useAppStore.getState().setMonteCarloResults({
+      net_outcomes: [100000],
+      simulated_valuations: [1000000],
+    });
+
+    useAppStore.getState().clearSample();
 
     expect(useAppStore.getState().monteCarloResults).toBeNull();
   });

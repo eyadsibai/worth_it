@@ -95,6 +95,10 @@ interface AppState {
   loadExample: (exampleId: string) => boolean;
   loadFounderTemplate: (templateId: string) => boolean;
 
+  // Ledger Landing - Sample Notice ("Clear the sample" empties the document
+  // back to true blanks, distinct from `loadExample`'s fill-in)
+  clearSample: () => void;
+
   // Derived State Helpers
   hasEmployeeFormData: () => boolean;
 
@@ -220,14 +224,35 @@ export const useAppStore = create<AppState>()(
         const example = getExampleById(exampleId);
         if (!example) return false;
 
-        // Atomically update all form state and clear results
+        // Atomically update all form state and clear results. `offers[0]` is
+        // seeded too (preserving its id/name so a prior rename survives a
+        // reload) — the Ledger landing reads offers, not the legacy singular
+        // `equityDetails`, which stays in sync here only for the pages that
+        // still read it directly.
+        const { offers } = get();
+        const [firstOffer, ...restOffers] = offers;
         set({
           globalSettings: example.globalSettings,
           currentJob: example.currentJob,
           equityDetails: example.equityDetails,
           monteCarloResults: null,
+          offers: [
+            { ...(firstOffer ?? createEmptyOffer()), equityDetails: example.equityDetails },
+            ...restOffers,
+          ],
         });
         return true;
+      },
+
+      // Ledger Landing - Sample Notice
+      clearSample: () => {
+        set({
+          globalSettings: null,
+          currentJob: null,
+          equityDetails: null,
+          offers: [createEmptyOffer()],
+          monteCarloResults: null,
+        });
       },
 
       loadFounderTemplate: (templateId) => {

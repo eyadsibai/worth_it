@@ -6,13 +6,22 @@
     "about": "About",
     "search": "Search",
     "language": "Language",
-    "theme": "Theme"
+    "theme": "Theme",
+    "currency": "Currency"
   },
   "landing": {
     "title": "Offer analysis",
     "horizon": "Horizon",
     "seed": "Simulation seed",
-    "npvToggle": "Today's dollars (NPV)"
+    "npvToggle": "Today's dollars (NPV)",
+    "sampleNotice": "Sample comparison — replace with your numbers",
+    "clearSample": "Clear the sample"
+  },
+  "states": {
+    "failure": {
+      "message": "Something went wrong computing this comparison.",
+      "retry": "Retry"
+    }
   },
   "verdict": {
     "takeOffer": "Take {offer} — it nets you {amount} in today's dollars.",

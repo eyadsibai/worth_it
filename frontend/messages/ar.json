@@ -6,13 +6,22 @@
     "about": "حول",
     "search": "بحث",
     "language": "اللغة",
-    "theme": "المظهر"
+    "theme": "المظهر",
+    "currency": "العملة"
   },
   "landing": {
     "title": "تحليل العرض",
     "horizon": "الأفق",
     "seed": "بذرة المحاكاة",
-    "npvToggle": "بدولارات اليوم (NPV)"
+    "npvToggle": "بدولارات اليوم (NPV)",
+    "sampleNotice": "مقارنة توضيحية — استبدلها بأرقامك",
+    "clearSample": "امسح المثال التوضيحي"
+  },
+  "states": {
+    "failure": {
+      "message": "حدث خطأ أثناء حساب هذه المقارنة.",
+      "retry": "أعد المحاولة"
+    }
   },
   "verdict": {
     "takeOffer": "اقبل {offer} — فستكسب {amount} إضافية بقيمة اليوم.",
