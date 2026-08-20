@@ -127,6 +127,31 @@ describe("useDraftAutoSave", () => {
       expect(JSON.parse(secondSave!).data.globalSettings.exit_year).toBe(2030);
     });
 
+    it("saves offers alongside the legacy fields", () => {
+      const formData = {
+        globalSettings: null,
+        currentJob: null,
+        equityDetails: null,
+        offers: [
+          {
+            id: "offer-1",
+            name: "Startup A",
+            equityDetails: { equity_type: "RSU" as const, monthly_salary: 8000 },
+          },
+        ],
+      };
+
+      renderHook(() => useDraftAutoSave(formData, { intervalMs: 5000 }));
+
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
+
+      const stored = localStorage.getItem(STORAGE_KEY);
+      expect(stored).not.toBeNull();
+      expect(JSON.parse(stored!).data.offers).toEqual(formData.offers);
+    });
+
     it("cleans up interval on unmount", () => {
       const clearIntervalSpy = vi.spyOn(global, "clearInterval");
       const formData = {
@@ -232,6 +257,42 @@ describe("getDraft", () => {
     );
 
     expect(getDraft()).toBeNull();
+  });
+
+  // v2 drafts predate the `offers` array entirely (they only ever wrote the
+  // legacy singular `equityDetails`), so there is nothing to migrate into -
+  // an old-shape draft is dropped just like any other version mismatch.
+  it("drops an old-shape (v2, pre-offers) draft", () => {
+    const oldShapeDraft = {
+      version: 2,
+      data: {
+        globalSettings: { exit_year: 2028 },
+        currentJob: { monthly_salary: 10000 },
+        equityDetails: { equity_type: "RSU" as const, monthly_salary: 8000 },
+      },
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(oldShapeDraft));
+
+    expect(getDraft()).toBeNull();
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  it("returns draft data with offers when present", () => {
+    const draft: DraftData = {
+      version: DRAFT_SCHEMA_VERSION,
+      data: {
+        globalSettings: null,
+        currentJob: null,
+        equityDetails: null,
+        offers: [{ id: "offer-1", name: "Startup A", equityDetails: null }],
+      },
+      savedAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+
+    expect(getDraft()).toEqual(draft);
   });
 });
 

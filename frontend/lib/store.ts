@@ -25,8 +25,26 @@ import type { ScenarioData } from "@/lib/export-utils";
 import type { DisplayCurrency } from "@/lib/ledger/format-money";
 import { getExampleById } from "@/lib/constants/examples";
 import { getFounderTemplateById } from "@/lib/constants/founder-templates";
+import { generateId } from "@/lib/utils";
 
 export type AppMode = "employee" | "founder";
+
+/** Upper bound on how many offers a user can compare side by side. */
+export const MAX_OFFERS = 3;
+
+/** Persist schema version for `useAppStore` (bumped when a persisted field changes shape or meaning). */
+const PERSIST_VERSION = 2;
+
+/** A single named offer being compared on the ledger landing (up to `MAX_OFFERS`). */
+export interface Offer {
+  id: string;
+  name: string;
+  equityDetails: RSUForm | StockOptionsForm | null;
+}
+
+function createEmptyOffer(): Offer {
+  return { id: generateId(), name: "", equityDetails: null };
+}
 
 interface MonteCarloResults {
   net_outcomes: number[];
@@ -49,6 +67,14 @@ interface AppState {
   setGlobalSettings: (data: GlobalSettingsForm) => void;
   setCurrentJob: (data: CurrentJobForm) => void;
   setEquityDetails: (data: RSUForm | StockOptionsForm) => void;
+
+  // Ledger Landing - Named Offers (up to MAX_OFFERS; legacy `equityDetails`
+  // above remains in place until the legacy dashboard is retired)
+  offers: Offer[];
+  addOffer: () => boolean;
+  removeOffer: (id: string) => void;
+  renameOffer: (id: string, name: string) => void;
+  setOfferEquityDetails: (id: string, details: RSUForm | StockOptionsForm | null) => void;
 
   // Founder Mode - Cap Table State
   capTable: CapTable;
@@ -84,6 +110,7 @@ interface PersistedAppState {
   instruments: FundingInstrument[];
   preferenceTiers: PreferenceTier[];
   displayCurrency: DisplayCurrency;
+  offers: Offer[];
 }
 
 /**
@@ -97,6 +124,28 @@ function withDisplayCurrencyDefault(
   return {
     ...state,
     displayCurrency: (state.displayCurrency as DisplayCurrency | undefined) ?? "USD",
+  };
+}
+
+/**
+ * Seeds `offers` on persisted state written before offers existed. A blob
+ * that still carries the legacy singular `equityDetails` has its one
+ * scenario carried forward as the first offer (displayed as "Offer A" - the
+ * store keeps an empty name and the UI supplies that default); otherwise
+ * seeds a single empty offer, matching fresh initial state. Self-contained
+ * and idempotent so it composes alongside other migrations without needing
+ * to know about them.
+ */
+function withOffersDefault(
+  state: Record<string, unknown>
+): Record<string, unknown> & Pick<PersistedAppState, "offers"> {
+  if (Array.isArray(state.offers)) {
+    return state as Record<string, unknown> & Pick<PersistedAppState, "offers">;
+  }
+  const legacyEquityDetails = state.equityDetails as RSUForm | StockOptionsForm | null | undefined;
+  return {
+    ...state,
+    offers: [{ ...createEmptyOffer(), equityDetails: legacyEquityDetails ?? null }],
   };
 }
 
@@ -124,6 +173,32 @@ export const useAppStore = create<AppState>()(
       setGlobalSettings: (data) => set({ globalSettings: data }),
       setCurrentJob: (data) => set({ currentJob: data }),
       setEquityDetails: (data) => set({ equityDetails: data }),
+
+      // Ledger Landing - Named Offers
+      offers: [createEmptyOffer()],
+      addOffer: () => {
+        const { offers } = get();
+        if (offers.length >= MAX_OFFERS) return false;
+        set({ offers: [...offers, createEmptyOffer()] });
+        return true;
+      },
+      removeOffer: (id) => {
+        const { offers } = get();
+        if (offers.length <= 1) return;
+        set({ offers: offers.filter((offer) => offer.id !== id) });
+      },
+      renameOffer: (id, name) => {
+        set({
+          offers: get().offers.map((offer) => (offer.id === id ? { ...offer, name } : offer)),
+        });
+      },
+      setOfferEquityDetails: (id, details) => {
+        set({
+          offers: get().offers.map((offer) =>
+            offer.id === id ? { ...offer, equityDetails: details } : offer
+          ),
+        });
+      },
 
       // Founder Mode - Cap Table State
       capTable: initialCapTable,
@@ -181,24 +256,25 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "worth-it-app-state",
-      version: 1,
+      version: PERSIST_VERSION,
       // The `as unknown as` double-cast is required: `Record<string, unknown>` and
       // `PersistedAppState` don't overlap enough for TS to allow a direct `as`
       // (the loose Record type can't statically prove the other fields are
       // correctly typed — that's only guaranteed by migrate's runtime contract of
       // running on previously `partialize`d data), so don't "simplify" it away.
       migrate: (persistedState) =>
-        withDisplayCurrencyDefault(
-          persistedState as Record<string, unknown>
+        withOffersDefault(
+          withDisplayCurrencyDefault(persistedState as Record<string, unknown>)
         ) as unknown as PersistedAppState,
-      // Only persist founder mode state, app mode preference, and the display
-      // currency preference
+      // Only persist founder mode state, app mode preference, the display
+      // currency preference, and the named offers
       partialize: (state) => ({
         appMode: state.appMode,
         capTable: state.capTable,
         instruments: state.instruments,
         preferenceTiers: state.preferenceTiers,
         displayCurrency: state.displayCurrency,
+        offers: state.offers,
       }),
     }
   )
@@ -213,3 +289,4 @@ export const useComparisonScenarios = () => useAppStore((state) => state.compari
 export const useCommandPaletteOpen = () => useAppStore((state) => state.commandPaletteOpen);
 export const useSetCommandPaletteOpen = () => useAppStore((state) => state.setCommandPaletteOpen);
 export const useDisplayCurrency = () => useAppStore((state) => state.displayCurrency);
+export const useOffers = () => useAppStore((state) => state.offers);
