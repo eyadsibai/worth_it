@@ -13,5 +13,24 @@
     "horizon": "Horizon",
     "seed": "Simulation seed",
     "npvToggle": "Today's dollars (NPV)"
+  },
+  "verdict": {
+    "takeOffer": "Take {offer} — it nets you {amount} in today's dollars.",
+    "takeOfferRanked": "Take {offer} — {amount} over staying, {delta} over {runnerUp}.",
+    "stay": "Stay — {offer} comes up {amount} short of your current job.",
+    "incomplete": "Enter {field} for {offer} to compute a verdict.",
+    "fields": {
+      "salary": "the monthly salary",
+      "equity": "the equity grant",
+      "exit": "the exit valuation"
+    },
+    "stats": {
+      "probability": "P(offer wins)",
+      "equityAtExit": "Equity at exit",
+      "costOfLeaving": "Cost of leaving",
+      "breakeven": "Break-even exit"
+    },
+    "basis": "Median of {runs} simulated outcomes over {years} years, after dilution, against staying and investing the salary difference.",
+    "outcomeRange": "Range of possible outcomes"
   }
 }

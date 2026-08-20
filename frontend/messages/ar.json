@@ -13,5 +13,24 @@
     "horizon": "الأفق",
     "seed": "بذرة المحاكاة",
     "npvToggle": "بدولارات اليوم (NPV)"
+  },
+  "verdict": {
+    "takeOffer": "اقبل {offer} — فستكسب {amount} إضافية بقيمة اليوم.",
+    "takeOfferRanked": "اقبل {offer} — {amount} فوق البقاء، و{delta} فوق {runnerUp}.",
+    "stay": "ابقَ في وظيفتك — {offer} يقل عنها بمقدار {amount}.",
+    "incomplete": "أدخل {field} لعرض {offer} لحساب الحكم.",
+    "fields": {
+      "salary": "الراتب الشهري",
+      "equity": "منحة الأسهم",
+      "exit": "تقييم التخارج"
+    },
+    "stats": {
+      "probability": "احتمال تفوق العرض",
+      "equityAtExit": "قيمة الأسهم عند التخارج",
+      "costOfLeaving": "تكلفة ترك الوظيفة",
+      "breakeven": "تخارج التعادل"
+    },
+    "basis": "وسيط {runs} نتيجة محاكاة على مدى {years} سنوات، بعد التخفيف، مقارنةً بالبقاء مع استثمار فرق الراتب.",
+    "outcomeRange": "نطاق النتائج المحتملة"
   }
 }
