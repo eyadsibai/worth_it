@@ -19,6 +19,11 @@ const percentiles: MonteCarloPercentiles = {
   p90: 289615,
 };
 
+/** Reads the `left` inline style of an element as a bare number of pixels. */
+function leftPx(element: HTMLElement): number {
+  return parseFloat(element.style.left);
+}
+
 describe("OutcomeBand", () => {
   it("renders as an image with the given aria label", () => {
     wrap(<OutcomeBand percentiles={percentiles} ariaLabel="Range of outcomes" />);
@@ -28,6 +33,13 @@ describe("OutcomeBand", () => {
   it("shows the signed median at the center of the distribution", () => {
     wrap(<OutcomeBand percentiles={percentiles} ariaLabel="Range of outcomes" />);
     expect(screen.getByText("+$22,542")).toBeInTheDocument();
+  });
+
+  it("signs every label, not just the median — sign never rides on color alone", () => {
+    wrap(<OutcomeBand percentiles={percentiles} ariaLabel="Range of outcomes" />);
+    expect(screen.getByText("-$82,985")).toBeInTheDocument();
+    expect(screen.getByText("+$22,542")).toBeInTheDocument();
+    expect(screen.getByText("+$289,615")).toBeInTheDocument();
   });
 
   it("colors the median loss-red when every percentile is negative", () => {
@@ -46,6 +58,32 @@ describe("OutcomeBand", () => {
     const flat: MonteCarloPercentiles = { p10: 0, p25: 0, p50: 0, p75: 0, p90: 0 };
     wrap(<OutcomeBand percentiles={flat} ariaLabel="Range of outcomes" />);
     expect(screen.getByRole("img", { name: "Range of outcomes" })).toBeInTheDocument();
-    expect(screen.getAllByText("$0").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("$0")).toHaveLength(3);
+  });
+
+  it("renders a zero tick when the range straddles zero", () => {
+    wrap(<OutcomeBand percentiles={percentiles} ariaLabel="Range of outcomes" />);
+    expect(screen.getByTestId("zero-tick")).toBeInTheDocument();
+  });
+
+  it("omits the zero tick when the entire range is positive", () => {
+    const allPositive: MonteCarloPercentiles = {
+      p10: 10000,
+      p25: 20000,
+      p50: 30000,
+      p75: 40000,
+      p90: 50000,
+    };
+    wrap(<OutcomeBand percentiles={allPositive} ariaLabel="Range of outcomes" />);
+    expect(screen.queryByTestId("zero-tick")).not.toBeInTheDocument();
+  });
+
+  it("orders the label positions left-to-right as p10 < p50 < p90", () => {
+    wrap(<OutcomeBand percentiles={percentiles} ariaLabel="Range of outcomes" />);
+    const x10 = leftPx(screen.getByTestId("label-p10"));
+    const x50 = leftPx(screen.getByTestId("label-median"));
+    const x90 = leftPx(screen.getByTestId("label-p90"));
+    expect(x10).toBeLessThan(x50);
+    expect(x50).toBeLessThan(x90);
   });
 });

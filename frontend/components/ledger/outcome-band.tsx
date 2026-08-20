@@ -70,7 +70,11 @@ export function OutcomeBand({ percentiles, ariaLabel, className }: OutcomeBandPr
       className={cn("inline-flex flex-col items-center", className)}
     >
       <div className="relative h-4" style={{ width: BAND_WIDTH }} aria-hidden="true">
-        <span className="absolute" style={{ left: x50, transform: "translateX(-50%)" }}>
+        <span
+          data-testid="label-median"
+          className="absolute"
+          style={{ left: x50, transform: "translateX(-50%)" }}
+        >
           <Money value={p50} signed className={cn("font-mono text-xs", medianTextClass)} />
         </span>
       </div>
@@ -97,6 +101,7 @@ export function OutcomeBand({ percentiles, ariaLabel, className }: OutcomeBandPr
         />
         {showZeroTick ? (
           <line
+            data-testid="zero-tick"
             x1={xZero}
             x2={xZero}
             y1={TRACK_Y - ZERO_TICK_OVERHANG}
@@ -115,11 +120,15 @@ export function OutcomeBand({ percentiles, ariaLabel, className }: OutcomeBandPr
         />
       </svg>
       <div className="relative h-4" style={{ width: BAND_WIDTH }} aria-hidden="true">
-        <span className="absolute" style={{ left: x10 }}>
-          <Money value={p10} className="text-annotation font-mono text-xs" />
+        <span data-testid="label-p10" className="absolute" style={{ left: x10 }}>
+          <Money value={p10} signed className="text-annotation font-mono text-xs" />
         </span>
-        <span className="absolute" style={{ left: x90, transform: "translateX(-100%)" }}>
-          <Money value={p90} className="text-annotation font-mono text-xs" />
+        <span
+          data-testid="label-p90"
+          className="absolute"
+          style={{ left: x90, transform: "translateX(-100%)" }}
+        >
+          <Money value={p90} signed className="text-annotation font-mono text-xs" />
         </span>
       </div>
     </div>
