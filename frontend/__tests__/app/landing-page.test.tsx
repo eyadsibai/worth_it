@@ -196,6 +196,106 @@ describe("Landing page", () => {
   });
 });
 
+describe("Seed display (single source of truth)", () => {
+  it("renders the simulation seed only once, in the document header", () => {
+    window.localStorage.setItem("worth_it_onboarded", "true");
+    useAppStore.setState({
+      globalSettings: { exit_year: 5 },
+      currentJob: {
+        monthly_salary: 10_000,
+        annual_salary_growth_rate: 3,
+        assumed_annual_roi: 5.4,
+        investment_frequency: "Monthly",
+      },
+      offers: [
+        {
+          id: "test-offer-0",
+          name: "Atlas",
+          equityDetails: {
+            equity_type: "RSU",
+            monthly_salary: 8_000,
+            total_equity_grant_pct: 1,
+            vesting_period: 4,
+            cliff_period: 1,
+            simulate_dilution: false,
+            dilution_rounds: [],
+            exit_valuation: 100_000_000,
+          },
+        },
+      ],
+    });
+
+    // Render first with no Monte Carlo result yet, so the leading offer (and
+    // its `previousLeadingIdRef` tracking, which clears `mcOverride` whenever
+    // the leader changes) settles *before* a run completes — matching the
+    // real flow where a run can only start once the chapters (and their
+    // "Run simulations" button) already exist. Seeding a result before the
+    // very first render would race the leader's null→real transition against
+    // this same-render "new leader" clear.
+    const { container, rerender } = wrap(<Page />);
+
+    mockWsReturn.result = {
+      net_outcomes: [1, 2, 3],
+      simulated_valuations: [1, 2, 3],
+      seed: 42,
+      net_outcome_percentiles: { p10: 1, p25: 2, p50: 3, p75: 4, p90: 5 },
+      payout_percentiles: { p10: 1, p25: 2, p50: 3, p75: 4, p90: 5 },
+      probability_offer_wins: 0.6,
+    };
+    rerender(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <Page />
+      </NextIntlClientProvider>
+    );
+
+    expect(screen.getAllByText(en.landing.seed)).toHaveLength(1);
+    expect(container.querySelector("footer")).not.toBeInTheDocument();
+  });
+});
+
+describe("Chapter numbering with Dilution absent", () => {
+  it("omits chapter 03 for a complete stock-options offer, keeping Sensitivity at 04 and Waterfall at 05", () => {
+    window.localStorage.setItem("worth_it_onboarded", "true");
+    useAppStore.setState({
+      globalSettings: { exit_year: 5 },
+      currentJob: {
+        monthly_salary: 10_000,
+        annual_salary_growth_rate: 3,
+        assumed_annual_roi: 5.4,
+        investment_frequency: "Monthly",
+      },
+      offers: [
+        {
+          id: "test-offer-0",
+          name: "Atlas",
+          equityDetails: {
+            equity_type: "STOCK_OPTIONS",
+            monthly_salary: 8_000,
+            num_options: 1_000,
+            strike_price: 1,
+            vesting_period: 4,
+            cliff_period: 1,
+            exercise_strategy: "AT_EXIT",
+            exit_price_per_share: 50,
+          },
+        },
+      ],
+    });
+
+    wrap(<Page />);
+
+    expect(
+      screen.queryByRole("heading", { name: en.chapters.dilution.title })
+    ).not.toBeInTheDocument();
+
+    const sensitivityHeading = screen.getByRole("heading", { name: en.chapters.sensitivity.title });
+    expect(sensitivityHeading.previousElementSibling).toHaveTextContent("04");
+
+    const waterfallHeading = screen.getByRole("heading", { name: en.chapters.waterfall.title });
+    expect(waterfallHeading.previousElementSibling).toHaveTextContent("05");
+  });
+});
+
 describe("Draft restoration", () => {
   afterEach(() => {
     vi.useRealTimers();

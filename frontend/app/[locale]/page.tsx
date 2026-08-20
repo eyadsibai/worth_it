@@ -41,8 +41,9 @@ const OPPORTUNITY_COST_FIELD = "cumulative_opportunity_cost";
 /**
  * Fixed grid-template-columns per offer count, keyed so Tailwind's JIT scanner
  * sees each complete literal class (a runtime-interpolated template string
- * would never match — see `RuledTable`'s own note on this). `MAX_OFFERS` caps
- * the key space at 3.
+ * would never match — see `RuledTable`'s own note on this). The key space is
+ * capped at 3 offers, matching the store's own cap on how many offers can
+ * exist at once.
  */
 const DUEL_GRID_TEMPLATES: Record<number, string> = {
   1: "md:grid-cols-[1fr_1fr_10rem]", // Stay + 1 offer + Add-offer slot
@@ -331,7 +332,11 @@ export default function Home() {
   const leadingError = leadingScenario?.error ?? null;
 
   const stats: VerdictStats = {
-    probabilityOfferWins: mcOverride.probability,
+    // `handlePercentiles` always sets percentiles/probability/seed together
+    // (and clears them together — see the leading-offer-change effect above);
+    // gating on `percentiles` here makes that atomic-triple invariant provable
+    // from this file alone, without having to trust the callback's contract.
+    probabilityOfferWins: mcOverride.percentiles ? mcOverride.probability : null,
     equityAtExit: leading
       ? useNpv
         ? (leading.result.final_payout_value_npv ?? null)
@@ -345,6 +350,16 @@ export default function Home() {
     breakevenLabel: leading?.result.breakeven_label ?? null,
   };
 
+  // `StockOptionsForm` (lib/schemas.ts) has no `simulate_dilution`/`dilution_rounds`
+  // fields at all — options equity dilutes through the exit price per share
+  // directly, not a modeled round schedule — so this gate is also the only
+  // place dilution rounds can ever come from; a stock-options leading offer
+  // always resolves to `null` here and the Dilution chapter never renders for
+  // one. Chapter numbering stays fixed ("03"/"04"/"05") rather than shifting
+  // up when it's absent: the numbers are stable references into this
+  // document's structure, not a strict "nth visible chapter" count, so
+  // Sensitivity is always chapter 04 and Waterfall always chapter 05 whether
+  // or not this offer happens to show a Dilution chapter.
   const dilutionRounds =
     leading &&
     leading.equityDetails.equity_type === "RSU" &&
@@ -506,14 +521,6 @@ export default function Home() {
             <WaterfallChapter index="05" hasTiers={preferenceTiers.length > 0} />
           </div>
         ) : null}
-
-        <footer className="border-rule mx-auto max-w-5xl border-t px-6 py-6">
-          {mcOverride.seed !== null ? (
-            <p className="text-annotation text-xs">
-              {tLanding("seed")}: <bdi dir="ltr">{mcOverride.seed}</bdi>
-            </p>
-          ) : null}
-        </footer>
       </main>
 
       {mobile ? (
