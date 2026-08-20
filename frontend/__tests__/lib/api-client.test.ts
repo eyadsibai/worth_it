@@ -277,7 +277,48 @@ describe("useMonteCarloWebSocket", () => {
 
     const ws = MockWebSocket.instances[0];
 
-    // Simulate complete message
+    // Simulate complete message, including the enriched fields Task 1 added
+    // to the backend's `complete` payload (seed, percentiles, win probability).
+    const percentiles = { p10: -82985, p25: -40185, p50: 22542, p75: 127215, p90: 289615 };
+    act(() => {
+      ws.receiveMessage({
+        type: "complete",
+        net_outcomes: [10000, 20000, 30000],
+        simulated_valuations: [500000, 750000, 1000000],
+        seed: 20260820,
+        net_outcome_percentiles: percentiles,
+        payout_percentiles: { ...percentiles, p10: 0 },
+        probability_offer_wins: 0.64,
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.result).toEqual({
+        net_outcomes: [10000, 20000, 30000],
+        simulated_valuations: [500000, 750000, 1000000],
+        seed: 20260820,
+        net_outcome_percentiles: percentiles,
+        payout_percentiles: { ...percentiles, p10: 0 },
+        probability_offer_wins: 0.64,
+      });
+      expect(result.current.isRunning).toBe(false);
+      expect(result.current.isConnected).toBe(false);
+    });
+  });
+
+  it("still handles the legacy two-field complete message", async () => {
+    const { result } = renderHook(() => useMonteCarloWebSocket());
+
+    act(() => {
+      result.current.runSimulation(minimalMonteCarloRequest);
+    });
+
+    await waitFor(() => {
+      expect(MockWebSocket.instances.length).toBe(1);
+    });
+
+    const ws = MockWebSocket.instances[0];
+
     act(() => {
       ws.receiveMessage({
         type: "complete",
@@ -293,6 +334,35 @@ describe("useMonteCarloWebSocket", () => {
       });
       expect(result.current.isRunning).toBe(false);
       expect(result.current.isConnected).toBe(false);
+    });
+  });
+
+  it("falls through to the error path when the complete payload fails validation", async () => {
+    const { result } = renderHook(() => useMonteCarloWebSocket());
+
+    act(() => {
+      result.current.runSimulation(minimalMonteCarloRequest);
+    });
+
+    await waitFor(() => {
+      expect(MockWebSocket.instances.length).toBe(1);
+    });
+
+    const ws = MockWebSocket.instances[0];
+
+    // Malformed complete message: net_outcomes is not an array of numbers.
+    act(() => {
+      ws.receiveMessage({
+        type: "complete",
+        net_outcomes: "not-an-array",
+        simulated_valuations: [500000],
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.error).toBe("Failed to process server message");
+      expect(result.current.result).toBeNull();
+      expect(result.current.isRunning).toBe(false);
     });
   });
 

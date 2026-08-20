@@ -286,6 +286,7 @@ export const MonteCarloRequestSchema = z.object({
   num_simulations: z.number().int().min(1).max(VALIDATION.NUM_SIMULATIONS_MAX),
   base_params: TypedBaseParamsSchema,
   sim_param_configs: SimParamConfigsSchema,
+  seed: z.number().int().min(0).optional(),
 });
 export type MonteCarloRequest = z.infer<typeof MonteCarloRequestSchema>;
 
@@ -342,9 +343,22 @@ export const NPVResponseSchema = z.object({
 });
 export type NPVResponse = z.infer<typeof NPVResponseSchema>;
 
+export const MonteCarloPercentilesSchema = z.object({
+  p10: z.number(),
+  p25: z.number(),
+  p50: z.number(),
+  p75: z.number(),
+  p90: z.number(),
+});
+export type MonteCarloPercentiles = z.infer<typeof MonteCarloPercentilesSchema>;
+
 export const MonteCarloResponseSchema = z.object({
   net_outcomes: z.array(z.number()),
   simulated_valuations: z.array(z.number()),
+  seed: z.number().int().nullable().optional(),
+  net_outcome_percentiles: MonteCarloPercentilesSchema.nullable().optional(),
+  payout_percentiles: MonteCarloPercentilesSchema.nullable().optional(),
+  probability_offer_wins: z.number().min(0).max(1).nullable().optional(),
 });
 export type MonteCarloResponse = z.infer<typeof MonteCarloResponseSchema>;
 
