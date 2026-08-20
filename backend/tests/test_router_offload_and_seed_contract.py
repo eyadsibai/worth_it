@@ -252,3 +252,11 @@ class TestSeedContractHoldsOnBothTransports:
         assert len(percentages) >= 2
         assert percentages == sorted(percentages)
         assert percentages[-1] >= 99.9
+
+    def test_websocket_complete_carries_the_same_statistics_as_rest(self) -> None:
+        payload = _monte_carlo_payload(num_simulations=300, seed=424242)
+        rest = client.post("/api/monte-carlo", json=payload).json()
+        streamed = self._run_websocket(payload)
+        assert streamed["net_outcome_percentiles"] == rest["net_outcome_percentiles"]
+        assert streamed["payout_percentiles"] == rest["payout_percentiles"]
+        assert streamed["probability_offer_wins"] == rest["probability_offer_wins"]

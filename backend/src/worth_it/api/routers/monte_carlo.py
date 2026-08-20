@@ -37,6 +37,7 @@ from worth_it.models import (
     MAX_SEED,
     ErrorCode,
     FieldError,
+    MonteCarloPercentiles,
     MonteCarloRequest,
     MonteCarloResponse,
     SensitivityAnalysisRequest,
@@ -75,6 +76,14 @@ def _resolve_seed(requested: int | None) -> int:
     return requested if requested is not None else secrets.randbelow(MAX_SEED + 1)
 
 
+PERCENTILE_LEVELS = (10, 25, 50, 75, 90)
+
+
+def _percentiles(values: np.ndarray) -> MonteCarloPercentiles:
+    p10, p25, p50, p75, p90 = (float(np.percentile(values, q)) for q in PERCENTILE_LEVELS)
+    return MonteCarloPercentiles(p10=p10, p25=p25, p50=p50, p75=p75, p90=p90)
+
+
 @router.post("/monte-carlo", response_model=MonteCarloResponse)
 @limiter.limit(f"{settings.RATE_LIMIT_MONTE_CARLO_PER_MINUTE}/minute")
 async def run_monte_carlo(request: Request, body: MonteCarloRequest):
@@ -95,10 +104,14 @@ async def run_monte_carlo(request: Request, body: MonteCarloRequest):
             sim_param_configs=sim_param_configs,
             seed=seed,
         )
+        net_outcomes = results["net_outcomes"]
         return MonteCarloResponse(
-            net_outcomes=results["net_outcomes"].tolist(),
+            net_outcomes=net_outcomes.tolist(),
             simulated_valuations=results["simulated_valuations"].tolist(),
             seed=seed,
+            net_outcome_percentiles=_percentiles(net_outcomes),
+            payout_percentiles=_percentiles(results["payout_values"]),
+            probability_offer_wins=float((net_outcomes > 0).mean()),
         )
     except (ValueError, TypeError, KeyError) as e:
         raise CalculationError("Invalid parameters for Monte Carlo simulation") from e
@@ -196,12 +209,16 @@ async def _run_simulation_with_progress(
     )
 
     # Send final results
+    net_outcomes = results["net_outcomes"]
     await websocket.send_json(
         {
             "type": "complete",
-            "net_outcomes": results["net_outcomes"].tolist(),
+            "net_outcomes": net_outcomes.tolist(),
             "simulated_valuations": results["simulated_valuations"].tolist(),
             "seed": seed,
+            "net_outcome_percentiles": _percentiles(net_outcomes).model_dump(),
+            "payout_percentiles": _percentiles(results["payout_values"]).model_dump(),
+            "probability_offer_wins": float((net_outcomes > 0).mean()),
         }
     )
 

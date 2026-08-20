@@ -591,12 +591,30 @@ class NPVResponse(BaseModel):
     npv: float | None
 
 
+class MonteCarloPercentiles(BaseModel):
+    """Fixed percentile summary of one simulated distribution."""
+
+    p10: float
+    p25: float
+    p50: float
+    p75: float
+    p90: float
+
+
 class MonteCarloResponse(BaseModel):
     """Response model for Monte Carlo simulation."""
 
     net_outcomes: list[float]
     simulated_valuations: list[float]
     seed: int | None = Field(default=None, description="Seed that reproduces this run")
+    net_outcome_percentiles: MonteCarloPercentiles | None = None
+    payout_percentiles: MonteCarloPercentiles | None = None
+    probability_offer_wins: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Share of simulations where the offer beats staying (net outcome > 0)",
+    )
 
 
 class SensitivityAnalysisResponse(BaseModel):
