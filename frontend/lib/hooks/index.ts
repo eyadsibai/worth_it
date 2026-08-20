@@ -8,6 +8,7 @@ export {
   safeDraftSerialize,
   type DraftData,
   type DraftFormData,
+  type DraftOffer,
 } from "./use-draft-auto-save";
 export { useBeforeUnload } from "./use-before-unload";
 export { useMediaQuery, useIsMobile, useIsTablet } from "./use-media-query";

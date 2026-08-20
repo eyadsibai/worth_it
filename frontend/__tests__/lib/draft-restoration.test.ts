@@ -200,5 +200,29 @@ describe("Draft restoration Zod validation", () => {
       expect(result.offers).toHaveLength(1);
       expect(result.offers?.[0].id).toBe("offer-1");
     });
+
+    it.each([
+      ["a string", "corrupt"],
+      ["a plain object", {}],
+      ["a number", 42],
+    ])("should not throw and should return null offers when the field is %s", (_label, offers) => {
+      const draftWithCorruptOffers = {
+        globalSettings: null,
+        currentJob: null,
+        equityDetails: null,
+        offers,
+      };
+
+      expect(() =>
+        safeParseDraftData(
+          draftWithCorruptOffers as unknown as Parameters<typeof safeParseDraftData>[0]
+        )
+      ).not.toThrow();
+
+      const result = safeParseDraftData(
+        draftWithCorruptOffers as unknown as Parameters<typeof safeParseDraftData>[0]
+      );
+      expect(result.offers).toBeNull();
+    });
   });
 });

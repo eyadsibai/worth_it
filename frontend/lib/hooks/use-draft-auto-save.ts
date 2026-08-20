@@ -226,7 +226,7 @@ function parseEquityDetails(raw: unknown): RSUForm | StockOptionsForm | null {
  * invalid one becomes null rather than dropping the whole offer).
  */
 function parseDraftOffers(offers: DraftOffer[] | null | undefined): Offer[] | null {
-  if (!offers) {
+  if (!Array.isArray(offers)) {
     return null;
   }
   return offers
