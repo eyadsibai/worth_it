@@ -347,8 +347,35 @@ describe("Display Currency", () => {
     expect(useAppStore.getState().displayCurrency).toBe("USD");
   });
 
-  it("persists the selected currency", () => {
+  it("updates the selected currency", () => {
     useAppStore.getState().setDisplayCurrency("SAR");
     expect(useAppStore.getState().displayCurrency).toBe("SAR");
+  });
+});
+
+describe("Persist Migration (v0 -> v1)", () => {
+  it("defaults a missing displayCurrency to USD and leaves other fields untouched", async () => {
+    const { migrate } = useAppStore.persist.getOptions();
+    if (!migrate) throw new Error("expected persist options to define a migrate function");
+
+    // A v0 persisted blob, written before displayCurrency existed.
+    const legacyPersistedState = {
+      appMode: "founder" as const,
+      capTable: {
+        stakeholders: [],
+        total_shares: 5000000,
+        option_pool_pct: 15,
+      },
+      instruments: [],
+      preferenceTiers: [],
+    };
+
+    const migrated = await migrate(legacyPersistedState, 0);
+
+    expect(migrated.displayCurrency).toBe("USD");
+    expect(migrated.appMode).toBe(legacyPersistedState.appMode);
+    expect(migrated.capTable).toEqual(legacyPersistedState.capTable);
+    expect(migrated.instruments).toEqual(legacyPersistedState.instruments);
+    expect(migrated.preferenceTiers).toEqual(legacyPersistedState.preferenceTiers);
   });
 });

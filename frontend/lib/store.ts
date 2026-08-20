@@ -182,6 +182,11 @@ export const useAppStore = create<AppState>()(
     {
       name: "worth-it-app-state",
       version: 1,
+      // The `as unknown as` double-cast is required: `Record<string, unknown>` and
+      // `PersistedAppState` don't overlap enough for TS to allow a direct `as`
+      // (the loose Record type can't statically prove the other fields are
+      // correctly typed — that's only guaranteed by migrate's runtime contract of
+      // running on previously `partialize`d data), so don't "simplify" it away.
       migrate: (persistedState) =>
         withDisplayCurrencyDefault(
           persistedState as Record<string, unknown>
