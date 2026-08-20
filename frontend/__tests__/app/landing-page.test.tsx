@@ -1,12 +1,15 @@
 import * as React from "react";
-import { render, screen } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextIntlClientProvider } from "next-intl";
 import Page from "@/app/[locale]/page";
 import { useAppStore } from "@/lib/store";
+import { DRAFT_SCHEMA_VERSION } from "@/lib/hooks/use-draft-auto-save";
 import type { ScenarioCalculationResult } from "@/lib/hooks";
 import type { MonteCarloResponse } from "@/lib/schemas";
 import en from "@/messages/en.json";
+
+const DRAFT_STORAGE_KEY = "worth-it-draft-employee";
 
 vi.mock("@/i18n/navigation", () => ({
   Link: ({
@@ -190,5 +193,124 @@ describe("Landing page", () => {
     const retryButton = await screen.findByRole("button", { name: en.states.failure.retry });
     retryButton.click();
     expect(retry).toHaveBeenCalled();
+  });
+});
+
+describe("Draft restoration", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("restores a valid draft into the store on mount", async () => {
+    window.localStorage.setItem("worth_it_onboarded", "true");
+    const draft = {
+      version: DRAFT_SCHEMA_VERSION,
+      data: {
+        globalSettings: { exit_year: 7 },
+        currentJob: {
+          monthly_salary: 12_000,
+          annual_salary_growth_rate: 4,
+          assumed_annual_roi: 6,
+          investment_frequency: "Monthly",
+        },
+        equityDetails: null,
+        offers: [
+          {
+            id: "draft-offer-1",
+            name: "Nimbus",
+            equityDetails: {
+              equity_type: "RSU",
+              monthly_salary: 12_000,
+              total_equity_grant_pct: 1,
+              vesting_period: 4,
+              cliff_period: 1,
+              simulate_dilution: false,
+              dilution_rounds: [],
+              exit_valuation: 50_000_000,
+            },
+          },
+        ],
+      },
+      savedAt: new Date().toISOString(),
+    };
+    window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+
+    wrap(<Page />);
+
+    await waitFor(() => {
+      expect(useAppStore.getState().globalSettings).toEqual({ exit_year: 7 });
+    });
+    expect(useAppStore.getState().currentJob?.monthly_salary).toBe(12_000);
+    expect(useAppStore.getState().offers).toHaveLength(1);
+    expect(useAppStore.getState().offers[0].name).toBe("Nimbus");
+  });
+
+  it("prefers a restored draft over loading the sample on first visit", async () => {
+    const draft = {
+      version: DRAFT_SCHEMA_VERSION,
+      data: {
+        globalSettings: { exit_year: 7 },
+        currentJob: {
+          monthly_salary: 12_000,
+          annual_salary_growth_rate: 4,
+          assumed_annual_roi: 6,
+          investment_frequency: "Monthly",
+        },
+        equityDetails: null,
+        offers: [{ id: "draft-offer-1", name: "Nimbus", equityDetails: null }],
+      },
+      savedAt: new Date().toISOString(),
+    };
+    window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+
+    wrap(<Page />);
+
+    await waitFor(() => {
+      expect(useAppStore.getState().globalSettings).toEqual({ exit_year: 7 });
+    });
+    expect(useAppStore.getState().offers[0].name).toBe("Nimbus");
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+    // The visit is still marked onboarded, so a future reload without a draft
+    // never re-triggers the sample flow either.
+    expect(window.localStorage.getItem("worth_it_onboarded")).toBe("true");
+  });
+
+  it("auto-saves the live offers to a draft", async () => {
+    vi.useFakeTimers();
+    window.localStorage.setItem("worth_it_onboarded", "true");
+    useAppStore.setState({
+      globalSettings: { exit_year: 6 },
+      currentJob: {
+        monthly_salary: 9_000,
+        annual_salary_growth_rate: 3,
+        assumed_annual_roi: 5.4,
+        investment_frequency: "Monthly",
+      },
+      offers: [
+        {
+          id: "test-offer-0",
+          name: "Atlas",
+          equityDetails: {
+            equity_type: "RSU",
+            monthly_salary: 9_000,
+            total_equity_grant_pct: 1,
+            vesting_period: 4,
+            cliff_period: 1,
+            simulate_dilution: false,
+            dilution_rounds: [],
+            exit_valuation: 100_000_000,
+          },
+        },
+      ],
+    });
+
+    wrap(<Page />);
+
+    await vi.advanceTimersByTimeAsync(5000);
+
+    const stored = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    expect(stored).not.toBeNull();
+    const parsed = JSON.parse(stored!);
+    expect(parsed.data.offers).toEqual(useAppStore.getState().offers);
   });
 });

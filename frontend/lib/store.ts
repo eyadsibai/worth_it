@@ -75,6 +75,13 @@ interface AppState {
   removeOffer: (id: string) => void;
   renameOffer: (id: string, name: string) => void;
   setOfferEquityDetails: (id: string, details: RSUForm | StockOptionsForm | null) => void;
+  /**
+   * Bulk-replaces the whole `offers` array, distinct from the incremental
+   * add/remove/rename/setEquityDetails actions above. Used to restore a
+   * saved draft's offers on mount. Clamps to `MAX_OFFERS` and never leaves
+   * the document with zero offer columns.
+   */
+  restoreOffers: (offers: Offer[]) => void;
 
   // Founder Mode - Cap Table State
   capTable: CapTable;
@@ -202,6 +209,10 @@ export const useAppStore = create<AppState>()(
             offer.id === id ? { ...offer, equityDetails: details } : offer
           ),
         });
+      },
+      restoreOffers: (offers) => {
+        const clamped = offers.slice(0, MAX_OFFERS);
+        set({ offers: clamped.length > 0 ? clamped : [createEmptyOffer()] });
       },
 
       // Founder Mode - Cap Table State

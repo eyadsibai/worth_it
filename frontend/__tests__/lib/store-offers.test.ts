@@ -113,6 +113,42 @@ describe("setOfferEquityDetails", () => {
   });
 });
 
+describe("restoreOffers", () => {
+  it("replaces the whole offers array", () => {
+    const restored: Offer[] = [
+      { id: "draft-1", name: "Draft A", equityDetails: mockRsuEquityDetails },
+      { id: "draft-2", name: "Draft B", equityDetails: null },
+    ];
+
+    useAppStore.getState().restoreOffers(restored);
+
+    expect(useAppStore.getState().offers).toEqual(restored);
+  });
+
+  it("clamps to MAX_OFFERS", () => {
+    const restored: Offer[] = [
+      { id: "d1", name: "A", equityDetails: null },
+      { id: "d2", name: "B", equityDetails: null },
+      { id: "d3", name: "C", equityDetails: null },
+      { id: "d4", name: "D", equityDetails: null },
+    ];
+
+    useAppStore.getState().restoreOffers(restored);
+
+    const offers = useAppStore.getState().offers;
+    expect(offers).toHaveLength(MAX_OFFERS);
+    expect(offers.map((offer) => offer.id)).toEqual(["d1", "d2", "d3"]);
+  });
+
+  it("falls back to a single empty offer when given an empty array", () => {
+    useAppStore.getState().restoreOffers([]);
+
+    const offers = useAppStore.getState().offers;
+    expect(offers).toHaveLength(1);
+    expect(offers[0].equityDetails).toBeNull();
+  });
+});
+
 describe("partialize", () => {
   it("includes offers in the persisted snapshot", () => {
     useAppStore.getState().renameOffer(FIRST_OFFER_ID, "Startup A");

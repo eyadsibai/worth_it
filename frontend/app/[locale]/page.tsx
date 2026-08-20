@@ -17,11 +17,19 @@ import { SensitivityChapter } from "@/components/ledger/chapters/sensitivity-cha
 import { WaterfallChapter } from "@/components/ledger/chapters/waterfall-chapter";
 import { selectVerdict, type OfferOutcome, type VerdictState } from "@/lib/ledger/verdict";
 import { useFirstVisit } from "@/lib/hooks/use-first-visit";
+import {
+  useDraftAutoSave,
+  getDraft,
+  clearDraft,
+  safeParseDraftData,
+} from "@/lib/hooks/use-draft-auto-save";
 import type { ScenarioCalculationResult } from "@/lib/hooks";
+import { ExportMenu } from "@/components/results/export-menu";
+import type { ScenarioData } from "@/lib/export-utils";
 import { useAppStore, useOffers, usePreferenceTiers, type Offer } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { VALIDATION } from "@/lib/constants/validation";
-import type { MonteCarloPercentiles } from "@/lib/schemas";
+import type { CurrentJobForm, MonteCarloPercentiles } from "@/lib/schemas";
 
 /** Example loaded into the document the first time a visitor arrives (spec §5.2). */
 const SAMPLE_EXAMPLE_ID = "early-stage";
@@ -86,6 +94,71 @@ function resolveLeadingData(
   };
 }
 
+/**
+ * Builds the `ScenarioData` shape `ExportMenu` expects from the leading
+ * offer's live state — the same camelCase mirror of the snake_case backend
+ * fields `components/results/scenario-results.tsx` already builds for its
+ * own export button, so exported files stay in one consistent format.
+ */
+function buildLeadingScenarioData(
+  leading: LeadingData,
+  currentJob: CurrentJobForm,
+  exitYear: number,
+  offerName: string
+): ScenarioData {
+  const { equityDetails, result } = leading;
+  return {
+    name: offerName,
+    timestamp: new Date().toISOString(),
+    globalSettings: { exitYear },
+    currentJob: {
+      monthlySalary: currentJob.monthly_salary,
+      annualGrowthRate: currentJob.annual_salary_growth_rate,
+      assumedROI: currentJob.assumed_annual_roi,
+      investmentFrequency: currentJob.investment_frequency,
+    },
+    equity:
+      equityDetails.equity_type === "RSU"
+        ? {
+            type: "RSU",
+            monthlySalary: equityDetails.monthly_salary,
+            vestingPeriod: equityDetails.vesting_period,
+            cliffPeriod: equityDetails.cliff_period,
+            equityPct: equityDetails.total_equity_grant_pct,
+            exitValuation: equityDetails.exit_valuation,
+            simulateDilution: equityDetails.simulate_dilution,
+          }
+        : {
+            type: "STOCK_OPTIONS",
+            monthlySalary: equityDetails.monthly_salary,
+            vestingPeriod: equityDetails.vesting_period,
+            cliffPeriod: equityDetails.cliff_period,
+            numOptions: equityDetails.num_options,
+            strikePrice: equityDetails.strike_price,
+            exitPricePerShare: equityDetails.exit_price_per_share,
+          },
+    results: {
+      finalPayoutValue: result.final_payout_value,
+      finalOpportunityCost: result.final_opportunity_cost,
+      netOutcome: result.final_payout_value - result.final_opportunity_cost,
+      breakeven: result.breakeven_label,
+    },
+  };
+}
+
+/**
+ * Whether a parsed draft actually carries anything worth restoring — mirrors
+ * `useDraftAutoSave`'s own "has data" gate so the two agree on what counts
+ * as a meaningful draft.
+ */
+function hasRestorableContent(parsed: ReturnType<typeof safeParseDraftData>): boolean {
+  return (
+    parsed.globalSettings !== null ||
+    parsed.currentJob !== null ||
+    (parsed.offers?.some((offer) => offer.equityDetails !== null) ?? false)
+  );
+}
+
 /** Western-digit count, matching `formatMoney`'s own `-u-nu-latn` technique so Arabic never reformats it. */
 function formatWesternCount(value: number, locale: string): string {
   return new Intl.NumberFormat(`${locale}-u-nu-latn`).format(value);
@@ -117,24 +190,58 @@ export default function Home() {
   const globalSettings = useAppStore((state) => state.globalSettings);
   const currentJob = useAppStore((state) => state.currentJob);
   const setGlobalSettings = useAppStore((state) => state.setGlobalSettings);
+  const setCurrentJob = useAppStore((state) => state.setCurrentJob);
   const loadExample = useAppStore((state) => state.loadExample);
   const clearSample = useAppStore((state) => state.clearSample);
+  const restoreOffers = useAppStore((state) => state.restoreOffers);
   const offers = useOffers();
   const preferenceTiers = usePreferenceTiers();
 
   const { isFirstVisit, isLoaded, markAsOnboarded } = useFirstVisit();
   const [sampleActive, setSampleActive] = React.useState(false);
 
+  // Auto-save the live document to a draft; on mount, a valid draft takes
+  // priority over the first-visit sample (below) — a returning visitor's own
+  // numbers must never be clobbered by the example.
+  useDraftAutoSave({ globalSettings, currentJob, equityDetails: null, offers });
+
+  const hasInitializedRef = React.useRef(false);
   React.useEffect(() => {
-    if (isLoaded && isFirstVisit) {
+    if (!isLoaded || hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
+
+    const draft = getDraft();
+    const parsed = draft ? safeParseDraftData(draft.data) : null;
+
+    if (parsed && hasRestorableContent(parsed)) {
+      if (parsed.globalSettings) setGlobalSettings(parsed.globalSettings);
+      if (parsed.currentJob) setCurrentJob(parsed.currentJob);
+      if (parsed.offers && parsed.offers.length > 0) restoreOffers(parsed.offers);
+      clearDraft();
+      if (isFirstVisit) markAsOnboarded();
+      return;
+    }
+
+    if (isFirstVisit) {
       loadExample(SAMPLE_EXAMPLE_ID);
       setSampleActive(true);
       markAsOnboarded();
     }
-  }, [isLoaded, isFirstVisit, loadExample, markAsOnboarded]);
+  }, [
+    isLoaded,
+    isFirstVisit,
+    loadExample,
+    markAsOnboarded,
+    setGlobalSettings,
+    setCurrentJob,
+    restoreOffers,
+  ]);
 
   const handleClearSample = React.useCallback(() => {
     clearSample();
+    // A stale sample-derived draft could otherwise resurrect the sample on
+    // the very next reload, defeating the point of clearing it.
+    clearDraft();
     setSampleActive(false);
   }, [clearSample]);
 
@@ -248,6 +355,12 @@ export default function Home() {
   const stayTakeHome = deriveTakeHomeOverHorizon(leading?.scenario.opportunityCost);
   const mobile = shortVerdict(verdict, tDuel("stay"));
 
+  const leadingOfferName = leadingOfferId ? (outcomesById[leadingOfferId]?.name ?? "") : "";
+  const leadingScenarioData: ScenarioData | null =
+    leading && currentJob && globalSettings
+      ? buildLeadingScenarioData(leading, currentJob, globalSettings.exit_year, leadingOfferName)
+      : null;
+
   return (
     <div className="bg-paper text-ink min-h-screen">
       <Masthead />
@@ -346,6 +459,12 @@ export default function Home() {
                 years: formatWesternCount(globalSettings?.exit_year ?? DEFAULT_EXIT_YEAR, locale),
               })}
             </p>
+          </div>
+        ) : null}
+
+        {leadingScenarioData ? (
+          <div className="mx-auto flex max-w-5xl justify-end gap-2 px-6 py-3">
+            <ExportMenu scenario={leadingScenarioData} />
           </div>
         ) : null}
 
