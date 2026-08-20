@@ -22,6 +22,7 @@ import type {
   PreferenceTier,
 } from "@/lib/schemas";
 import type { ScenarioData } from "@/lib/export-utils";
+import type { DisplayCurrency } from "@/lib/ledger/format-money";
 import { getExampleById } from "@/lib/constants/examples";
 import { getFounderTemplateById } from "@/lib/constants/founder-templates";
 
@@ -70,6 +71,33 @@ interface AppState {
 
   // Derived State Helpers
   hasEmployeeFormData: () => boolean;
+
+  // Ledger Display Currency Preference
+  displayCurrency: DisplayCurrency;
+  setDisplayCurrency: (currency: DisplayCurrency) => void;
+}
+
+/** Shape of the state written to persisted storage (see `partialize` below). */
+interface PersistedAppState {
+  appMode: AppMode;
+  capTable: CapTable;
+  instruments: FundingInstrument[];
+  preferenceTiers: PreferenceTier[];
+  displayCurrency: DisplayCurrency;
+}
+
+/**
+ * Fills a missing `displayCurrency` on persisted state written before the field
+ * existed. Self-contained and idempotent so future migrations can be composed
+ * alongside it without needing to know about this one.
+ */
+function withDisplayCurrencyDefault(
+  state: Record<string, unknown>
+): Record<string, unknown> & Pick<PersistedAppState, "displayCurrency"> {
+  return {
+    ...state,
+    displayCurrency: (state.displayCurrency as DisplayCurrency | undefined) ?? "USD",
+  };
 }
 
 const initialCapTable: CapTable = {
@@ -146,15 +174,26 @@ export const useAppStore = create<AppState>()(
         const state = get();
         return !!(state.globalSettings && state.currentJob && state.equityDetails);
       },
+
+      // Ledger Display Currency Preference
+      displayCurrency: "USD",
+      setDisplayCurrency: (currency) => set({ displayCurrency: currency }),
     }),
     {
       name: "worth-it-app-state",
-      // Only persist founder mode state and app mode preference
+      version: 1,
+      migrate: (persistedState) =>
+        withDisplayCurrencyDefault(
+          persistedState as Record<string, unknown>
+        ) as unknown as PersistedAppState,
+      // Only persist founder mode state, app mode preference, and the display
+      // currency preference
       partialize: (state) => ({
         appMode: state.appMode,
         capTable: state.capTable,
         instruments: state.instruments,
         preferenceTiers: state.preferenceTiers,
+        displayCurrency: state.displayCurrency,
       }),
     }
   )
@@ -168,3 +207,4 @@ export const usePreferenceTiers = () => useAppStore((state) => state.preferenceT
 export const useComparisonScenarios = () => useAppStore((state) => state.comparisonScenarios);
 export const useCommandPaletteOpen = () => useAppStore((state) => state.commandPaletteOpen);
 export const useSetCommandPaletteOpen = () => useAppStore((state) => state.setCommandPaletteOpen);
+export const useDisplayCurrency = () => useAppStore((state) => state.displayCurrency);

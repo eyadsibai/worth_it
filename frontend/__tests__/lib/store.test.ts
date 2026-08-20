@@ -21,6 +21,7 @@ beforeEach(() => {
     preferenceTiers: [],
     monteCarloResults: null,
     comparisonScenarios: [],
+    displayCurrency: "USD",
   });
 });
 
@@ -338,5 +339,16 @@ describe("Results State", () => {
     useAppStore.getState().setComparisonScenarios([mockScenario]);
     useAppStore.getState().clearComparisonScenarios();
     expect(useAppStore.getState().comparisonScenarios).toEqual([]);
+  });
+});
+
+describe("Display Currency", () => {
+  it("starts in USD", () => {
+    expect(useAppStore.getState().displayCurrency).toBe("USD");
+  });
+
+  it("persists the selected currency", () => {
+    useAppStore.getState().setDisplayCurrency("SAR");
+    expect(useAppStore.getState().displayCurrency).toBe("SAR");
   });
 });
