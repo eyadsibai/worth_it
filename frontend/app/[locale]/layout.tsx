@@ -64,12 +64,12 @@ export default async function LocaleLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} ${notoSansArabic.variable} antialiased`}
       >
-        <NextIntlClientProvider>
-          <ErrorBoundary>
-            <Providers>{children}</Providers>
-          </ErrorBoundary>
-          <Toaster position="bottom-right" richColors closeButton />
-        </NextIntlClientProvider>
+        <ErrorBoundary>
+          <Providers>
+            <NextIntlClientProvider>{children}</NextIntlClientProvider>
+          </Providers>
+        </ErrorBoundary>
+        <Toaster position="bottom-right" richColors closeButton />
       </body>
     </html>
   );
