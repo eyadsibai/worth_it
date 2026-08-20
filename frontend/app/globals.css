@@ -190,11 +190,6 @@
     direction: rtl;
   }
 
-  /* Arabic text shouldn't be letter-spaced like Latin eyebrow labels */
-  [dir="rtl"] .tracking-eyebrow {
-    letter-spacing: 0.02em;
-  }
-
   /* Smooth scrolling and stable layout */
   html {
     scroll-behavior: smooth;
@@ -230,9 +225,17 @@
 }
 
 @layer utilities {
-  /* Eyebrow labels use this instead of tracking-widest so Arabic stays untracked (see RTL guard above) */
+  /* Eyebrow labels use this instead of tracking-widest so Arabic stays untracked (see RTL guard below) */
   .tracking-eyebrow {
     letter-spacing: 0.14em;
+  }
+
+  /* Arabic text shouldn't be letter-spaced like Latin eyebrow labels. Must stay
+     in this layer (not @layer base) so its higher specificity beats the rule
+     above within the same cascade layer — utilities always wins over base
+     regardless of specificity, so a base-layer override here would be inert. */
+  [dir="rtl"] .tracking-eyebrow {
+    letter-spacing: 0.02em;
   }
 }
 
