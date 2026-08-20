@@ -1,0 +1,17 @@
+{
+  "masthead": {
+    "analysis": "التحليل",
+    "capTable": "جدول الملكية",
+    "valuation": "التقييم",
+    "about": "حول",
+    "search": "بحث",
+    "language": "اللغة",
+    "theme": "المظهر"
+  },
+  "landing": {
+    "title": "تحليل العرض",
+    "horizon": "الأفق",
+    "seed": "بذرة المحاكاة",
+    "npvToggle": "بدولارات اليوم (NPV)"
+  }
+}

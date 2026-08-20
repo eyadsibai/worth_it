@@ -114,10 +114,7 @@ export default function Home() {
         {/* Hero Section - Stable container, only text animates */}
         <div className="space-y-4">
           <h1 className="text-foreground text-3xl font-semibold tracking-tight md:text-4xl">
-            <AnimatedText
-              text={appMode === "employee" ? "Offer " : "Cap Table "}
-              as="span"
-            />
+            <AnimatedText text={appMode === "employee" ? "Offer " : "Cap Table "} as="span" />
             <AnimatedText
               text={appMode === "employee" ? "Analysis" : "Modeling"}
               as="span"

@@ -1,19 +1,39 @@
 /**
  * Tests for Header component
  */
+import * as React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Header } from "@/components/layout/header";
 import { WalkthroughProvider } from "@/lib/walkthrough";
 
-// Mock next/navigation
+// Mock @/i18n/navigation (the locale-aware Link/usePathname the header now uses)
 let mockPathname = "/";
-vi.mock("next/navigation", () => ({
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ href, children, ...props }: React.ComponentProps<"a">) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
   useRouter: () => ({
     push: vi.fn(),
   }),
   usePathname: () => mockPathname,
+}));
+
+// Mock next-intl translations (masthead namespace used by the header)
+const masthead: Record<string, string> = {
+  analysis: "Analysis",
+  capTable: "Cap Table",
+  valuation: "Valuation",
+  about: "About",
+  search: "Search",
+  language: "Language",
+  theme: "Theme",
+};
+vi.mock("next-intl", () => ({
+  useTranslations: () => (key: string) => masthead[key] ?? key,
 }));
 
 // Mock next-themes

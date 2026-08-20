@@ -1,0 +1,17 @@
+{
+  "masthead": {
+    "analysis": "Analysis",
+    "capTable": "Cap Table",
+    "valuation": "Valuation",
+    "about": "About",
+    "search": "Search",
+    "language": "Language",
+    "theme": "Theme"
+  },
+  "landing": {
+    "title": "Offer analysis",
+    "horizon": "Horizon",
+    "seed": "Simulation seed",
+    "npvToggle": "Today's dollars (NPV)"
+  }
+}

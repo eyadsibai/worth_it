@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, usePathname } from "@/i18n/navigation";
 import { TrendingUp, Search } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -17,14 +17,15 @@ function isMacPlatform(): boolean {
 }
 
 export function Header() {
+  const t = useTranslations("masthead");
   const { setOpen } = useCommandPalette();
   const pathname = usePathname();
   const modifierKey = isMacPlatform() ? "⌘" : "Ctrl";
 
   const navItems = [
-    { href: "/", label: "Analysis" },
-    { href: "/valuation", label: "Valuation" },
-    { href: "/about", label: "About" },
+    { href: "/", label: t("analysis") },
+    { href: "/valuation", label: t("valuation") },
+    { href: "/about", label: t("about") },
   ];
 
   return (
@@ -50,9 +51,7 @@ export function Header() {
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
                     "hover:bg-secondary rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                    isActive
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
+                    isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   {label}
@@ -70,7 +69,7 @@ export function Header() {
             onClick={() => setOpen(true)}
           >
             <Search className="h-4 w-4" />
-            <span className="text-xs">Search</span>
+            <span className="text-xs">{t("search")}</span>
             <kbd className="bg-muted pointer-events-none hidden h-5 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100 select-none sm:flex">
               <span className="text-xs">{modifierKey}</span>K
             </kbd>
