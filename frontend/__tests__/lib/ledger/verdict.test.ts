@@ -1,4 +1,4 @@
-import { it, expect } from "vitest";
+import { it, expect, vi, afterEach } from "vitest";
 import { selectVerdict, type OfferOutcome } from "@/lib/ledger/verdict";
 
 const offer = (over: Partial<OfferOutcome>): OfferOutcome => ({
@@ -32,4 +32,16 @@ it("reports the first incomplete offer's missing field", () => {
 
 it("throws on an empty offer list", () => {
   expect(() => selectVerdict([])).toThrow();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+it("warns and defaults the missing field when an incomplete offer names none", () => {
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  const v = selectVerdict([offer({ complete: false, missingField: null, medianNet: null })]);
+  expect(v).toEqual({ kind: "incomplete", offerName: "Atlas", missingField: "salary" });
+  expect(warn).toHaveBeenCalledTimes(1);
+  expect(warn.mock.calls[0][0]).toMatch(/missingField/);
 });

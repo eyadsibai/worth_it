@@ -5,6 +5,7 @@ import { VerdictBand } from "@/components/ledger/verdict-band";
 import type { VerdictState } from "@/lib/ledger/verdict";
 import type { MonteCarloPercentiles } from "@/lib/schemas";
 import en from "@/messages/en.json";
+import ar from "@/messages/ar.json";
 
 const wrap = (ui: React.ReactNode, locale = "en", messages: Record<string, unknown> = en) =>
   render(
@@ -201,5 +202,46 @@ describe("VerdictBand", () => {
     );
     const bdi = screen.getByText(/22,542|22542/);
     expect(bdi.textContent).not.toMatch(/[٠-٩]/);
+  });
+
+  it("splices the real Arabic catalog's money fragments without leaking sentinels", () => {
+    // Exercises interpolate() against ar.json's actual takeOfferRanked string
+    // (not the English templates under an "ar" locale) — a future ar.json
+    // edit or next-intl upgrade that broke sentinel splicing would show up
+    // here as a private-use-area character leaking into rendered text, or
+    // the runner-up/connective Arabic text going missing.
+    const verdict: VerdictState = {
+      kind: "take-offer",
+      offerName: "Atlas",
+      medianNet: 22542,
+      runnersUp: [{ name: "Borealis", delta: 9100 }],
+    };
+    wrap(
+      <VerdictBand
+        verdict={verdict}
+        stats={emptyStats}
+        percentiles={null}
+        onFocusMissing={vi.fn()}
+      />,
+      "ar",
+      { verdict: (ar as { verdict: Record<string, unknown> }).verdict }
+    );
+
+    const heading = screen.getByRole("heading", { level: 2 });
+    const bdiTexts = Array.from(heading.querySelectorAll("bdi")).map((node) => node.textContent);
+    // Arabic-locale currency formatting differs from English (e.g. a
+    // trailing "US$" with bidi marks instead of a leading "$"), so this
+    // checks the signed digits rather than the exact English-locale string.
+    expect(bdiTexts).toHaveLength(2);
+    expect(bdiTexts[0]).toMatch(/\+22,542/);
+    expect(bdiTexts[1]).toMatch(/\+9,100/);
+    bdiTexts.forEach((text) => expect(text).not.toMatch(/[٠-٩]/));
+
+    expect(heading.textContent).toContain("Borealis");
+    expect(heading.textContent).toContain("فوق");
+    expect(heading.textContent).toContain("البقاء");
+    // Sentinels are Unicode Private Use Area characters that should never
+    // survive into rendered output.
+    expect(heading.textContent).not.toMatch(/[-]/);
   });
 });

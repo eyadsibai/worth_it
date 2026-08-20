@@ -35,6 +35,13 @@ export function selectVerdict(offers: OfferOutcome[]): VerdictState {
 
   const firstIncomplete = offers.find((candidate) => !candidate.complete);
   if (firstIncomplete) {
+    if (firstIncomplete.missingField === null) {
+      console.warn(
+        `selectVerdict: offer "${firstIncomplete.name}" is marked incomplete but names no ` +
+          `missingField; defaulting to "${DEFAULT_MISSING_FIELD}". The caller should always ` +
+          "name the missing field for an incomplete offer."
+      );
+    }
     return {
       kind: "incomplete",
       offerName: firstIncomplete.name,
