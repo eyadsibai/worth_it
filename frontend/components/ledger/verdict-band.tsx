@@ -1,9 +1,10 @@
 "use client";
 
-import { Fragment, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { Money } from "@/components/ledger/money";
 import { OutcomeBand } from "@/components/ledger/outcome-band";
+import { interpolate } from "@/lib/ledger/interpolate";
 import type { MonteCarloPercentiles } from "@/lib/schemas";
 import type { VerdictState } from "@/lib/ledger/verdict";
 
@@ -30,26 +31,6 @@ const DELTA_TOKEN = "";
 const PERCENT_MULTIPLIER = 100;
 /** Shown for a stat that hasn't been computed yet. */
 const EMPTY_STAT = "—";
-
-/**
- * Splits a fully-interpolated translation on sentinel tokens and re-inserts
- * the given nodes in their place. The sentinels travel through `t()` as
- * plain strings so ICU argument order — and RTL word order in Arabic — is
- * resolved by next-intl before this ever touches the string. `t.rich`'s
- * function values are reserved for `<tag>chunks</tag>` elements and are
- * never invoked for plain `{argument}` placeholders, which is what this
- * catalog uses throughout; this sidesteps that instead of fighting it.
- */
-function interpolate(template: string, replacements: Record<string, ReactNode>): ReactNode[] {
-  const tokens = Object.keys(replacements);
-  const pattern = new RegExp(`(${tokens.join("|")})`, "g");
-  return template
-    .split(pattern)
-    .filter((part) => part !== "")
-    .map((part, index) => (
-      <Fragment key={index}>{part in replacements ? replacements[part] : part}</Fragment>
-    ));
-}
 
 function formatProbability(value: number | null): ReactNode {
   return value === null ? EMPTY_STAT : `${Math.round(value * PERCENT_MULTIPLIER)}%`;

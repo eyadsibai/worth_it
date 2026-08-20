@@ -67,6 +67,24 @@
       "title": "Vesting",
       "cliffAnnotation": "Nothing vests until year {cliff} — that's the risk window if you leave early."
     },
+    "outcomes": {
+      "title": "Outcomes",
+      "run": "Run {runs} simulations",
+      "percentileHeader": "Outcome",
+      "columnEquityValue": "Equity value",
+      "columnNetVsStaying": "Net vs. staying",
+      "rowWeakExit": "Weak exit",
+      "rowP25": "P25",
+      "rowMedian": "Median",
+      "rowP75": "P75",
+      "rowStrongExit": "Strong exit",
+      "bandLabel": "Range of simulated net outcomes, 10th to 90th percentile",
+      "caption": "{runs} simulations · seed {seed}",
+      "assumptions": "Assumptions",
+      "runsLabel": "Simulations",
+      "reroll": "Re-roll seed",
+      "error": "Simulation failed — try again."
+    },
     "dilution": {
       "title": "Dilution",
       "summary": "Diluted to {pct}% by exit",

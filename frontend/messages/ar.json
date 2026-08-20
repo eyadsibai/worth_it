@@ -67,6 +67,24 @@
       "title": "الاستحقاق",
       "cliffAnnotation": "لا يُستحق شيء حتى السنة {cliff} — هذه فترة الخطر إذا غادرت مبكرًا."
     },
+    "outcomes": {
+      "title": "النتائج",
+      "run": "تشغيل {runs} محاكاة",
+      "percentileHeader": "النتيجة",
+      "columnEquityValue": "قيمة الأسهم",
+      "columnNetVsStaying": "الصافي مقابل البقاء",
+      "rowWeakExit": "تخارج ضعيف",
+      "rowP25": "P25",
+      "rowMedian": "الوسيط",
+      "rowP75": "P75",
+      "rowStrongExit": "تخارج قوي",
+      "bandLabel": "نطاق النتائج الصافية المحاكاة، من المئين العاشر إلى التسعين",
+      "caption": "{runs} محاكاة · بذرة {seed}",
+      "assumptions": "الافتراضات",
+      "runsLabel": "عدد المحاكاة",
+      "reroll": "بذرة جديدة",
+      "error": "فشلت المحاكاة — حاول مرة أخرى."
+    },
     "dilution": {
       "title": "التخفيف",
       "summary": "يتخفف إلى {pct}% عند التخارج",

@@ -89,8 +89,8 @@ const MonteCarloFormSchema = z.object({
 
 export type MonteCarloForm = z.infer<typeof MonteCarloFormSchema>;
 
-type StartupParams = TypedBaseParams["startup_params"];
-type EquityType = StartupParams["equity_type"];
+export type StartupParams = TypedBaseParams["startup_params"];
+export type EquityType = StartupParams["equity_type"];
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -106,7 +106,7 @@ function toRange(mean: number, stdDev: number): { min: number; max: number } {
 }
 
 /** The scenario's own exit assumption, in the units of its equity type. */
-function scenarioExitPriceOf(startupParams: StartupParams): number {
+export function scenarioExitPriceOf(startupParams: StartupParams): number {
   return startupParams.equity_type === "STOCK_OPTIONS"
     ? startupParams.exit_price_per_share
     : startupParams.exit_valuation;
@@ -122,7 +122,7 @@ function scenarioExitPriceOf(startupParams: StartupParams): number {
  * matching `equityType` is seeded from the scenario; the other keeps a generic
  * fallback so it is sensible if the user switches equity type later.
  */
-function deriveExitPriceSeed(equityType: EquityType, scenarioExitPrice: number) {
+export function deriveExitPriceSeed(equityType: EquityType, scenarioExitPrice: number) {
   const isStockOptions = equityType === "STOCK_OPTIONS";
   const valuationCenter =
     !isStockOptions && scenarioExitPrice > 0

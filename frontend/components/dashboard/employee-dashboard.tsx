@@ -4,10 +4,6 @@ import { FORMATTING } from "@/lib/constants/formatting";
 
 /** Debounce delay for outdated results indicator */
 const OUTDATED_RESULTS_DELAY_MS = 500;
-/** Default failure probability for base params */
-const DEFAULT_FAILURE_PROBABILITY = 0.6;
-/** Percentage conversion divisor */
-const PCT_DIVISOR = 100;
 
 import * as React from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -40,7 +36,7 @@ import {
   getFirstInvalidEquityField,
   firstRequiredEquityField,
 } from "@/lib/validation";
-import { toDilutionRoundWires } from "@/lib/hooks/use-scenario-calculation";
+import { buildTypedBaseParams } from "@/lib/ledger/monte-carlo-request";
 import { toast } from "sonner";
 import type { RSUForm, StockOptionsForm } from "@/lib/schemas";
 
@@ -270,44 +266,11 @@ export function EmployeeDashboard() {
                 hasValidData ? (
                   <div className="space-y-6">
                     <MonteCarloFormComponent
-                      baseParams={{
-                        exit_year: debouncedGlobalSettings.exit_year,
-                        current_job_monthly_salary: debouncedCurrentJob.monthly_salary,
-                        startup_monthly_salary: debouncedEquityDetails.monthly_salary,
-                        current_job_salary_growth_rate:
-                          debouncedCurrentJob.annual_salary_growth_rate / PCT_DIVISOR,
-                        annual_roi: debouncedCurrentJob.assumed_annual_roi / PCT_DIVISOR,
-                        investment_frequency: debouncedCurrentJob.investment_frequency,
-                        failure_probability: DEFAULT_FAILURE_PROBABILITY,
-                        // Issue #248: Use flat typed format for startup_params
-                        startup_params:
-                          debouncedEquityDetails.equity_type === "RSU"
-                            ? {
-                                equity_type: "RSU" as const,
-                                monthly_salary: debouncedEquityDetails.monthly_salary,
-                                total_equity_grant_pct:
-                                  debouncedEquityDetails.total_equity_grant_pct,
-                                vesting_period: debouncedEquityDetails.vesting_period,
-                                cliff_period: debouncedEquityDetails.cliff_period,
-                                exit_valuation: debouncedEquityDetails.exit_valuation,
-                                simulate_dilution: debouncedEquityDetails.simulate_dilution,
-                                dilution_rounds: debouncedEquityDetails.simulate_dilution
-                                  ? toDilutionRoundWires(debouncedEquityDetails.dilution_rounds)
-                                  : null,
-                              }
-                            : {
-                                equity_type: "STOCK_OPTIONS" as const,
-                                monthly_salary: debouncedEquityDetails.monthly_salary,
-                                num_options: debouncedEquityDetails.num_options,
-                                strike_price: debouncedEquityDetails.strike_price,
-                                vesting_period: debouncedEquityDetails.vesting_period,
-                                cliff_period: debouncedEquityDetails.cliff_period,
-                                exit_price_per_share: debouncedEquityDetails.exit_price_per_share,
-                                exercise_strategy:
-                                  debouncedEquityDetails.exercise_strategy ?? "AT_EXIT",
-                                exercise_year: debouncedEquityDetails.exercise_year ?? null,
-                              },
-                      }}
+                      baseParams={buildTypedBaseParams(
+                        debouncedGlobalSettings,
+                        debouncedCurrentJob,
+                        debouncedEquityDetails
+                      )}
                       onComplete={setMonteCarloResults}
                     />
 
