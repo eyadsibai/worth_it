@@ -72,7 +72,21 @@ describe("SensitivityChapter", () => {
     expect(screen.getByText(en.chapters.sensitivity.approximation)).toBeInTheDocument();
   });
 
-  it("still renders the approximation label when there isn't enough data for a threshold", () => {
+  it("renders the flip-threshold sentence with the ≈ approximation marker when a threshold exists", () => {
+    wrap(
+      <SensitivityChapter
+        index="04"
+        result={result}
+        currentJob={currentJob}
+        equityDetails={equityDetails}
+      />
+    );
+
+    expect(screen.getByText(/≈/)).toBeInTheDocument();
+    expect(screen.queryByText(en.chapters.sensitivity.noFlip)).not.toBeInTheDocument();
+  });
+
+  it("renders the no-flip fallback copy (not a flip-threshold sentence) when there isn't enough data for a threshold", () => {
     wrap(
       <SensitivityChapter
         index="04"
@@ -82,6 +96,8 @@ describe("SensitivityChapter", () => {
       />
     );
 
+    expect(screen.getByText(en.chapters.sensitivity.noFlip)).toBeInTheDocument();
     expect(screen.getByText(en.chapters.sensitivity.approximation)).toBeInTheDocument();
+    expect(screen.queryByText(/≈/)).not.toBeInTheDocument();
   });
 });

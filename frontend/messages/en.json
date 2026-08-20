@@ -83,7 +83,7 @@
       "title": "What would change the answer",
       "exitValuation": "exit valuation",
       "exitPricePerShare": "exit price per share",
-      "flipThreshold": "If {variable} falls below {value}, the offer no longer beats staying.",
+      "flipThreshold": "If {variable} falls below ≈{value}, the offer no longer beats staying.",
       "noFlip": "Across the exit range we modeled, this offer's verdict doesn't change.",
       "approximation": "This treats the relationship as linear — a useful direction, not a precise forecast."
     },

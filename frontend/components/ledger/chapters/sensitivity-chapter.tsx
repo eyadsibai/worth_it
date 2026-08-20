@@ -2,7 +2,11 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { Chapter } from "@/components/ledger/chapter";
-import { calculateBreakevenThresholds, type SensitivityDataPoint } from "@/lib/sensitivity-utils";
+import {
+  calculateBreakevenThresholds,
+  SENSITIVITY,
+  type SensitivityDataPoint,
+} from "@/lib/sensitivity-utils";
 import { formatMoney } from "@/lib/ledger/format-money";
 import { useDisplayCurrency } from "@/lib/store";
 import type {
@@ -13,14 +17,35 @@ import type {
 } from "@/lib/schemas";
 
 /**
- * Sweep range mirrors the real backend sensitivity sweep's default 20%-200%
- * band (the private `SENSITIVITY.RANGE_LOW/HIGH_MULTIPLIER` constants in
- * `lib/sensitivity-utils`), so this chapter's story stays consistent with
- * that endpoint even though — per the chapters-never-fetch rule — it never
- * calls it.
+ * Controller ruling (Task 11 review, round 1, Important 1 — ledgered):
+ * accepted as the plan's intended design. Chapters never fetch, so this
+ * chapter can't call the real `/sensitivity` sweep; instead it backs out the
+ * payout's slope against its single biggest exit-side lever from numbers the
+ * backend already computed (`result.final_payout_value`), which is an exact
+ * read given this backend's payout model is linear (RSU) / piecewise-linear
+ * (options) in that lever, with no tax/AMT terms — not an independent
+ * recalculation. It sweeps the SAME 20%-200% range as the real backend
+ * sensitivity endpoint by reusing `SENSITIVITY.RANGE_LOW_MULTIPLIER`/
+ * `RANGE_HIGH_MULTIPLIER` from `lib/sensitivity-utils` rather than
+ * re-declaring local copies (round-1 finding: drift risk between this
+ * chapter and the real endpoint's range). `calculateBreakevenThresholds`
+ * itself is reused unmodified — but only for the yes/no existence check it
+ * was actually designed for. Its own `.threshold` number is NOT used: that
+ * value comes from `calculateThresholdValue`'s interpolation between `.low`/
+ * `.high`, which (per `backend/src/worth_it/monte_carlo.py`'s real
+ * `Low`/`High` = `mean_outcome` columns, mirrored by
+ * `transformSensitivityResponse`) are OUTCOME values, not the swept
+ * variable's own values. Feeding that function `lowDelta = low -
+ * currentOutcome` (the only construction consistent with real usage) makes
+ * `lowOutcome` collapse to `data.low` by algebraic identity, so the
+ * interpolation always returns exactly 0 — a latent bug in the shared
+ * utility discovered while writing this chapter's tests, out of scope to fix
+ * here (it predates Task 11 and other consumers depend on its current
+ * shape). We instead use the SAME data point purely to answer "does a
+ * threshold exist in this sweep" (`calculateBreakevenThresholds`'s actual
+ * job), then solve the exact linear breakeven ourselves from `payoutPerUnit`
+ * — no interpolation needed since we already know the true slope.
  */
-const RANGE_LOW_MULTIPLIER = 0.2;
-const RANGE_HIGH_MULTIPLIER = 2;
 
 export interface SensitivityChapterProps {
   index: string;
@@ -87,21 +112,28 @@ export function SensitivityChapter({
 
   let threshold: number | null = null;
   if (lever) {
-    const low = lever.current * RANGE_LOW_MULTIPLIER;
-    const high = lever.current * RANGE_HIGH_MULTIPLIER;
+    const low = lever.current * SENSITIVITY.RANGE_LOW_MULTIPLIER;
+    const high = lever.current * SENSITIVITY.RANGE_HIGH_MULTIPLIER;
     const lowNet = netAtLeverValue(lever, low, result.final_opportunity_cost);
     const highNet = netAtLeverValue(lever, high, result.final_opportunity_cost);
 
+    // .low/.high are OUTCOME values (see the file comment above) so the gate
+    // — "can the low scenario push the outcome negative" — matches what the
+    // real backend sweep would report for this lever.
     const dataPoint: SensitivityDataPoint = {
       variable: equityDetails.equity_type === "RSU" ? "Exit Valuation" : "Exit Price Per Share",
-      low,
-      high,
+      low: lowNet,
+      high: highNet,
       impact: Math.abs(highNet - lowNet),
       lowDelta: lowNet - currentNet,
       highDelta: highNet - currentNet,
     };
     const [found] = calculateBreakevenThresholds([dataPoint], currentNet);
-    threshold = found ? found.threshold : null;
+    if (found) {
+      // Exact closed-form breakeven for our already-known linear model:
+      // netAtLeverValue(lever, x, cost) = 0  =>  x = floor + cost / payoutPerUnit.
+      threshold = lever.floor + result.final_opportunity_cost / lever.payoutPerUnit;
+    }
   }
 
   const variableLabel =

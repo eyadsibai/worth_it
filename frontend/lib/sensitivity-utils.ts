@@ -13,8 +13,14 @@ import type {
   SensitivityAnalysisResponse,
 } from "@/lib/schemas";
 
-/** Sensitivity analysis constants */
-const SENSITIVITY = {
+/**
+ * Sensitivity analysis constants. Exported (not just module-private) because
+ * `components/ledger/chapters/sensitivity-chapter.tsx` reuses the sweep
+ * range constants for its own local threshold projection — see the comment
+ * there for why that chapter can't call this module's request/response
+ * functions directly.
+ */
+export const SENSITIVITY = {
   /** Estimated shares outstanding for stock options valuation */
   ESTIMATED_SHARES_OUTSTANDING: 1000000,
   /** Default startup failure probability (60%) */
@@ -103,7 +109,8 @@ export function buildSensitivityRequest(
     exit_year: globalSettings.exit_year,
     current_job_monthly_salary: currentJob.monthly_salary,
     startup_monthly_salary: equity.monthly_salary,
-    current_job_salary_growth_rate: currentJob.annual_salary_growth_rate / SENSITIVITY.PERCENTAGE_DIVISOR,
+    current_job_salary_growth_rate:
+      currentJob.annual_salary_growth_rate / SENSITIVITY.PERCENTAGE_DIVISOR,
     annual_roi: currentJob.assumed_annual_roi / SENSITIVITY.PERCENTAGE_DIVISOR,
     investment_frequency: currentJob.investment_frequency,
     failure_probability: SENSITIVITY.DEFAULT_FAILURE_PROBABILITY,
@@ -119,8 +126,14 @@ export function buildSensitivityRequest(
           max: exitValuation * SENSITIVITY.RANGE_HIGH_MULTIPLIER,
         },
         annual_roi: {
-          min: Math.max(0, currentJob.assumed_annual_roi / SENSITIVITY.PERCENTAGE_DIVISOR - SENSITIVITY.ROI_RANGE_HALF_WIDTH),
-          max: currentJob.assumed_annual_roi / SENSITIVITY.PERCENTAGE_DIVISOR + SENSITIVITY.ROI_RANGE_HALF_WIDTH,
+          min: Math.max(
+            0,
+            currentJob.assumed_annual_roi / SENSITIVITY.PERCENTAGE_DIVISOR -
+              SENSITIVITY.ROI_RANGE_HALF_WIDTH
+          ),
+          max:
+            currentJob.assumed_annual_roi / SENSITIVITY.PERCENTAGE_DIVISOR +
+            SENSITIVITY.ROI_RANGE_HALF_WIDTH,
         },
         current_job_salary_growth_rate: {
           min: 0.0,
@@ -130,11 +143,18 @@ export function buildSensitivityRequest(
     : {
         exit_price_per_share: {
           min: (equity as StockOptionsForm).exit_price_per_share * SENSITIVITY.RANGE_LOW_MULTIPLIER,
-          max: (equity as StockOptionsForm).exit_price_per_share * SENSITIVITY.RANGE_HIGH_MULTIPLIER,
+          max:
+            (equity as StockOptionsForm).exit_price_per_share * SENSITIVITY.RANGE_HIGH_MULTIPLIER,
         },
         annual_roi: {
-          min: Math.max(0, currentJob.assumed_annual_roi / SENSITIVITY.PERCENTAGE_DIVISOR - SENSITIVITY.ROI_RANGE_HALF_WIDTH),
-          max: currentJob.assumed_annual_roi / SENSITIVITY.PERCENTAGE_DIVISOR + SENSITIVITY.ROI_RANGE_HALF_WIDTH,
+          min: Math.max(
+            0,
+            currentJob.assumed_annual_roi / SENSITIVITY.PERCENTAGE_DIVISOR -
+              SENSITIVITY.ROI_RANGE_HALF_WIDTH
+          ),
+          max:
+            currentJob.assumed_annual_roi / SENSITIVITY.PERCENTAGE_DIVISOR +
+            SENSITIVITY.ROI_RANGE_HALF_WIDTH,
         },
         current_job_salary_growth_rate: {
           min: 0.0,

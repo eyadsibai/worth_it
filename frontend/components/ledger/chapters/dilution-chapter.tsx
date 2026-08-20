@@ -7,7 +7,15 @@ import { Money } from "@/components/ledger/money";
 import { FORMATTING } from "@/lib/constants/formatting";
 import type { DilutionRoundForm } from "@/lib/schemas";
 
-const FULL_STAKE_PCT = 100;
+/**
+ * The percent<->fraction scale factor: `round.dilution_pct / PCT_SCALE`
+ * converts a round's 0-100 input into the 0-1 multiplier the cumulative
+ * product needs; `dilutedEquityPct * PCT_SCALE` / `totalDilution * PCT_SCALE`
+ * convert the backend's 0-1 fractions back into displayable percentages.
+ */
+const PCT_SCALE = 100;
+/** A round schedule always starts from 100% ownership before any dilution applies. */
+const INITIAL_STAKE_PCT = 100;
 
 export interface DilutionChapterProps {
   index: string;
@@ -31,10 +39,10 @@ interface StakeRow {
  */
 function buildStakeRows(rounds: DilutionRoundForm[]): StakeRow[] {
   const ordered = [...rounds].sort((a, b) => a.year - b.year);
-  let runningStake = FULL_STAKE_PCT;
+  let runningStake = INITIAL_STAKE_PCT;
   return ordered.map((round) => {
     if (round.enabled) {
-      runningStake *= 1 - round.dilution_pct / FULL_STAKE_PCT;
+      runningStake *= 1 - round.dilution_pct / PCT_SCALE;
     }
     return { round, resultingStakePct: runningStake };
   });
@@ -57,14 +65,14 @@ export function DilutionChapter({
 
   const sub =
     dilutedEquityPct !== null
-      ? t("dilution.summary", { pct: Math.round(dilutedEquityPct * FULL_STAKE_PCT) })
+      ? t("dilution.summary", { pct: Math.round(dilutedEquityPct * PCT_SCALE) })
       : undefined;
 
   return (
     <Chapter index={index} title={t("dilution.title")} sub={sub}>
       {totalDilution !== null ? (
         <p className="text-annotation mt-2 text-sm">
-          {t("dilution.totalCaption", { pct: Math.round(totalDilution * FULL_STAKE_PCT) })}
+          {t("dilution.totalCaption", { pct: Math.round(totalDilution * PCT_SCALE) })}
         </p>
       ) : null}
       <RuledTable
