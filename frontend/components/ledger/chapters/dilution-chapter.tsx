@@ -21,8 +21,10 @@ export interface DilutionChapterProps {
   /**
    * One entry per *enabled* round, computed by the backend's dilution engine
    * (`dilution_engine.py`'s `round_factors`) — the single source of truth for
-   * per-round dilution math, including SAFE-conversion timing. This chapter
-   * only looks values up by year; it never recomputes them.
+   * per-round dilution math, including SAFE-conversion timing. It is a
+   * *parallel* array (index `i` belongs to the `i`th enabled round, in the
+   * order `toDilutionRoundWires` submitted them), not one keyed by year, so
+   * this chapter only looks values up by position; it never recomputes them.
    */
   dilutionSchedule: DilutionScheduleEntry[] | null;
 }
@@ -34,19 +36,25 @@ interface StakeRow {
 
 /**
  * One row per round, ordered by year. Resulting-stake values come straight
- * from `dilutionSchedule` (backend-computed, keyed by year); a disabled round
- * has no entry there, so it carries forward the stake left by the nearest
- * earlier enabled round, unchanged — matching what "disabled" means.
+ * from `dilutionSchedule`, zipped by position against the enabled rounds in
+ * their original (submission) order — `dilutionSchedule` is a parallel array,
+ * not one keyed by year, so two rounds sharing a year still get their own
+ * entry instead of colliding on a shared key. A disabled round has no entry,
+ * so it carries forward the stake left by the nearest earlier enabled round,
+ * unchanged — matching what "disabled" means.
  */
 function buildStakeRows(
   rounds: DilutionRoundForm[],
   schedule: DilutionScheduleEntry[] | null
 ): StakeRow[] {
-  const stakeByYear = new Map(schedule?.map((entry) => [entry.year, entry.resulting_stake_pct]));
+  const enabledRounds = rounds.filter((round) => round.enabled);
+  const stakeByRound = new Map(
+    enabledRounds.map((round, i) => [round, schedule?.[i]?.resulting_stake_pct])
+  );
   const ordered = [...rounds].sort((a, b) => a.year - b.year);
   let lastKnownStakePct = INITIAL_STAKE_PCT;
   return ordered.map((round) => {
-    const stakePct = round.enabled ? stakeByYear.get(round.year) : undefined;
+    const stakePct = stakeByRound.get(round);
     if (stakePct !== undefined) lastKnownStakePct = stakePct;
     return { round, resultingStakePct: lastKnownStakePct };
   });

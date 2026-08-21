@@ -238,4 +238,60 @@ describe("DilutionChapter", () => {
       screen.getByText(en.chapters.dilution.totalCaption.replace("{pct}", "0"))
     ).toBeInTheDocument();
   });
+
+  it("does not collapse two schedule entries that share a year", () => {
+    // Regression: the backend returns `dilutionSchedule` as a *parallel*
+    // array — one entry per enabled round, in submission order — not one
+    // keyed by year. A year-keyed lookup used to make two rounds sharing a
+    // year collapse to whichever schedule entry was inserted last.
+    const sameYearRounds: DilutionRoundForm[] = [
+      {
+        round_name: "Seed",
+        round_type: "SAFE_NOTE",
+        year: 2,
+        dilution_pct: 10,
+        pre_money_valuation: 9_000_000,
+        amount_raised: 1_000_000,
+        salary_change: 0,
+        enabled: true,
+        status: "completed",
+        dilution_method: "percentage",
+      },
+      {
+        round_name: "Series A",
+        round_type: "PRICED_ROUND",
+        year: 2,
+        dilution_pct: 20,
+        pre_money_valuation: 40_000_000,
+        amount_raised: 10_000_000,
+        salary_change: 0,
+        enabled: true,
+        status: "upcoming",
+        dilution_method: "percentage",
+      },
+    ];
+    // Matches what the real engine returns for this exact pair: the
+    // completed round's own factor (0.9), then the upcoming round's (0.72).
+    const sameYearSchedule: DilutionScheduleEntry[] = [
+      { year: 2, resulting_stake_pct: 90.0 },
+      { year: 2, resulting_stake_pct: 72.0 },
+    ];
+
+    wrap(
+      <DilutionChapter
+        index="03"
+        rounds={sameYearRounds}
+        totalDilution={0.28}
+        dilutedEquityPct={0.72}
+        dilutionSchedule={sameYearSchedule}
+      />
+    );
+
+    const table = screen.getByRole("table");
+    const rows = within(table).getAllByRole("row");
+    // Header + Seed + Series A
+    expect(rows).toHaveLength(3);
+    expect(within(rows[1]).getByText("90.0%")).toBeInTheDocument();
+    expect(within(rows[2]).getByText("72.0%")).toBeInTheDocument();
+  });
 });
