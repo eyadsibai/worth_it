@@ -116,7 +116,12 @@ const eslintConfig = defineConfig([
   // (e.g. about/page.tsx) still use physical utilities and are not being
   // restyled as part of this change.
   {
-    files: ["components/ledger/**/*.tsx", "app/[locale]/page.tsx", "app/[locale]/layout.tsx"],
+    files: [
+      "components/ledger/**/*.tsx",
+      "app/[locale]/page.tsx",
+      "app/[locale]/layout.tsx",
+      "app/[locale]/cap-table/page.tsx",
+    ],
     rules: {
       "no-restricted-syntax": [
         "error",

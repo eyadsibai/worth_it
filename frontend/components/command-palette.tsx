@@ -1,9 +1,21 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { useRouter, usePathname } from "@/i18n/navigation";
 import { useTheme } from "next-themes";
-import { Home, Info, Moon, Sun, Monitor, Users, Briefcase } from "lucide-react";
+import {
+  Home,
+  Info,
+  Moon,
+  Sun,
+  Monitor,
+  Users,
+  Briefcase,
+  PieChart,
+  Calculator,
+  Languages,
+} from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -20,8 +32,17 @@ interface CommandPaletteProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/** The other of the two supported locales — mirrors `Masthead`'s own helper of the same name. */
+function otherLocale(locale: string): "en" | "ar" {
+  return locale === "en" ? "ar" : "en";
+}
+
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const locale = useLocale();
+  const t = useTranslations("commandPalette");
+  const tMasthead = useTranslations("masthead");
   const { setTheme } = useTheme();
   const { setAppMode } = useAppStore();
 
@@ -44,11 +65,27 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <CommandGroup heading="Navigation">
           <CommandItem onSelect={() => runCommand(() => router.push("/"))}>
             <Home className="mr-2 h-4 w-4" />
-            Go to Analysis
+            {t("goTo", { page: tMasthead("analysis") })}
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => router.push("/cap-table"))}>
+            <PieChart className="mr-2 h-4 w-4" />
+            {t("goTo", { page: tMasthead("capTable") })}
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => router.push("/valuation"))}>
+            <Calculator className="mr-2 h-4 w-4" />
+            {t("goTo", { page: tMasthead("valuation") })}
           </CommandItem>
           <CommandItem onSelect={() => runCommand(() => router.push("/about"))}>
             <Info className="mr-2 h-4 w-4" />
-            Go to About
+            {t("goTo", { page: tMasthead("about") })}
+          </CommandItem>
+          <CommandItem
+            onSelect={() =>
+              runCommand(() => router.replace(pathname, { locale: otherLocale(locale) }))
+            }
+          >
+            <Languages className="mr-2 h-4 w-4" />
+            {t("switchLanguage")}
           </CommandItem>
         </CommandGroup>
 

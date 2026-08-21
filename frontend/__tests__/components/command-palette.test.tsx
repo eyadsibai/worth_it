@@ -9,12 +9,42 @@ import { renderHook, act } from "@testing-library/react";
 // Mock scrollIntoView for cmdk
 Element.prototype.scrollIntoView = vi.fn();
 
-// Mock next/navigation
+// Mock @/i18n/navigation (the locale-aware router the palette now uses)
 const mockPush = vi.fn();
-vi.mock("next/navigation", () => ({
+const mockReplace = vi.fn();
+vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({
     push: mockPush,
+    replace: mockReplace,
   }),
+  usePathname: () => "/",
+}));
+
+// Mock next-intl translations (commandPalette + masthead namespaces the
+// palette reads from) — same lookup-table convention as header.test.tsx.
+const commandPaletteMessages: Record<string, string> = {
+  goTo: "Go to {page}",
+  switchLanguage: "Switch language",
+};
+const mastheadMessages: Record<string, string> = {
+  analysis: "Analysis",
+  capTable: "Cap Table",
+  valuation: "Valuation",
+  about: "About",
+};
+vi.mock("next-intl", () => ({
+  useTranslations: (namespace: string) => {
+    const dict = namespace === "commandPalette" ? commandPaletteMessages : mastheadMessages;
+    return (key: string, values?: Record<string, string>) => {
+      const template = dict[key] ?? key;
+      if (!values) return template;
+      return Object.entries(values).reduce(
+        (result, [placeholder, value]) => result.replaceAll(`{${placeholder}}`, value),
+        template
+      );
+    };
+  },
+  useLocale: () => "en",
 }));
 
 // Mock next-themes
@@ -106,6 +136,59 @@ describe("CommandPalette", () => {
 
       await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith("/about");
+        expect(onOpenChange).toHaveBeenCalledWith(false);
+      });
+    });
+
+    it("navigates to Cap Table page", async () => {
+      const user = userEvent.setup();
+      const onOpenChange = vi.fn();
+      render(<CommandPalette open={true} onOpenChange={onOpenChange} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Go to Cap Table")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText("Go to Cap Table"));
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith("/cap-table");
+        expect(onOpenChange).toHaveBeenCalledWith(false);
+      });
+    });
+
+    it("navigates to Valuation page", async () => {
+      const user = userEvent.setup();
+      const onOpenChange = vi.fn();
+      render(<CommandPalette open={true} onOpenChange={onOpenChange} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Go to Valuation")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText("Go to Valuation"));
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith("/valuation");
+        expect(onOpenChange).toHaveBeenCalledWith(false);
+      });
+    });
+  });
+
+  describe("language commands", () => {
+    it("switches the current path to the other locale", async () => {
+      const user = userEvent.setup();
+      const onOpenChange = vi.fn();
+      render(<CommandPalette open={true} onOpenChange={onOpenChange} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Switch language")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText("Switch language"));
+
+      await waitFor(() => {
+        expect(mockReplace).toHaveBeenCalledWith("/", { locale: "ar" });
         expect(onOpenChange).toHaveBeenCalledWith(false);
       });
     });

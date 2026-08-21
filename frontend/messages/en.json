@@ -9,6 +9,10 @@
     "theme": "Theme",
     "currency": "Currency"
   },
+  "commandPalette": {
+    "goTo": "Go to {page}",
+    "switchLanguage": "Switch language"
+  },
   "landing": {
     "title": "Offer analysis",
     "horizon": "Horizon",

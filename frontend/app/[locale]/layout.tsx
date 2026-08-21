@@ -74,9 +74,14 @@ export default async function LocaleLayout({
         className={`${plexSans.variable} ${plexSerif.variable} ${plexMono.variable} ${plexArabic.variable} ${amiri.variable} antialiased`}
       >
         <ErrorBoundary>
-          <Providers>
-            <NextIntlClientProvider>{children}</NextIntlClientProvider>
-          </Providers>
+          {/* NextIntlClientProvider wraps the whole client tree, not just
+              `children`: `Providers` renders global chrome (the command
+              palette, walkthrough overlay) as siblings of `children`, and
+              those need `useTranslations`/`useLocale` too — nesting it only
+              around `children` would leave them outside the intl context. */}
+          <NextIntlClientProvider>
+            <Providers>{children}</Providers>
+          </NextIntlClientProvider>
         </ErrorBoundary>
         <Toaster position="bottom-right" richColors closeButton />
       </body>

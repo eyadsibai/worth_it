@@ -9,6 +9,10 @@
     "theme": "المظهر",
     "currency": "العملة"
   },
+  "commandPalette": {
+    "goTo": "الانتقال إلى {page}",
+    "switchLanguage": "تبديل اللغة"
+  },
   "landing": {
     "title": "تحليل العرض",
     "horizon": "الأفق",
