@@ -33,7 +33,7 @@ cd frontend && npm install && npm run dev
 
 - **ALWAYS USE Test Driven Development** - this is not negotiable
 - **Use shadcn MCP** when working with UI components
-- **ALWAYS VIEW DESIGN REFERENCES** before any UI work - Read the images in `frontend/docs/design-references/` using the Read tool. Clone Fundcy exactly.
+- **Design reference**: `docs/superpowers/specs/2026-08-20-c1-ledger-comparison-design.md` and its comp asset. The Fundcy references are retired.
 
 ## Frontend/Backend Responsibility Split
 
