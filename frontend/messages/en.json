@@ -68,7 +68,7 @@
     "investFrequency": "Invest frequency",
     "monthly": "Monthly",
     "annually": "Annually",
-    "takeHome": "Take-home over the horizon",
+    "takeHome": "Gross salary over the horizon",
     "offerName": "Offer name",
     "offerDefaultName": "Offer {letter}",
     "grantType": "Grant type",
