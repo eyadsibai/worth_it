@@ -13,6 +13,8 @@
     "currency": "العملة"
   },
   "commandPalette": {
+    "title": "لوحة الأوامر",
+    "description": "ابحث عن أمر لتنفيذه...",
     "goTo": "الانتقال إلى {page}",
     "switchLanguage": "تبديل اللغة",
     "placeholder": "اكتب أمرًا أو ابحث...",

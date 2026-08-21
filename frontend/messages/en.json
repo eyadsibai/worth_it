@@ -13,6 +13,8 @@
     "currency": "Currency"
   },
   "commandPalette": {
+    "title": "Command Palette",
+    "description": "Search for a command to run...",
     "goTo": "Go to {page}",
     "switchLanguage": "Switch language",
     "placeholder": "Type a command or search...",

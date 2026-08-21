@@ -45,7 +45,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   );
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange}>
+    <CommandDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t("title")}
+      description={t("description")}
+    >
       <CommandInput placeholder={t("placeholder")} />
       <CommandList>
         <CommandEmpty>{t("empty")}</CommandEmpty>

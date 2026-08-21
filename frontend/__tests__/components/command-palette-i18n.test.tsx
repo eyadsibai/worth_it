@@ -70,4 +70,23 @@ describe("CommandPalette under the real Arabic catalog", () => {
     expect(screen.queryByText("Dark Mode")).not.toBeInTheDocument();
     expect(screen.queryByText("System Theme")).not.toBeInTheDocument();
   });
+
+  /**
+   * Regression for Minor 2 (final-fixes-rereview.md): `CommandDialog`'s
+   * `title`/`description` props default to hardcoded English
+   * ("Command Palette" / "Search for a command to run...") in
+   * `components/ui/command.tsx`, and `CommandPalette` didn't override them —
+   * so the dialog's `aria-labelledby`/`aria-describedby` resolved to English
+   * even on `/ar`, announcing the palette in the wrong language to a screen
+   * reader user.
+   */
+  it("gives the dialog a translated accessible name and description", async () => {
+    wrap(<CommandPalette open={true} onOpenChange={() => {}} />);
+    await waitFor(() => {
+      expect(screen.getByRole("dialog", { name: ar.commandPalette.title })).toBeInTheDocument();
+    });
+    expect(screen.getByText(ar.commandPalette.description)).toBeInTheDocument();
+    expect(screen.queryByText("Command Palette")).not.toBeInTheDocument();
+    expect(screen.queryByText("Search for a command to run...")).not.toBeInTheDocument();
+  });
 });
