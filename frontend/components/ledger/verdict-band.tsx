@@ -12,7 +12,7 @@ export interface VerdictStats {
   probabilityOfferWins: number | null;
   equityAtExit: number | null;
   costOfLeaving: number | null;
-  breakevenLabel: string | null;
+  breakevenValue: number | null;
 }
 
 interface VerdictBandProps {
@@ -41,6 +41,11 @@ function formatMoneyStat(value: number | null): ReactNode {
     return EMPTY_STAT;
   }
   return <Money value={value} signed className={value < 0 ? "text-loss" : undefined} />;
+}
+
+/** Break-even is a threshold value, not a delta - rendered without the `+`/`-` `formatMoneyStat` uses for the other stats. */
+function formatBreakevenStat(value: number | null): ReactNode {
+  return value === null ? EMPTY_STAT : <Money value={value} />;
 }
 
 interface StatProps {
@@ -129,7 +134,7 @@ export function VerdictBand({ verdict, stats, percentiles, onFocusMissing }: Ver
             />
             <Stat label={t("stats.equityAtExit")} value={formatMoneyStat(stats.equityAtExit)} />
             <Stat label={t("stats.costOfLeaving")} value={formatMoneyStat(stats.costOfLeaving)} />
-            <Stat label={t("stats.breakeven")} value={stats.breakevenLabel ?? EMPTY_STAT} />
+            <Stat label={t("stats.breakeven")} value={formatBreakevenStat(stats.breakevenValue)} />
           </dl>
         </div>
         {percentiles ? (

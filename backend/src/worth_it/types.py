@@ -242,6 +242,14 @@ class BaseParams(TypedDict):
     startup_params: StartupParams
 
 
+class DilutionScheduleEntry(TypedDict):
+    """One dilution round's resulting stake, computed once by the backend so
+    the frontend never re-derives it (see `dilution_engine.round_factors`)."""
+
+    year: int
+    resulting_stake_pct: float
+
+
 class StartupScenarioResult(TypedDict, total=False):
     """Result of startup scenario calculation.
 
@@ -249,16 +257,22 @@ class StartupScenarioResult(TypedDict, total=False):
         results_df: DataFrame with yearly breakdown (as list of dicts)
         final_payout_value: Final equity value
         final_opportunity_cost: Total opportunity cost
+        final_breakeven_value: Final break-even number (None when unreachable)
+        final_take_home_value: Current-job salary summed over the horizon
         payout_label: Label for payout metric
         breakeven_label: Label for breakeven metric
         total_dilution: Total dilution (for RSUs only)
         diluted_equity_pct: Final equity percentage (for RSUs only)
+        dilution_schedule: Per-round resulting stake (for RSUs only)
     """
 
     results_df: list[dict]  # Will be converted to DataFrame
     final_payout_value: float
     final_opportunity_cost: float
+    final_breakeven_value: float | None
+    final_take_home_value: float
     payout_label: str
     breakeven_label: str
     total_dilution: float
     diluted_equity_pct: float
+    dilution_schedule: list[DilutionScheduleEntry]

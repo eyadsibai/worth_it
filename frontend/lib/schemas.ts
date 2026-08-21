@@ -320,6 +320,12 @@ export const OpportunityCostResponseSchema = z.object({
 });
 export type OpportunityCostResponse = z.infer<typeof OpportunityCostResponseSchema>;
 
+export const DilutionScheduleEntrySchema = z.object({
+  year: z.number(),
+  resulting_stake_pct: z.number(),
+});
+export type DilutionScheduleEntry = z.infer<typeof DilutionScheduleEntrySchema>;
+
 export const StartupScenarioResponseSchema = z.object({
   results_df: z.array(z.record(z.string(), z.unknown())),
   final_payout_value: z.number(),
@@ -328,8 +334,11 @@ export const StartupScenarioResponseSchema = z.object({
   final_opportunity_cost_npv: z.number().optional().nullable(),
   payout_label: z.string(),
   breakeven_label: z.string(),
+  final_breakeven_value: z.number().optional().nullable(),
+  final_take_home_value: z.number().optional().nullable(),
   total_dilution: z.number().optional().nullable(),
   diluted_equity_pct: z.number().optional().nullable(),
+  dilution_schedule: z.array(DilutionScheduleEntrySchema).optional().nullable(),
 });
 export type StartupScenarioResponse = z.infer<typeof StartupScenarioResponseSchema>;
 

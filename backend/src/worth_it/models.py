@@ -565,6 +565,15 @@ class OpportunityCostResponse(BaseModel):
     data: list[dict[str, Any]]  # OpportunityCostRow - kept flexible for dynamic columns
 
 
+class DilutionScheduleEntryResponse(BaseModel):
+    """One dilution round's resulting stake after applying its own (and any
+    prior) dilution - the same number a per-round table renders, computed
+    once here so the frontend never re-derives it."""
+
+    year: int
+    resulting_stake_pct: float
+
+
 class StartupScenarioResponse(BaseModel):
     """Response model for startup scenario calculation."""
 
@@ -575,8 +584,11 @@ class StartupScenarioResponse(BaseModel):
     final_opportunity_cost_npv: float | None = None  # Opportunity cost discounted to present value
     payout_label: str
     breakeven_label: str
+    final_breakeven_value: float | None = None  # The real break-even number; None when unreachable
+    final_take_home_value: float | None = None  # Current-job salary summed over the horizon
     total_dilution: float | None = None
     diluted_equity_pct: float | None = None
+    dilution_schedule: list[DilutionScheduleEntryResponse] | None = None
 
 
 class IRRResponse(BaseModel):

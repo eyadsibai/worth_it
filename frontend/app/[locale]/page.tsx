@@ -41,8 +41,6 @@ import type { CurrentJobForm, MonteCarloPercentiles } from "@/lib/schemas";
 const SAMPLE_EXAMPLE_ID = "early-stage";
 /** Horizon (years) a cleared document falls back to until the user sets one. */
 const DEFAULT_EXIT_YEAR = 5;
-/** Row field carrying the cumulative invested-surplus total (see `charts/opportunity-cost-chart.tsx`). */
-const OPPORTUNITY_COST_FIELD = "cumulative_opportunity_cost";
 
 /**
  * Fixed grid-template-columns per offer count, keyed so Tailwind's JIT scanner
@@ -62,16 +60,6 @@ function pickLeadingOfferId(outcomes: OfferOutcome[]): string | null {
   if (outcomes.length === 0) return null;
   const ranked = [...outcomes].sort((a, b) => (b.medianNet ?? 0) - (a.medianNet ?? 0));
   return ranked[0].id;
-}
-
-/** Final (last-row) cumulative opportunity cost, or `null` before it's known. */
-function deriveTakeHomeOverHorizon(
-  opportunityCost: ScenarioCalculationResult["opportunityCost"]
-): number | null {
-  const rows = opportunityCost?.data;
-  if (!rows || rows.length === 0) return null;
-  const lastValue = rows[rows.length - 1]?.[OPPORTUNITY_COST_FIELD];
-  return typeof lastValue === "number" ? lastValue : null;
 }
 
 type LeadingEquityDetails = NonNullable<Offer["equityDetails"]>;
@@ -361,7 +349,7 @@ export default function Home() {
         ? (leading.result.final_opportunity_cost_npv ?? null)
         : leading.result.final_opportunity_cost
       : null,
-    breakevenLabel: leading?.result.breakeven_label ?? null,
+    breakevenValue: leading?.result.final_breakeven_value ?? null,
   };
 
   // `StockOptionsForm` (lib/schemas.ts) has no `simulate_dilution`/`dilution_rounds`
@@ -381,7 +369,7 @@ export default function Home() {
       ? leading.equityDetails.dilution_rounds
       : null;
 
-  const stayTakeHome = deriveTakeHomeOverHorizon(leading?.scenario.opportunityCost);
+  const stayTakeHome = leading?.result.final_take_home_value ?? null;
   const mobile = shortVerdict(verdict, tDuel("stay"));
 
   const leadingOfferName = leadingOfferId ? (outcomesById[leadingOfferId]?.name ?? "") : "";
@@ -524,6 +512,7 @@ export default function Home() {
                 rounds={dilutionRounds}
                 totalDilution={leading.result.total_dilution ?? null}
                 dilutedEquityPct={leading.result.diluted_equity_pct ?? null}
+                dilutionSchedule={leading.result.dilution_schedule ?? null}
               />
             ) : null}
             <SensitivityChapter

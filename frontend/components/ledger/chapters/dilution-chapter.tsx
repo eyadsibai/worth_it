@@ -4,15 +4,11 @@ import { useTranslations } from "next-intl";
 import { Chapter } from "@/components/ledger/chapter";
 import { RuledTable } from "@/components/ledger/ruled-table";
 import { Money } from "@/components/ledger/money";
+import { formatStakePercent } from "@/lib/ledger/percent";
 import { FORMATTING } from "@/lib/constants/formatting";
-import type { DilutionRoundForm } from "@/lib/schemas";
+import type { DilutionRoundForm, DilutionScheduleEntry } from "@/lib/schemas";
 
-/**
- * The percent<->fraction scale factor: `round.dilution_pct / PCT_SCALE`
- * converts a round's 0-100 input into the 0-1 multiplier the cumulative
- * product needs; `dilutedEquityPct * PCT_SCALE` / `totalDilution * PCT_SCALE`
- * convert the backend's 0-1 fractions back into displayable percentages.
- */
+/** `totalDilution * PCT_SCALE` converts the backend's 0-1 fraction into a displayable percentage. */
 const PCT_SCALE = 100;
 /** A round schedule always starts from 100% ownership before any dilution applies. */
 const INITIAL_STAKE_PCT = 100;
@@ -22,6 +18,13 @@ export interface DilutionChapterProps {
   rounds: DilutionRoundForm[];
   totalDilution: number | null;
   dilutedEquityPct: number | null;
+  /**
+   * One entry per *enabled* round, computed by the backend's dilution engine
+   * (`dilution_engine.py`'s `round_factors`) — the single source of truth for
+   * per-round dilution math, including SAFE-conversion timing. This chapter
+   * only looks values up by year; it never recomputes them.
+   */
+  dilutionSchedule: DilutionScheduleEntry[] | null;
 }
 
 interface StakeRow {
@@ -30,21 +33,22 @@ interface StakeRow {
 }
 
 /**
- * One row per round, ordered by year, carrying the running stake left after
- * each enabled round applies its dilution. Same cumulative-product math
- * already used for display in `components/forms/dilution-summary-card.tsx`
- * and `components/forms/completed-rounds-section.tsx` — reused here as the
- * established frontend pattern for this kind of presentational rollup, not a
- * new calculation.
+ * One row per round, ordered by year. Resulting-stake values come straight
+ * from `dilutionSchedule` (backend-computed, keyed by year); a disabled round
+ * has no entry there, so it carries forward the stake left by the nearest
+ * earlier enabled round, unchanged — matching what "disabled" means.
  */
-function buildStakeRows(rounds: DilutionRoundForm[]): StakeRow[] {
+function buildStakeRows(
+  rounds: DilutionRoundForm[],
+  schedule: DilutionScheduleEntry[] | null
+): StakeRow[] {
+  const stakeByYear = new Map(schedule?.map((entry) => [entry.year, entry.resulting_stake_pct]));
   const ordered = [...rounds].sort((a, b) => a.year - b.year);
-  let runningStake = INITIAL_STAKE_PCT;
+  let lastKnownStakePct = INITIAL_STAKE_PCT;
   return ordered.map((round) => {
-    if (round.enabled) {
-      runningStake *= 1 - round.dilution_pct / PCT_SCALE;
-    }
-    return { round, resultingStakePct: runningStake };
+    const stakePct = round.enabled ? stakeByYear.get(round.year) : undefined;
+    if (stakePct !== undefined) lastKnownStakePct = stakePct;
+    return { round, resultingStakePct: lastKnownStakePct };
   });
 }
 
@@ -58,14 +62,15 @@ export function DilutionChapter({
   rounds,
   totalDilution,
   dilutedEquityPct,
+  dilutionSchedule,
 }: DilutionChapterProps) {
   const t = useTranslations("chapters");
 
-  const rows = buildStakeRows(rounds);
+  const rows = buildStakeRows(rounds, dilutionSchedule);
 
   const sub =
     dilutedEquityPct !== null
-      ? t("dilution.summary", { pct: Math.round(dilutedEquityPct * PCT_SCALE) })
+      ? t("dilution.summary", { pct: formatStakePercent(dilutedEquityPct) })
       : undefined;
 
   return (

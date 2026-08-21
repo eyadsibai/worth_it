@@ -18,7 +18,7 @@ const emptyStats = {
   probabilityOfferWins: null,
   equityAtExit: null,
   costOfLeaving: null,
-  breakevenLabel: null,
+  breakevenValue: null,
 };
 
 const percentiles: MonteCarloPercentiles = {
@@ -171,16 +171,38 @@ describe("VerdictBand", () => {
           probabilityOfferWins: 0.62,
           equityAtExit: 40000,
           costOfLeaving: -12000,
-          breakevenLabel: "Year 3",
+          // A real backend value (final_breakeven_value), not the constant
+          // display label (breakeven_label) the backend also returns - see
+          // the regression test below for exactly why that distinction
+          // matters.
+          breakevenValue: 818000,
         }}
         percentiles={null}
         onFocusMissing={vi.fn()}
       />
     );
     expect(screen.getByText("62%")).toBeInTheDocument();
-    expect(screen.getByText("Year 3")).toBeInTheDocument();
+    expect(screen.getByText("$818,000")).toBeInTheDocument();
     const cost = screen.getByText("-$12,000");
     expect(cost).toHaveClass("text-loss");
+  });
+
+  it("renders the em dash placeholder when breakevenValue is null, never the raw breakeven_label string", () => {
+    // Regression for the defect this test used to hide: `breakeven_label` is
+    // a hardcoded backend display string ("Breakeven Valuation (SAR)"), not
+    // a number. VerdictStats no longer has a field that string could even be
+    // assigned to, so this can't regress silently.
+    const verdict: VerdictState = { kind: "stay", bestOfferName: "Atlas", bestMedianNet: -5000 };
+    wrap(
+      <VerdictBand
+        verdict={verdict}
+        stats={emptyStats}
+        percentiles={null}
+        onFocusMissing={vi.fn()}
+      />
+    );
+    expect(screen.queryByText(/Breakeven Valuation/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Breakeven Price/i)).not.toBeInTheDocument();
   });
 
   it("uses Western digits under the Arabic locale", () => {

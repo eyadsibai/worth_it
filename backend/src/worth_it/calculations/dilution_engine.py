@@ -25,6 +25,11 @@ class DilutionResult:
     yearly_factors: np.ndarray
     total_dilution: float
     historical_factor: float = 1.0
+    round_factors: list[float] = field(default_factory=list)
+    """Cumulative stake-remaining factor immediately after each round is
+    fully priced in, parallel to (same length and order as) the `rounds`
+    list passed to the pipeline. This is what a per-round table renders
+    instead of recomputing its own cumulative product - see `build()`."""
 
 
 @dataclass(frozen=True)
@@ -128,32 +133,58 @@ class DilutionPipeline:
             _safe_conversions=safe_map,
         )
 
-    def apply_future_rounds(self) -> DilutionPipeline:
-        """Calculate yearly factors applying future dilution at correct years.
-
-        For each year in the timeline:
+    def _factor_at_year(self, year: int) -> float:
+        """Cumulative stake-remaining factor at a given year, honoring SAFE
+        conversion timing:
         - Start with the historical factor (from completed rounds)
         - Apply priced rounds that occur at or before the year
         - Apply SAFEs at their conversion year (next priced round)
 
+        Factored out of `apply_future_rounds()` so the per-round breakdown
+        (`build()`'s `round_factors`) can reuse this exact formula instead of
+        a second implementation that could drift from it.
+        """
+        cumulative = self._historical_factor
+        for r in self._upcoming:
+            dilution = r.get("dilution", 0)
+            if r.get("is_safe_note", False):
+                # SAFE: only dilutes at conversion year
+                conv_year = self._safe_conversions.get(id(r))
+                if conv_year is not None and year >= conv_year:
+                    cumulative *= 1 - dilution
+            elif r["year"] <= year:
+                # Priced round: dilutes at its own year
+                cumulative *= 1 - dilution
+        return cumulative
+
+    def apply_future_rounds(self) -> DilutionPipeline:
+        """Calculate yearly factors applying future dilution at correct years.
+
         Returns new pipeline instance with _yearly_factors populated.
         """
-        factors = []
-        for year in self.years:
-            cumulative = self._historical_factor
-            for r in self._upcoming:
-                dilution = r.get("dilution", 0)
-                if r.get("is_safe_note", False):
-                    # SAFE: only dilutes at conversion year
-                    conv_year = self._safe_conversions.get(id(r))
-                    if conv_year is not None and year >= conv_year:
-                        cumulative *= 1 - dilution
-                elif r["year"] <= year:
-                    # Priced round: dilutes at its own year
-                    cumulative *= 1 - dilution
-            factors.append(cumulative)
-
+        factors = [self._factor_at_year(year) for year in self.years]
         return dataclasses.replace(self, _yearly_factors=np.array(factors))
+
+    def _round_stake_factors(self) -> dict[int, float]:
+        """Cumulative stake-remaining factor immediately after each round is
+        fully priced in, keyed by `id(round)`.
+
+        Completed rounds compound sequentially in year order (their order
+        relative to each other isn't otherwise observable, since the backend
+        applies them all from day 0 as a single `historical_factor`).
+        Upcoming rounds reuse `_factor_at_year()` - the exact formula
+        `apply_future_rounds()` uses - so a SAFE's own row shows no change and
+        the round that triggers its conversion carries both dilutions at
+        once, in agreement with `yearly_factors` at that year by construction.
+        """
+        factors: dict[int, float] = {}
+        completed_factor = 1.0
+        for r in sorted(self._completed, key=lambda x: x["year"]):
+            completed_factor *= 1 - r.get("dilution", 0)
+            factors[id(r)] = completed_factor
+        for r in self._upcoming:
+            factors[id(r)] = self._factor_at_year(r["year"])
+        return factors
 
     def build(self) -> DilutionResult:
         """Finalize pipeline and return DilutionResult.
@@ -170,10 +201,14 @@ class DilutionPipeline:
 
         total = 1 - factors[-1] if len(factors) > 0 else 0.0
 
+        round_stake_factors = self._round_stake_factors()
+        round_factors = [round_stake_factors.get(id(r), 1.0) for r in self.rounds]
+
         return DilutionResult(
             yearly_factors=factors,
             total_dilution=total,
             historical_factor=self._historical_factor,
+            round_factors=round_factors,
         )
 
 
