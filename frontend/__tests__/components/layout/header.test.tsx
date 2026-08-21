@@ -6,7 +6,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Header } from "@/components/layout/header";
-import { WalkthroughProvider } from "@/lib/walkthrough";
 
 // Mock @/i18n/navigation (the locale-aware Link/usePathname the header now uses)
 let mockPathname = "/";
@@ -76,21 +75,13 @@ describe("Header", () => {
 
   describe("logo and branding", () => {
     it("renders Worth It logo", () => {
-      render(
-        <WalkthroughProvider>
-          <Header />
-        </WalkthroughProvider>
-      );
+      render(<Header />);
 
       expect(screen.getByText("Worth It")).toBeInTheDocument();
     });
 
     it("logo links to home page", () => {
-      render(
-        <WalkthroughProvider>
-          <Header />
-        </WalkthroughProvider>
-      );
+      render(<Header />);
 
       const logoLink = screen.getByRole("link", { name: /worth it/i });
       expect(logoLink).toHaveAttribute("href", "/");
@@ -99,11 +90,7 @@ describe("Header", () => {
 
   describe("navigation", () => {
     it("renders desktop navigation links", () => {
-      render(
-        <WalkthroughProvider>
-          <Header />
-        </WalkthroughProvider>
-      );
+      render(<Header />);
 
       expect(screen.getByRole("link", { name: "Analysis" })).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "About" })).toBeInTheDocument();
@@ -112,11 +99,7 @@ describe("Header", () => {
     it("marks current route as active with aria-current", () => {
       mockPathname = "/valuation";
 
-      render(
-        <WalkthroughProvider>
-          <Header />
-        </WalkthroughProvider>
-      );
+      render(<Header />);
 
       expect(screen.getByRole("link", { name: "Valuation" })).toHaveAttribute(
         "aria-current",
@@ -128,11 +111,7 @@ describe("Header", () => {
 
   describe("search button", () => {
     it("renders mobile search button with md:hidden class", () => {
-      render(
-        <WalkthroughProvider>
-          <Header />
-        </WalkthroughProvider>
-      );
+      render(<Header />);
 
       const mobileSearchButton = screen.getByRole("button", {
         name: /open command palette/i,
@@ -144,11 +123,7 @@ describe("Header", () => {
 
     it("calls setOpen(true) when mobile search button clicked", async () => {
       const user = userEvent.setup();
-      render(
-        <WalkthroughProvider>
-          <Header />
-        </WalkthroughProvider>
-      );
+      render(<Header />);
 
       const mobileSearchButton = screen.getByRole("button", {
         name: /open command palette/i,
@@ -169,11 +144,7 @@ describe("Header", () => {
         value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
       });
 
-      render(
-        <WalkthroughProvider>
-          <Header />
-        </WalkthroughProvider>
-      );
+      render(<Header />);
 
       expect(screen.getByText("Ctrl")).toBeInTheDocument();
       expect(screen.getByText("K")).toBeInTheDocument();
@@ -189,11 +160,7 @@ describe("Header", () => {
         value: "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0)",
       });
 
-      render(
-        <WalkthroughProvider>
-          <Header />
-        </WalkthroughProvider>
-      );
+      render(<Header />);
 
       expect(screen.getByText("⌘")).toBeInTheDocument();
       expect(screen.getByText("K")).toBeInTheDocument();

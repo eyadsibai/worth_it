@@ -76,9 +76,9 @@ export default async function LocaleLayout({
         <ErrorBoundary>
           {/* NextIntlClientProvider wraps the whole client tree, not just
               `children`: `Providers` renders global chrome (the command
-              palette, walkthrough overlay) as siblings of `children`, and
-              those need `useTranslations`/`useLocale` too — nesting it only
-              around `children` would leave them outside the intl context. */}
+              palette) as a sibling of `children`, and that needs
+              `useTranslations`/`useLocale` too — nesting it only around
+              `children` would leave it outside the intl context. */}
           <NextIntlClientProvider>
             <Providers>{children}</Providers>
           </NextIntlClientProvider>

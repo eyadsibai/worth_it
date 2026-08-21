@@ -335,16 +335,6 @@
     @apply bg-background;
   }
 
-  /* Gradient text - green spectrum with dark mode support */
-  .gradient-text {
-    @apply from-primary via-chart-4 to-terminal bg-gradient-to-r bg-clip-text text-transparent;
-  }
-
-  /* Success gradient for positive values */
-  .gradient-gold {
-    @apply from-chart-3 to-terminal bg-gradient-to-r bg-clip-text text-transparent;
-  }
-
   /* Section divider - subtle green */
   .section-divider {
     @apply bg-border h-px;
@@ -380,9 +370,6 @@
   }
   .delay-225 {
     animation-delay: 225ms;
-  }
-  .delay-300 {
-    animation-delay: 300ms;
   }
   .delay-375 {
     animation-delay: 375ms;
@@ -437,15 +424,6 @@
 
   .metric-neutral {
     @apply text-muted-foreground;
-  }
-
-  /* Subtle grid pattern background */
-  .bg-grid {
-    background-image:
-      linear-gradient(var(--border) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 40px 40px;
-    opacity: 0.5;
   }
 }
 

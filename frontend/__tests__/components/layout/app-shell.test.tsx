@@ -6,7 +6,6 @@ import * as React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { AppShell } from "@/components/layout/app-shell";
-import { WalkthroughProvider } from "@/lib/walkthrough";
 
 // Mock @/i18n/navigation (the locale-aware Link/usePathname the header now uses)
 vi.mock("@/i18n/navigation", () => ({
@@ -52,11 +51,7 @@ vi.mock("@/components/command-palette", () => ({
 }));
 
 const renderWithProviders = (children: React.ReactNode) => {
-  return render(
-    <WalkthroughProvider>
-      <AppShell>{children}</AppShell>
-    </WalkthroughProvider>
-  );
+  return render(<AppShell>{children}</AppShell>);
 };
 
 describe("AppShell", () => {
@@ -127,11 +122,9 @@ describe("AppShell", () => {
 
     it("applies noise background pattern", () => {
       const { container } = render(
-        <WalkthroughProvider>
-          <AppShell>
-            <div>Main content</div>
-          </AppShell>
-        </WalkthroughProvider>
+        <AppShell>
+          <div>Main content</div>
+        </AppShell>
       );
 
       const wrapper = container.firstChild as HTMLElement;

@@ -5,8 +5,6 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CommandPalette, useCommandPalette } from "@/components/command-palette";
-import { WalkthroughProvider } from "@/lib/walkthrough";
-import { WalkthroughOverlay } from "@/components/walkthrough";
 
 /** Default stale time for queries (1 minute in ms) */
 const DEFAULT_STALE_TIME_MS = 60000;
@@ -33,11 +31,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-        <WalkthroughProvider>
-          {children}
-          <WalkthroughOverlay />
-          <CommandPaletteWrapper />
-        </WalkthroughProvider>
+        {children}
+        <CommandPaletteWrapper />
         <ReactQueryDevtools initialIsOpen={false} />
       </ThemeProvider>
     </QueryClientProvider>
