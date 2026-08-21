@@ -14,7 +14,19 @@
   },
   "commandPalette": {
     "goTo": "الانتقال إلى {page}",
-    "switchLanguage": "تبديل اللغة"
+    "switchLanguage": "تبديل اللغة",
+    "placeholder": "اكتب أمرًا أو ابحث...",
+    "empty": "لا توجد نتائج.",
+    "groups": {
+      "navigation": "التنقل",
+      "shortcuts": "الاختصارات",
+      "theme": "المظهر"
+    },
+    "theme": {
+      "light": "الوضع الفاتح",
+      "dark": "الوضع الداكن",
+      "system": "وضع النظام"
+    }
   },
   "landing": {
     "title": "تحليل العرض",

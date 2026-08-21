@@ -25,6 +25,14 @@ vi.mock("@/i18n/navigation", () => ({
 const commandPaletteMessages: Record<string, string> = {
   goTo: "Go to {page}",
   switchLanguage: "Switch language",
+  placeholder: "Type a command or search...",
+  empty: "No results found.",
+  "groups.navigation": "Navigation",
+  "groups.shortcuts": "Shortcuts",
+  "groups.theme": "Theme",
+  "theme.light": "Light Mode",
+  "theme.dark": "Dark Mode",
+  "theme.system": "System Theme",
 };
 const mastheadMessages: Record<string, string> = {
   analysis: "Analysis",

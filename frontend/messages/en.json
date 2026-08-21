@@ -14,7 +14,19 @@
   },
   "commandPalette": {
     "goTo": "Go to {page}",
-    "switchLanguage": "Switch language"
+    "switchLanguage": "Switch language",
+    "placeholder": "Type a command or search...",
+    "empty": "No results found.",
+    "groups": {
+      "navigation": "Navigation",
+      "shortcuts": "Shortcuts",
+      "theme": "Theme"
+    },
+    "theme": {
+      "light": "Light Mode",
+      "dark": "Dark Mode",
+      "system": "System Theme"
+    }
   },
   "landing": {
     "title": "Offer analysis",

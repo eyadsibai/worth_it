@@ -46,11 +46,11 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="Type a command or search..." />
+      <CommandInput placeholder={t("placeholder")} />
       <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
+        <CommandEmpty>{t("empty")}</CommandEmpty>
 
-        <CommandGroup heading="Navigation">
+        <CommandGroup heading={t("groups.navigation")}>
           <CommandItem onSelect={() => runCommand(() => router.push("/"))}>
             <Home className="mr-2 h-4 w-4" />
             {t("goTo", { page: tMasthead("analysis") })}
@@ -83,7 +83,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             longer rendered), so those commands could silently strand a user
             in a "mode" with no visible UI. These jump to the same two
             destinations directly, keeping the E/F muscle-memory shortcuts. */}
-        <CommandGroup heading="Shortcuts">
+        <CommandGroup heading={t("groups.shortcuts")}>
           <CommandItem onSelect={() => runCommand(() => router.push("/"))}>
             <Home className="mr-2 h-4 w-4" />
             {tMasthead("analysis")}
@@ -96,18 +96,18 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           </CommandItem>
         </CommandGroup>
 
-        <CommandGroup heading="Theme">
+        <CommandGroup heading={t("groups.theme")}>
           <CommandItem onSelect={() => runCommand(() => setTheme("light"))}>
             <Sun className="mr-2 h-4 w-4" />
-            Light Mode
+            {t("theme.light")}
           </CommandItem>
           <CommandItem onSelect={() => runCommand(() => setTheme("dark"))}>
             <Moon className="mr-2 h-4 w-4" />
-            Dark Mode
+            {t("theme.dark")}
           </CommandItem>
           <CommandItem onSelect={() => runCommand(() => setTheme("system"))}>
             <Monitor className="mr-2 h-4 w-4" />
-            System Theme
+            {t("theme.system")}
           </CommandItem>
         </CommandGroup>
       </CommandList>
