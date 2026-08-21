@@ -2151,3 +2151,44 @@ class TestCompletedRoundsDilution:
         assert schedule[1]["year"] == 3
         assert schedule[1]["resulting_stake_pct"] == pytest.approx(72.0)
         assert result["total_dilution"] == pytest.approx(0.28)
+
+    def test_dilution_schedule_with_simulated_dilution_and_dilution_rounds_does_not_raise(
+        self, opportunity_cost_df
+    ):
+        """`monte_carlo.py` always writes `simulated_dilution` into
+        `startup_params` before calling `calculate_startup_scenario`, so this
+        combination — `simulated_dilution` set alongside non-empty
+        `dilution_rounds` — cannot rely on `VariableParam` never carrying a
+        `dilution` member as its only defense against reaching this code path.
+        `calculate_dilution_schedule`'s `with_simulated_dilution` shortcut
+        returns `round_factors=[]` regardless of `dilution_rounds`, and
+        zipping that against a non-empty `dilution_rounds` under
+        `strict=True` used to raise `ValueError` instead of returning a
+        result.
+        """
+        startup_params = {
+            "equity_type": EquityType.RSU,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "exit_year": 5,
+            "simulated_dilution": 0.3,
+            "rsu_params": {
+                "equity_pct": 0.05,
+                "target_exit_valuation": 100_000_000,
+                "simulate_dilution": True,
+                "dilution_rounds": [
+                    {
+                        "year": 1,
+                        "dilution": 0.20,
+                        "is_safe_note": True,
+                        "status": "upcoming",
+                    },
+                ],
+            },
+            "options_params": {},
+        }
+
+        result = calculations.calculate_startup_scenario(opportunity_cost_df, startup_params)
+
+        assert result["total_dilution"] == pytest.approx(0.3)
+        assert result["dilution_schedule"] == []

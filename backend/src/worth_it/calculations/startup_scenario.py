@@ -159,13 +159,22 @@ def calculate_startup_scenario(
                 # recomputing its own (previously divergent) cumulative
                 # product. `strict=True` ensures a mismatch would raise
                 # rather than silently mispair a round with the wrong
-                # factor.
-                "dilution_schedule": [
-                    {"year": r["year"], "resulting_stake_pct": factor * 100}
-                    for r, factor in zip(
-                        dilution_rounds or [], dilution_result.round_factors, strict=True
-                    )
-                ],
+                # factor. `round_factors` comes back empty when
+                # `calculate_dilution_schedule` took the `simulated_dilution`
+                # shortcut (which never looks at `rounds`), so the per-round
+                # schedule is only computed when there is one to compute -
+                # zipping an empty `round_factors` against a non-empty
+                # `dilution_rounds` under `strict=True` would otherwise raise.
+                "dilution_schedule": (
+                    [
+                        {"year": r["year"], "resulting_stake_pct": factor * 100}
+                        for r, factor in zip(
+                            dilution_rounds or [], dilution_result.round_factors, strict=True
+                        )
+                    ]
+                    if dilution_result.round_factors
+                    else []
+                ),
             }
         )
 
