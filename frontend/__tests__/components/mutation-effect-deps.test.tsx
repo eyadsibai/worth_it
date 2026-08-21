@@ -11,9 +11,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DilutionPreview } from "@/components/cap-table/dilution-preview";
-import { ScenarioComparison } from "@/components/scenarios/scenario-comparison";
 import type { Stakeholder } from "@/lib/schemas";
-import type { ScenarioData } from "@/lib/export-utils";
 import * as apiClient from "@/lib/api-client";
 
 vi.mock("@/lib/api-client", async () => {
@@ -21,7 +19,6 @@ vi.mock("@/lib/api-client", async () => {
   return {
     ...actual,
     useGetDilutionPreview: vi.fn(),
-    useCompareScenarios: vi.fn(),
   };
 });
 
@@ -100,38 +97,6 @@ const STAKEHOLDERS: Stakeholder[] = [
   },
 ];
 
-function createScenario(name: string, netOutcome: number): ScenarioData {
-  return {
-    name,
-    timestamp: "2026-01-01T00:00:00.000Z",
-    globalSettings: { exitYear: 5 },
-    currentJob: {
-      monthlySalary: 15000,
-      annualGrowthRate: 5,
-      assumedROI: 8,
-      investmentFrequency: "Monthly",
-    },
-    equity: {
-      type: "RSU",
-      monthlySalary: 12000,
-      vestingPeriod: 4,
-      cliffPeriod: 1,
-      equityPct: 0.5,
-      exitValuation: 100_000_000,
-    },
-    results: {
-      finalPayoutValue: 500000,
-      finalOpportunityCost: 200000,
-      netOutcome,
-    },
-  };
-}
-
-const SCENARIOS: ScenarioData[] = [
-  createScenario("Scenario A", 300000),
-  createScenario("Scenario B", 400000),
-];
-
 afterEach(() => {
   vi.clearAllMocks();
 });
@@ -207,51 +172,6 @@ describe("DilutionPreview mutation effect", () => {
         preMoneyValuation={8_000_000}
         amountRaised={2_000_000}
       />
-    );
-
-    expect(calls).toHaveLength(2);
-  });
-});
-
-describe("ScenarioComparison mutation effect", () => {
-  it("calls mutate exactly once for a stable set of scenarios", () => {
-    const { useFakeMutation, calls } = createMutationSpy();
-    vi.mocked(apiClient.useCompareScenarios).mockImplementation(
-      useFakeMutation as unknown as typeof apiClient.useCompareScenarios
-    );
-
-    render(<ScenarioComparison scenarios={SCENARIOS} />, { wrapper: createWrapper() });
-
-    expect(calls).toHaveLength(1);
-  });
-
-  it("does not re-call mutate when re-rendered with the same scenarios", () => {
-    const { useFakeMutation, calls } = createMutationSpy();
-    vi.mocked(apiClient.useCompareScenarios).mockImplementation(
-      useFakeMutation as unknown as typeof apiClient.useCompareScenarios
-    );
-
-    const { rerender } = render(<ScenarioComparison scenarios={SCENARIOS} />, {
-      wrapper: createWrapper(),
-    });
-
-    rerender(<ScenarioComparison scenarios={SCENARIOS} />);
-
-    expect(calls).toHaveLength(1);
-  });
-
-  it("calls mutate once more when the scenario list changes", () => {
-    const { useFakeMutation, calls } = createMutationSpy();
-    vi.mocked(apiClient.useCompareScenarios).mockImplementation(
-      useFakeMutation as unknown as typeof apiClient.useCompareScenarios
-    );
-
-    const { rerender } = render(<ScenarioComparison scenarios={SCENARIOS} />, {
-      wrapper: createWrapper(),
-    });
-
-    rerender(
-      <ScenarioComparison scenarios={[...SCENARIOS, createScenario("Scenario C", 500000)]} />
     );
 
     expect(calls).toHaveLength(2);

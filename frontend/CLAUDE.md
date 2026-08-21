@@ -35,7 +35,7 @@ pnpm test:unit
 pnpm test:unit:coverage
 ```
 
-**Total: 663 frontend unit tests** (run `pnpm test:unit` to verify)
+**Total: 1493 frontend unit tests** (run `pnpm test:unit` to verify)
 
 ### Pre-Commit Checklist
 
@@ -59,14 +59,12 @@ Uses **Vitest** with **React Testing Library** and **@vitest/coverage-v8**.
 ```
 frontend/
 ├── docs/
-│   └── design-references/       # Fundcy reference images (STUDY THESE!)
-│       ├── fundcy-dashboard-1.webp
-│       ├── fundcy-dashboard-2.webp
-│       ├── fundcy-components.webp
-│       └── fundcy-detail.webp
+│   └── design-references/       # Retired Fundcy images (kept for history only)
 ├── __tests__/                   # Unit tests
-├── app/                         # Next.js App Router pages
+├── app/
+│   └── [locale]/                # Locale-scoped App Router pages (en, ar)
 ├── components/
+│   ├── ledger/                  # The Ledger design system + comparison landing
 │   ├── cap-table/               # Cap table management components
 │   ├── charts/                  # Recharts visualizations
 │   ├── forms/                   # React Hook Form components
@@ -78,7 +76,7 @@ frontend/
 │   ├── api-client.ts           # Type-safe API client
 │   ├── constants/              # App-wide constants
 │   ├── dilution-utils.ts       # Dilution calculation helpers
-│   ├── employee-scenario-utils.ts # Employee equity scenario helpers
+│   ├── ledger/                 # Ledger formatting, verdict, and MC request helpers
 │   ├── export-utils.ts         # CSV/PDF export utilities
 │   ├── format-utils.ts         # Number/currency formatting
 │   ├── hooks/                  # Custom React hooks
@@ -150,7 +148,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 - `lib/schemas.ts` - Zod schemas (must match backend Pydantic)
 - `lib/store.ts` - Zustand store
 - `components/forms/form-fields.tsx` - Reusable form field helpers
-- `app/page.tsx` - Main application page
+- `app/[locale]/page.tsx` - The comparison landing (main application page)
 
 ## Resources
 
