@@ -4,18 +4,7 @@ import * as React from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import { useTheme } from "next-themes";
-import {
-  Home,
-  Info,
-  Moon,
-  Sun,
-  Monitor,
-  Users,
-  Briefcase,
-  PieChart,
-  Calculator,
-  Languages,
-} from "lucide-react";
+import { Home, Info, Moon, Sun, Monitor, PieChart, Calculator, Languages } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -25,7 +14,7 @@ import {
   CommandList,
   CommandShortcut,
 } from "@/components/ui/command";
-import { useAppStore, useCommandPaletteOpen, useSetCommandPaletteOpen } from "@/lib/store";
+import { useCommandPaletteOpen, useSetCommandPaletteOpen } from "@/lib/store";
 
 interface CommandPaletteProps {
   open: boolean;
@@ -44,7 +33,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const t = useTranslations("commandPalette");
   const tMasthead = useTranslations("masthead");
   const { setTheme } = useTheme();
-  const { setAppMode } = useAppStore();
 
   const runCommand = React.useCallback(
     (command: () => void) => {
@@ -89,15 +77,21 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           </CommandItem>
         </CommandGroup>
 
-        <CommandGroup heading="Mode">
-          <CommandItem onSelect={() => runCommand(() => setAppMode("employee"))}>
-            <Briefcase className="mr-2 h-4 w-4" />
-            Employee Mode
+        {/* Replaces the old Employee/Founder Mode commands, which drove the
+            store's `appMode` flag — nothing reads that anymore now that
+            founder mode is its own `/cap-table` route (ModeToggle is no
+            longer rendered), so those commands could silently strand a user
+            in a "mode" with no visible UI. These jump to the same two
+            destinations directly, keeping the E/F muscle-memory shortcuts. */}
+        <CommandGroup heading="Shortcuts">
+          <CommandItem onSelect={() => runCommand(() => router.push("/"))}>
+            <Home className="mr-2 h-4 w-4" />
+            {tMasthead("analysis")}
             <CommandShortcut>E</CommandShortcut>
           </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => setAppMode("founder"))}>
-            <Users className="mr-2 h-4 w-4" />
-            Founder Mode
+          <CommandItem onSelect={() => runCommand(() => router.push("/cap-table"))}>
+            <PieChart className="mr-2 h-4 w-4" />
+            {tMasthead("capTable")}
             <CommandShortcut>F</CommandShortcut>
           </CommandItem>
         </CommandGroup>

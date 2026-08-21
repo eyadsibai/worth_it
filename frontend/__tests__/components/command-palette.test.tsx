@@ -57,15 +57,10 @@ vi.mock("next-themes", () => ({
 }));
 
 // Mock zustand store
-const mockSetAppMode = vi.fn();
 const mockSetCommandPaletteOpen = vi.fn();
 let mockCommandPaletteOpen = false;
 
 vi.mock("@/lib/store", () => ({
-  useAppStore: () => ({
-    appMode: "employee",
-    setAppMode: mockSetAppMode,
-  }),
   useCommandPaletteOpen: () => mockCommandPaletteOpen,
   useSetCommandPaletteOpen: () => mockSetCommandPaletteOpen,
 }));
@@ -99,7 +94,7 @@ describe("CommandPalette", () => {
 
       await waitFor(() => {
         expect(screen.getByText("Navigation")).toBeInTheDocument();
-        expect(screen.getByText("Mode")).toBeInTheDocument();
+        expect(screen.getByText("Shortcuts")).toBeInTheDocument();
         expect(screen.getByText("Theme")).toBeInTheDocument();
       });
     });
@@ -194,37 +189,43 @@ describe("CommandPalette", () => {
     });
   });
 
-  describe("mode commands", () => {
-    it("switches to Employee mode", async () => {
+  describe("shortcut commands", () => {
+    // The old Employee/Founder Mode commands drove `appMode`, a store flag
+    // nothing in the UI reads anymore now that founder mode is its own
+    // `/cap-table` route (ModeToggle is no longer rendered) — leaving them in
+    // place would let the palette silently strand a user in a mode with no
+    // visible way out. They're replaced with quick E/F-shortcut jumps to the
+    // same two destinations the Navigation group already lists verbosely.
+    it("jumps to Analysis on E", async () => {
       const user = userEvent.setup();
       const onOpenChange = vi.fn();
       render(<CommandPalette open={true} onOpenChange={onOpenChange} />);
 
       await waitFor(() => {
-        expect(screen.getByText("Employee Mode")).toBeInTheDocument();
+        expect(screen.getByText("Analysis")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText("Employee Mode"));
+      await user.click(screen.getByText("Analysis"));
 
       await waitFor(() => {
-        expect(mockSetAppMode).toHaveBeenCalledWith("employee");
+        expect(mockPush).toHaveBeenCalledWith("/");
         expect(onOpenChange).toHaveBeenCalledWith(false);
       });
     });
 
-    it("switches to Founder mode", async () => {
+    it("jumps to Cap Table on F", async () => {
       const user = userEvent.setup();
       const onOpenChange = vi.fn();
       render(<CommandPalette open={true} onOpenChange={onOpenChange} />);
 
       await waitFor(() => {
-        expect(screen.getByText("Founder Mode")).toBeInTheDocument();
+        expect(screen.getByText("Cap Table")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText("Founder Mode"));
+      await user.click(screen.getByText("Cap Table"));
 
       await waitFor(() => {
-        expect(mockSetAppMode).toHaveBeenCalledWith("founder");
+        expect(mockPush).toHaveBeenCalledWith("/cap-table");
         expect(onOpenChange).toHaveBeenCalledWith(false);
       });
     });
@@ -319,13 +320,13 @@ describe("CommandPalette", () => {
   });
 
   describe("keyboard shortcuts display", () => {
-    it("displays keyboard shortcuts for mode commands", async () => {
+    it("displays keyboard shortcuts for the shortcut commands", async () => {
       render(<CommandPalette open={true} onOpenChange={() => {}} />);
 
       await waitFor(() => {
-        // Check that the Employee Mode command has the E shortcut
-        const employeeCommand = screen.getByText("Employee Mode").closest("[cmdk-item]");
-        expect(employeeCommand).toBeInTheDocument();
+        // Check that the Analysis command has the E shortcut
+        const analysisCommand = screen.getByText("Analysis").closest("[cmdk-item]");
+        expect(analysisCommand).toBeInTheDocument();
       });
 
       // Just verify the shortcut elements are rendered
