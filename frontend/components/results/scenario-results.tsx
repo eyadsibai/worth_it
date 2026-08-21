@@ -378,7 +378,7 @@ export function ScenarioResults({
       {/* Screen reader announcement for calculation results */}
       <LiveRegion>{announcement}</LiveRegion>
 
-      <div className="animate-fade-in relative space-y-6" data-tour="results-section">
+      <div className="animate-fade-in relative space-y-6">
         {/* Fetching overlay - shows during refetch while keeping stale data visible */}
         {isFetching && (
           <div

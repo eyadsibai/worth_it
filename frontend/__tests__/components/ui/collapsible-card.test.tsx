@@ -44,19 +44,6 @@ describe("CollapsibleCard", () => {
 
       expect(screen.getByTestId("custom-icon")).toBeInTheDocument();
     });
-
-    it("applies dataTour attribute", () => {
-      render(
-        <CollapsibleCard title="Test Card" dataTour="test-tour">
-          <p>Content</p>
-        </CollapsibleCard>
-      );
-
-      expect(screen.getByText("Test Card").closest("[data-tour]")).toHaveAttribute(
-        "data-tour",
-        "test-tour"
-      );
-    });
   });
 
   describe("Collapsible Behavior", () => {

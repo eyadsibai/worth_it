@@ -44,10 +44,7 @@ export function StartupOfferFormComponent({
 
   const formContent = (
     <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "rsu" | "options")}>
-      <TabsList
-        className="bg-muted/50 grid w-full grid-cols-2 rounded-lg p-1"
-        data-tour="equity-type-selector"
-      >
+      <TabsList className="bg-muted/50 grid w-full grid-cols-2 rounded-lg p-1">
         <TabsTrigger
           value="rsu"
           className="data-[state=active]:bg-card data-[state=active]:text-card-foreground transition-all data-[state=active]:shadow-sm"
@@ -85,7 +82,6 @@ export function StartupOfferFormComponent({
       accentColor="primary"
       collapsible={collapsible}
       defaultOpen={defaultOpen}
-      dataTour="startup-offer-card"
     >
       {formContent}
     </CollapsibleCard>

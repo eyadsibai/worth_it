@@ -105,7 +105,8 @@ export function MonteCarloVisualizations({
     const min = sorted[0];
     const max = sorted[sorted.length - 1];
     const std = Math.sqrt(
-      netOutcomes.reduce((sum, val) => sum + Math.pow(val - mean, MIDPOINT_DIVISOR), 0) / netOutcomes.length // squared deviation
+      netOutcomes.reduce((sum, val) => sum + Math.pow(val - mean, MIDPOINT_DIVISOR), 0) /
+        netOutcomes.length // squared deviation
     );
     const positiveCount = netOutcomes.filter((x) => x > 0).length;
     const positiveRate = (positiveCount / netOutcomes.length) * PCT_MULTIPLIER;
@@ -214,7 +215,7 @@ export function MonteCarloVisualizations({
   // This MUST come AFTER all hooks to satisfy Rules of Hooks
   if (!hasValidData) {
     return (
-      <Card data-tour="monte-carlo-chart">
+      <Card>
         <CardHeader>
           <CardTitle>Monte Carlo Results</CardTitle>
           <CardDescription>No simulation data available</CardDescription>
@@ -234,14 +235,14 @@ export function MonteCarloVisualizations({
   }
 
   return (
-    <Card data-tour="monte-carlo-chart">
+    <Card>
       <CardHeader>
         <CardTitle>Monte Carlo Results</CardTitle>
         <CardDescription>
           Analysis of {netOutcomes.length.toLocaleString()} simulation scenarios
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6" data-tour="monte-carlo-stats">
+      <CardContent className="space-y-6">
         {/* Plain-English Summary Headline */}
         <div data-testid="monte-carlo-headline" className="py-4 text-center text-2xl font-semibold">
           {headline}
@@ -267,7 +268,9 @@ export function MonteCarloVisualizations({
             </div>
             <span
               className={`text-xl font-semibold tabular-nums ${
-                stats.positiveRate >= MODERATE_OUTLOOK_THRESHOLD ? "text-terminal" : "text-destructive"
+                stats.positiveRate >= MODERATE_OUTLOOK_THRESHOLD
+                  ? "text-terminal"
+                  : "text-destructive"
               }`}
             >
               {stats.positiveRate.toFixed(1)}%

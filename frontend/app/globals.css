@@ -291,22 +291,6 @@
     border-color: oklch(50% 0.01 250);
   }
 
-  /* Data card - for numbers and metrics */
-  .data-card {
-    @apply bg-secondary/50 rounded-xl p-4;
-  }
-
-  /* Data display - Fundcy style with lighter decimals */
-  .data-value {
-    @apply text-2xl font-semibold tracking-tight;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .data-value-lg {
-    @apply text-4xl font-bold tracking-tight;
-    font-variant-numeric: tabular-nums;
-  }
-
   /* Fundcy-style decimal formatting - .00 is lighter */
   .currency-decimal {
     @apply text-muted-foreground/60 font-normal;
@@ -314,20 +298,6 @@
 
   .data-label {
     @apply text-muted-foreground text-xs font-medium tracking-wider uppercase;
-  }
-
-  /* Accent text - subtle emphasis */
-  .text-glow {
-    @apply text-primary font-semibold;
-  }
-
-  /* Status indicators - clean dot */
-  .status-online {
-    @apply relative;
-  }
-  .status-online::before {
-    content: "";
-    @apply bg-terminal absolute top-1/2 -left-3 h-1.5 w-1.5 -translate-y-1/2 rounded-full;
   }
 
   /* Subtle background texture - very faint */
@@ -354,76 +324,6 @@
   .animate-scale-in {
     animation: scaleIn 0.3s ease-out forwards;
     opacity: 0;
-  }
-
-  .animate-glow-in {
-    animation: glowIn 0.6s ease-out forwards;
-    opacity: 0;
-  }
-
-  /* Stagger delays */
-  .delay-75 {
-    animation-delay: 75ms;
-  }
-  .delay-150 {
-    animation-delay: 150ms;
-  }
-  .delay-225 {
-    animation-delay: 225ms;
-  }
-  .delay-375 {
-    animation-delay: 375ms;
-  }
-  .delay-450 {
-    animation-delay: 450ms;
-  }
-
-  /* Hover states - subtle elevation */
-  .hover-glow {
-    @apply transition-all duration-200;
-  }
-  .hover-glow:hover {
-    box-shadow:
-      0 2px 8px rgba(0, 0, 0, 0.08),
-      0 8px 24px rgba(0, 0, 0, 0.06);
-  }
-
-  /* Button hover effect - subtle */
-  .btn-glow {
-    @apply relative overflow-hidden transition-all duration-200;
-  }
-  .btn-glow:hover {
-    @apply brightness-105;
-  }
-
-  /* Number ticker animation */
-  .number-tick {
-    @apply inline-block;
-    animation: numberTick 0.3s ease-out;
-  }
-
-  /* Focus ring - amber glow */
-  .focus-ring {
-    @apply focus-visible:ring-accent focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
-  }
-
-  /* Input field terminal style */
-  .input-terminal {
-    @apply bg-secondary/50 border-border focus:border-accent focus:ring-accent/50 focus:ring-1;
-    @apply placeholder:text-muted-foreground/50 font-mono;
-  }
-
-  /* Metric display */
-  .metric-positive {
-    @apply text-terminal font-semibold;
-  }
-
-  .metric-negative {
-    @apply text-destructive font-semibold;
-  }
-
-  .metric-neutral {
-    @apply text-muted-foreground;
   }
 }
 
@@ -455,28 +355,6 @@
   to {
     opacity: 1;
     transform: scale(1);
-  }
-}
-
-@keyframes glowIn {
-  from {
-    opacity: 0;
-    filter: brightness(1.5);
-  }
-  to {
-    opacity: 1;
-    filter: brightness(1);
-  }
-}
-
-@keyframes numberTick {
-  0% {
-    transform: translateY(-100%);
-    opacity: 0;
-  }
-  100% {
-    transform: translateY(0);
-    opacity: 1;
   }
 }
 
