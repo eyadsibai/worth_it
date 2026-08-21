@@ -14,7 +14,6 @@ test.describe('Print Styles', () => {
   test.beforeEach(async ({ page, helpers }) => {
     await page.goto('/');
     await helpers.waitForAPIConnection();
-    await helpers.dismissWelcomeDialog();
   });
 
   test.describe('Print Media Query', () => {

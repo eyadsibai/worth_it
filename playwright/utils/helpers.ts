@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { TEST_DATA, SELECTORS, TIMEOUTS } from './test-data';
+import { TEST_DATA, TIMEOUTS } from './test-data';
 import path from 'path';
 
 /** Multipliers for the magnitude suffixes produced by formatLargeNumber(). */
@@ -19,7 +19,8 @@ const VALUE_TEXT_TOLERANCE_RATIO = 0.005;
 /**
  * Parse the human-readable value a slider thumb exposes via `aria-valuetext`.
  *
- * Sliders in this app label themselves as "$100M", "$12,500", "5 years" or "0.5%".
+ * The legacy cap table sliders (still in use behind `/cap-table`) label
+ * themselves as "$100M", "$12,500", "5 years" or "0.5%".
  * Returns NaN when the text carries no parseable number.
  */
 export function parseSliderValueText(valueText: string | null): number {
@@ -54,29 +55,40 @@ export class WorthItHelpers {
   constructor(private page: Page) {}
 
   /**
-   * Wait for the page to be ready (forms loaded and API responsive)
-   * Since the UI no longer shows explicit "Connected to API" status,
-   * we wait for the main form elements to be loaded which indicates
-   * the app has initialized and is ready for interaction.
+   * Wait for the page to be ready (forms loaded and API responsive).
    *
-   * Note: Uses navigation timeout (30s) for page elements since React hydration
-   * and form rendering can take longer than typical API responses.
+   * The Ledger landing shows no welcome dialog on first visit (a `SampleNotice`
+   * banner replaces it) and has no sliders at all -- every input is a Ledger
+   * `Field` (a labeled text input) -- so readiness means the heading and the
+   * first field are on screen.
    */
   async waitForAPIConnection() {
-    // Wait for main heading to confirm page has loaded
-    // UI now shows "Offer Analysis" or "Worth It" branding
+    // Wait for main heading to confirm page has loaded. The Ledger landing's
+    // h1 is "Offer analysis"; this regex also still matches the legacy
+    // "Worth It" branding used elsewhere (e.g. the masthead wordmark).
     await this.page.waitForSelector('text=/Offer Analysis|Worth It/i', {
       timeout: TIMEOUTS.navigation,
     });
 
-    // Dismiss welcome dialog if present (shown for first-time visitors)
-    await this.dismissWelcomeDialog();
-
-    // Wait for the form to be interactive (Exit Year slider)
-    // All form fields now use touch-friendly SliderField components (no input[type="number"])
-    await this.page.waitForSelector('[role="slider"]', {
+    // Wait for the form to be interactive (the Stay column's Monthly salary
+    // field, present as soon as the page has hydrated).
+    await this.page.getByLabel('Monthly salary').first().waitFor({
+      state: 'visible',
       timeout: TIMEOUTS.navigation,
     });
+  }
+
+  /**
+   * The bordered duel-grid columns on the Ledger landing (`/`), in document
+   * order: index 0 is the Stay column, index 1+ are the named offers.
+   *
+   * `.border-rule.border-e` is the layout class `app/[locale]/page.tsx` itself
+   * uses to draw the hairline rules between columns -- there is no ARIA
+   * landmark distinguishing Stay from an offer, or one offer from another, so
+   * this mirrors the app's own structure rather than adding a test-only hook.
+   */
+  duelColumn(index: number): Locator {
+    return this.page.locator('.border-rule.border-e').nth(index);
   }
 
   /**
@@ -87,6 +99,10 @@ export class WorthItHelpers {
    * keyboard navigation (ArrowRight/ArrowLeft) which can require 70+ key presses.
    *
    * Fallback: If the edit button isn't found (older slider style), uses keyboard navigation.
+   *
+   * Still needed for the legacy cap table surface behind `/cap-table`
+   * (`FounderDashboard`/`CapTableManager`), which the Ledger redesign did not
+   * touch and which still renders these as real Radix sliders.
    */
   async setSliderValue(labelText: string, targetValue: number, min: number = 0, step: number = 1, container?: Locator) {
     // Use container if provided (for disambiguation when the same label appears in multiple forms)
@@ -197,182 +213,134 @@ export class WorthItHelpers {
   }
 
   /**
-   * Fill in the global settings form
+   * Set a Ledger `Field`'s value by its accessible name.
+   *
+   * `getByLabel` matches case-insensitively on a substring by default, so a
+   * plain label like "Vesting" still matches a `Field` whose unit text folds
+   * into its accessible name (e.g. "Equity grant %"); no regex is needed for
+   * that. `Field` only parses its text into a value on blur, so this fills
+   * then blurs and waits for the (possibly clamped) value to render back.
+   */
+  async setFieldValue(label: string, value: number, container?: Locator) {
+    const scope = container ?? this.page;
+    const input = scope.getByLabel(label);
+    await input.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
+    await input.fill(String(value));
+    await input.blur();
+    await expect(input).toHaveValue(String(value), { timeout: TIMEOUTS.formInput });
+  }
+
+  /**
+   * Fill in the global settings form.
+   *
+   * The Ledger landing has no separate "Global Settings" section -- the
+   * exit-year figure lives in the document header as the "Horizon" field.
    */
   async fillGlobalSettings(exitYear: number = TEST_DATA.globalSettings.exitYear) {
-    // Set the exit year slider (min=1, step=1 from form config)
-    await this.setSliderValue('Exit Year', exitYear, 1, 1);
+    await this.setFieldValue('Horizon', exitYear);
   }
 
   /**
-   * Fill in the current job form
-   * Note: Uses direct spinbutton selectors within card containers since
-   * shadcn/ui FormLabel doesn't use proper label-input associations (for/id attributes)
+   * Fill in the Stay column (the user's current job), scoped to duel column 0.
    */
   async fillCurrentJobForm(params = TEST_DATA.currentJob) {
-    // Scope to Current Job card using the collapsible trigger button for precise matching
-    // (hasText: 'Current Job' can match result cards that mention "current job")
-    const currentJobCard = this.page.locator('.terminal-card').filter({
-      has: this.page.getByRole('button', { name: /^Current Job/ }),
+    const stayColumn = this.duelColumn(0);
+    await stayColumn.getByRole('heading', { name: 'Stay' }).waitFor({
+      state: 'visible',
+      timeout: TIMEOUTS.elementVisible,
     });
-    await currentJobCard.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
 
-    // Monthly Salary - uses SliderField (touch-friendly), scoped to Current Job card
-    // to avoid matching Startup Offer's Monthly Salary
-    await this.setSliderValue('Monthly Salary', params.monthlySalary, 0, 500, currentJobCard);
+    await this.setFieldValue('Monthly salary', params.monthlySalary, stayColumn);
+    await this.setFieldValue('Annual raise', params.annualSalaryGrowthRate, stayColumn);
+    await this.setFieldValue('Surplus ROI', params.assumedAnnualROI, stayColumn);
 
-    // Annual Salary Growth Rate - uses slider, set via setSliderValue
-    await this.setSliderValue('Annual Salary Growth Rate', params.annualSalaryGrowthRate, 0, 0.1);
-
-    // Assumed Annual ROI - uses slider, set via setSliderValue
-    await this.setSliderValue('Assumed Annual ROI', params.assumedAnnualROI, 0, 0.1);
-
-    // Investment Frequency - use accessible name directly
-    const combobox = currentJobCard.getByRole('combobox', { name: 'Investment Frequency' });
-    await combobox.click();
-
-    // Wait for dropdown and select the option
-    await this.page.getByRole('option', { name: params.investmentFrequency }).click();
+    // Invest frequency is a pressed-state toggle group (Monthly/Annually),
+    // not a combobox -- the Ledger landing dropped Quarterly entirely.
+    const frequencyButton = stayColumn.getByRole('button', {
+      name: params.investmentFrequency,
+      exact: true,
+    });
+    await frequencyButton.click();
+    await expect(frequencyButton).toHaveAttribute('aria-pressed', 'true');
   }
 
   /**
-   * Select RSU equity type in startup offer form
-   * Note: UI uses tabs instead of radio buttons for equity type selection
-   */
-  async selectRSUEquityType() {
-    // Scope to Startup Offer card - look for the card containing RSUs/Stock Options tabs
-    const startupCard = this.page.locator('.terminal-card').filter({ has: this.page.getByRole('tab', { name: 'RSUs' }) });
-    await startupCard.waitFor({ state: 'visible' });
-
-    // Find the RSUs tab
-    const rsuTab = startupCard.getByRole('tab', { name: 'RSUs' });
-    await rsuTab.click();
-    await expect(rsuTab).toHaveAttribute('aria-selected', 'true');
-  }
-
-  /**
-   * Select Stock Options equity type in startup offer form
-   * Note: UI uses tabs instead of radio buttons for equity type selection
-   */
-  async selectStockOptionsEquityType() {
-    // Scope to Startup Offer card - look for the card containing RSUs/Stock Options tabs
-    const startupCard = this.page.locator('.terminal-card').filter({ has: this.page.getByRole('tab', { name: 'Stock Options' }) });
-    await startupCard.waitFor({ state: 'visible' });
-
-    // Find the Stock Options tab
-    const optionsTab = startupCard.getByRole('tab', { name: 'Stock Options' });
-    await optionsTab.click();
-    await expect(optionsTab).toHaveAttribute('aria-selected', 'true');
-  }
-
-  /**
-   * Fill in RSU form
-   * Note: Uses direct spinbutton/textbox selectors within card containers since
-   * shadcn/ui FormLabel doesn't use proper label-input associations (for/id attributes)
+   * Select RSU equity type in an offer column.
    *
-   * The RSU form has inputs in this order:
-   * 1. Monthly Salary (textbox - uses formatDisplay=true)
-   * 2. Total Equity Grant (number input)
-   * 3. Exit Valuation (textbox - uses formatDisplay=true)
+   * Grant type is a pressed-state toggle group (RSU/Options), not tabs -- the
+   * Ledger redesign dropped the Radix Tabs the legacy dashboard form used.
    */
-  async fillRSUForm(params = TEST_DATA.rsuEquity) {
-    // First select RSU type
-    await this.selectRSUEquityType();
+  async selectRSUEquityType(offerColumn: Locator = this.duelColumn(1)) {
+    const rsuButton = offerColumn.getByRole('button', { name: 'RSU', exact: true });
+    await rsuButton.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
+    await rsuButton.click();
+    await expect(rsuButton).toHaveAttribute('aria-pressed', 'true');
+  }
 
-    // After selecting RSUs tab, find the visible RSU tabpanel
-    // Use tabpanel role which is more reliable than CSS class selectors
-    const rsuPanel = this.page.getByRole('tabpanel', { name: 'RSUs' });
-    await rsuPanel.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
+  /**
+   * Select Stock Options equity type in an offer column.
+   */
+  async selectStockOptionsEquityType(offerColumn: Locator = this.duelColumn(1)) {
+    const optionsButton = offerColumn.getByRole('button', { name: 'Options', exact: true });
+    await optionsButton.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
+    await optionsButton.click();
+    await expect(optionsButton).toHaveAttribute('aria-pressed', 'true');
+  }
 
-    // All form fields now use touch-friendly SliderField components
-    // Monthly Salary - scoped to RSU panel to avoid matching Current Job's
-    await this.setSliderValue('Monthly Salary', params.monthlySalary, 0, 500, rsuPanel);
+  /**
+   * Fill in RSU form for an offer column (offer A -- duel column 1 -- by default).
+   */
+  async fillRSUForm(params = TEST_DATA.rsuEquity, offerColumn: Locator = this.duelColumn(1)) {
+    // Select the grant type first: it resets the offer's equity details to
+    // zeroed RSU defaults, so it must run before any of the fields below.
+    await this.selectRSUEquityType(offerColumn);
 
-    // Total Equity Grant %
-    await this.setSliderValue('Total Equity Grant', params.totalEquityGrantPct, 0, 0.01, rsuPanel);
+    await this.setFieldValue('Monthly salary', params.monthlySalary, offerColumn);
+    await this.setFieldValue('Equity grant', params.totalEquityGrantPct, offerColumn);
+    await this.setFieldValue('Vesting', params.vestingPeriod, offerColumn);
+    await this.setFieldValue('Cliff', params.cliffPeriod, offerColumn);
+    await this.setFieldValue('Exit valuation', params.exitValuation, offerColumn);
 
-    // Exit Valuation
-    await this.setSliderValue('Exit Valuation', params.exitValuation, 0, 1000000, rsuPanel);
-
-    // Vesting Period (min=1, step=1)
-    await this.setSliderValue('Vesting Period', params.vestingPeriod, 1, 1, rsuPanel);
-
-    // Cliff Period (min=0, step=1)
-    await this.setSliderValue('Cliff Period', params.cliffPeriod, 0, 1, rsuPanel);
-
-    // Simulate Dilution checkbox if needed (it's a Checkbox, not a switch)
     if (params.simulateDilution) {
-      const dilutionCheckbox = rsuPanel.locator('button[role="checkbox"]');
-      const isChecked = await dilutionCheckbox.getAttribute('data-state') === 'checked';
-      if (!isChecked) {
-        await dilutionCheckbox.click();
+      const dilutionButton = offerColumn.getByRole('button', { name: 'Simulate dilution to exit' });
+      const isPressed = (await dilutionButton.getAttribute('aria-pressed')) === 'true';
+      if (!isPressed) {
+        await dilutionButton.click();
+        await expect(dilutionButton).toHaveAttribute('aria-pressed', 'true');
       }
     }
   }
 
   /**
-   * Fill in Stock Options form
-   * Note: Uses direct spinbutton selectors within card containers since
-   * shadcn/ui FormLabel doesn't use proper label-input associations (for/id attributes)
+   * Fill in Stock Options form for an offer column (offer A -- duel column 1 -- by default).
    *
-   * The Stock Options form has inputs in this order:
-   * 1. Monthly Salary (textbox - uses formatDisplay=true)
-   * 2. Number of Options (textbox - uses formatDisplay=true)
-   * 3. Strike Price (number input)
-   * 4. Exit Price Per Share (number input)
+   * Note: the Ledger offer column has no "when to exercise" control at all --
+   * `exercise_strategy` always defaults to `AT_EXIT` with no UI to change it,
+   * unlike the legacy dashboard form. There is nothing to drive here for it.
    */
-  async fillStockOptionsForm(params = TEST_DATA.stockOptions) {
-    // First select Stock Options type
-    await this.selectStockOptionsEquityType();
+  async fillStockOptionsForm(params = TEST_DATA.stockOptions, offerColumn: Locator = this.duelColumn(1)) {
+    await this.selectStockOptionsEquityType(offerColumn);
 
-    // After selecting Stock Options tab, find the visible tabpanel
-    // Use tabpanel role which is more reliable than CSS class selectors
-    const optionsPanel = this.page.getByRole('tabpanel', { name: 'Stock Options' });
-    await optionsPanel.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
-
-    // All form fields now use touch-friendly SliderField components
-    // Monthly Salary - scoped to options panel to avoid matching Current Job's
-    await this.setSliderValue('Monthly Salary', params.monthlySalary, 0, 500, optionsPanel);
-
-    // Number of Options
-    await this.setSliderValue('Number of Options', params.numOptions, 0, 1000, optionsPanel);
-
-    // Strike Price
-    await this.setSliderValue('Strike Price', params.strikePrice, 0, 0.1, optionsPanel);
-
-    // Exit Price Per Share
-    await this.setSliderValue('Exit Price Per Share', params.exitPricePerShare, 0, 0.1, optionsPanel);
-
-    // Vesting Period (min=1, step=1)
-    await this.setSliderValue('Vesting Period', params.vestingPeriod, 1, 1, optionsPanel);
-
-    // Cliff Period (min=0, step=1)
-    await this.setSliderValue('Cliff Period', params.cliffPeriod, 0, 1, optionsPanel);
-
-    // Exercise Strategy - use combobox (label is "When to Exercise")
-    const strategySection = optionsPanel.getByText('When to Exercise').locator('..');
-    const combobox = strategySection.locator('button[role="combobox"]').first();
-    await combobox.click();
-    // Map friendly name to actual option text
-    const strategyMapping: Record<string, string> = {
-      'At Exit': 'At Exit (IPO/Acquisition)',
-      'After Vesting': 'After Vesting',
-    };
-    const optionText = strategyMapping[params.exerciseStrategy] || params.exerciseStrategy;
-    await this.page.getByRole('option', { name: optionText }).click();
+    await this.setFieldValue('Monthly salary', params.monthlySalary, offerColumn);
+    await this.setFieldValue('Number of options', params.numOptions, offerColumn);
+    await this.setFieldValue('Strike price', params.strikePrice, offerColumn);
+    await this.setFieldValue('Vesting', params.vestingPeriod, offerColumn);
+    await this.setFieldValue('Cliff', params.cliffPeriod, offerColumn);
+    await this.setFieldValue('Exit price', params.exitPricePerShare, offerColumn);
   }
 
   /**
-   * Wait for scenario results to load
+   * Wait for scenario results to load.
+   *
+   * The verdict headline renders as an `<h2>` inside the `aria-live="polite"`
+   * region once every offer's deterministic calculation resolves; while any
+   * offer is still incomplete it's a `<button>` instead (see `VerdictBand`).
+   * Waiting for the `<h2>` specifically is what "results are ready" means on
+   * this landing.
    */
   async waitForScenarioResults() {
-    // Wait for the detailed analysis section to be visible
-    await this.page.waitForSelector(SELECTORS.results.scenarioResults, {
-      timeout: TIMEOUTS.calculation,
-    });
-
-    // Also verify the results table is showing data
-    await this.page.waitForSelector('table', {
+    await this.page.locator('[aria-live="polite"] h2').first().waitFor({
+      state: 'visible',
       timeout: TIMEOUTS.calculation,
     });
   }
@@ -402,7 +370,7 @@ export class WorthItHelpers {
    */
   async toggleTheme() {
     // Find theme toggle button
-    const themeToggle = this.page.locator(SELECTORS.themeToggle).first();
+    const themeToggle = this.page.getByRole('button', { name: /theme/i }).first();
     await themeToggle.click();
   }
 
@@ -430,29 +398,5 @@ export class WorthItHelpers {
     // squatting on the API port would otherwise satisfy this check. Worth It's
     // /health also reports a version, so require it.
     expect(data.version).toBeTruthy();
-  }
-
-  /**
-   * Dismiss the welcome dialog if present
-   * The app shows a welcome dialog on first visit that needs to be dismissed
-   * before interacting with other UI elements
-   */
-  async dismissWelcomeDialog() {
-    try {
-      // Wait for the Skip button to appear (with timeout for when dialog doesn't show)
-      const skipButton = this.page.getByRole('button', { name: 'Skip' });
-      await skipButton.waitFor({ state: 'visible', timeout: 3000 });
-
-      // Click the skip button to dismiss the dialog
-      await skipButton.click();
-
-      // Wait for the dialog to fully close
-      await this.page.locator('[data-slot="dialog-overlay"]').waitFor({
-        state: 'hidden',
-        timeout: 5000
-      }).catch(() => {});
-    } catch {
-      // Dialog not present or already dismissed, continue
-    }
   }
 }

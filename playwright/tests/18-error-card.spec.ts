@@ -51,7 +51,6 @@ test.describe('PR #219: Error Card', () => {
       await page.goto('/');
       // Wait for page to be fully loaded before dismissing dialog
       await page.waitForSelector('h1');
-      await helpers.dismissWelcomeDialog();
       await triggerCalculation(page);
 
       // Wait for error card with role="alert"
@@ -67,7 +66,6 @@ test.describe('PR #219: Error Card', () => {
       await setupErrorInterception(page);
       await page.goto('/');
       await page.waitForSelector('h1');
-      await helpers.dismissWelcomeDialog();
       await triggerCalculation(page);
 
       const errorCard = page.locator('[role="alert"]');
@@ -83,7 +81,6 @@ test.describe('PR #219: Error Card', () => {
       await setupErrorInterception(page);
       await page.goto('/');
       await page.waitForSelector('h1');
-      await helpers.dismissWelcomeDialog();
       await triggerCalculation(page);
 
       const errorCard = page.locator('[role="alert"]');
@@ -101,7 +98,6 @@ test.describe('PR #219: Error Card', () => {
       await setupErrorInterception(page);
       await page.goto('/');
       await page.waitForSelector('h1');
-      await helpers.dismissWelcomeDialog();
       await triggerCalculation(page);
 
       const errorCard = page.locator('[role="alert"]');
@@ -127,7 +123,6 @@ test.describe('PR #219: Error Card', () => {
 
       await page.goto('/');
       await page.waitForSelector('h1');
-      await helpers.dismissWelcomeDialog();
       await triggerCalculation(page);
 
       const errorCard = page.locator('[role="alert"]');
@@ -149,7 +144,6 @@ test.describe('PR #219: Error Card', () => {
       await setupErrorInterception(page);
       await page.goto('/');
       await page.waitForSelector('h1');
-      await helpers.dismissWelcomeDialog();
       await triggerCalculation(page);
 
       const errorCard = page.locator('[role="alert"]');
@@ -165,7 +159,6 @@ test.describe('PR #219: Error Card', () => {
       await setupErrorInterception(page);
       await page.goto('/');
       await page.waitForSelector('h1');
-      await helpers.dismissWelcomeDialog();
       await triggerCalculation(page);
 
       const errorCard = page.locator('[role="alert"]');
@@ -184,7 +177,6 @@ test.describe('PR #219: Error Card', () => {
       await setupErrorInterception(page);
       await page.goto('/');
       await page.waitForSelector('h1');
-      await helpers.dismissWelcomeDialog();
       await triggerCalculation(page);
 
       // The ErrorCard uses role="alert" which announces to screen readers
@@ -196,7 +188,6 @@ test.describe('PR #219: Error Card', () => {
       await setupErrorInterception(page);
       await page.goto('/');
       await page.waitForSelector('h1');
-      await helpers.dismissWelcomeDialog();
       await triggerCalculation(page);
 
       const errorCard = page.locator('[role="alert"]');

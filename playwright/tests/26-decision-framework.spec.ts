@@ -17,7 +17,6 @@ test.describe('Decision Framework', () => {
     test('should show decision wizard after completing scenario', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
 
       // Complete a scenario to trigger results
       await helpers.completeRSUScenario();
@@ -36,7 +35,6 @@ test.describe('Decision Framework', () => {
     test('should show financial analysis on first step', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
 
       await helpers.completeRSUScenario();
 
@@ -52,7 +50,6 @@ test.describe('Decision Framework', () => {
     test('should show expected net benefit', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
 
       await helpers.completeRSUScenario();
 
@@ -68,7 +65,6 @@ test.describe('Decision Framework', () => {
     test('should show success probability', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
 
       await helpers.completeRSUScenario();
 
@@ -86,7 +82,6 @@ test.describe('Decision Framework', () => {
     test('should have progress indicator', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
 
       await helpers.completeRSUScenario();
 
@@ -104,7 +99,6 @@ test.describe('Decision Framework', () => {
     test('should have Next button on first step', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
 
       await helpers.completeRSUScenario();
 
@@ -121,7 +115,6 @@ test.describe('Decision Framework', () => {
     test('should navigate to Risk step when Next is clicked', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
 
       await helpers.completeRSUScenario();
 
@@ -146,7 +139,6 @@ test.describe('Decision Framework', () => {
     test('should have Back button after first step', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
 
       await helpers.completeRSUScenario();
 
@@ -169,7 +161,6 @@ test.describe('Decision Framework', () => {
     test('should navigate back when Back is clicked', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
 
       await helpers.completeRSUScenario();
 
@@ -199,7 +190,6 @@ test.describe('Decision Framework', () => {
     test('should navigate through all steps', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
 
       await helpers.completeRSUScenario();
 
@@ -235,7 +225,6 @@ test.describe('Decision Framework', () => {
     test.beforeEach(async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
       await helpers.completeRSUScenario();
 
       // Navigate to Risk step
@@ -313,7 +302,6 @@ test.describe('Decision Framework', () => {
     test.beforeEach(async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
       await helpers.completeRSUScenario();
 
       // Navigate to Career step (2 clicks)
@@ -362,7 +350,6 @@ test.describe('Decision Framework', () => {
     test.beforeEach(async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
       await helpers.completeRSUScenario();
 
       // Navigate to Personal step (3 clicks)
@@ -431,7 +418,6 @@ test.describe('Decision Framework', () => {
     test('should generate recommendation on complete', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
       await helpers.completeRSUScenario();
 
       // Navigate through all steps
@@ -464,7 +450,6 @@ test.describe('Decision Framework', () => {
     test('should show overall score', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
       await helpers.completeRSUScenario();
 
       // Navigate through all steps and generate
@@ -494,7 +479,6 @@ test.describe('Decision Framework', () => {
     test('should show pros and cons', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
       await helpers.completeRSUScenario();
 
       // Navigate through all steps and generate
@@ -527,7 +511,6 @@ test.describe('Decision Framework', () => {
     test('should have Skip button', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
       await helpers.completeRSUScenario();
 
       const skipButton = page.getByRole('button', { name: /skip/i });
@@ -541,7 +524,6 @@ test.describe('Decision Framework', () => {
     test('should close wizard when Skip is clicked', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
       await helpers.completeRSUScenario();
 
       const skipButton = page.getByRole('button', { name: /skip/i }).first();
@@ -565,7 +547,6 @@ test.describe('Decision Framework', () => {
     test('should have accessible form controls', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
       await helpers.completeRSUScenario();
 
       // Navigate to Risk step
@@ -591,7 +572,6 @@ test.describe('Decision Framework', () => {
     test('should support keyboard navigation', async ({ page, helpers }) => {
       await page.goto('/');
       await helpers.waitForAPIConnection();
-      await helpers.dismissWelcomeDialog();
       await helpers.completeRSUScenario();
 
       // Navigate to Risk step

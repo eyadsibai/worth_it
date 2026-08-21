@@ -42,7 +42,6 @@ test.describe('PR #221: Waterfall Distribution Readability', () => {
     test('should show empty state when no stakeholders added', async ({ page, helpers }) => {
       await page.goto('/');
       await page.waitForSelector('h1');
-      await helpers.dismissWelcomeDialog();
 
       // Switch to Founder mode (Cap Table)
       await page.getByRole('tab', { name: /Model Cap Table|Cap Table/i }).click();
@@ -57,7 +56,6 @@ test.describe('PR #221: Waterfall Distribution Readability', () => {
     test('should show loading state during calculation', async ({ page, helpers }) => {
       await page.goto('/');
       await page.waitForSelector('h1');
-      await helpers.dismissWelcomeDialog();
 
       // Switch to Founder mode (Cap Table)
       await page.getByRole('tab', { name: /Model Cap Table|Cap Table/i }).click();
@@ -82,7 +80,6 @@ test.describe('PR #221: Waterfall Distribution Readability', () => {
     test.beforeEach(async ({ page, helpers }) => {
       await page.goto('/');
       await page.waitForSelector('h1');
-      await helpers.dismissWelcomeDialog();
       await page.getByRole('tab', { name: /Model Cap Table|Cap Table/i }).click();
 
       // Add founder stakeholder
@@ -153,7 +150,6 @@ test.describe('PR #221: Waterfall Distribution Readability', () => {
     test.beforeEach(async ({ page, helpers }) => {
       await page.goto('/');
       await page.waitForSelector('h1');
-      await helpers.dismissWelcomeDialog();
       await page.getByRole('tab', { name: /Model Cap Table|Cap Table/i }).click();
 
       // Add stakeholders
@@ -227,7 +223,6 @@ test.describe('PR #221: Waterfall Distribution Readability', () => {
     test.beforeEach(async ({ page, helpers }) => {
       await page.goto('/');
       await page.waitForSelector('h1');
-      await helpers.dismissWelcomeDialog();
       await page.getByRole('tab', { name: /Model Cap Table|Cap Table/i }).click();
 
       // Add stakeholder

@@ -20,7 +20,6 @@ test.describe('Cap Table Wizard - Automatic Display', () => {
       sessionStorage.clear();
     });
     await page.reload();
-    await helpers.dismissWelcomeDialog();
 
     // Navigate to Founder mode and wait for wizard
     await page.getByRole('tab', { name: /Model Cap Table/i }).click();
@@ -53,7 +52,6 @@ test.describe('Cap Table Wizard - Automatic Display', () => {
 
     // Navigate fresh and verify wizard doesn't appear again
     await page.goto('/');
-    await helpers.dismissWelcomeDialog();
     await page.getByRole('tab', { name: /Model Cap Table/i }).click();
 
     // Wait for the main cap table UI (Add Stakeholder button - use role for specificity)
@@ -73,7 +71,6 @@ test.describe('Cap Table Wizard - Complete Flow', () => {
       sessionStorage.clear();
     });
     await page.reload();
-    await helpers.dismissWelcomeDialog();
 
     // Navigate to Founder mode and wait for wizard
     await page.getByRole('tab', { name: /Model Cap Table/i }).click();
@@ -205,7 +202,6 @@ test.describe('Cap Table Wizard - Navigation', () => {
       sessionStorage.clear();
     });
     await page.reload();
-    await helpers.dismissWelcomeDialog();
 
     // Navigate to Founder mode and wait for wizard
     await page.getByRole('tab', { name: /Model Cap Table/i }).click();
@@ -250,7 +246,6 @@ test.describe('Cap Table Wizard - Manual Trigger', () => {
       sessionStorage.clear();
     });
     await page.reload();
-    await helpers.dismissWelcomeDialog();
 
     // Navigate to Founder mode and skip wizard
     await page.getByRole('tab', { name: /Model Cap Table/i }).click();
@@ -281,7 +276,6 @@ test.describe('Cap Table Wizard - Validation', () => {
       sessionStorage.clear();
     });
     await page.reload();
-    await helpers.dismissWelcomeDialog();
 
     // Navigate to Founder mode and wait for wizard
     await page.getByRole('tab', { name: /Model Cap Table/i }).click();

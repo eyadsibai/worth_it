@@ -15,7 +15,6 @@ test.describe('Metric Carousel', () => {
   test.beforeEach(async ({ page, helpers }) => {
     await page.goto('/');
     await helpers.waitForAPIConnection();
-    await helpers.dismissWelcomeDialog();
   });
 
   test.describe('Carousel Rendering', () => {

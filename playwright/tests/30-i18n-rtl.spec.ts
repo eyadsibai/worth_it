@@ -97,8 +97,19 @@ test.describe('Locale and RTL Coverage', () => {
     await expect(page.getByText('Job Offer Financial Analyzer')).toBeVisible();
   });
 
-  test('maintains RTL layout integrity when Arabic locale is configured', async ({ page }) => {
-    await page.goto('/valuation', { waitUntil: 'domcontentloaded' });
+  test('maintains RTL layout integrity on a non-landing route in Arabic', async ({ page }) => {
+    // The pre-redesign version of this test navigated `/valuation` with no
+    // locale prefix and only *conditionally* asserted RTL if the resolved
+    // `lang` happened to start with "ar" -- but nothing here ever configured
+    // Arabic, so it always resolved to the default locale ("en") and the RTL
+    // branch was never exercised. Navigating a real `/ar/...` route (per the
+    // controller addendum) makes this an actual Arabic-locale check, broader
+    // than the landing-only smoke gate in 33-arabic-rtl-smoke.spec.ts:
+    // `/valuation` (unlike `/`) is not yet localized at the content level
+    // (Task 14/C1 didn't touch it), so this also proves the RTL/lang plumbing
+    // applies uniformly even to a page whose own text is still hardcoded
+    // English.
+    await page.goto('/ar/valuation', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: /Valuation Calculator/i })).toBeVisible({
       timeout: 45_000,
     });
@@ -108,12 +119,8 @@ test.describe('Locale and RTL Coverage', () => {
       dir: document.documentElement.dir.toLowerCase(),
     }));
 
-    if (htmlAttributes.lang.startsWith('ar')) {
-      expect(htmlAttributes.dir).toBe('rtl');
-    } else {
-      expect(htmlAttributes.dir).toBe('ltr');
-    }
-    await expect(page.getByRole('heading', { name: /Valuation Calculator/i })).toBeVisible();
+    expect(htmlAttributes.lang).toBe('ar');
+    expect(htmlAttributes.dir).toBe('rtl');
 
     const hasHorizontalOverflow = await page.evaluate(() => {
       const doc = document.documentElement;
