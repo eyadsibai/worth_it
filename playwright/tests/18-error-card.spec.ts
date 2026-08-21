@@ -49,7 +49,7 @@ test.describe('PR #219: Error Card', () => {
     test('should display ErrorCard with alert role when API fails', async ({ page, helpers }) => {
       await setupErrorInterception(page);
       await page.goto('/');
-      // Wait for page to be fully loaded before dismissing dialog
+      // Wait for the page to be fully loaded
       await page.waitForSelector('h1');
       await triggerCalculation(page);
 
