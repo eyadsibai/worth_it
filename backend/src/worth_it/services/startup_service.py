@@ -37,7 +37,9 @@ class StartupScenarioResult:
     payout_label: str
     breakeven_label: str
     final_breakeven_value: float | None = None
-    final_take_home_value: float | None = None
+    # Always computed by `calculate_startup_scenario` (0 in the empty-frame
+    # branch), unlike `final_breakeven_value` above, whose `None` is genuine.
+    final_take_home_value: float = 0.0
     total_dilution: float | None = None
     diluted_equity_pct: float | None = None
     dilution_schedule: list[dict[str, Any]] | None = None
@@ -174,7 +176,7 @@ class StartupService:
             payout_label=results["payout_label"],
             breakeven_label=results["breakeven_label"],
             final_breakeven_value=results.get("final_breakeven_value"),
-            final_take_home_value=results.get("final_take_home_value"),
+            final_take_home_value=results.get("final_take_home_value", 0.0),
             total_dilution=results.get("total_dilution"),
             diluted_equity_pct=results.get("diluted_equity_pct"),
             dilution_schedule=results.get("dilution_schedule"),

@@ -585,7 +585,7 @@ class StartupScenarioResponse(BaseModel):
     payout_label: str
     breakeven_label: str
     final_breakeven_value: float | None = None  # The real break-even number; None when unreachable
-    final_take_home_value: float | None = None  # Current-job salary summed over the horizon
+    final_take_home_value: float  # Current-job salary summed over the horizon; always computed
     total_dilution: float | None = None
     diluted_equity_pct: float | None = None
     dilution_schedule: list[DilutionScheduleEntryResponse] | None = None
