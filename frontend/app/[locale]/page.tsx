@@ -16,7 +16,12 @@ import { OutcomesChapter, DEFAULT_RUNS } from "@/components/ledger/chapters/outc
 import { DilutionChapter } from "@/components/ledger/chapters/dilution-chapter";
 import { SensitivityChapter } from "@/components/ledger/chapters/sensitivity-chapter";
 import { WaterfallChapter } from "@/components/ledger/chapters/waterfall-chapter";
-import { selectVerdict, type OfferOutcome, type VerdictState } from "@/lib/ledger/verdict";
+import {
+  selectVerdict,
+  type OfferOutcome,
+  type VerdictState,
+  type MissingField,
+} from "@/lib/ledger/verdict";
 import { useFirstVisit } from "@/lib/hooks/use-first-visit";
 import {
   useDraftAutoSave,
@@ -324,10 +329,11 @@ export default function Home() {
     // (stamped by `OfferColumn` to match `deriveMissingField`'s own priority
     // order) rather than guessing from DOM order — an offer's "Offer name"
     // and "Monthly salary" inputs are also empty by default and would win a
-    // DOM-order race against the field the sentence names.
-    const target = container.querySelector<HTMLInputElement>(
-      `[data-field="${incompleteOutcome.missingField}"]`
-    );
+    // DOM-order race against the field the sentence names. The `MissingField`
+    // annotation binds this query to the same union `Field`'s `dataField`
+    // prop accepts, so a future edit to that union fails to compile here too.
+    const missingField: MissingField = incompleteOutcome.missingField;
+    const target = container.querySelector<HTMLInputElement>(`[data-field="${missingField}"]`);
     target?.focus();
   }, [incompleteOutcome]);
 

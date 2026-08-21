@@ -1,14 +1,23 @@
+/**
+ * The single source of truth for which required field an incomplete offer is
+ * missing. `Field`'s `dataField` prop and `handleFocusMissing`'s DOM query
+ * (in `app/[locale]/page.tsx`) both key off this exact union — see
+ * `deriveMissingField` in `offer-column.tsx`, which is the only place that
+ * produces one.
+ */
+export type MissingField = "salary" | "equity" | "exit";
+
 export interface OfferOutcome {
   id: string;
   name: string;
   complete: boolean;
-  missingField: "salary" | "equity" | "exit" | null;
+  missingField: MissingField | null;
   /** MC p50 when available, deterministic net benefit otherwise. */
   medianNet: number | null;
 }
 
 export type VerdictState =
-  | { kind: "incomplete"; offerName: string; missingField: "salary" | "equity" | "exit" }
+  | { kind: "incomplete"; offerName: string; missingField: MissingField }
   | {
       kind: "take-offer";
       offerName: string;

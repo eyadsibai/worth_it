@@ -209,6 +209,129 @@ describe("Incomplete verdict focuses the missing field", () => {
     const equityGrantInput = screen.getByRole("textbox", { name: /equity grant/i });
     expect(equityGrantInput).toHaveFocus();
   });
+
+  it("focuses the Monthly salary field for an RSU offer missing salary", async () => {
+    window.localStorage.setItem("worth_it_onboarded", "true");
+    useAppStore.setState({
+      offers: [
+        {
+          id: "test-offer-0",
+          name: "Atlas",
+          equityDetails: {
+            equity_type: "RSU",
+            monthly_salary: 0,
+            total_equity_grant_pct: 1,
+            vesting_period: 4,
+            cliff_period: 1,
+            simulate_dilution: false,
+            dilution_rounds: [],
+            exit_valuation: 100_000_000,
+          },
+        },
+      ],
+    });
+    const user = userEvent.setup();
+    wrap(<Page />);
+
+    const verdictButton = screen.getByRole("button", { name: /enter the monthly salary/i });
+    await user.click(verdictButton);
+
+    // "Monthly salary" also labels the Stay column's own field, so scope by
+    // `data-field` (the mechanism under test) to the offer column's input.
+    const salaryInputs = screen.getAllByRole("textbox", { name: /monthly salary/i });
+    const salaryInput = salaryInputs.find((input) => input.getAttribute("data-field") === "salary");
+    expect(salaryInput).toHaveFocus();
+  });
+
+  it("focuses the Exit valuation field for an RSU offer missing the exit value", async () => {
+    window.localStorage.setItem("worth_it_onboarded", "true");
+    useAppStore.setState({
+      offers: [
+        {
+          id: "test-offer-0",
+          name: "Atlas",
+          equityDetails: {
+            equity_type: "RSU",
+            monthly_salary: 8_000,
+            total_equity_grant_pct: 1,
+            vesting_period: 4,
+            cliff_period: 1,
+            simulate_dilution: false,
+            dilution_rounds: [],
+            exit_valuation: 0,
+          },
+        },
+      ],
+    });
+    const user = userEvent.setup();
+    wrap(<Page />);
+
+    const verdictButton = screen.getByRole("button", { name: /enter the exit valuation/i });
+    await user.click(verdictButton);
+
+    const exitInput = screen.getByRole("textbox", { name: /exit valuation/i });
+    expect(exitInput).toHaveFocus();
+  });
+
+  it("focuses the Number of options field for a stock-options offer missing the grant size", async () => {
+    window.localStorage.setItem("worth_it_onboarded", "true");
+    useAppStore.setState({
+      offers: [
+        {
+          id: "test-offer-0",
+          name: "Atlas",
+          equityDetails: {
+            equity_type: "STOCK_OPTIONS",
+            monthly_salary: 8_000,
+            num_options: 0,
+            strike_price: 1,
+            vesting_period: 4,
+            cliff_period: 1,
+            exercise_strategy: "AT_EXIT",
+            exit_price_per_share: 50,
+          },
+        },
+      ],
+    });
+    const user = userEvent.setup();
+    wrap(<Page />);
+
+    const verdictButton = screen.getByRole("button", { name: /enter the equity grant/i });
+    await user.click(verdictButton);
+
+    const optionsInput = screen.getByRole("textbox", { name: /number of options/i });
+    expect(optionsInput).toHaveFocus();
+  });
+
+  it("focuses the Exit price / share field for a stock-options offer missing the exit value", async () => {
+    window.localStorage.setItem("worth_it_onboarded", "true");
+    useAppStore.setState({
+      offers: [
+        {
+          id: "test-offer-0",
+          name: "Atlas",
+          equityDetails: {
+            equity_type: "STOCK_OPTIONS",
+            monthly_salary: 8_000,
+            num_options: 1_000,
+            strike_price: 1,
+            vesting_period: 4,
+            cliff_period: 1,
+            exercise_strategy: "AT_EXIT",
+            exit_price_per_share: 0,
+          },
+        },
+      ],
+    });
+    const user = userEvent.setup();
+    wrap(<Page />);
+
+    const verdictButton = screen.getByRole("button", { name: /enter the exit valuation/i });
+    await user.click(verdictButton);
+
+    const exitPriceInput = screen.getByRole("textbox", { name: /exit price/i });
+    expect(exitPriceInput).toHaveFocus();
+  });
 });
 
 describe("Skip link and main landmark", () => {

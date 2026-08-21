@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState, type ChangeEvent } from "react";
+import type { MissingField } from "@/lib/ledger/verdict";
 
 interface FieldProps {
   label: string;
@@ -20,9 +21,11 @@ interface FieldProps {
   /**
    * Stamped onto the input as `data-field` so a caller (e.g. the landing
    * page's "focus the missing field" verdict button) can locate this exact
-   * field by a stable identifier instead of guessing from DOM order.
+   * field by a stable identifier instead of guessing from DOM order. Typed
+   * against `MissingField` — the same union `deriveMissingField` produces —
+   * so a caller can't stamp a value the query side would never match.
    */
-  dataField?: string;
+  dataField?: MissingField;
   className?: string;
 }
 
