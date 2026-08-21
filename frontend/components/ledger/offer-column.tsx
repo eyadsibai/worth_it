@@ -260,6 +260,7 @@ export function OfferColumn({
         value={equityDetails?.monthly_salary ?? null}
         onValueChange={handleMonthlySalaryChange}
         min={0}
+        dataField="salary"
       />
 
       {equityType === "RSU" ? (
@@ -271,6 +272,7 @@ export function OfferColumn({
             min={VALIDATION.PCT_MIN}
             max={VALIDATION.PCT_MAX}
             unit="%"
+            dataField="equity"
           />
           <Field
             label={t("vesting")}
@@ -295,6 +297,7 @@ export function OfferColumn({
             value={rsuDetails?.exit_valuation ?? null}
             onValueChange={(value) => updateRSU({ exit_valuation: value ?? 0 })}
             min={0}
+            dataField="exit"
           />
           <PresetChips
             options={exitPresetOptions}
@@ -330,6 +333,7 @@ export function OfferColumn({
             value={optionsDetails?.num_options ?? null}
             onValueChange={(value) => updateOptions({ num_options: value ?? 0 })}
             min={0}
+            dataField="equity"
           />
           <Field
             label={t("strikePrice")}
@@ -360,6 +364,7 @@ export function OfferColumn({
             value={optionsDetails?.exit_price_per_share ?? null}
             onValueChange={(value) => updateOptions({ exit_price_per_share: value ?? 0 })}
             min={0}
+            dataField="exit"
           />
         </>
       )}

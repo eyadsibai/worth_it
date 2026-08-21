@@ -19,6 +19,13 @@ beforeEach(() => {
 });
 
 describe("StayColumn", () => {
+  it("renders 'Stay' as an h2, a peer of OfferColumn under the page h1 (not a skipped h3)", () => {
+    wrap(<StayColumn />);
+
+    const heading = screen.getByRole("heading", { level: 2, name: "Stay" });
+    expect(heading.tagName).toBe("H2");
+  });
+
   it("renders the monthly salary, annual raise, and surplus ROI fields with translated labels", () => {
     wrap(<StayColumn />);
 

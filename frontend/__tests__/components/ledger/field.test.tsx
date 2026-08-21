@@ -168,6 +168,12 @@ describe("Field", () => {
     expect(input).toHaveAttribute("aria-describedby", hint.id);
   });
 
+  it("stamps a data-field attribute on the input when dataField is given, for robust external targeting", () => {
+    render(<Field label="Salary" value={null} onValueChange={vi.fn()} dataField="salary" />);
+
+    expect(screen.getByRole("textbox", { name: "Salary" })).toHaveAttribute("data-field", "salary");
+  });
+
   it("describes the input by the error's id (not the hint's) once both would show", async () => {
     const user = userEvent.setup();
     render(

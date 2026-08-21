@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Masthead } from "@/components/ledger/masthead";
+import { SkipLink } from "@/components/layout/skip-link";
 import { SampleNotice } from "@/components/ledger/sample-notice";
 import { Field } from "@/components/ledger/field";
 import { Money } from "@/components/ledger/money";
@@ -316,11 +317,18 @@ export default function Home() {
   const incompleteOutcome = orderedOutcomes.find((outcome) => !outcome.complete) ?? null;
 
   const handleFocusMissing = React.useCallback(() => {
-    if (!incompleteOutcome) return;
+    if (!incompleteOutcome?.missingField) return;
     const container = columnRefs.current[incompleteOutcome.id];
     if (!container) return;
-    const inputs = Array.from(container.querySelectorAll<HTMLInputElement>("input"));
-    (inputs.find((input) => input.value === "") ?? inputs[0])?.focus();
+    // Target the field the verdict sentence actually names via `data-field`
+    // (stamped by `OfferColumn` to match `deriveMissingField`'s own priority
+    // order) rather than guessing from DOM order — an offer's "Offer name"
+    // and "Monthly salary" inputs are also empty by default and would win a
+    // DOM-order race against the field the sentence names.
+    const target = container.querySelector<HTMLInputElement>(
+      `[data-field="${incompleteOutcome.missingField}"]`
+    );
+    target?.focus();
   }, [incompleteOutcome]);
 
   const leadingScenario = leadingOfferId ? scenariosById[leadingOfferId] : undefined;
@@ -378,11 +386,11 @@ export default function Home() {
 
   return (
     <div className="bg-paper text-ink min-h-screen">
+      <SkipLink />
       <Masthead />
 
-      {sampleActive ? <SampleNotice onClear={handleClearSample} /> : null}
-
-      <main className="pb-20 md:pb-0">
+      <main id="main-content" className="pb-20 md:pb-0">
+        {sampleActive ? <SampleNotice onClear={handleClearSample} /> : null}
         <div className="mx-auto max-w-5xl px-6 py-10">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <h1 className="font-serif text-3xl font-medium">{tLanding("title")}</h1>

@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "تخطَّ إلى المحتوى الرئيسي"
+  },
   "masthead": {
     "analysis": "التحليل",
     "capTable": "جدول الملكية",

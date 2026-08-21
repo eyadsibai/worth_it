@@ -97,4 +97,12 @@ describe("Cap table page", () => {
     const capTableLink = screen.getByRole("link", { name: en.masthead.capTable });
     expect(capTableLink).toHaveAttribute("aria-current", "page");
   });
+
+  it("renders a skip-to-main-content link targeting an id'd <main>", () => {
+    render(<CapTablePage />, { wrapper: createWrapper() });
+
+    const skipLink = screen.getByRole("link", { name: en.a11y.skipToMainContent });
+    expect(skipLink).toHaveAttribute("href", "#main-content");
+    expect(screen.getByRole("main")).toHaveAttribute("id", "main-content");
+  });
 });

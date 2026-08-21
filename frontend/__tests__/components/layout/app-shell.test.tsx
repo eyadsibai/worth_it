@@ -20,8 +20,10 @@ vi.mock("@/i18n/navigation", () => ({
   usePathname: () => "/",
 }));
 
-// Mock next-intl translations (masthead namespace used by the header)
-const masthead: Record<string, string> = {
+// Mock next-intl translations (masthead namespace used by the header, a11y
+// namespace used by SkipLink). Namespace-agnostic, matching the real
+// catalogs' flat leaf keys closely enough for these assertions.
+const messages: Record<string, string> = {
   analysis: "Analysis",
   capTable: "Cap Table",
   valuation: "Valuation",
@@ -29,9 +31,10 @@ const masthead: Record<string, string> = {
   search: "Search",
   language: "Language",
   theme: "Theme",
+  skipToMainContent: "Skip to main content",
 };
 vi.mock("next-intl", () => ({
-  useTranslations: () => (key: string) => masthead[key] ?? key,
+  useTranslations: () => (key: string) => messages[key] ?? key,
 }));
 
 // Mock next-themes

@@ -1,5 +1,6 @@
 import * as React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextIntlClientProvider } from "next-intl";
 import Page from "@/app/[locale]/page";
@@ -193,6 +194,42 @@ describe("Landing page", () => {
     const retryButton = await screen.findByRole("button", { name: en.states.failure.retry });
     retryButton.click();
     expect(retry).toHaveBeenCalled();
+  });
+});
+
+describe("Incomplete verdict focuses the missing field", () => {
+  it("focuses the Equity grant field on click, not an earlier empty field like Offer name", async () => {
+    window.localStorage.setItem("worth_it_onboarded", "true");
+    const user = userEvent.setup();
+    wrap(<Page />);
+
+    const verdictButton = screen.getByRole("button", { name: /enter the equity grant/i });
+    await user.click(verdictButton);
+
+    const equityGrantInput = screen.getByRole("textbox", { name: /equity grant/i });
+    expect(equityGrantInput).toHaveFocus();
+  });
+});
+
+describe("Skip link and main landmark", () => {
+  it("renders a skip-to-main-content link targeting an id'd <main>", () => {
+    window.localStorage.setItem("worth_it_onboarded", "true");
+    wrap(<Page />);
+
+    const skipLink = screen.getByRole("link", { name: en.a11y.skipToMainContent });
+    expect(skipLink).toHaveAttribute("href", "#main-content");
+    expect(screen.getByRole("main")).toHaveAttribute("id", "main-content");
+  });
+});
+
+describe("Sample notice landmark containment", () => {
+  it("renders the sample notice inside the main landmark, not as a bare sibling of it", () => {
+    wrap(<Page />);
+
+    const main = screen.getByRole("main");
+    const note = screen.getByRole("note");
+    expect(main).toContainElement(note);
+    expect(within(main).getByRole("note")).toBe(note);
   });
 });
 

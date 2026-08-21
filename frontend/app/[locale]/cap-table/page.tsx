@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Masthead } from "@/components/ledger/masthead";
+import { SkipLink } from "@/components/layout/skip-link";
 import { FounderDashboard } from "@/components/dashboard";
 
 /**
@@ -15,8 +16,9 @@ export default function CapTablePage() {
 
   return (
     <div className="bg-paper text-ink min-h-screen">
+      <SkipLink />
       <Masthead />
-      <main className="mx-auto max-w-6xl px-6 py-10">
+      <main id="main-content" className="mx-auto max-w-6xl px-6 py-10">
         <h1 className="mb-8 font-serif text-3xl font-medium">{t("capTable")}</h1>
         <FounderDashboard />
       </main>

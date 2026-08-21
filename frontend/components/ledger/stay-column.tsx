@@ -66,7 +66,7 @@ export function StayColumn({ takeHomeOverHorizon = null }: StayColumnProps) {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-baseline justify-between">
-        <h3 className="font-serif text-xl font-medium">{t("stay")}</h3>
+        <h2 className="font-serif text-xl font-medium">{t("stay")}</h2>
         <span className="text-annotation tracking-eyebrow text-xs uppercase">
           {t("currentJob")}
         </span>

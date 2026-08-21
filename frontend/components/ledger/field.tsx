@@ -17,6 +17,12 @@ interface FieldProps {
    * typed 7.35 to 7.4 would surprise users.
    */
   step?: number;
+  /**
+   * Stamped onto the input as `data-field` so a caller (e.g. the landing
+   * page's "focus the missing field" verdict button) can locate this exact
+   * field by a stable identifier instead of guessing from DOM order.
+   */
+  dataField?: string;
   className?: string;
 }
 
@@ -48,6 +54,7 @@ export function Field({
   min,
   max,
   step,
+  dataField,
   className,
 }: FieldProps) {
   const errorId = useId();
@@ -103,6 +110,7 @@ export function Field({
             min={min}
             max={max}
             step={step}
+            data-field={dataField}
             aria-invalid={showError ? true : undefined}
             aria-describedby={describedBy}
             className="text-ink focus-visible:border-market w-28 bg-transparent text-end font-mono text-sm tabular-nums outline-none focus-visible:border-b"

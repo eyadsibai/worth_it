@@ -1,4 +1,7 @@
 {
+  "a11y": {
+    "skipToMainContent": "Skip to main content"
+  },
   "masthead": {
     "analysis": "Analysis",
     "capTable": "Cap Table",
