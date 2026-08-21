@@ -8,6 +8,7 @@ import { Link } from "@/i18n/navigation";
 import { useScenarioCalculation } from "@/lib/hooks";
 import type { ScenarioCalculationResult } from "@/lib/hooks";
 import { formatMoney } from "@/lib/ledger/format-money";
+import { formatStakePercent } from "@/lib/ledger/percent";
 import type { OfferOutcome } from "@/lib/ledger/verdict";
 import { useAppStore, useOffers, useDisplayCurrency } from "@/lib/store";
 import { VALIDATION } from "@/lib/constants/validation";
@@ -30,8 +31,6 @@ export const PRESET_EXIT_VALUATIONS = [
 
 /** Char code for "A" — offset by an offer's position to derive its default "Offer A/B/C" letter. */
 const LETTER_A_CHAR_CODE = 65;
-/** Converts a 0-1 fraction (e.g. `diluted_equity_pct`) into a whole-number percentage. */
-const PCT_MULTIPLIER = 100;
 
 function buildDefaultRSU(monthlySalary: number): RSUForm {
   return {
@@ -210,7 +209,7 @@ export function OfferColumn({
   const dilutedEquityPct = calculation.result?.diluted_equity_pct;
   const dilutedPct =
     rsuDetails?.simulate_dilution && dilutedEquityPct !== null && dilutedEquityPct !== undefined
-      ? Math.round(dilutedEquityPct * PCT_MULTIPLIER)
+      ? formatStakePercent(dilutedEquityPct)
       : null;
 
   return (
