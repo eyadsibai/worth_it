@@ -22,7 +22,14 @@ jobs:
         with:
           fetch-depth: 1
 
-      - uses: anthropics/claude-code-action@beta
+      # Pinned to v1's commit, not @beta. The inputs below (`prompt`,
+      # `claude_args`, `track_progress`) are the v1 API; @beta still serves v0,
+      # which rejects all three with "Unexpected input(s)" and fails this job on
+      # every PR. Pinning also matches the SHA policy in playwright.yml — a
+      # mutable tag lets an upstream compromise reach a runner holding an OAuth
+      # token and `pull-requests: write`. `v1` is an annotated tag, so this is
+      # the dereferenced commit, not the tag object.
+      - uses: anthropics/claude-code-action@9c5ddab2e6d17b83ea679153b31f1d5f023cf636 # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           track_progress: true # Enables tracking comments
