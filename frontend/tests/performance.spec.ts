@@ -1,6 +1,78 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+
+/**
+ * Matches the hot-reload runtime Next.js injects only under `next dev`
+ * (`hmr-client` under Turbopack, `webpack-hmr`/`react-refresh` under Webpack).
+ * A production build never ships it, so misdetection can only point the wrong
+ * way: an unrecognised dev server makes the build-sensitive tests below fail
+ * loudly, it can never make them skip silently against production.
+ */
+const DEV_ONLY_RUNTIME = /hmr[-_]?client|webpack-hmr|react-refresh|\/_next\/static\/development\//i;
+
+/**
+ * `next dev` and `next start` are different products where performance is
+ * concerned: dev emits one unminified chunk per module, compiles routes on
+ * first request, and sends `Cache-Control: no-store` for `_next/static/chunks`.
+ * Asserting on caching or bundle cost against dev measures the dev server, not
+ * this app, so those tests skip unless the target is a real production build.
+ * `playwright.config.prod.ts` builds and serves one.
+ */
+async function servedByDevServer(page: Page): Promise<boolean> {
+  return page.evaluate((pattern) => {
+    const devRuntime = new RegExp(pattern, "i");
+    // A URL may carry a `%` that is not a valid escape sequence, and
+    // decodeURIComponent throws URIError on those. Unguarded, one such entry
+    // aborts `some` and surfaces as a page.evaluate failure in whichever
+    // performance test happened to ask -- so fall back to the undecoded name,
+    // which still carries everything the pattern looks for.
+    const readable = (name: string) => {
+      try {
+        return decodeURIComponent(name);
+      } catch {
+        return name;
+      }
+    };
+
+    return performance
+      .getEntriesByType("resource")
+      .some((entry) => devRuntime.test(readable(entry.name)));
+  }, DEV_ONLY_RUNTIME.source);
+}
 
 test.describe("Performance Tests", () => {
+  test("dev-server detection survives a resource URL that is not valid percent-encoding", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // `%E0%A4%A` is a truncated escape: legal in a URL, but decodeURIComponent
+    // throws URIError on it. That error escapes `some` and page.evaluate, so a
+    // single such request fails every build-sensitive test in this file with
+    // something that has nothing to do with performance.
+    //
+    // The entry is stubbed rather than really requested because neither real
+    // route can prove anything: under `next dev` the hmr chunk already sits
+    // earlier in the timeline and short-circuits `some` before the malformed
+    // name is reached, and clearing the buffer to isolate a probe stops the
+    // browser recording new entries at all.
+    const stubResourceEntries = (name: string) =>
+      page.evaluate((entryName) => {
+        (performance as unknown as { getEntriesByType: unknown }).getEntriesByType = (
+          type: string
+        ) => (type === "resource" ? [{ name: entryName }] : []);
+      }, name);
+
+    await stubResourceEntries(`${new URL(page.url()).origin}/chunk-%E0%A4%A.js`);
+    expect(await servedByDevServer(page)).toBe(false);
+
+    // Falling back to the raw name, not to `false`: a URL that fails to decode
+    // is still evidence of a dev server when it names the dev runtime.
+    await stubResourceEntries(
+      `${new URL(page.url()).origin}/_next/static/chunks/hmr-client-%E0%A4%A.js`
+    );
+    expect(await servedByDevServer(page)).toBe(true);
+  });
+
   test("should load quickly", async ({ page }) => {
     const startTime = Date.now();
 
@@ -37,13 +109,16 @@ test.describe("Performance Tests", () => {
     const totalSize = resources.reduce((sum, r) => sum + r.size, 0);
     const totalSizeMB = totalSize / (1024 * 1024);
 
-    // In production, bundle should be under 1MB (gzipped)
-    const isProduction =
-      process.env.NODE_ENV === "production" || page.url().includes("localhost:3000");
+    // Not a page.url() check: next dev and next start both serve :3000, so the
+    // old `isProduction` was true under either and gated nothing - the budget
+    // was being applied to dev's unminified one-chunk-per-module graph, which
+    // says nothing about what ships.
+    test.skip(
+      await servedByDevServer(page),
+      "next dev serves unminified chunks per module, so total transfer size is not the shipped bundle; run under playwright.config.prod.ts"
+    );
 
-    if (isProduction) {
-      expect(totalSizeMB).toBeLessThan(2); // 2MB threshold for all JS/CSS
-    }
+    expect(totalSizeMB).toBeLessThan(2); // 2MB threshold for all JS/CSS
   });
 
   test("should have good Core Web Vitals", async ({ page }) => {
@@ -132,32 +207,58 @@ test.describe("Performance Tests", () => {
   });
 
   test("should cache static assets", async ({ page }) => {
-    // First load
-    await page.goto("/");
-    await page.waitForLoadState("networkidle");
-
-    // Track cached resources on reload
-    const cachedResources: string[] = [];
+    // Listen before the first navigation: the test context starts with a cold
+    // HTTP cache, so this is the one load where every asset is fetched over the
+    // wire and its caching contract is observable.
+    const advertisedCaching = new Map<string, string>();
 
     page.on("response", (response) => {
-      const status = response.status();
-      const url = response.url();
-
-      // 304 means cached
-      if (status === 304) {
-        cachedResources.push(url);
+      if (response.url().includes("/_next/static/")) {
+        advertisedCaching.set(response.url(), response.headers()["cache-control"] ?? "");
       }
     });
 
-    // Reload page
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
+
+    test.skip(
+      await servedByDevServer(page),
+      "next dev serves /_next/static/chunks with `Cache-Control: no-store, must-revalidate` by design; run under playwright.config.prod.ts to exercise real asset caching"
+    );
+
+    // Build output is content-hashed, so it must be cacheable without
+    // revalidation. Exact numbers are not pinned -- the regression this guards
+    // against is `no-store`/`no-cache`/`max-age=0` creeping into the config.
+    const oneDay = 60 * 60 * 24;
+    expect(advertisedCaching.size).toBeGreaterThan(0);
+    for (const [url, cacheControl] of advertisedCaching) {
+      const maxAge = Number(/max-age=(\d+)/.exec(cacheControl)?.[1] ?? 0);
+      expect(cacheControl, `${url} must be cacheable`).not.toMatch(/no-store|no-cache/);
+      expect(maxAge, `${url} must stay fresh for at least a day`).toBeGreaterThanOrEqual(oneDay);
+    }
+
     await page.reload();
     await page.waitForLoadState("networkidle");
 
-    // In production, static assets should be cached
-    const isProduction = page.url().includes("localhost:3000");
-    if (isProduction) {
-      expect(cachedResources.length).toBeGreaterThan(0);
-    }
+    // And the browser must actually reuse them. A hit on a fingerprinted
+    // `immutable` asset is a silent zero-byte read, never a 304 -- counting 304s
+    // here would prove nothing, because a correctly cached asset is never
+    // revalidated in the first place.
+    const reuse = await page.evaluate(() => {
+      const buildAssets = (
+        performance.getEntriesByType("resource") as PerformanceResourceTiming[]
+      ).filter((entry) => entry.name.includes("/_next/static/"));
+
+      return {
+        total: buildAssets.length,
+        fromCache: buildAssets.filter((entry) => entry.transferSize === 0).length,
+      };
+    });
+
+    expect(reuse.total).toBeGreaterThan(0);
+    expect(reuse.fromCache, "reload refetched every build asset from the network").toBeGreaterThan(
+      0
+    );
   });
 
   test("should handle slow network gracefully", async ({ page, context }) => {
@@ -267,6 +368,10 @@ test.describe("Performance Tests", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
+    // Without this the loop below body-passes on an empty list, reporting a
+    // green image-optimisation check for a page that requested no images.
+    test.skip(images.length === 0, "the page requested no images, so there is nothing to assert");
+
     // Check image optimization
     for (const image of images) {
       const sizeMB = image.size / (1024 * 1024);
@@ -274,46 +379,49 @@ test.describe("Performance Tests", () => {
       // Images should be optimized (under 500KB each)
       expect(sizeMB).toBeLessThan(0.5);
 
-      // Should use modern formats in production
+      // Asserted unconditionally: the old localhost:3000 guard was true under
+      // both next dev and next start, so it never gated anything, and
+      // next/image serves modern formats in dev too.
       const isModernFormat =
         image.url.includes(".webp") ||
         image.url.includes(".avif") ||
-        image.url.includes("_next/image");
+        image.url.includes("_next/image") ||
+        image.url.includes(".svg");
 
-      // Next.js Image component optimization
-      if (page.url().includes("localhost:3000")) {
-        expect(isModernFormat || image.url.includes(".svg")).toBeTruthy();
-      }
+      expect(isModernFormat, `${image.url} is not a modern image format`).toBeTruthy();
     }
   });
 
   test("should minimize JavaScript execution time", async ({ page }) => {
     await page.goto("/");
+    // networkidle, not just `load`: chunks pulled in during hydration are part
+    // of the cost being measured.
+    await page.waitForLoadState("networkidle");
 
-    // Measure JavaScript execution time
+    test.skip(
+      await servedByDevServer(page),
+      "next dev compiles routes on demand and emits one chunk per module, so this measures compile time and an unbundled graph rather than the shipped bundle; run under playwright.config.prod.ts"
+    );
+
     const metrics = await page.evaluate(() => {
-      const scripts = performance
-        .getEntriesByType("resource")
-        .filter((entry) => entry.name.includes(".js"));
-
-      let totalScriptTime = 0;
-      scripts.forEach((script) => {
-        totalScriptTime += script.duration;
-      });
+      const scripts = (
+        performance.getEntriesByType("resource") as PerformanceResourceTiming[]
+      ).filter((entry) => entry.name.includes(".js"));
 
       return {
         scriptCount: scripts.length,
-        totalTime: totalScriptTime,
+        // Resource `duration` is request-start to response-end, so this is the
+        // cost of getting script bytes ready to run, summed across chunks -- not
+        // V8 execution time, despite the test name.
+        totalTime: scripts.reduce((total, script) => total + script.duration, 0),
       };
     });
 
-    // JavaScript execution should be optimized
-    expect(metrics.totalTime).toBeLessThan(2000); // Under 2 seconds
+    expect(metrics.totalTime).toBeLessThan(2000);
 
-    // In production, scripts should be bundled (fewer files)
-    if (page.url().includes("localhost:3000")) {
-      expect(metrics.scriptCount).toBeLessThan(20); // Reasonable number of chunks
-    }
+    // A production build bundles the module graph; dozens of chunks means code
+    // splitting has regressed into request waterfalls.
+    expect(metrics.scriptCount).toBeLessThan(20);
   });
 
   test("should have no render-blocking resources", async ({ page }) => {

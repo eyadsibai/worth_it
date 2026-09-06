@@ -6,10 +6,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DraftRecoveryDialog } from "@/components/draft-recovery-dialog";
-import type { DraftData } from "@/lib/hooks/use-draft-auto-save";
+import { DRAFT_SCHEMA_VERSION, type DraftData } from "@/lib/hooks/use-draft-auto-save";
 
 describe("DraftRecoveryDialog", () => {
   const mockDraft: DraftData = {
+    version: DRAFT_SCHEMA_VERSION,
     data: {
       globalSettings: { exit_year: 2028 },
       currentJob: { monthly_salary: 12000 },
@@ -104,6 +105,7 @@ describe("DraftRecoveryDialog", () => {
 
   it("handles draft with stock options equity type", () => {
     const stockOptionsDraft: DraftData = {
+      version: DRAFT_SCHEMA_VERSION,
       data: {
         globalSettings: { exit_year: 2030 },
         currentJob: { monthly_salary: 15000 },
@@ -134,6 +136,7 @@ describe("DraftRecoveryDialog", () => {
 
   it("handles partial draft data gracefully", () => {
     const partialDraft: DraftData = {
+      version: DRAFT_SCHEMA_VERSION,
       data: {
         globalSettings: { exit_year: 2028 },
         currentJob: null,

@@ -6,6 +6,14 @@ on:
   pull_request:
     branches: [ master, main, develop ]
 
+# Every job here installs dependencies and executes tooling from PR-authored
+# files. Without this block the GITHUB_TOKEN inherits the repository default,
+# which may include write scopes. `contents: read` is all `actions/checkout`
+# needs; the Codecov upload authenticates with CODECOV_TOKEN, not this token.
+# Declared at workflow level so a newly added job cannot silently opt out.
+permissions:
+  contents: read
+
 jobs:
   backend-test:
     runs-on: ubuntu-latest
@@ -78,11 +86,13 @@ jobs:
     - name: Check code formatting with ruff
       run: uv run ruff check . --output-format=github
 
+    # Scope is the whole source tree. Narrowing it to a hand-picked list of
+    # packages makes this gate report green on code it never inspected.
     - name: Type check with mypy
-      run: uv run mypy src/worth_it/calculations/ src/worth_it/services/ src/worth_it/api/ src/worth_it/models.py --ignore-missing-imports
+      run: uv run mypy src/ --ignore-missing-imports
 
     - name: Type check with pyright
-      run: uv run pyright src/worth_it/calculations/ src/worth_it/services/ src/worth_it/api/ src/worth_it/models.py
+      run: uv run pyright src/
 
   frontend-test:
     runs-on: ubuntu-latest
@@ -117,7 +127,7 @@ jobs:
     - name: Run unit tests with coverage
       run: pnpm test:unit:coverage
 
-    # Only build on push to main branches (not needed for PR validation)
+    # Runs on PRs too: a build-breaking change must not be discoverable
+    # only after merge.
     - name: Build
-      if: github.event_name == 'push'
       run: pnpm build

@@ -2,6 +2,51 @@ import { Page, Locator, expect } from '@playwright/test';
 import { TEST_DATA, SELECTORS, TIMEOUTS } from './test-data';
 import path from 'path';
 
+/** Multipliers for the magnitude suffixes produced by formatLargeNumber(). */
+const MAGNITUDE_SUFFIXES: Record<string, number> = {
+  k: 1_000,
+  m: 1_000_000,
+  b: 1_000_000_000,
+};
+
+/**
+ * `aria-valuetext` is an abbreviated, rounded rendering of the underlying value
+ * ("$12.3M" for 12,345,678), so it is compared with a tolerance matching that
+ * display precision rather than demanding exact equality.
+ */
+const VALUE_TEXT_TOLERANCE_RATIO = 0.005;
+
+/**
+ * Parse the human-readable value a slider thumb exposes via `aria-valuetext`.
+ *
+ * Sliders in this app label themselves as "$100M", "$12,500", "5 years" or "0.5%".
+ * Returns NaN when the text carries no parseable number.
+ */
+export function parseSliderValueText(valueText: string | null): number {
+  if (!valueText) return NaN;
+
+  // Drop currency symbols, thousands separators and whitespace so the number
+  // and any magnitude suffix sit next to each other: "$1.5M" -> "1.5M".
+  const cleaned = valueText.replace(/[$\s,]/g, '');
+  const match = cleaned.match(/-?\d*\.?\d+/);
+  if (!match) return NaN;
+
+  const numeric = Number(match[0]);
+  if (Number.isNaN(numeric)) return NaN;
+
+  const suffix = cleaned.slice(match.index! + match[0].length).charAt(0).toLowerCase();
+  return numeric * (MAGNITUDE_SUFFIXES[suffix] ?? 1);
+}
+
+/** Whether a slider's `aria-valuetext` describes the requested value. */
+function valueTextMatches(valueText: string | null, targetValue: number): boolean {
+  const parsed = parseSliderValueText(valueText);
+  if (Number.isNaN(parsed)) return false;
+
+  const tolerance = Math.max(Math.abs(targetValue) * VALUE_TEXT_TOLERANCE_RATIO, 0);
+  return Math.abs(parsed - targetValue) <= tolerance;
+}
+
 /**
  * Helper class for common page interactions in Worth It tests
  */
@@ -56,6 +101,15 @@ export class WorthItHelpers {
     const pageLabel = this.page.getByText(labelText, { exact: true });
     const formItem = searchContext.locator('[data-slot="form-item"]').filter({ has: pageLabel });
 
+    // One handle for the thumb this helper drives, so the element verified at
+    // the end is the element that was actually changed.
+    //
+    // `.first()` because getAttribute on a locator matching several elements
+    // raises a Playwright strict-mode error, which reads as a crash in this
+    // helper rather than as the value mismatch it almost always is. Nothing is
+    // masked by it: the driving steps below use this same handle.
+    let slider = formItem.locator('[role="slider"]').first();
+
     // Try the fast path: use the "Edit {label} value" button for direct input
     const editButton = formItem.getByRole('button', { name: `Edit ${labelText} value` });
     const hasEditButton = await editButton.count() > 0;
@@ -78,47 +132,68 @@ export class WorthItHelpers {
       // Wait for the edit mode to close (button reappears)
       await editButton.waitFor({ state: 'visible', timeout: TIMEOUTS.formInput });
     } else {
-      // Fallback: Use keyboard navigation for older slider styles
-      const slider = formItem.locator('[role="slider"]');
-
-      // If no form-item found, try alternative: find slider near the label text
-      const sliderCount = await slider.count();
-      let targetSlider = slider;
-
-      if (sliderCount === 0) {
-        // Fallback: look for slider in the same section/card as the label
+      // Fallback: Use keyboard navigation for older slider styles.
+      // If the form-item holds no slider, look for one in the same card as the
+      // label. Reassigned rather than kept in a second variable so the
+      // verification below still watches the thumb that was driven.
+      if ((await formItem.locator('[role="slider"]').count()) === 0) {
         const card = this.page.locator('.terminal-card').filter({ has: label });
-        targetSlider = card.locator('[role="slider"]').first();
+        slider = card.locator('[role="slider"]').first();
       }
 
-      await targetSlider.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
+      await slider.waitFor({ state: 'visible', timeout: TIMEOUTS.elementVisible });
 
       // Get slider max value from aria-valuemax
-      const maxValue = parseFloat(await targetSlider.getAttribute('aria-valuemax') || '100');
+      const maxValue = parseFloat(await slider.getAttribute('aria-valuemax') || '100');
 
       // Calculate steps needed from each end
       const stepsFromMin = Math.round((targetValue - min) / step);
       const stepsFromMax = Math.round((maxValue - targetValue) / step);
 
-      await targetSlider.focus();
+      await slider.focus();
 
       // Use the closer end to minimize key presses
       if (stepsFromMin <= stepsFromMax) {
-        await targetSlider.press('Home');
+        await slider.press('Home');
         for (let i = 0; i < Math.min(stepsFromMin, 20); i++) {
-          await targetSlider.press('ArrowRight');
+          await slider.press('ArrowRight');
         }
       } else {
-        await targetSlider.press('End');
+        await slider.press('End');
         for (let i = 0; i < Math.min(stepsFromMax, 20); i++) {
-          await targetSlider.press('ArrowLeft');
+          await slider.press('ArrowLeft');
         }
       }
     }
 
-    // Verify the slider value was set (check the slider's aria-valuenow)
-    const slider = formItem.locator('[role="slider"]');
-    await expect(slider).toHaveAttribute('aria-valuenow', targetValue.toString(), { timeout: TIMEOUTS.formInput });
+    // Verify the slider actually holds the target value.
+    //
+    // Linear sliders expose the value directly on `aria-valuenow`. Logarithmic
+    // sliders (e.g. Exit Valuation, $1M-$10B) map the value onto a 0-100
+    // *position*, so their `aria-valuenow` is that position and the real value
+    // is only exposed via `aria-valuetext` ("$100M"). Accept either
+    // representation so this helper works for both kinds of slider.
+    await expect
+      .poll(
+        async () => {
+          const [valueNow, valueText] = await Promise.all([
+            slider.getAttribute('aria-valuenow'),
+            slider.getAttribute('aria-valuetext'),
+          ]);
+
+          const matches =
+            (valueNow !== null && Number(valueNow) === targetValue) ||
+            valueTextMatches(valueText, targetValue);
+
+          // Returning the target on success keeps the failure diff readable.
+          return matches ? targetValue : `aria-valuenow="${valueNow}" aria-valuetext="${valueText}"`;
+        },
+        {
+          timeout: TIMEOUTS.formInput,
+          message: `Slider "${labelText}" never reported the value ${targetValue}`,
+        }
+      )
+      .toBe(targetValue);
   }
 
   /**
@@ -350,6 +425,11 @@ export class WorthItHelpers {
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
     expect(data.status).toBe('healthy');
+
+    // `{"status": "healthy"}` is a common shape, so a stray unrelated service
+    // squatting on the API port would otherwise satisfy this check. Worth It's
+    // /health also reports a version, so require it.
+    expect(data.version).toBeTruthy();
   }
 
   /**

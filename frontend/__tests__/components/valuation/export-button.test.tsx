@@ -1,8 +1,14 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { ComponentProps, ReactElement } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ExportButton } from "@/components/valuation/export-button";
+import type {
+  ExportMonteCarloResult,
+  FirstChicagoExportResult,
+  PreRevenueExportResult,
+} from "@/lib/schemas";
 
 // Mock the API client hooks
 vi.mock("@/lib/api-client", () => ({
@@ -25,10 +31,23 @@ describe("ExportButton", () => {
 
   const mockBlob = new Blob(["test content"], { type: "application/pdf" });
 
-  const defaultProps = {
+  // Mirrors the backend `FirstChicagoExportResult`: both scenario maps must
+  // name the same scenarios or the request is rejected with a 400.
+  const firstChicagoResult: FirstChicagoExportResult = {
+    weighted_value: 1000000,
+    present_value: 800000,
+    scenario_values: { Base: 1000000 },
+    scenario_present_values: { Base: 800000 },
+  };
+
+  // Mirrors the backend `PreRevenueExportResult`.
+  const preRevenueResult: PreRevenueExportResult = {
+    valuation: 1000000,
+    factors: [{ name: "Sound Idea", value: 500000 }],
+  };
+
+  const commonProps = {
     companyName: "Test Company",
-    methodType: "first-chicago" as const,
-    result: { valuation: 1000000 },
     params: { discount_rate: 0.25 },
   };
 
@@ -54,28 +73,51 @@ describe("ExportButton", () => {
     global.URL.revokeObjectURL = vi.fn();
   });
 
-  const renderComponent = (props = {}) => {
-    return render(
-      <QueryClientProvider client={queryClient}>
-        <ExportButton {...defaultProps} {...props} />
-      </QueryClientProvider>
+  type ExportButtonProps = ComponentProps<typeof ExportButton>;
+  type FirstChicagoProps = Extract<ExportButtonProps, { methodType: "first-chicago" }>;
+  type PreRevenueProps = Extract<ExportButtonProps, { methodType: "pre-revenue" }>;
+
+  const renderWithClient = (ui: ReactElement) =>
+    render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+
+  // One helper per union member. A shared `Partial<ExportButtonProps>` merge
+  // needs a cast to satisfy the discriminated union, and that cast hides the
+  // very mistake the union exists to catch: a `methodType` paired with the
+  // other variant's `result`.
+  const renderFirstChicago = (overrides: Partial<Omit<FirstChicagoProps, "methodType">> = {}) =>
+    renderWithClient(
+      <ExportButton
+        {...commonProps}
+        methodType="first-chicago"
+        result={firstChicagoResult}
+        {...overrides}
+      />
     );
-  };
+
+  const renderPreRevenue = (overrides: Partial<Omit<PreRevenueProps, "methodType">> = {}) =>
+    renderWithClient(
+      <ExportButton
+        {...commonProps}
+        methodType="pre-revenue"
+        result={preRevenueResult}
+        {...overrides}
+      />
+    );
 
   describe("Rendering", () => {
     it("renders export button with correct text", () => {
-      renderComponent();
+      renderFirstChicago();
       expect(screen.getByRole("button", { name: /export/i })).toBeInTheDocument();
     });
 
     it("renders download icon by default", () => {
-      renderComponent();
+      renderFirstChicago();
       const button = screen.getByRole("button", { name: /export/i });
       expect(button.querySelector("svg")).toBeInTheDocument();
     });
 
     it("is disabled when disabled prop is true", () => {
-      renderComponent({ disabled: true });
+      renderFirstChicago({ disabled: true });
       expect(screen.getByRole("button", { name: /export/i })).toBeDisabled();
     });
   });
@@ -83,7 +125,7 @@ describe("ExportButton", () => {
   describe("Dropdown Menu", () => {
     it("shows format options when clicked", async () => {
       const user = userEvent.setup();
-      renderComponent();
+      renderFirstChicago();
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);
@@ -98,7 +140,7 @@ describe("ExportButton", () => {
   describe("Export Functionality", () => {
     it("calls exportFirstChicago when methodType is first-chicago", async () => {
       const user = userEvent.setup();
-      renderComponent({ methodType: "first-chicago" });
+      renderFirstChicago();
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);
@@ -110,7 +152,7 @@ describe("ExportButton", () => {
         expect(mockExportFirstChicago.mutateAsync).toHaveBeenCalledWith({
           company_name: "Test Company",
           format: "pdf",
-          result: { valuation: 1000000 },
+          result: firstChicagoResult,
           params: { discount_rate: 0.25 },
           industry: undefined,
           monte_carlo_result: undefined,
@@ -120,10 +162,7 @@ describe("ExportButton", () => {
 
     it("calls exportPreRevenue when methodType is pre-revenue", async () => {
       const user = userEvent.setup();
-      renderComponent({
-        methodType: "pre-revenue",
-        methodName: "Berkus Method",
-      });
+      renderPreRevenue({ methodName: "Berkus Method" });
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);
@@ -136,7 +175,7 @@ describe("ExportButton", () => {
           company_name: "Test Company",
           format: "json",
           method_name: "Berkus Method",
-          result: { valuation: 1000000 },
+          result: preRevenueResult,
           params: { discount_rate: 0.25 },
           industry: undefined,
         });
@@ -145,7 +184,7 @@ describe("ExportButton", () => {
 
     it("exports CSV format correctly", async () => {
       const user = userEvent.setup();
-      renderComponent();
+      renderFirstChicago();
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);
@@ -162,7 +201,7 @@ describe("ExportButton", () => {
 
     it("includes industry when provided", async () => {
       const user = userEvent.setup();
-      renderComponent({ industry: "saas" });
+      renderFirstChicago({ industry: "saas" });
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);
@@ -179,8 +218,12 @@ describe("ExportButton", () => {
 
     it("includes monte carlo result when provided", async () => {
       const user = userEvent.setup();
-      const monteCarloResult = { mean: 1000000, std_dev: 100000 };
-      renderComponent({ monteCarloResult });
+      const monteCarloResult: ExportMonteCarloResult = {
+        mean: 1000000,
+        num_simulations: 10000,
+        percentiles: { p50: 1000000 },
+      };
+      renderFirstChicago({ monteCarloResult });
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);
@@ -197,7 +240,7 @@ describe("ExportButton", () => {
 
     it("creates object URL for blob download on successful export", async () => {
       const user = userEvent.setup();
-      renderComponent();
+      renderFirstChicago();
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);
@@ -219,7 +262,7 @@ describe("ExportButton", () => {
         isPending: true,
       } as unknown as ReturnType<typeof useExportFirstChicago>);
 
-      renderComponent();
+      renderFirstChicago();
 
       const button = screen.getByRole("button");
       expect(button).toBeDisabled();
@@ -233,7 +276,7 @@ describe("ExportButton", () => {
         isPending: true,
       } as unknown as ReturnType<typeof useExportPreRevenue>);
 
-      renderComponent({ methodType: "pre-revenue" });
+      renderPreRevenue();
 
       expect(screen.getByRole("button")).toBeDisabled();
     });
@@ -245,7 +288,7 @@ describe("ExportButton", () => {
       const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
       mockExportFirstChicago.mutateAsync.mockRejectedValue(new Error("Export failed"));
 
-      renderComponent();
+      renderFirstChicago();
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);
@@ -265,7 +308,7 @@ describe("ExportButton", () => {
       vi.spyOn(console, "error").mockImplementation(() => {});
       mockExportFirstChicago.mutateAsync.mockRejectedValue(new Error("Export failed"));
 
-      renderComponent();
+      renderFirstChicago();
 
       const button = screen.getByRole("button", { name: /export/i });
       await user.click(button);

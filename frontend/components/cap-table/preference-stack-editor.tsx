@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -25,7 +26,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Trash2, Plus, GripVertical, Layers } from "lucide-react";
+import { Trash2, Plus, GripVertical, Layers, Users } from "lucide-react";
 import { FORMATTING } from "@/lib/constants";
 import { generateId } from "@/lib/utils";
 import { motion, MotionList, MotionListItem } from "@/lib/motion";
@@ -56,11 +57,69 @@ function formatCurrency(value: number): string {
   return `$${value.toFixed(0)}`;
 }
 
+/** Ties the Holders toggle to the region it opens, for assistive technology. */
+function holdersRegionId(tierId: string): string {
+  return `tier-${tierId}-holders`;
+}
+
+interface StakeholderAssignmentProps {
+  legend: string;
+  description?: string;
+  hideLegend?: boolean;
+  stakeholders: Stakeholder[];
+  selectedIds: string[];
+  onToggle: (stakeholderId: string, assigned: boolean) => void;
+  idPrefix: string;
+}
+
+function StakeholderAssignment({
+  legend,
+  description,
+  hideLegend = false,
+  stakeholders,
+  selectedIds,
+  onToggle,
+  idPrefix,
+}: StakeholderAssignmentProps) {
+  return (
+    <fieldset className="space-y-2">
+      <legend className={hideLegend ? "sr-only" : "text-sm font-medium"}>{legend}</legend>
+      {description && !hideLegend && <p className="text-muted-foreground text-sm">{description}</p>}
+      {stakeholders.length === 0 ? (
+        <p className="text-muted-foreground text-sm">
+          Add stakeholders to your cap table to assign holders to this tier.
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          {stakeholders.map((stakeholder) => {
+            const checkboxId = `${idPrefix}-${stakeholder.id}`;
+            return (
+              <div key={stakeholder.id} className="flex items-center gap-2">
+                <Checkbox
+                  id={checkboxId}
+                  checked={selectedIds.includes(stakeholder.id)}
+                  onCheckedChange={(checked) => onToggle(stakeholder.id, checked === true)}
+                />
+                <Label htmlFor={checkboxId} className="text-sm font-normal">
+                  {stakeholder.name}
+                </Label>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </fieldset>
+  );
+}
+
 export function PreferenceStackEditor({
   tiers,
   onTiersChange,
-  stakeholders: _stakeholders,
+  stakeholders,
 }: PreferenceStackEditorProps) {
+  const [newTierStakeholderIds, setNewTierStakeholderIds] = React.useState<string[]>([]);
+  const [expandedTierId, setExpandedTierId] = React.useState<string | null>(null);
+
   const form = useForm<PreferenceTierFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(PreferenceTierFormSchema) as any,
@@ -81,6 +140,38 @@ export function PreferenceStackEditor({
     defaultValue: false,
   });
 
+  // Assignments are stored in cap table order so tier payloads stay stable across edits
+  const applyAssignment = React.useCallback(
+    (assignedIds: string[], stakeholderId: string, assigned: boolean): string[] => {
+      const next = new Set(assignedIds);
+      if (assigned) {
+        next.add(stakeholderId);
+      } else {
+        next.delete(stakeholderId);
+      }
+      return stakeholders.filter((s) => next.has(s.id)).map((s) => s.id);
+    },
+    [stakeholders]
+  );
+
+  const handleToggleNewTierStakeholder = (stakeholderId: string, assigned: boolean) => {
+    setNewTierStakeholderIds((current) => applyAssignment(current, stakeholderId, assigned));
+  };
+
+  const handleToggleTierStakeholder = (
+    tierId: string,
+    stakeholderId: string,
+    assigned: boolean
+  ) => {
+    onTiersChange(
+      tiers.map((t) =>
+        t.id === tierId
+          ? { ...t, stakeholder_ids: applyAssignment(t.stakeholder_ids, stakeholderId, assigned) }
+          : t
+      )
+    );
+  };
+
   const onSubmit = (data: PreferenceTierFormData) => {
     const newTier: PreferenceTier = {
       id: generateId(),
@@ -90,7 +181,7 @@ export function PreferenceStackEditor({
       liquidation_multiplier: data.liquidation_multiplier,
       participating: data.participating,
       participation_cap: data.participation_cap,
-      stakeholder_ids: [],
+      stakeholder_ids: newTierStakeholderIds,
     };
 
     // Insert in correct seniority order
@@ -106,6 +197,7 @@ export function PreferenceStackEditor({
       participating: false,
       participation_cap: undefined,
     });
+    setNewTierStakeholderIds([]);
   };
 
   const handleRemoveTier = (id: string) => {
@@ -117,6 +209,11 @@ export function PreferenceStackEditor({
   };
 
   const totalInvested = tiers.reduce((sum, t) => sum + t.investment_amount, 0);
+
+  const stakeholderNameById = React.useMemo(
+    () => new Map(stakeholders.map((s) => [s.id, s.name])),
+    [stakeholders]
+  );
 
   return (
     <div className="space-y-6">
@@ -279,6 +376,15 @@ export function PreferenceStackEditor({
                 />
               )}
 
+              <StakeholderAssignment
+                legend="Assigned Stakeholders"
+                description="Holders that share this tier's liquidation preference"
+                stakeholders={stakeholders}
+                selectedIds={newTierStakeholderIds}
+                onToggle={handleToggleNewTierStakeholder}
+                idPrefix="new-tier-stakeholder"
+              />
+
               <Button type="submit" className="w-full">
                 <Plus className="mr-2 h-4 w-4" />
                 Add Preference Tier
@@ -305,50 +411,100 @@ export function PreferenceStackEditor({
               {tiers.map((tier) => (
                 <MotionListItem key={tier.id}>
                   <motion.div
-                    className="bg-card hover:bg-accent/50 flex items-center gap-3 rounded-lg border p-3"
+                    className="bg-card hover:bg-accent/50 space-y-3 rounded-lg border p-3"
                     whileHover={{ x: 4 }}
                     transition={{ duration: 0.15 }}
                   >
-                    <div className="text-muted-foreground flex items-center gap-2">
-                      <GripVertical className="h-4 w-4" />
-                      <span className="w-6 text-sm tabular-nums">{tier.seniority}</span>
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{tier.name}</p>
-                        <Badge variant="outline" className="text-xs">
-                          {tier.liquidation_multiplier}x
-                        </Badge>
-                        {tier.participating && (
-                          <Badge variant="secondary" className="bg-chart-3/20 text-chart-3 text-xs">
-                            Participating
-                            {tier.participation_cap && ` (${tier.participation_cap}x cap)`}
-                          </Badge>
-                        )}
+                    <div className="flex items-center gap-3">
+                      <div className="text-muted-foreground flex items-center gap-2">
+                        <GripVertical className="h-4 w-4" />
+                        <span className="w-6 text-sm tabular-nums">{tier.seniority}</span>
                       </div>
-                      <p className="text-muted-foreground text-sm">
-                        {formatCurrency(tier.investment_amount)} invested
-                      </p>
+
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{tier.name}</p>
+                          <Badge variant="outline" className="text-xs">
+                            {tier.liquidation_multiplier}x
+                          </Badge>
+                          {tier.participating && (
+                            <Badge
+                              variant="secondary"
+                              className="bg-chart-3/20 text-chart-3 text-xs"
+                            >
+                              Participating
+                              {tier.participation_cap && ` (${tier.participation_cap}x cap)`}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-muted-foreground text-sm">
+                          {formatCurrency(tier.investment_amount)} invested
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          aria-expanded={expandedTierId === tier.id}
+                          aria-controls={holdersRegionId(tier.id)}
+                          onClick={() =>
+                            setExpandedTierId(expandedTierId === tier.id ? null : tier.id)
+                          }
+                        >
+                          <Users className="mr-1 h-4 w-4" />
+                          Holders ({tier.stakeholder_ids.length})
+                          <span className="sr-only"> for {tier.name}</span>
+                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Label className="text-muted-foreground text-xs">Part.</Label>
+                          <Switch
+                            checked={tier.participating}
+                            onCheckedChange={(checked) =>
+                              handleToggleParticipating(tier.id, checked)
+                            }
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveTier(tier.id)}
+                          aria-label={`Remove ${tier.name}`}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <Label className="text-muted-foreground text-xs">Part.</Label>
-                        <Switch
-                          checked={tier.participating}
-                          onCheckedChange={(checked) => handleToggleParticipating(tier.id, checked)}
+                    {tier.stakeholder_ids.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pl-9">
+                        {tier.stakeholder_ids.map((id) => (
+                          <Badge key={id} variant="secondary" className="text-xs">
+                            {stakeholderNameById.get(id) ?? "Unknown stakeholder"}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+
+                    {expandedTierId === tier.id && (
+                      <div
+                        id={holdersRegionId(tier.id)}
+                        className="border-border border-t pt-3 pl-9"
+                      >
+                        <StakeholderAssignment
+                          legend={`Stakeholders assigned to ${tier.name}`}
+                          hideLegend
+                          stakeholders={stakeholders}
+                          selectedIds={tier.stakeholder_ids}
+                          onToggle={(stakeholderId, assigned) =>
+                            handleToggleTierStakeholder(tier.id, stakeholderId, assigned)
+                          }
+                          idPrefix={`tier-${tier.id}-stakeholder`}
                         />
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveTier(tier.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    )}
                   </motion.div>
                 </MotionListItem>
               ))}

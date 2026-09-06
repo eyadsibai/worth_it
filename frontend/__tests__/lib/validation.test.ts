@@ -7,6 +7,7 @@ import {
   isRSUForm,
   isValidEquityData,
   getFirstInvalidEquityField,
+  firstRequiredEquityField,
 } from "@/lib/validation";
 
 describe("Stock Options Validation", () => {
@@ -305,5 +306,39 @@ describe("getFirstInvalidEquityField", () => {
 
   it("should return null for null data", () => {
     expect(getFirstInvalidEquityField(null)).toBeNull();
+  });
+});
+
+describe("firstRequiredEquityField", () => {
+  // The null-data case above is the state the empty state actually renders in,
+  // so something has to name a field there or its "jump to the missing field"
+  // action has nowhere to go.
+  it("names the grant size for RSU", () => {
+    expect(firstRequiredEquityField("RSU")).toBe("total_equity_grant_pct");
+  });
+
+  it("names the option count for stock options", () => {
+    expect(firstRequiredEquityField("STOCK_OPTIONS")).toBe("num_options");
+  });
+
+  it("agrees with getFirstInvalidEquityField on empty forms", () => {
+    const emptyRSU = {
+      equity_type: "RSU",
+      total_equity_grant_pct: 0,
+      exit_valuation: 0,
+      monthly_salary: 0,
+    } as RSUForm;
+    const emptyOptions = {
+      equity_type: "STOCK_OPTIONS",
+      num_options: 0,
+      strike_price: 0,
+      exit_price_per_share: 0,
+      monthly_salary: 0,
+    } as StockOptionsForm;
+
+    expect(getFirstInvalidEquityField(emptyRSU)).toBe(firstRequiredEquityField("RSU"));
+    expect(getFirstInvalidEquityField(emptyOptions)).toBe(
+      firstRequiredEquityField("STOCK_OPTIONS")
+    );
   });
 });

@@ -13,33 +13,51 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Download, FileText, FileSpreadsheet, FileJson, Loader2, AlertCircle } from "lucide-react";
 import { useExportFirstChicago, useExportPreRevenue } from "@/lib/api-client";
-import type { ExportFormat } from "@/lib/schemas";
+import type {
+  ExportFormat,
+  ExportMonteCarloResult,
+  ExportParams,
+  FirstChicagoExportResult,
+  PreRevenueExportResult,
+} from "@/lib/schemas";
 
-interface ExportButtonProps {
+interface ExportButtonBaseProps {
   companyName: string;
-  methodType: "first-chicago" | "pre-revenue";
-  result: Record<string, unknown>;
-  params: Record<string, unknown>;
-  methodName?: string;
+  /** Valuation inputs echoed into the report; only `discount_rate` is rendered. */
+  params: ExportParams;
   industry?: string | null;
-  monteCarloResult?: Record<string, unknown> | null;
   disabled?: boolean;
 }
+
+/**
+ * Props are a discriminated union on `methodType` because the two export
+ * endpoints accept structurally different result payloads. The backend
+ * validates these shapes strictly (`FirstChicagoExportRequest` /
+ * `PreRevenueExportRequest` in `worth_it/models.py`), so a loose
+ * `Record<string, unknown>` here would only defer the failure to a 422.
+ */
+type ExportButtonProps = ExportButtonBaseProps &
+  (
+    | {
+        methodType: "first-chicago";
+        result: FirstChicagoExportResult;
+        monteCarloResult?: ExportMonteCarloResult | null;
+        methodName?: string;
+      }
+    | {
+        methodType: "pre-revenue";
+        result: PreRevenueExportResult;
+        methodName?: string;
+        monteCarloResult?: null;
+      }
+  );
 
 /**
  * Export button component with format selection dropdown.
  * Supports PDF, JSON, and CSV export formats for valuation reports.
  */
-export function ExportButton({
-  companyName,
-  methodType,
-  result,
-  params,
-  methodName,
-  industry,
-  monteCarloResult,
-  disabled = false,
-}: ExportButtonProps) {
+export function ExportButton(props: ExportButtonProps) {
+  const { companyName, params, industry, disabled = false } = props;
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,21 +88,21 @@ export function ExportButton({
       const ext = format;
 
       let blob: Blob;
-      if (methodType === "first-chicago") {
+      if (props.methodType === "first-chicago") {
         blob = await exportFirstChicago.mutateAsync({
           company_name: companyName,
           format,
-          result,
+          result: props.result,
           params,
           industry: industry ?? undefined,
-          monte_carlo_result: monteCarloResult ?? undefined,
+          monte_carlo_result: props.monteCarloResult ?? undefined,
         });
       } else {
         blob = await exportPreRevenue.mutateAsync({
           company_name: companyName,
           format,
-          method_name: methodName || "Valuation",
-          result,
+          method_name: props.methodName || "Valuation",
+          result: props.result,
           params,
           industry: industry ?? undefined,
         });

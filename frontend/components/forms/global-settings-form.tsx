@@ -83,19 +83,30 @@ export function GlobalSettingsFormComponent({
     return (
       <Collapsible defaultOpen={defaultOpen}>
         <Card className="terminal-card animate-slide-up border-l-primary/30 border-l-4">
+          {/*
+            A real <button>, not a CardHeader div: Radix hands the trigger
+            aria-expanded/aria-controls, which are invalid on a role-less div
+            (axe: aria-allowed-attr, critical) and leave the header unreachable
+            by keyboard. Same markup as CollapsibleCard; px-6/pb-4 replace the
+            padding CardHeader used to supply.
+          */}
           <CollapsibleTrigger asChild>
-            <CardHeader className="hover:bg-muted/30 cursor-pointer rounded-t-2xl pb-4 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1.5">
-                  <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                    <div className="bg-primary h-2 w-2 rounded-full"></div>
-                    Global Settings
-                  </CardTitle>
-                  <CardDescription>Configure the analysis timeframe</CardDescription>
-                </div>
-                <ChevronDown className="text-muted-foreground h-5 w-5 transition-transform duration-200 [[data-state=closed]_&]:-rotate-90" />
+            <button
+              type="button"
+              className="hover:bg-muted/30 flex w-full items-center justify-between gap-2 rounded-t-2xl px-6 pb-4 text-left transition-colors"
+            >
+              <div className="space-y-1.5">
+                <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                  <div className="bg-primary h-2 w-2 rounded-full"></div>
+                  Global Settings
+                </CardTitle>
+                <CardDescription>Configure the analysis timeframe</CardDescription>
               </div>
-            </CardHeader>
+              <ChevronDown
+                className="text-muted-foreground h-5 w-5 shrink-0 transition-transform duration-200 [[data-state=closed]_&]:-rotate-90"
+                aria-hidden="true"
+              />
+            </button>
           </CollapsibleTrigger>
           <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
             <CardContent>{formContent}</CardContent>

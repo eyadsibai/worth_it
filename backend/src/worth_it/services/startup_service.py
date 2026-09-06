@@ -144,6 +144,11 @@ class StartupService:
         """
         opportunity_cost_df = pd.DataFrame(opportunity_cost_data)
 
+        # calculate_startup_scenario reads the index as the year number, but
+        # to_dict(orient="records") dropped it on the way out of the producer.
+        if "Year" in opportunity_cost_df.columns:
+            opportunity_cost_df = opportunity_cost_df.set_index("Year", drop=False)
+
         # Convert equity_type string to enum
         converted_params = convert_equity_type_in_startup_params(startup_params)
         if converted_params is None:

@@ -4,6 +4,12 @@ Monte Carlo simulation and sensitivity analysis functions.
 This module provides probabilistic modeling capabilities for financial analysis,
 including PERT distribution generation, vectorized and iterative Monte Carlo
 simulations, and sensitivity analysis.
+
+Simulated exit prices come in two units: RSUs are priced off a whole-company exit
+valuation, stock options off a price per share. Both are returned under the
+``simulated_valuations`` key, whose name predates stock-options support and is now
+part of the API contract, so callers that display or format the series must read
+the scenario's ``equity_type`` to know which unit they hold.
 """
 
 from __future__ import annotations
@@ -25,7 +31,10 @@ from worth_it.calculations.startup_scenario import calculate_startup_scenario
 
 
 def get_random_variates_pert(
-    num_simulations: int, config: dict[str, Any] | None, default_val: float
+    num_simulations: int,
+    config: dict[str, Any] | None,
+    default_val: float,
+    rng: np.random.Generator | None = None,
 ) -> np.ndarray:
     """
     Generates random numbers based on a PERT distribution.
@@ -38,6 +47,8 @@ def get_random_variates_pert(
         config: Dictionary with 'min_val', 'max_val', and 'mode' keys.
                 If None, returns array filled with default_val.
         default_val: Value to use if config is None
+        rng: Optional Generator for reproducible draws. Uses the global
+             NumPy random stream when omitted.
 
     Returns:
         NumPy array of random values from PERT distribution
@@ -56,15 +67,63 @@ def get_random_variates_pert(
     beta = 1 + gamma * (max_val - mode) / (max_val - min_val)
 
     result: np.ndarray = stats.beta.rvs(
-        a=alpha, b=beta, scale=(max_val - min_val), loc=min_val, size=num_simulations
+        a=alpha,
+        b=beta,
+        scale=(max_val - min_val),
+        loc=min_val,
+        size=num_simulations,
+        random_state=rng,
     )
     return result
+
+
+def _resolve_rng(seed: int | None, rng: np.random.Generator | None) -> np.random.Generator | None:
+    """Explicit generator wins, a seed builds one, otherwise the global stream is used."""
+    if rng is not None:
+        return rng
+    if seed is not None:
+        return np.random.default_rng(seed)
+    return None
+
+
+def _uniform_draws(num_simulations: int, rng: np.random.Generator | None) -> np.ndarray:
+    """Uniform [0, 1) draws from `rng`, or the global stream when unseeded."""
+    if rng is None:
+        return np.random.rand(num_simulations)
+    return rng.random(num_simulations)
+
+
+def _exit_price_key(startup_params: dict[str, Any]) -> str:
+    """Sim-param key holding the exit price: whole-company for RSUs, per-share for options."""
+    if startup_params["equity_type"] == EquityType.RSU:
+        return "valuation"
+    return "price_per_share"
+
+
+def _default_exit_price(startup_params: dict[str, Any]) -> float:
+    """Non-simulated exit price for the scenario's equity type."""
+    if startup_params["equity_type"] == EquityType.RSU:
+        return startup_params["rsu_params"].get("target_exit_valuation") or 0.0
+    return startup_params["options_params"].get("target_exit_price_per_share") or 0.0
+
+
+def _resolve_exit_price(
+    num_simulations: int,
+    startup_params: dict[str, Any],
+    sim_params: dict[str, np.ndarray],
+) -> np.ndarray:
+    """Per-simulation exit price for the scenario's equity type."""
+    samples = sim_params.get(_exit_price_key(startup_params))
+    if samples is None:
+        return np.full(num_simulations, _default_exit_price(startup_params))
+    return np.asarray(samples)
 
 
 def run_monte_carlo_simulation(
     num_simulations: int,
     base_params: dict[str, Any],
     sim_param_configs: dict[str, Any],
+    seed: int | None = None,
 ) -> dict[str, np.ndarray]:
     """
     Prepares parameters and runs the appropriate Monte Carlo simulation.
@@ -76,9 +135,12 @@ def run_monte_carlo_simulation(
         num_simulations: Number of simulation iterations
         base_params: Base parameters for the scenario (salaries, equity, etc.)
         sim_param_configs: Configuration for simulated parameters (distributions)
+        seed: Optional seed making the run reproducible
 
     Returns:
-        Dictionary with 'net_outcomes' and 'simulated_valuations' arrays
+        Dictionary with 'net_outcomes' and 'simulated_valuations' arrays.
+        'simulated_valuations' holds whole-company exit valuations for RSUs and
+        per-share exit prices for stock options.
 
     Raises:
         CalculationError: If num_simulations exceeds MAX_SIMULATIONS
@@ -93,9 +155,13 @@ def run_monte_carlo_simulation(
             f"({Settings.MAX_SIMULATIONS}). Reduce the number of simulations."
         )
 
+    rng = _resolve_rng(seed, None)
+
     # If exit year is simulated, the calculation must be iterative.
     if "exit_year" in sim_param_configs:
-        return run_monte_carlo_simulation_iterative(num_simulations, base_params, sim_param_configs)
+        return run_monte_carlo_simulation_iterative(
+            num_simulations, base_params, sim_param_configs, rng=rng
+        )
 
     # --- Prepare a complete sim_params dictionary for vectorization ---
     sim_params = {}
@@ -104,26 +170,30 @@ def run_monte_carlo_simulation(
     if "roi" in sim_param_configs:
         roi_config = sim_param_configs["roi"]
         sim_params["roi"] = stats.norm.rvs(
-            loc=roi_config["mean"], scale=roi_config["std_dev"], size=num_simulations
+            loc=roi_config["mean"],
+            scale=roi_config["std_dev"],
+            size=num_simulations,
+            random_state=rng,
         )
     else:
         sim_params["roi"] = np.full(num_simulations, base_params["annual_roi"])
 
-    # Handle Valuation (PERT distribution)
-    if "valuation" in sim_param_configs:
-        sim_params["valuation"] = get_random_variates_pert(
-            num_simulations, sim_param_configs["valuation"], 0
+    # Handle the exit price (PERT distribution): whole-company valuation for
+    # RSUs, price per share for stock options.
+    price_key = _exit_price_key(base_params["startup_params"])
+    if price_key in sim_param_configs:
+        sim_params[price_key] = get_random_variates_pert(
+            num_simulations, sim_param_configs[price_key], 0, rng
         )
     else:
-        default_valuation = base_params["startup_params"]["rsu_params"].get(
-            "target_exit_valuation"
-        ) or base_params["startup_params"]["options_params"].get("target_exit_price_per_share")
-        sim_params["valuation"] = np.full(num_simulations, default_valuation)
+        sim_params[price_key] = np.full(
+            num_simulations, _default_exit_price(base_params["startup_params"])
+        )
 
     # Handle Salary Growth (PERT distribution)
     if "salary_growth" in sim_param_configs:
         sim_params["salary_growth"] = get_random_variates_pert(
-            num_simulations, sim_param_configs["salary_growth"], 0
+            num_simulations, sim_param_configs["salary_growth"], 0, rng
         )
     else:
         sim_params["salary_growth"] = np.full(
@@ -133,16 +203,20 @@ def run_monte_carlo_simulation(
     # Handle Dilution (PERT distribution)
     if "dilution" in sim_param_configs:
         sim_params["dilution"] = get_random_variates_pert(
-            num_simulations, sim_param_configs["dilution"], np.nan
+            num_simulations, sim_param_configs["dilution"], np.nan, rng
         )
     else:
         sim_params["dilution"] = np.full(num_simulations, np.nan)
 
-    return run_monte_carlo_simulation_vectorized(num_simulations, base_params, sim_params)
+    return run_monte_carlo_simulation_vectorized(num_simulations, base_params, sim_params, rng=rng)
 
 
 def run_monte_carlo_simulation_vectorized(  # noqa: C901 - inherently complex vectorized simulation with multiple equity type paths
-    num_simulations: int, base_params: dict[str, Any], sim_params: dict[str, np.ndarray]
+    num_simulations: int,
+    base_params: dict[str, Any],
+    sim_params: dict[str, np.ndarray],
+    seed: int | None = None,
+    rng: np.random.Generator | None = None,
 ) -> dict[str, np.ndarray]:
     """
     Vectorized Monte Carlo simulation for fixed exit year scenarios.
@@ -154,10 +228,15 @@ def run_monte_carlo_simulation_vectorized(  # noqa: C901 - inherently complex ve
         num_simulations: Number of simulation iterations
         base_params: Base parameters for the scenario
         sim_params: Pre-generated random parameters for each simulation
+        seed: Optional seed making the run reproducible
+        rng: Optional Generator, used in preference to `seed`
 
     Returns:
-        Dictionary with 'net_outcomes' and 'simulated_valuations' arrays
+        Dictionary with 'net_outcomes' and 'simulated_valuations' arrays.
+        'simulated_valuations' holds whole-company exit valuations for RSUs and
+        per-share exit prices for stock options.
     """
+    rng = _resolve_rng(seed, rng)
     exit_year = base_params["exit_year"]
     total_months = exit_year * 12
 
@@ -169,9 +248,12 @@ def run_monte_carlo_simulation_vectorized(  # noqa: C901 - inherently complex ve
     monthly_surpluses = current_salaries - base_params["startup_monthly_salary"]
     investable_surpluses = np.clip(monthly_surpluses, 0, None)
 
+    # Bound unconditionally: the exercise-cost branch below re-tests the same frequency
+    # and would otherwise read this on a path a type checker cannot prove is reachable.
+    monthly_rois = (1 + sim_params["roi"]) ** (1 / 12) - 1
+
     # Calculate opportunity cost from investable surplus (without exercise costs)
     if base_params["investment_frequency"] == "Monthly":
-        monthly_rois = (1 + sim_params["roi"]) ** (1 / 12) - 1
         months_to_grow = np.arange(total_months - 1, -1, -1)
         fv_factors = (1 + monthly_rois[:, np.newaxis]) ** months_to_grow
         final_opportunity_cost = (investable_surpluses * fv_factors).sum(axis=1)
@@ -212,6 +294,7 @@ def run_monte_carlo_simulation_vectorized(  # noqa: C901 - inherently complex ve
                     )
 
     startup_params = base_params["startup_params"]
+    exit_price = _resolve_exit_price(num_simulations, startup_params, sim_params)
     final_vested_pct = np.clip((exit_year / startup_params["total_vesting_years"]), 0, 1)
     if exit_year < startup_params["cliff_years"]:
         final_vested_pct = 0
@@ -293,7 +376,7 @@ def run_monte_carlo_simulation_vectorized(  # noqa: C901 - inherently complex ve
 
         final_equity_pct = rsu_params.get("equity_pct", 0.0) * cumulative_dilution
         final_payout_value = (
-            sim_params["valuation"] * final_equity_pct * final_vested_pct * remaining_equity_factor
+            exit_price * final_equity_pct * final_vested_pct * remaining_equity_factor
         )
 
         # Add cash from equity sales
@@ -301,13 +384,11 @@ def run_monte_carlo_simulation_vectorized(  # noqa: C901 - inherently complex ve
     else:
         options_params = startup_params["options_params"]
         final_vested_options = options_params.get("num_options", 0) * final_vested_pct
-        profit_per_share = np.maximum(
-            0, sim_params["valuation"] - options_params.get("strike_price", 0)
-        )
+        profit_per_share = np.maximum(0, exit_price - options_params.get("strike_price", 0))
         final_payout_value = profit_per_share * final_vested_options
 
     # Incorporate failure probability
-    failure_mask = np.random.rand(num_simulations) < base_params["failure_probability"]
+    failure_mask = _uniform_draws(num_simulations, rng) < base_params["failure_probability"]
     final_payout_value[failure_mask] = 0
 
     # Calculate net outcomes: payout - opportunity cost - exercise costs
@@ -316,7 +397,7 @@ def run_monte_carlo_simulation_vectorized(  # noqa: C901 - inherently complex ve
 
     return {
         "net_outcomes": net_outcomes,
-        "simulated_valuations": sim_params.get("valuation", np.array([])),
+        "simulated_valuations": exit_price,
     }
 
 
@@ -324,6 +405,8 @@ def run_monte_carlo_simulation_iterative(
     num_simulations: int,
     base_params: dict[str, Any],
     sim_param_configs: dict[str, Any],
+    seed: int | None = None,
+    rng: np.random.Generator | None = None,
 ) -> dict[str, np.ndarray]:
     """
     Iterative Monte Carlo simulation for variable exit year scenarios.
@@ -335,17 +418,20 @@ def run_monte_carlo_simulation_iterative(
         num_simulations: Number of simulation iterations
         base_params: Base parameters for the scenario
         sim_param_configs: Configuration for simulated parameters
+        seed: Optional seed making the run reproducible
+        rng: Optional Generator, used in preference to `seed`
 
     Returns:
-        Dictionary with 'net_outcomes' and 'simulated_valuations' arrays
+        Dictionary with 'net_outcomes' and 'simulated_valuations' arrays.
+        'simulated_valuations' holds whole-company exit valuations for RSUs and
+        per-share exit prices for stock options.
     """
+    rng = _resolve_rng(seed, rng)
     sim_params: dict[str, Any] = {}
 
-    default_valuation = base_params["startup_params"]["rsu_params"].get(
-        "target_exit_valuation"
-    ) or base_params["startup_params"]["options_params"].get("target_exit_price_per_share")
+    price_key = _exit_price_key(base_params["startup_params"])
     sim_params["exit_year"] = get_random_variates_pert(
-        num_simulations, sim_param_configs.get("exit_year"), base_params["exit_year"]
+        num_simulations, sim_param_configs.get("exit_year"), base_params["exit_year"], rng
     ).astype(int)
 
     if "yearly_valuation" in sim_param_configs:
@@ -356,20 +442,25 @@ def run_monte_carlo_simulation_iterative(
         for year in sim_params["exit_year"]:
             # Ensure year is treated as a string key
             config = yearly_valuation.get(str(year), default_config)
-            valuations.append(get_random_variates_pert(1, config, config["mode"])[0])
-        sim_params["valuation"] = np.array(valuations)
-    elif "valuation" in sim_param_configs:
-        sim_params["valuation"] = get_random_variates_pert(
-            num_simulations, sim_param_configs["valuation"], 0
+            valuations.append(get_random_variates_pert(1, config, config["mode"], rng)[0])
+        sim_params[price_key] = np.array(valuations)
+    elif price_key in sim_param_configs:
+        sim_params[price_key] = get_random_variates_pert(
+            num_simulations, sim_param_configs[price_key], 0, rng
         )
     else:
-        sim_params["valuation"] = np.full(num_simulations, default_valuation)
+        sim_params[price_key] = np.full(
+            num_simulations, _default_exit_price(base_params["startup_params"])
+        )
 
     # Handle other variables
     if "roi" in sim_param_configs:
         roi_config = sim_param_configs["roi"]
         sim_params["roi"] = stats.norm.rvs(
-            loc=roi_config["mean"], scale=roi_config["std_dev"], size=num_simulations
+            loc=roi_config["mean"],
+            scale=roi_config["std_dev"],
+            size=num_simulations,
+            random_state=rng,
         )
     else:
         sim_params["roi"] = np.full(num_simulations, base_params["annual_roi"])
@@ -378,9 +469,10 @@ def run_monte_carlo_simulation_iterative(
         num_simulations,
         sim_param_configs.get("salary_growth"),
         base_params["current_job_salary_growth_rate"],
+        rng,
     )
     sim_params["dilution"] = get_random_variates_pert(
-        num_simulations, sim_param_configs.get("dilution"), np.nan
+        num_simulations, sim_param_configs.get("dilution"), np.nan, rng
     )
 
     net_outcomes_list: list[float] = []
@@ -398,11 +490,11 @@ def run_monte_carlo_simulation_iterative(
 
         if sim_startup_params["equity_type"] == EquityType.RSU:
             sim_startup_params["rsu_params"] = sim_startup_params["rsu_params"].copy()
-            sim_startup_params["rsu_params"]["target_exit_valuation"] = sim_params["valuation"][i]
+            sim_startup_params["rsu_params"]["target_exit_valuation"] = sim_params[price_key][i]
         else:
             sim_startup_params["options_params"] = sim_startup_params["options_params"].copy()
             sim_startup_params["options_params"]["target_exit_price_per_share"] = sim_params[
-                "valuation"
+                price_key
             ][i]
 
         monthly_df = create_monthly_data_grid(
@@ -432,17 +524,19 @@ def run_monte_carlo_simulation_iterative(
     final_opportunity_costs: np.ndarray = np.array(final_opportunity_costs_list)
 
     # Incorporate failure probability
-    failure_mask = np.random.rand(num_simulations) < base_params["failure_probability"]
+    failure_mask = _uniform_draws(num_simulations, rng) < base_params["failure_probability"]
     net_outcomes[failure_mask] = -final_opportunity_costs[failure_mask]
 
     return {
         "net_outcomes": net_outcomes,
-        "simulated_valuations": sim_params.get("valuation", np.array([])),
+        "simulated_valuations": sim_params[price_key],
     }
 
 
 def run_sensitivity_analysis(
-    base_params: dict[str, Any], sim_param_configs: dict[str, Any]
+    base_params: dict[str, Any],
+    sim_param_configs: dict[str, Any],
+    seed: int | None = None,
 ) -> pd.DataFrame:
     """
     Runs a sensitivity analysis on simulated variables.
@@ -453,10 +547,12 @@ def run_sensitivity_analysis(
     Args:
         base_params: Base parameters for the scenario
         sim_param_configs: Configuration for simulated parameters
+        seed: Optional seed making the run reproducible
 
     Returns:
         DataFrame with Variable, Low, High, and Impact columns, sorted by impact
     """
+    rng = _resolve_rng(seed, None)
     impacts = []
     num_simulations_sensitivity = 500
 
@@ -499,7 +595,7 @@ def run_sensitivity_analysis(
         low_sim_params = base_case_sim_params.copy()
         low_sim_params[var] = np.full(num_simulations_sensitivity, low_val)
         low_results = run_monte_carlo_simulation_vectorized(
-            num_simulations_sensitivity, base_params, low_sim_params
+            num_simulations_sensitivity, base_params, low_sim_params, rng=rng
         )
         low_mean_outcome = low_results["net_outcomes"].mean()
 
@@ -507,7 +603,7 @@ def run_sensitivity_analysis(
         high_sim_params = base_case_sim_params.copy()
         high_sim_params[var] = np.full(num_simulations_sensitivity, high_val)
         high_results = run_monte_carlo_simulation_vectorized(
-            num_simulations_sensitivity, base_params, high_sim_params
+            num_simulations_sensitivity, base_params, high_sim_params, rng=rng
         )
         high_mean_outcome = high_results["net_outcomes"].mean()
 

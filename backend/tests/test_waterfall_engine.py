@@ -7,6 +7,8 @@ calculate_waterfall tests in test_calculations.py verify backward compatibility.
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 
 from worth_it.calculations.waterfall_engine import (
@@ -158,6 +160,28 @@ class TestWaterfallPipeline:
 
     def test_pay_liquidation_preferences_pays_senior_first(self, simple_cap_table):
         """Liquidation preferences should be paid in seniority order."""
+        # Each series is held by its own stakeholder: one share count cannot back two
+        # tiers, and the engine rejects that shape outright.
+        total_shares = 12_000_000
+        cap_table = {
+            **simple_cap_table,
+            # Issuing to a third holder redenominates the table, so every stake is
+            # restated against the new total rather than left describing a 10M company.
+            "stakeholders": [
+                {**s, "ownership_pct": round(s["shares"] / total_shares * 100, 2)}
+                for s in (
+                    *simple_cap_table["stakeholders"],
+                    {
+                        "id": "investor-2",
+                        "name": "Series B Investor",
+                        "type": "investor",
+                        "shares": 2_000_000,
+                        "share_class": "preferred",
+                    },
+                )
+            ],
+            "total_shares": total_shares,
+        }
         two_tier = [
             {
                 "id": "tier-b",
@@ -166,7 +190,7 @@ class TestWaterfallPipeline:
                 "investment_amount": 3_000_000,
                 "liquidation_multiplier": 1.0,
                 "participating": False,
-                "stakeholder_ids": ["investor-1"],
+                "stakeholder_ids": ["investor-2"],
             },
             {
                 "id": "tier-a",
@@ -181,16 +205,17 @@ class TestWaterfallPipeline:
 
         # Exit at $4M - enough for Series B but not fully for Series A
         pipeline = (
-            WaterfallPipeline(cap_table=simple_cap_table, exit_valuation=4_000_000)
+            WaterfallPipeline(cap_table=cap_table, exit_valuation=4_000_000)
             .with_preference_tiers(two_tier)
             .initialize_payouts()
             .build_tier_lookups()
             .pay_liquidation_preferences()
         )
 
-        # Series B should get full $3M, Series A gets remaining $1M
+        # Series B is senior: it takes its full $3M before Series A sees anything.
+        assert pipeline._payouts["investor-2"]["payout_amount"] == pytest.approx(3_000_000)
+        assert pipeline._payouts["investor-1"]["payout_amount"] == pytest.approx(1_000_000)
         assert pipeline._remaining_proceeds == pytest.approx(0)
-        # Check waterfall steps show seniority order
         assert len(pipeline._waterfall_steps) >= 1
 
 
@@ -285,3 +310,103 @@ class TestWaterfallConvenienceFunction:
         assert investor["payout_amount"] == pytest.approx(15_000_000)
         # 70% of $50M = $35M
         assert founder["payout_amount"] == pytest.approx(35_000_000)
+
+
+class TestConversionFixedPointConvergence:
+    """A conversion decision that never settles must not pass for a settled one.
+
+    ``_solve_conversions`` searches for a fixed point by best response. The payout
+    invariant holds either way, so a set of tier choices that merely oscillates looks
+    exactly like a solved one from the outside. The engine says so instead.
+    """
+
+    @pytest.fixture
+    def two_tier_cap_table(self):
+        return {
+            "stakeholders": [
+                {
+                    "id": "investor-a",
+                    "name": "Investor A",
+                    "type": "investor",
+                    "shares": 4_000_000,
+                    "ownership_pct": 40.0,
+                    "share_class": "preferred",
+                },
+                {
+                    "id": "investor-b",
+                    "name": "Investor B",
+                    "type": "investor",
+                    "shares": 6_000_000,
+                    "ownership_pct": 60.0,
+                    "share_class": "preferred",
+                },
+            ],
+            "total_shares": 10_000_000,
+            "option_pool_pct": 0,
+        }
+
+    @pytest.fixture
+    def two_non_participating_tiers(self):
+        return [
+            {
+                "id": "tier-a",
+                "name": "Series A",
+                "seniority": 1,
+                "investment_amount": 2_000_000,
+                "liquidation_multiplier": 1.0,
+                "participating": False,
+                "participation_cap": None,
+                "stakeholder_ids": ["investor-a"],
+            },
+            {
+                "id": "tier-b",
+                "name": "Series B",
+                "seniority": 2,
+                "investment_amount": 3_000_000,
+                "liquidation_multiplier": 1.0,
+                "participating": False,
+                "participation_cap": None,
+                "stakeholder_ids": ["investor-b"],
+            },
+        ]
+
+    @staticmethod
+    def _oscillating_conversion_value(pipeline, tier, converted):
+        """A best response with no fixed point: A converts iff B did not, B iff A did."""
+        preference = pipeline._tier_preference(tier)
+        if tier["id"] == "tier-a":
+            return preference - 1 if "tier-b" in converted else preference + 1
+        return preference + 1 if "tier-a" in converted else preference - 1
+
+    def test_non_convergent_conversion_search_is_reported(
+        self, monkeypatch, caplog, two_tier_cap_table, two_non_participating_tiers
+    ):
+        monkeypatch.setattr(
+            WaterfallPipeline,
+            "_as_converted_value",
+            self._oscillating_conversion_value,
+        )
+
+        with caplog.at_level(logging.WARNING, logger="worth_it.calculations.waterfall_engine"):
+            calculate_waterfall(
+                cap_table=two_tier_cap_table,
+                preference_tiers=two_non_participating_tiers,
+                exit_valuation=20_000_000,
+            )
+
+        warnings = [r for r in caplog.records if r.levelno >= logging.WARNING]
+        assert warnings, "a conversion search that never settles must be reported"
+        assert "converge" in warnings[0].getMessage()
+
+    def test_a_settled_conversion_search_reports_nothing(
+        self, caplog, two_tier_cap_table, two_non_participating_tiers
+    ):
+        """The negative case: a normal waterfall must stay silent."""
+        with caplog.at_level(logging.WARNING, logger="worth_it.calculations.waterfall_engine"):
+            calculate_waterfall(
+                cap_table=two_tier_cap_table,
+                preference_tiers=two_non_participating_tiers,
+                exit_valuation=20_000_000,
+            )
+
+        assert [r for r in caplog.records if r.levelno >= logging.WARNING] == []

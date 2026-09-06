@@ -14,6 +14,7 @@ import {
   CheckboxField,
   NumberInputField,
   SliderField,
+  LogarithmicSliderField,
 } from "@/components/forms/form-fields";
 
 // Test schema
@@ -35,7 +36,7 @@ function TestFormWrapper({
   onSubmit?: (data: TestFormData) => void;
 }) {
   const form = useForm<TestFormData>({
-    resolver: zodResolver(TestSchema) as unknown as undefined,
+    resolver: zodResolver(TestSchema),
     defaultValues: {
       name: "",
       email: "",
@@ -237,7 +238,7 @@ describe("NumberInputField", () => {
     defaultValue?: number;
   }) {
     const form = useForm<NumberTestFormData>({
-      resolver: zodResolver(NumberTestSchema) as unknown as undefined,
+      resolver: zodResolver(NumberTestSchema),
       defaultValues: { amount: defaultValue },
     });
 
@@ -333,7 +334,7 @@ describe("NumberInputField with hint and example props", () => {
     defaultValue?: number;
   }) {
     const form = useForm<NumberTestFormData>({
-      resolver: zodResolver(NumberTestSchema) as unknown as undefined,
+      resolver: zodResolver(NumberTestSchema),
       defaultValues: { salary: defaultValue },
     });
 
@@ -467,7 +468,7 @@ describe("SliderField", () => {
     defaultValues?: SliderTestFormData;
   }) {
     const form = useForm<SliderTestFormData>({
-      resolver: zodResolver(SliderTestSchema) as unknown as undefined,
+      resolver: zodResolver(SliderTestSchema),
       defaultValues,
     });
 
@@ -582,5 +583,70 @@ describe("SliderField", () => {
     // The tooltip icon should be rendered
     const helpButton = screen.getByRole("button", { name: /help for years/i });
     expect(helpButton).toBeInTheDocument();
+  });
+});
+
+describe("LogarithmicSliderField accessibility", () => {
+  const MIN = 1_000_000; // $1M
+  const MAX = 10_000_000_000; // $10B
+
+  const LogTestSchema = z.object({ valuation: z.number() });
+  type LogTestFormData = z.infer<typeof LogTestSchema>;
+
+  function LogTestWrapper({
+    children,
+    defaultValues = { valuation: 100_000_000 },
+  }: {
+    children: (form: ReturnType<typeof useForm<LogTestFormData>>) => React.ReactNode;
+    defaultValues?: LogTestFormData;
+  }) {
+    const form = useForm<LogTestFormData>({
+      resolver: zodResolver(LogTestSchema),
+      defaultValues,
+    });
+
+    return (
+      <Form {...form}>
+        <form>{children(form)}</form>
+      </Form>
+    );
+  }
+
+  function renderField(defaultValues?: LogTestFormData) {
+    return render(
+      <LogTestWrapper defaultValues={defaultValues}>
+        {(form) => (
+          <LogarithmicSliderField
+            form={form}
+            name="valuation"
+            label="Exit Valuation"
+            min={MIN}
+            max={MAX}
+          />
+        )}
+      </LogTestWrapper>
+    );
+  }
+
+  // Radix puts role="slider" on the thumb, so a name left on the Slider root
+  // never reaches it. FormLabel cannot supply one either: its htmlFor targets
+  // the root, which is not a labelable element.
+  it("gives the slider thumb an accessible name", () => {
+    renderField();
+
+    expect(screen.getByRole("slider", { name: "Exit Valuation" })).toBeInTheDocument();
+  });
+
+  // The field starts at 0, and logToLinear(0, ...) is -Infinity. Radix pins the
+  // thumb to the left edge either way, so the broken state is invisible on
+  // screen and only shows up in the accessibility tree.
+  it("reports a finite position while the field is still empty", () => {
+    renderField({ valuation: 0 });
+
+    const thumb = screen.getByRole("slider", { name: "Exit Valuation" });
+    const valueNow = Number(thumb.getAttribute("aria-valuenow"));
+
+    expect(Number.isFinite(valueNow)).toBe(true);
+    expect(valueNow).toBeGreaterThanOrEqual(0);
   });
 });

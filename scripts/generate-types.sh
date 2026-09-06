@@ -69,9 +69,15 @@ pnpm exec openapi-zod-client "$OPENAPI_FILE" \
 
 # Step 4: Fix Zod v3 compatibility issues
 echo "🔧 Step 4: Fixing Zod v3 compatibility..."
-# z.record(schema) needs z.record(z.string(), schema) in Zod v3
-# Using perl for cross-platform compatibility
-perl -i -pe 's/z\.record\((z\.[^)]+\))\)/z.record(z.string(), $1)/g' "$GENERATED_FILE"
+# z.record(schema) needs z.record(z.string(), schema) in Zod v3.
+#
+# The value is anything up to the closing paren that contains no top-level
+# comma: either a plain identifier (a named schema, e.g. z.record(SimParamRange))
+# or a call carrying its own parens (e.g. z.record(z.number())). Requiring the
+# absence of a top-level comma is what makes this safe to re-run - an already
+# two-argument z.record(z.string(), X) simply does not match.
+# Using perl for cross-platform compatibility.
+perl -i -pe 's/z\.record\(((?:[^(),]|\([^()]*\))+)\)/z.record(z.string(), $1)/g' "$GENERATED_FILE"
 
 # Step 5: Add header comment to generated file
 echo "📝 Step 5: Adding header comment..."

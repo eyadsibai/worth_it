@@ -5,6 +5,7 @@ and verify performance improvements.
 """
 
 import time
+from collections.abc import Callable
 from typing import Any
 
 import numpy as np
@@ -103,8 +104,12 @@ def sim_param_configs_exit_year() -> dict[str, Any]:
 # --- Profiling Utilities ---
 
 
-def profile_function(func, *args, num_runs: int = 3, **kwargs) -> dict[str, float]:
-    """Profile a function and return timing statistics."""
+def profile_function(
+    func: Callable[..., Any], *args: Any, num_runs: int = 3, **kwargs: Any
+) -> dict[str, Any]:
+    """Profile a function and return timing statistics under "min"/"max"/"mean",
+    plus the last return value of `func` under "result".
+    """
     times = []
     for _ in range(num_runs):
         start = time.perf_counter()
@@ -150,9 +155,9 @@ class TestVectorizedPerformance:
         )
 
         # Performance assertion: 10k simulations should complete in < 1 second
-        assert (
-            timing["mean"] < 1.0
-        ), f"Vectorized simulation with {num_simulations} sims took {timing['mean']:.3f}s"
+        assert timing["mean"] < 1.0, (
+            f"Vectorized simulation with {num_simulations} sims took {timing['mean']:.3f}s"
+        )
 
         # Verify results are valid
         result = timing["result"]
@@ -232,9 +237,9 @@ class TestIterativePerformance:
 
         # Performance assertion: 1k simulations should complete in < 30 seconds
         # (iterative is expected to be much slower)
-        assert (
-            timing["mean"] < 30.0
-        ), f"Iterative simulation with {num_simulations} sims took {timing['mean']:.3f}s"
+        assert timing["mean"] < 30.0, (
+            f"Iterative simulation with {num_simulations} sims took {timing['mean']:.3f}s"
+        )
 
         # Verify results are valid
         result = timing["result"]
@@ -263,9 +268,9 @@ class TestEndToEndPerformance:
         print(f"\n10k simulations (vectorized): {timing['mean'] * 1000:.1f}ms")
 
         # Target: < 500ms for 10k simulations
-        assert (
-            timing["mean"] < 0.5
-        ), f"10k simulations took {timing['mean'] * 1000:.1f}ms (target: <500ms)"
+        assert timing["mean"] < 0.5, (
+            f"10k simulations took {timing['mean'] * 1000:.1f}ms (target: <500ms)"
+        )
 
     def test_monte_carlo_monthly_vs_annual_frequency(
         self,

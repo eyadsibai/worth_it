@@ -7,11 +7,49 @@ Also provides shared fixtures for the new typed request format (Issue #248).
 """
 
 import os
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 
 # Disable rate limiting during tests to prevent test interference
 os.environ["RATE_LIMIT_ENABLED"] = "false"
+
+
+# --- Waterfall Request Builders ---
+
+
+@pytest.fixture
+def waterfall_body() -> Callable[[int, int], dict[str, Any]]:
+    """Build a waterfall request of the requested dimensions.
+
+    Request-size bounds and event-loop offload are both exercised by sizing a
+    cap table on demand, so the builder lives here instead of being copied into
+    every module that needs one.
+    """
+
+    def build(stakeholder_count: int, valuation_count: int) -> dict[str, Any]:
+        return {
+            "cap_table": {
+                "stakeholders": [
+                    {
+                        "id": f"holder-{index}",
+                        "name": f"Holder {index}",
+                        "type": "employee",
+                        "shares": 1000,
+                        "ownership_pct": 100.0 / stakeholder_count,
+                        "share_class": "common",
+                    }
+                    for index in range(stakeholder_count)
+                ],
+                "total_shares": 1000 * stakeholder_count,
+                "option_pool_pct": 0,
+            },
+            "preference_tiers": [],
+            "exit_valuations": [1_000_000.0 * (index + 1) for index in range(valuation_count)],
+        }
+
+    return build
 
 
 # --- RSU Params Fixtures ---

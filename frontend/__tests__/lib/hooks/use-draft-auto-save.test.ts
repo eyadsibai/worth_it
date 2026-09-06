@@ -8,6 +8,7 @@ import {
   useDraftAutoSave,
   getDraft,
   clearDraft,
+  DRAFT_SCHEMA_VERSION,
   type DraftData,
 } from "@/lib/hooks/use-draft-auto-save";
 
@@ -174,6 +175,7 @@ describe("getDraft", () => {
 
   it("returns draft data when exists", () => {
     const draft: DraftData = {
+      version: DRAFT_SCHEMA_VERSION,
       data: {
         globalSettings: { exit_year: 2028 },
         currentJob: { monthly_salary: 10000 },
@@ -195,6 +197,40 @@ describe("getDraft", () => {
 
   it("returns null for draft without savedAt", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ data: {} }));
+    expect(getDraft()).toBeNull();
+  });
+
+  // A draft written before dilution_rounds.salary_change changed meaning holds a
+  // raise amount, while the field now carries the absolute new monthly salary and
+  // is forwarded to the backend as new_salary. The old examples seeded 1000
+  // against a monthly_salary of 8000, so restoring one silently cuts the startup
+  // salary to an eighth. The two are indistinguishable once serialised, so an
+  // unversioned draft cannot be migrated - only dropped.
+  it("drops a draft written before the schema was versioned", () => {
+    const legacy = {
+      data: {
+        globalSettings: { exit_year: 2028 },
+        currentJob: { monthly_salary: 10000 },
+        equityDetails: null,
+      },
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(legacy));
+
+    expect(getDraft()).toBeNull();
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  it("drops a draft written by a different schema version", () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: DRAFT_SCHEMA_VERSION - 1,
+        data: {},
+        savedAt: new Date().toISOString(),
+      })
+    );
+
     expect(getDraft()).toBeNull();
   });
 });

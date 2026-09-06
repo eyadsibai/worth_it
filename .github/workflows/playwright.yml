@@ -1,9 +1,20 @@
 name: Playwright Tests
 
-# Disabled automatic runs to reduce CI costs
-# Run locally instead: pnpm test:e2e
-# Or trigger manually from GitHub Actions tab
+# A PR that touches backend/ or frontend/ runs the SMOKE_SPECS subset below.
+# The full suite is too expensive to run per-PR, so it stays on the nightly
+# schedule and on manual dispatch.
 on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "playwright/**"
+      - "playwright.config.ts"
+      - "package.json"
+      - ".github/workflows/playwright.yml"
+  schedule:
+    - cron: '0 3 * * *'
   workflow_dispatch:
     inputs:
       browser:
@@ -17,15 +28,44 @@ on:
           - webkit
           - all
 
+# This job builds and serves the app from PR-authored source. Nothing it does
+# needs a writable token, and checkout already runs with persist-credentials
+# false, so pin the GITHUB_TOKEN to read-only rather than inheriting the
+# repository default.
+permissions:
+  contents: read
+
+concurrency:
+  group: playwright-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Smallest set that still covers the three ways this app breaks in production:
+  # the app/API failing to come up, the primary scenario calculation, and the
+  # waterfall panel's preference-stack request.
+  SMOKE_SPECS: >-
+    playwright/tests/01-api-health.spec.ts
+    playwright/tests/05-rsu-scenario-flow.spec.ts
+    playwright/tests/09-waterfall-analysis.spec.ts
+
 jobs:
   test:
-    timeout-minutes: 60
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 30 || 60 }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    # Actions are pinned to commit SHAs: a mutable tag lets an upstream
+    # compromise reach this runner, which builds and serves the app.
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        # Nothing here pushes, and the job runs PR-authored test code.
+        persist-credentials: false
+
+    # Must precede setup-node: `cache: pnpm` shells out to pnpm to locate the store.
+    - name: Setup pnpm
+      uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
       with:
         node-version: '20'
         cache: 'pnpm'
@@ -33,13 +73,8 @@ jobs:
           pnpm-lock.yaml
           frontend/pnpm-lock.yaml
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: 10
-
     - name: Setup Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
       with:
         python-version: '3.14'
 
@@ -55,7 +90,7 @@ jobs:
         pnpm install --frozen-lockfile
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
       with:
         enable-cache: true
 
@@ -68,35 +103,49 @@ jobs:
       run: |
         cd backend
         uv run uvicorn worth_it.api:app --host 0.0.0.0 --port 8000 &
-        # Wait for backend to be ready
+        # --fail: a completed 4xx/5xx is not readiness. --max-time: a server that
+        # accepts the connection and then hangs must not stall the retry budget.
+        # 30 attempts x 2s sleep stays under the backend's 60 req/min limit on
+        # /health, so a 429 cannot be mistaken for an unhealthy server here.
         for i in {1..30}; do
-          if curl -s http://localhost:8000/health > /dev/null; then
+          if curl --fail --silent --show-error --max-time 5 http://localhost:8000/health > /dev/null; then
             echo "Backend is ready"
-            break
+            exit 0
           fi
           echo "Waiting for backend... ($i/30)"
           sleep 2
         done
+        echo "Backend never became ready"
+        exit 1
 
     - name: Start Frontend Server
       run: |
         cd frontend
         pnpm dev &
-        # Wait for frontend to be ready
+        # Same contract as the backend probe. A Next dev server that renders the
+        # root route as a 500 is not ready, and the first request triggers a
+        # compile that can outlast --max-time; that attempt just retries.
         for i in {1..30}; do
-          if curl -s http://localhost:3000 > /dev/null; then
+          if curl --fail --silent --show-error --max-time 5 http://localhost:3000 > /dev/null; then
             echo "Frontend is ready"
-            break
+            exit 0
           fi
           echo "Waiting for frontend... ($i/30)"
           sleep 2
         done
+        echo "Frontend never became ready"
+        exit 1
 
-    - name: Run Playwright tests
-      run: pnpm test:e2e
+    - name: Run Playwright smoke tests
+      if: github.event_name == 'pull_request'
+      run: pnpm exec playwright test $SMOKE_SPECS
+
+    - name: Run Playwright full suite
+      if: github.event_name != 'pull_request'
+      run: pnpm exec playwright test
 
     - name: Upload Playwright Report
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       if: always()
       with:
         name: playwright-report
@@ -104,7 +153,7 @@ jobs:
         retention-days: 30
 
     - name: Upload test results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       if: always()
       with:
         name: playwright-results

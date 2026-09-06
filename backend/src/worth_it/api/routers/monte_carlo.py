@@ -9,9 +9,11 @@ This router handles probabilistic analysis:
 import asyncio
 import json
 import logging
+import secrets
 from functools import partial
 from typing import Any
 
+import anyio.to_thread
 import numpy as np
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from pydantic import ValidationError as PydanticValidationError
@@ -32,6 +34,7 @@ from worth_it.calculations.valuation import (
 from worth_it.config import settings
 from worth_it.exceptions import CalculationError
 from worth_it.models import (
+    MAX_SEED,
     ErrorCode,
     FieldError,
     MonteCarloRequest,
@@ -67,6 +70,11 @@ router = APIRouter(
 )
 
 
+def _resolve_seed(requested: int | None) -> int:
+    """Pin a run to a seed so its result can be replayed and shared."""
+    return requested if requested is not None else secrets.randbelow(MAX_SEED + 1)
+
+
 @router.post("/monte-carlo", response_model=MonteCarloResponse)
 @limiter.limit(f"{settings.RATE_LIMIT_MONTE_CARLO_PER_MINUTE}/minute")
 async def run_monte_carlo(request: Request, body: MonteCarloRequest):
@@ -75,6 +83,7 @@ async def run_monte_carlo(request: Request, body: MonteCarloRequest):
     This endpoint performs thousands of simulations with varying parameters
     to understand the range of potential outcomes.
     """
+    seed = _resolve_seed(body.seed)
     try:
         # Convert typed models to internal format for calculations
         base_params = convert_typed_base_params_to_internal(body.base_params)
@@ -84,10 +93,12 @@ async def run_monte_carlo(request: Request, body: MonteCarloRequest):
             num_simulations=body.num_simulations,
             base_params=base_params,
             sim_param_configs=sim_param_configs,
+            seed=seed,
         )
         return MonteCarloResponse(
             net_outcomes=results["net_outcomes"].tolist(),
             simulated_valuations=results["simulated_valuations"].tolist(),
+            seed=seed,
         )
     except (ValueError, TypeError, KeyError) as e:
         raise CalculationError("Invalid parameters for Monte Carlo simulation") from e
@@ -101,6 +112,7 @@ async def run_sensitivity(request: Request, body: SensitivityAnalysisRequest):
     This endpoint analyzes how each variable impacts the final outcome
     to identify the most influential factors.
     """
+    seed = _resolve_seed(body.seed)
     try:
         # Convert typed models to internal format for calculations
         base_params = convert_typed_base_params_to_internal(body.base_params)
@@ -109,8 +121,9 @@ async def run_sensitivity(request: Request, body: SensitivityAnalysisRequest):
         df = mc_sensitivity_analysis(
             base_params=base_params,
             sim_param_configs=sim_param_configs,
+            seed=seed,
         )
-        return SensitivityAnalysisResponse(data=df.to_dict(orient="records"))  # type: ignore[arg-type]
+        return SensitivityAnalysisResponse(data=df.to_dict(orient="records"), seed=seed)  # type: ignore[arg-type]
     except (ValueError, TypeError, KeyError) as e:
         raise CalculationError("Invalid parameters for sensitivity analysis") from e
 
@@ -125,68 +138,70 @@ async def _run_simulation_with_progress(
     request: MonteCarloRequest,
     base_params: dict,
     sim_param_configs: dict,
+    seed: int,
 ) -> None:
-    """Run Monte Carlo simulation with progress updates.
+    """Run one seeded Monte Carlo simulation, bracketed by progress updates.
 
     This is the core simulation logic, separated out to enable timeout wrapping.
+
+    The run is deliberately *not* split into batches. The engine draws each
+    parameter as one array sized to the run, so an N-simulation run and a
+    sequence of smaller runs consume their random stream in a different order.
+    No per-batch seed derivation can close that gap, which made the seed in the
+    `complete` message name a run the caller could never replay through
+    POST /api/monte-carlo. Seeding once and streaming the result keeps the
+    transport invisible: WebSocket and REST return the same numbers for the
+    same seed, and the reported seed replays the run the caller actually saw.
 
     Args:
         websocket: WebSocket connection to send progress updates
         request: Original request (used for num_simulations)
         base_params: Converted base parameters in internal format
         sim_param_configs: Converted sim param configs in internal format
+        seed: Seed for the whole run; replays it exactly over either transport
     """
+    total = request.num_simulations
+
     # Send initial progress
     await websocket.send_json(
         {
             "type": "progress",
             "current": 0,
-            "total": request.num_simulations,
+            "total": total,
             "percentage": 0,
         }
     )
 
-    # Run simulation in batches to send progress updates
-    batch_size = max(100, request.num_simulations // 20)  # Send ~20 updates
-    all_net_outcomes: list[float] = []
-    all_simulated_valuations: list[float] = []
+    # CPU-bound: hand the whole run to a worker thread so this worker keeps
+    # serving other connections, and so the caller's timeout can cut the wait
+    # short instead of waiting on an uninterruptible executor future.
+    results = await anyio.to_thread.run_sync(
+        partial(
+            mc_run_simulation,
+            num_simulations=total,
+            base_params=base_params,
+            sim_param_configs=sim_param_configs,
+            seed=seed,
+        ),
+        abandon_on_cancel=True,
+    )
 
-    for i in range(0, request.num_simulations, batch_size):
-        current_batch_size = min(batch_size, request.num_simulations - i)
-
-        # Run batch simulation (CPU-bound, run in thread pool)
-        loop = asyncio.get_event_loop()
-        results = await loop.run_in_executor(
-            None,
-            partial(
-                mc_run_simulation,
-                num_simulations=current_batch_size,
-                base_params=base_params,
-                sim_param_configs=sim_param_configs,
-            ),
-        )
-
-        all_net_outcomes.extend(results["net_outcomes"].tolist())
-        all_simulated_valuations.extend(results["simulated_valuations"].tolist())
-
-        # Send progress update
-        completed = i + current_batch_size
-        percentage = (completed / request.num_simulations) * 100
-        await websocket.send_json(
-            {
-                "type": "progress",
-                "current": completed,
-                "total": request.num_simulations,
-                "percentage": round(percentage, 2),
-            }
-        )
+    await websocket.send_json(
+        {
+            "type": "progress",
+            "current": total,
+            "total": total,
+            "percentage": 100.0,
+        }
+    )
 
     # Send final results
     await websocket.send_json(
         {
             "type": "complete",
-            "net_outcomes": all_net_outcomes,
-            "simulated_valuations": all_simulated_valuations,
+            "net_outcomes": results["net_outcomes"].tolist(),
+            "simulated_valuations": results["simulated_valuations"].tolist(),
+            "seed": seed,
         }
     )
 
@@ -211,7 +226,15 @@ async def websocket_monte_carlo(websocket: WebSocket):  # noqa: C901 - complex W
     - Input (JSON): Same as MonteCarloRequest
     - Output (JSON):
         - {"type": "progress", "current": N, "total": TOTAL, "percentage": PCT}
-        - {"type": "complete", "net_outcomes": [...], "simulated_valuations": [...]}
+          Sent exactly twice: 0% as the run is handed to a worker thread and
+          100% once it returns. The run is deliberately unbatched (see
+          `_run_simulation_with_progress`), so there is nothing to report in
+          between.
+        - {"type": "complete", "net_outcomes": [...], "simulated_valuations": [...],
+           "seed": SEED}
+          `seed` is the caller's seed, or the one generated for this run when it
+          was omitted. Replaying it through POST /api/monte-carlo reproduces
+          these exact numbers.
         - {"type": "error", "error": {"code": "...", "message": "...", "details": [...]}}
     """
     client_ip = get_client_ip(websocket)
@@ -276,7 +299,11 @@ async def websocket_monte_carlo(websocket: WebSocket):  # noqa: C901 - complex W
             try:
                 await asyncio.wait_for(
                     _run_simulation_with_progress(
-                        websocket, request, base_params, sim_param_configs
+                        websocket,
+                        request,
+                        base_params,
+                        sim_param_configs,
+                        _resolve_seed(request.seed),
                     ),
                     timeout=settings.WS_SIMULATION_TIMEOUT_SECONDS,
                 )

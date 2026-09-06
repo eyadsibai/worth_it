@@ -1,13 +1,20 @@
 "use client";
 
-/** Default selected exit valuation ($50M) */
+/** Fallback exit valuation ($50M) when the scenario has none */
 const DEFAULT_EXIT_VALUATION = 50_000_000;
 /** Number of exit valuation data points for chart */
 const EXIT_VALUATION_COUNT = 20;
-/** Minimum exit valuation for chart range ($1M) */
-const CHART_MIN_VALUATION = 1_000_000;
-/** Maximum exit valuation for chart range ($500M) */
-const CHART_MAX_VALUATION = 500_000_000;
+/** Extends the sweep below $1M when the scenario exit is small (20% of it) */
+const CHART_RANGE_LOW_MULTIPLIER = 0.2;
+/** Extends the sweep above $500M when the scenario exit is large (200% of it) */
+const CHART_RANGE_HIGH_MULTIPLIER = 2;
+/**
+ * The sweep always spans at least $1M-$500M. Anchoring on the scenario's exit
+ * is what makes the chart relevant; it must never make a valuation the user
+ * could previously model unreachable.
+ */
+const MIN_REACHABLE_VALUATION = 1_000_000;
+const MAX_REACHABLE_VALUATION = 500_000_000;
 
 import * as React from "react";
 import { FORMATTING } from "@/lib/constants";
@@ -22,37 +29,91 @@ import { PreferenceStackEditor } from "./preference-stack-editor";
 import { ValuationSlider } from "./valuation-slider";
 import { useCalculateWaterfall } from "@/lib/api-client";
 import { useDebounce } from "@/lib/hooks/use-debounce";
+import { orderBySeniority } from "@/lib/priced-rounds";
 import { generateId } from "@/lib/utils";
-import type { CapTable, PreferenceTier, PricedRound } from "@/lib/schemas";
+import type { CapTable, PreferenceTier, PricedRound, Stakeholder } from "@/lib/schemas";
 import { formatLargeNumber } from "@/lib/format-utils";
 
 interface WaterfallAnalysisProps {
   capTable: CapTable;
   pricedRounds?: PricedRound[];
+  /** Scenario exit assumption; anchors the valuation range the chart sweeps */
+  exitValuation?: number;
+  /**
+   * Tiers the caller already knows about - from a template or a saved scenario.
+   * They take precedence over tiers inferred from priced rounds, which can only
+   * guess at holders by name.
+   */
+  preferenceTiers?: PreferenceTier[];
+  /**
+   * Report edits back to whoever owns the stack. Without this the tiers live only
+   * here, and Radix unmounts a deselected tab - so switching tabs discards the
+   * user's edits and a save persists the stale stack.
+   */
+  onPreferenceTiersChange?: (tiers: PreferenceTier[]) => void;
 }
 
-// Generate exit valuations for chart
-function generateExitValuations(min: number, max: number, count: number): number[] {
-  const step = (max - min) / (count - 1);
-  return Array.from({ length: count }, (_, i) => min + step * i);
+/**
+ * Sample the valuation range for the chart.
+ *
+ * Spacing is geometric because valuation is a multiplicative quantity: equal
+ * ratios give a $5M acquihire the same resolution as a $500M exit, which a
+ * linear sweep across three orders of magnitude cannot. The sample nearest the
+ * anchor is snapped onto it so the scenario's own exit is priced exactly.
+ */
+function generateExitValuations(min: number, max: number, count: number, anchor: number): number[] {
+  const ratio = (max / min) ** (1 / (count - 1));
+  const valuations = Array.from({ length: count }, (_, i) => Math.round(min * ratio ** i));
+
+  let nearest = 0;
+  for (let i = 1; i < valuations.length; i++) {
+    if (Math.abs(valuations[i] - anchor) < Math.abs(valuations[nearest] - anchor)) {
+      nearest = i;
+    }
+  }
+  valuations[nearest] = anchor;
+
+  return valuations;
 }
 
-export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnalysisProps) {
-  // Initialize preference tiers from priced rounds
-  const [preferenceTiers, setPreferenceTiers] = React.useState<PreferenceTier[]>(() => {
-    if (pricedRounds.length === 0) return [];
+function normalizeName(value: string): string {
+  return value.trim().toLowerCase();
+}
 
-    // Auto-generate preference tiers from priced rounds (reverse order = most recent is senior)
-    return pricedRounds
-      .filter((r) => r.type === "PRICED_ROUND")
-      .sort((a, b) => {
-        // Sort by date if available, otherwise by round order
-        if (a.date && b.date) {
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        }
-        return 0;
-      })
-      .map((round, index) => ({
+function matchStakeholderIds(round: PricedRound, available: Stakeholder[]): string[] {
+  if (round.lead_investor) {
+    const lead = normalizeName(round.lead_investor);
+    const byLeadInvestor = available.filter((s) => normalizeName(s.name) === lead);
+    if (byLeadInvestor.length > 0) {
+      return byLeadInvestor.map((s) => s.id);
+    }
+  }
+
+  // `name.includes("")` is true for everyone, so a blank round name would claim
+  // the whole preferred class and leave every later tier with no holders.
+  const roundName = normalizeName(round.round_name);
+  if (roundName === "") return [];
+
+  return available
+    .filter((s) => s.share_class === "preferred" && normalizeName(s.name).includes(roundName))
+    .map((s) => s.id);
+}
+
+function buildTiersFromRounds(
+  pricedRounds: PricedRound[],
+  stakeholders: Stakeholder[]
+): PreferenceTier[] {
+  const unclaimed = [...stakeholders];
+
+  return orderBySeniority(pricedRounds.filter((r) => r.type === "PRICED_ROUND")).map(
+    (round, index) => {
+      const stakeholderIds = matchStakeholderIds(round, unclaimed);
+      for (const id of stakeholderIds) {
+        const claimedAt = unclaimed.findIndex((s) => s.id === id);
+        if (claimedAt >= 0) unclaimed.splice(claimedAt, 1);
+      }
+
+      return {
         id: generateId(),
         name: round.round_name,
         seniority: index + 1,
@@ -60,12 +121,106 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
         liquidation_multiplier: round.liquidation_multiplier,
         participating: round.participating,
         participation_cap: round.participation_cap ?? undefined,
-        stakeholder_ids: [],
-      }));
-  });
+        stakeholder_ids: stakeholderIds,
+      };
+    }
+  );
+}
+
+/**
+ * Identifies the inputs an inferred stack was derived from.
+ *
+ * Inference must re-run when new rounds arrive but must never run twice for the
+ * same ones - a stack the user emptied has to stay empty. Comparing ids rather
+ * than array identity keeps that true for a caller that rebuilds its props on
+ * every render.
+ */
+function inferenceKey(pricedRounds: PricedRound[], stakeholders: Stakeholder[]): string {
+  return `${pricedRounds.map((r) => r.id).join(",")}::${stakeholders.map((s) => s.id).join(",")}`;
+}
+
+export function WaterfallAnalysis({
+  capTable,
+  pricedRounds = [],
+  exitValuation = DEFAULT_EXIT_VALUATION,
+  preferenceTiers: providedTiers,
+  onPreferenceTiersChange,
+}: WaterfallAnalysisProps) {
+  const anchorValuation = exitValuation > 0 ? exitValuation : DEFAULT_EXIT_VALUATION;
+
+  // Tiers the caller supplied win; otherwise infer them from the priced rounds.
+  // Inferring here rather than in an effect keeps the first request from going
+  // out with an empty stack and being superseded a tick later.
+  const [preferenceTiers, setPreferenceTiers] = React.useState<PreferenceTier[]>(() =>
+    providedTiers?.length
+      ? providedTiers
+      : buildTiersFromRounds(pricedRounds, capTable.stakeholders)
+  );
+
+  // The stack the owner has already been told about. The initial inference has
+  // not been reported yet, hence the caller's own value.
+  const publishedTiers = React.useRef(providedTiers);
+
+  // Local state stays the source of truth for rendering, but every edit is echoed
+  // upward so the owner can put it through history and persistence.
+  const handleTiersChange = React.useCallback(
+    (next: PreferenceTier[]) => {
+      setPreferenceTiers(next);
+      publishedTiers.current = next;
+      onPreferenceTiersChange?.(next);
+    },
+    [onPreferenceTiersChange]
+  );
+
+  // Adopt every caller value - loading a template or switching scenarios replaces
+  // the stack wholesale, and an empty array is a stack the owner deliberately
+  // cleared. Only an absent prop means "uncontrolled, infer for me".
+  const lastProvidedTiers = React.useRef(providedTiers);
+  React.useEffect(() => {
+    if (providedTiers !== lastProvidedTiers.current) {
+      lastProvidedTiers.current = providedTiers;
+      if (providedTiers) {
+        setPreferenceTiers(providedTiers);
+        publishedTiers.current = providedTiers;
+      }
+    }
+  }, [providedTiers]);
+
+  // Inference is a real edit to the stack, not a rendering detail: unless the
+  // owner hears about it, a save persists an empty stack while this panel shows -
+  // and prices - a full one. Re-infer when the rounds change and there is no
+  // stack to preserve; never twice for the same rounds, so a stack the user
+  // emptied stays empty.
+  const roundsKey = inferenceKey(pricedRounds, capTable.stakeholders);
+  const lastInferenceKey = React.useRef(roundsKey);
+  React.useEffect(() => {
+    const roundsChanged = roundsKey !== lastInferenceKey.current;
+    lastInferenceKey.current = roundsKey;
+    if (providedTiers?.length) return;
+
+    let stack = preferenceTiers;
+    if (roundsChanged && stack.length === 0) {
+      const inferred = buildTiersFromRounds(pricedRounds, capTable.stakeholders);
+      if (inferred.length > 0) {
+        setPreferenceTiers(inferred);
+        stack = inferred;
+      }
+    }
+
+    if (stack.length === 0 || stack === publishedTiers.current) return;
+    publishedTiers.current = stack;
+    onPreferenceTiersChange?.(stack);
+  }, [
+    roundsKey,
+    providedTiers,
+    preferenceTiers,
+    pricedRounds,
+    capTable.stakeholders,
+    onPreferenceTiersChange,
+  ]);
 
   // Exit valuation state
-  const [selectedValuation, setSelectedValuation] = React.useState(DEFAULT_EXIT_VALUATION);
+  const [selectedValuation, setSelectedValuation] = React.useState(anchorValuation);
   const [activeView, setActiveView] = React.useState<"chart" | "table">("chart");
 
   // Debounce valuation changes to avoid too many API calls
@@ -74,10 +229,52 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
   // Calculate waterfall using API
   const waterfallMutation = useCalculateWaterfall();
 
-  // Generate exit valuations for chart (from $1M to $500M)
+  // Sweep the chart around the scenario's own exit assumption, without ever
+  // narrowing the range below what the user could always reach.
+  const chartMinValuation = Math.min(
+    MIN_REACHABLE_VALUATION,
+    anchorValuation * CHART_RANGE_LOW_MULTIPLIER
+  );
+  const chartMaxValuation = Math.max(
+    MAX_REACHABLE_VALUATION,
+    anchorValuation * CHART_RANGE_HIGH_MULTIPLIER
+  );
   const exitValuations = React.useMemo(
-    () => generateExitValuations(CHART_MIN_VALUATION, CHART_MAX_VALUATION, EXIT_VALUATION_COUNT),
-    []
+    () =>
+      generateExitValuations(
+        chartMinValuation,
+        chartMaxValuation,
+        EXIT_VALUATION_COUNT,
+        anchorValuation
+      ),
+    [chartMinValuation, chartMaxValuation, anchorValuation]
+  );
+
+  // A tier outlives the holder it names: deleting a stakeholder leaves the stack
+  // untouched, and the engine rejects an unknown id outright with a 400 that takes
+  // down the whole panel rather than just that tier. Prune to the live cap table
+  // first; a tier left claiming nobody then falls into the visible warning below.
+  const liveTiers = React.useMemo(() => {
+    const known = new Set(capTable.stakeholders.map((s) => s.id));
+    return preferenceTiers.map((tier) =>
+      // Same object back when nothing was stale, so the request effect below does
+      // not see a new identity on every render.
+      tier.stakeholder_ids.every((id) => known.has(id))
+        ? tier
+        : { ...tier, stakeholder_ids: tier.stakeholder_ids.filter((id) => known.has(id)) }
+    );
+  }, [preferenceTiers, capTable.stakeholders]);
+
+  // A tier whose holders are unknown claims a preference for nobody: the engine
+  // has no one to pay, so the preference silently disappears. Keep those tiers
+  // in the editor where the user can assign holders, but never send them.
+  const assignedTiers = React.useMemo(
+    () => liveTiers.filter((t) => t.stakeholder_ids.length > 0),
+    [liveTiers]
+  );
+  const unassignedTiers = React.useMemo(
+    () => liveTiers.filter((t) => t.stakeholder_ids.length === 0),
+    [liveTiers]
   );
 
   // Trigger waterfall calculation when inputs change
@@ -86,12 +283,12 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
 
     waterfallMutation.mutate({
       cap_table: capTable,
-      preference_tiers: preferenceTiers,
+      preference_tiers: assignedTiers,
       exit_valuations: exitValuations,
     });
     // waterfallMutation.mutate is stable (TanStack Query guarantee)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [capTable, preferenceTiers, exitValuations]);
+  }, [capTable, assignedTiers, exitValuations]);
 
   // Find the distribution for the selected valuation
   const selectedDistribution = React.useMemo(() => {
@@ -124,11 +321,36 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
   return (
     <div className="space-y-6">
       {/* Preference Stack Editor */}
+      {/* The pruned stack, not the raw one: a tier that lost its holder to a
+          deletion must read as empty here too, or the editor contradicts the
+          warning card below and the request. */}
       <PreferenceStackEditor
-        tiers={preferenceTiers}
-        onTiersChange={setPreferenceTiers}
+        tiers={liveTiers}
+        onTiersChange={handleTiersChange}
         stakeholders={capTable.stakeholders}
       />
+
+      {/* Tiers we could not attach to a holder. Excluded from the calculation —
+          say so, because what the user cannot see they cannot correct. */}
+      {unassignedTiers.length > 0 && (
+        <Card role="status" className="terminal-card border-amber-500/20 bg-amber-500/10">
+          <CardContent className="flex items-start gap-3 py-4">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">
+                {unassignedTiers.length === 1
+                  ? "1 preference tier has no holders"
+                  : `${unassignedTiers.length} preference tiers have no holders`}
+              </p>
+              <p className="text-muted-foreground text-sm">
+                {unassignedTiers.map((t) => t.name).join(", ")} — left out of the waterfall until
+                you assign holders. Use <span className="font-medium">Holders</span> on the tier
+                above to pick who owns it.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Waterfall Analysis Results */}
       {hasStakeholders ? (
@@ -137,6 +359,8 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
           <ValuationSlider
             value={selectedValuation}
             onChange={setSelectedValuation}
+            min={chartMinValuation}
+            max={chartMaxValuation}
             breakevenPoints={breakevenPoints}
           />
 
@@ -181,7 +405,7 @@ export function WaterfallAnalysis({ capTable, pricedRounds = [] }: WaterfallAnal
                   onClick={() =>
                     waterfallMutation.mutate({
                       cap_table: capTable,
-                      preference_tiers: preferenceTiers,
+                      preference_tiers: assignedTiers,
                       exit_valuations: exitValuations,
                     })
                   }

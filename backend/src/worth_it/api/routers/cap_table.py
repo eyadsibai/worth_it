@@ -7,12 +7,16 @@ This router handles cap table operations:
 - Dilution preview for new funding rounds
 """
 
+import logging
+
+import anyio.to_thread
 from fastapi import APIRouter, Request
 
 from worth_it import calculations
 from worth_it.config import settings
 from worth_it.exceptions import CalculationError
 from worth_it.models import (
+    MAX_WATERFALL_CELLS,
     CapTable,
     CapTableConversionRequest,
     CapTableConversionResponse,
@@ -23,6 +27,7 @@ from worth_it.models import (
     DilutionPreviewRequest,
     DilutionPreviewResponse,
     DilutionResultItem,
+    ErrorCode,
     StakeholderPayout,
     WaterfallDistribution,
     WaterfallRequest,
@@ -30,7 +35,9 @@ from worth_it.models import (
     WaterfallStep,
 )
 
-from ..dependencies import cap_table_service, limiter
+from ..dependencies import cap_table_service, create_error_response, limiter
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api",
@@ -89,6 +96,56 @@ async def convert_cap_table_instruments(request: Request, body: CapTableConversi
         raise CalculationError("Invalid parameters for cap table conversion") from e
 
 
+def _build_waterfall_response(body: WaterfallRequest) -> WaterfallResponse:
+    """Run the waterfall and shape the response.
+
+    Synchronous on purpose: every CPU-bound step of the request, from cap table
+    serialization through per-payout model construction, belongs on a worker
+    thread so a max-size request cannot stall the event loop.
+    """
+    result = cap_table_service.calculate_waterfall(
+        cap_table=body.cap_table.model_dump(),
+        preference_tiers=[tier.model_dump() for tier in body.preference_tiers],
+        exit_valuations=body.exit_valuations,
+    )
+
+    # Convert service dataclasses to Pydantic models for response
+    distributions = [
+        WaterfallDistribution(
+            exit_valuation=dist.exit_valuation,
+            waterfall_steps=[
+                WaterfallStep(
+                    step_number=s.step_number,
+                    description=s.description,
+                    amount=s.amount,
+                    recipients=s.recipients,
+                    remaining_proceeds=s.remaining_proceeds,
+                )
+                for s in dist.waterfall_steps
+            ],
+            stakeholder_payouts=[
+                StakeholderPayout(
+                    stakeholder_id=p.stakeholder_id,
+                    name=p.name,
+                    payout_amount=p.payout_amount,
+                    payout_pct=p.payout_pct,
+                    investment_amount=p.investment_amount,
+                    roi=p.roi,
+                )
+                for p in dist.stakeholder_payouts
+            ],
+            common_pct=dist.common_pct,
+            preferred_pct=dist.preferred_pct,
+        )
+        for dist in result.distributions_by_valuation
+    ]
+
+    return WaterfallResponse(
+        distributions_by_valuation=distributions,
+        breakeven_points=result.breakeven_points,
+    )
+
+
 @router.post("/waterfall", response_model=WaterfallResponse)
 @limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
 async def calculate_waterfall(request: Request, body: WaterfallRequest):
@@ -104,48 +161,42 @@ async def calculate_waterfall(request: Request, body: WaterfallRequest):
     - Automatic conversion decision for non-participating preferred
     - Pari passu (equal seniority) proportional distribution
     """
-    try:
-        # Use service for business logic
-        result = cap_table_service.calculate_waterfall(
-            cap_table=body.cap_table.model_dump(),
-            preference_tiers=[tier.model_dump() for tier in body.preference_tiers],
-            exit_valuations=body.exit_valuations,
+    stakeholder_count = len(body.cap_table.stakeholders)
+    valuation_count = len(body.exit_valuations)
+    cells = stakeholder_count * valuation_count
+    if cells > MAX_WATERFALL_CELLS:
+        # The envelope, not a raw HTTPException: no schema can express the
+        # product of two individually-legal list lengths, but that is an
+        # implementation detail of *where* the check runs. To the caller this is
+        # still an invalid request, and it must arrive in the one error shape
+        # this API speaks - a bare {"detail": ...} would slip past every client
+        # that reads error.code.
+        return create_error_response(
+            code=ErrorCode.VALIDATION_ERROR,
+            message=(
+                f"Waterfall request too large: {stakeholder_count} stakeholders x "
+                f"{valuation_count} exit valuations is {cells} payouts, above the "
+                f"{MAX_WATERFALL_CELLS} limit. Request fewer exit valuations."
+            ),
+            status_code=422,
         )
 
-        # Convert service dataclasses to Pydantic models for response
-        distributions = [
-            WaterfallDistribution(
-                exit_valuation=dist.exit_valuation,
-                waterfall_steps=[
-                    WaterfallStep(
-                        step_number=s.step_number,
-                        description=s.description,
-                        amount=s.amount,
-                        recipients=s.recipients,
-                        remaining_proceeds=s.remaining_proceeds,
-                    )
-                    for s in dist.waterfall_steps
-                ],
-                stakeholder_payouts=[
-                    StakeholderPayout(
-                        stakeholder_id=p.stakeholder_id,
-                        name=p.name,
-                        payout_amount=p.payout_amount,
-                        payout_pct=p.payout_pct,
-                        investment_amount=p.investment_amount,
-                        roi=p.roi,
-                    )
-                    for p in dist.stakeholder_payouts
-                ],
-                common_pct=dist.common_pct,
-                preferred_pct=dist.preferred_pct,
-            )
-            for dist in result.distributions_by_valuation
-        ]
-
-        return WaterfallResponse(
-            distributions_by_valuation=distributions,
-            breakeven_points=result.breakeven_points,
+    try:
+        # Waterfall analysis is synchronous and CPU-bound: run it on a worker
+        # thread so concurrent requests on this worker keep being served.
+        return await anyio.to_thread.run_sync(
+            _build_waterfall_response, body, abandon_on_cancel=True
+        )
+    except CalculationError as e:
+        # The engine refuses to report a distribution that does not add up, and
+        # its message names the cap table field that made it so. The app-wide
+        # handler would flatten that into "calculation failed", leaving the
+        # caller with a correctable input and no idea which one.
+        logger.warning(f"Waterfall refused an unbalanced distribution: {e}")
+        return create_error_response(
+            code=ErrorCode.CALCULATION_ERROR,
+            message=str(e),
+            status_code=400,
         )
     except (ValueError, TypeError, KeyError) as e:
         raise CalculationError("Invalid parameters for waterfall analysis") from e

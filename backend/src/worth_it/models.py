@@ -7,9 +7,9 @@ the Streamlit frontend and the FastAPI backend.
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Any, Literal, Self
+from typing import Annotated, Any, Literal, Self
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, StringConstraints, field_validator, model_validator
 
 from worth_it.types import DilutionRound
 
@@ -19,6 +19,57 @@ PROBABILITY_TOLERANCE_HIGH = 1.01
 
 # Exit year domain bounds
 MAX_EXIT_YEAR = 20
+
+# Cap table / waterfall request bounds. Waterfall cost is the product of the
+# stakeholder count and the exit valuation count, so the product needs its own
+# ceiling on top of the per-list caps.
+MAX_STAKEHOLDERS = 200
+MAX_EXIT_VALUATIONS = 100
+MAX_PREFERENCE_TIERS = 20
+MAX_WATERFALL_CELLS = 5_000
+
+# Cap-table identifiers and labels are echoed back in payout rows, so they are
+# bounded before the cell-product guard runs: 200 stakeholders carrying
+# multi-megabyte names would otherwise be parsed and validated in full.
+MAX_ENTITY_ID_LENGTH = 64
+MAX_ENTITY_NAME_LENGTH = 120
+
+EntityId = Annotated[str, StringConstraints(min_length=1, max_length=MAX_ENTITY_ID_LENGTH)]
+EntityName = Annotated[str, StringConstraints(min_length=1, max_length=MAX_ENTITY_NAME_LENGTH)]
+
+# numpy seeds are drawn from a 32-bit space so a shared seed round-trips exactly.
+MAX_SEED = 2**32 - 1
+
+# Report text is rendered through ReportLab's Paragraph parser, which reads a
+# mini-HTML dialect. Escaping that dialect is pdf_generator.escape_paragraph_markup's
+# job, at the Paragraph boundary; this pattern is the defence-in-depth layer, so it
+# excludes the tag delimiters "<" and ">" outright. "&" stays allowed because real
+# company names carry it ("O'Neill, Smith & Co."), and it is inert on its own: an
+# entity reference also needs a closing ";", which the class does not admit.
+# Note "\w" is Unicode-aware here, so non-ASCII letters, digits and "_" pass too.
+SAFE_REPORT_TEXT_PATTERN = r"^[\w .,'&()\-+/]+$"
+MAX_COMPANY_NAME_LENGTH = 120
+MAX_REPORT_LABEL_LENGTH = 60
+MAX_REPORT_SCENARIOS = 20
+MAX_REPORT_FACTORS = 30
+
+ReportLabel = Annotated[
+    str,
+    StringConstraints(
+        min_length=1,
+        max_length=MAX_REPORT_LABEL_LENGTH,
+        pattern=SAFE_REPORT_TEXT_PATTERN,
+    ),
+]
+CompanyName = Annotated[
+    str,
+    StringConstraints(
+        min_length=1,
+        max_length=MAX_COMPANY_NAME_LENGTH,
+        pattern=SAFE_REPORT_TEXT_PATTERN,
+    ),
+]
+ScenarioMap = Annotated[dict[ReportLabel, float], Field(max_length=MAX_REPORT_SCENARIOS)]
 
 # --- Error Response Models (Issue #244) ---
 
@@ -150,9 +201,7 @@ class StockOptionsParams(BaseModel):
     def validate_exercise_year_for_after_vesting(self) -> Self:
         """Require exercise_year when exercise_strategy is AFTER_VESTING."""
         if self.exercise_strategy == "AFTER_VESTING" and self.exercise_year is None:
-            raise ValueError(
-                "exercise_year is required when exercise_strategy is 'AFTER_VESTING'"
-            )
+            raise ValueError("exercise_year is required when exercise_strategy is 'AFTER_VESTING'")
         return self
 
 
@@ -225,7 +274,9 @@ def validate_base_params(base_params: dict[str, Any]) -> None:
     if isinstance(exit_year, bool) or not isinstance(exit_year, int):
         raise ValueError(f"exit_year must be an integer between 1 and 20, got: {exit_year}")
     if exit_year < 1 or exit_year > MAX_EXIT_YEAR:
-        raise ValueError(f"exit_year must be an integer between 1 and {MAX_EXIT_YEAR}, got: {exit_year}")
+        raise ValueError(
+            f"exit_year must be an integer between 1 and {MAX_EXIT_YEAR}, got: {exit_year}"
+        )
 
 
 def validate_exit_year_sim_range(
@@ -243,10 +294,7 @@ def validate_exit_year_sim_range(
     if exit_year_config.min < 1 or exit_year_config.max > MAX_EXIT_YEAR:
         raise ValueError("sim_param_configs.exit_year range must stay within [1, 20].")
 
-    if (
-        not float(exit_year_config.min).is_integer()
-        or not float(exit_year_config.max).is_integer()
-    ):
+    if not float(exit_year_config.min).is_integer() or not float(exit_year_config.max).is_integer():
         raise ValueError("sim_param_configs.exit_year min/max must be whole numbers.")
 
 
@@ -266,8 +314,8 @@ class VestingSchedule(BaseModel):
 class Stakeholder(BaseModel):
     """A shareholder in the cap table."""
 
-    id: str
-    name: str = Field(..., min_length=1)
+    id: EntityId
+    name: EntityName
     type: Literal["founder", "employee", "investor", "advisor"]
     shares: int = Field(..., ge=0)
     ownership_pct: float = Field(..., ge=0, le=100)
@@ -278,7 +326,7 @@ class Stakeholder(BaseModel):
 class CapTable(BaseModel):
     """Cap table with all stakeholders."""
 
-    stakeholders: list[Stakeholder] = Field(default_factory=list)
+    stakeholders: list[Stakeholder] = Field(default_factory=list, max_length=MAX_STAKEHOLDERS)
     total_shares: int = Field(default=10_000_000, ge=0)
     option_pool_pct: float = Field(default=10, ge=0, le=100)
 
@@ -449,6 +497,12 @@ class MonteCarloRequest(BaseModel):
     num_simulations: int = Field(..., ge=1, le=100000)
     base_params: TypedBaseParams
     sim_param_configs: dict[VariableParam, SimParamRange]
+    seed: int | None = Field(
+        default=None,
+        ge=0,
+        le=MAX_SEED,
+        description="Seed making the run reproducible. Omit to have one generated.",
+    )
 
     @model_validator(mode="after")
     def validate_num_simulations_against_config(self) -> Self:
@@ -475,6 +529,12 @@ class SensitivityAnalysisRequest(BaseModel):
 
     base_params: TypedBaseParams
     sim_param_configs: dict[VariableParam, SimParamRange]
+    seed: int | None = Field(
+        default=None,
+        ge=0,
+        le=MAX_SEED,
+        description="Seed making the run reproducible. Omit to have one generated.",
+    )
 
     @model_validator(mode="after")
     def validate_sim_ranges(self) -> Self:
@@ -536,12 +596,14 @@ class MonteCarloResponse(BaseModel):
 
     net_outcomes: list[float]
     simulated_valuations: list[float]
+    seed: int | None = Field(default=None, description="Seed that reproduces this run")
 
 
 class SensitivityAnalysisResponse(BaseModel):
     """Response model for sensitivity analysis."""
 
     data: list[dict[str, Any]] | None  # Sensitivity analysis has dynamic structure
+    seed: int | None = Field(default=None, description="Seed that reproduces this run")
 
 
 class DilutionFromValuationResponse(BaseModel):
@@ -571,7 +633,9 @@ class DilutionStakeholderInput(BaseModel):
 class DilutionPreviewRequest(BaseModel):
     """Request for dilution preview calculation."""
 
-    stakeholders: list[DilutionStakeholderInput] = Field(default_factory=list)
+    stakeholders: list[DilutionStakeholderInput] = Field(
+        default_factory=list, max_length=MAX_STAKEHOLDERS
+    )
     option_pool_pct: float = Field(default=0, ge=0, le=100)
     pre_money_valuation: float = Field(..., gt=0)
     amount_raised: float = Field(..., gt=0)
@@ -679,14 +743,16 @@ class ScenarioComparisonResponse(BaseModel):
 class PreferenceTier(BaseModel):
     """A single tier in the liquidation preference stack."""
 
-    id: str
-    name: str = Field(..., min_length=1)  # e.g., "Series B", "Series A"
+    id: EntityId
+    name: EntityName  # e.g., "Series B", "Series A"
     seniority: int = Field(..., ge=1)  # 1 = most senior (paid first)
     investment_amount: float = Field(..., gt=0)  # Total invested at this tier
     liquidation_multiplier: float = Field(default=1.0, ge=1.0)  # 1x, 2x, etc.
     participating: bool = False
     participation_cap: float | None = Field(default=None, ge=1.0)  # e.g., 3.0 for 3x cap
-    stakeholder_ids: list[str] = Field(default_factory=list)  # Links to Stakeholder records
+    stakeholder_ids: Annotated[list[EntityId], Field(max_length=MAX_STAKEHOLDERS)] = Field(
+        default_factory=list
+    )  # Links to Stakeholder records
 
 
 class StakeholderPayout(BaseModel):
@@ -724,8 +790,8 @@ class WaterfallRequest(BaseModel):
     """Request to calculate waterfall distribution."""
 
     cap_table: CapTable
-    preference_tiers: list[PreferenceTier]
-    exit_valuations: list[float] = Field(..., min_length=1)
+    preference_tiers: list[PreferenceTier] = Field(..., max_length=MAX_PREFERENCE_TIERS)
+    exit_valuations: list[float] = Field(..., min_length=1, max_length=MAX_EXIT_VALUATIONS)
 
 
 class WaterfallResponse(BaseModel):
@@ -1107,20 +1173,90 @@ class BenchmarkValidationResponse(BaseModel):
 # --- Export Models (Phase 5) ---
 
 
+class ExportParams(BaseModel):
+    """Valuation inputs echoed into a report. Only discount_rate is rendered."""
+
+    discount_rate: float | None = Field(
+        default=None, gt=0, lt=1, description="Discount rate quoted in the assumptions section"
+    )
+
+
+class FirstChicagoExportResult(BaseModel):
+    """First Chicago result payload accepted by the export endpoint."""
+
+    weighted_value: float = Field(..., description="Probability-weighted exit value")
+    present_value: float = Field(..., description="Present value of weighted outcome")
+    scenario_values: ScenarioMap = Field(
+        default_factory=dict, description="Exit value per scenario"
+    )
+    scenario_present_values: ScenarioMap = Field(
+        default_factory=dict, description="Present value per scenario"
+    )
+
+    @model_validator(mode="after")
+    def validate_scenario_maps_agree(self) -> Self:
+        """Reject payloads whose two scenario maps name different scenarios.
+
+        The report renders one row per scenario and quotes that scenario's
+        present value, so a name present in one map and absent from the other
+        is incoherent input and belongs to the 400 boundary rather than to a
+        KeyError inside the builder.
+        """
+        exit_names = set(self.scenario_values)
+        present_names = set(self.scenario_present_values)
+        if exit_names != present_names:
+            missing = sorted(exit_names - present_names)
+            unknown = sorted(present_names - exit_names)
+            raise ValueError(
+                "scenario_values and scenario_present_values must describe the same "
+                f"scenarios (missing present values: {missing or 'none'}; "
+                f"unknown present values: {unknown or 'none'})"
+            )
+        return self
+
+
+class ExportMonteCarloResult(BaseModel):
+    """Monte Carlo summary rendered as an optional report section."""
+
+    mean: float = Field(default=0.0, description="Expected value across simulations")
+    num_simulations: int = Field(default=10000, ge=0, description="Simulations behind the summary")
+    percentiles: ScenarioMap = Field(
+        default_factory=dict, description="Percentile map (p5, p50, p95)"
+    )
+
+
+class ExportFactor(BaseModel):
+    """A single named contribution in a pre-revenue valuation."""
+
+    name: ReportLabel = Field(..., description="Factor name")
+    value: float = Field(..., description="Dollar contribution of the factor")
+
+
+class PreRevenueExportResult(BaseModel):
+    """Pre-revenue result payload accepted by the export endpoint."""
+
+    valuation: float = Field(default=0.0, description="Resulting valuation")
+    factors: Annotated[list[ExportFactor], Field(max_length=MAX_REPORT_FACTORS)] | None = Field(
+        default=None, description="Optional per-factor breakdown"
+    )
+
+
 class ExportRequest(BaseModel):
     """Base request for export operations."""
 
-    company_name: str = Field(..., description="Name of the company being valued")
-    format: Literal["pdf", "json", "csv"] = Field(default="pdf", description="Export format")
-    industry: str | None = Field(default=None, description="Optional industry context")
+    company_name: CompanyName = Field(..., description="Name of the company being valued")
+    format: Literal["pdf", "json", "csv"] = Field(default="json", description="Export format")
+    industry: ReportLabel | None = Field(default=None, description="Optional industry context")
 
 
 class FirstChicagoExportRequest(ExportRequest):
     """Request to export First Chicago valuation report."""
 
-    result: dict[str, Any] = Field(..., description="First Chicago result with scenario values")
-    params: dict[str, Any] = Field(..., description="Parameters used in valuation")
-    monte_carlo_result: dict[str, Any] | None = Field(
+    result: FirstChicagoExportResult = Field(
+        ..., description="First Chicago result with scenario values"
+    )
+    params: ExportParams = Field(..., description="Parameters used in valuation")
+    monte_carlo_result: ExportMonteCarloResult | None = Field(
         default=None, description="Optional Monte Carlo simulation results"
     )
 
@@ -1128,16 +1264,18 @@ class FirstChicagoExportRequest(ExportRequest):
 class PreRevenueExportRequest(ExportRequest):
     """Request to export pre-revenue valuation report."""
 
-    method_name: str = Field(..., description="Method name (e.g., Berkus, Scorecard, Risk Factor)")
-    result: dict[str, Any] = Field(..., description="Valuation result")
-    params: dict[str, Any] = Field(..., description="Parameters used in valuation")
+    method_name: ReportLabel = Field(
+        ..., description="Method name (e.g., Berkus, Scorecard, Risk Factor)"
+    )
+    result: PreRevenueExportResult = Field(..., description="Valuation result")
+    params: ExportParams = Field(..., description="Parameters used in valuation")
 
 
 class NegotiationRangeRequest(BaseModel):
     """Request to calculate negotiation range for term sheets."""
 
     valuation: float = Field(..., ge=0, description="Base valuation amount")
-    monte_carlo_percentiles: dict[str, float] | None = Field(
+    monte_carlo_percentiles: ScenarioMap | None = Field(
         default=None,
         description="Monte Carlo percentiles (p10, p25, p50, p75, p90) for data-driven range",
     )

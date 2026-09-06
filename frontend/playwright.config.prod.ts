@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+/** Port the backend is expected on. 8000 is the project default; see webServer below. */
+const BACKEND_PORT = process.env.BACKEND_PORT ?? "8000";
+
 /**
  * Production environment testing configuration
  */
@@ -51,8 +54,12 @@ export default defineConfig({
       timeout: 120000, // Longer timeout for production build
     },
     {
-      command: "cd ../backend && uv run uvicorn worth_it.api:app --port 8000",
-      url: "http://localhost:8000",
+      command: `cd ../backend && uv run uvicorn worth_it.api:app --port ${BACKEND_PORT}`,
+      // Not /, which the API does not serve, and not /health, which is rate
+      // limited at RATE_LIMIT_PER_MINUTE and so can 429 a continuous readiness
+      // poll into a timeout. /openapi.json is unauthenticated, unlimited, and
+      // only answers once every router is mounted. See playwright.config.ts.
+      url: `http://localhost:${BACKEND_PORT}/openapi.json`,
       reuseExistingServer: !process.env.CI,
       stdout: "pipe",
       stderr: "pipe",

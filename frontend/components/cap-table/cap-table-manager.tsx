@@ -36,6 +36,8 @@ import {
   AnimatedPercentage,
 } from "@/lib/motion";
 import { generateId } from "@/lib/utils";
+import { sharesForOwnership, totalSharesCovering } from "@/lib/cap-table-shares";
+import { latestPricedRound } from "@/lib/priced-rounds";
 import { useConvertInstruments } from "@/lib/api-client";
 import { useCapTableHistory } from "@/lib/hooks";
 import { CapTableWizard } from "./wizard";
@@ -66,9 +68,20 @@ interface CapTableManagerProps {
    * @default false
    */
   hideSidebarContent?: boolean;
+  /**
+   * Exit valuation the surrounding scenario is built around. Anchors the
+   * waterfall chart sweep. When omitted it is inferred from the most recent
+   * priced round.
+   */
+  exitValuation?: number;
 }
 
 const WIZARD_SKIPPED_KEY = "cap-table-wizard-skipped";
+
+/** Post-money is what the round valued the company at; derive it when unstated. */
+function roundValuation(round: PricedRound): number {
+  return round.post_money_valuation ?? round.pre_money_valuation + round.amount_raised;
+}
 
 export function CapTableManager({
   capTable,
@@ -78,6 +91,7 @@ export function CapTableManager({
   preferenceTiers,
   onPreferenceTiersChange,
   hideSidebarContent = false,
+  exitValuation,
 }: CapTableManagerProps) {
   const [activeSection, setActiveSection] = React.useState<"cap-table" | "funding" | "waterfall">(
     "cap-table"
@@ -136,7 +150,7 @@ export function CapTableManager({
   const {
     setCapTable,
     setInstruments,
-    // setPreferenceTiers - available but not currently used
+    setPreferenceTiers,
     setAll,
     undo,
     redo,
@@ -232,16 +246,17 @@ export function CapTableManager({
   );
 
   const handleAddStakeholder = (formData: StakeholderFormData) => {
+    const shares = sharesForOwnership(formData.ownership_pct, capTable.total_shares);
     const newStakeholder: Stakeholder = {
       id: generateId(),
       name: formData.name,
       type: formData.type,
-      shares: 0,
+      shares,
       ownership_pct: formData.ownership_pct,
       share_class: formData.share_class,
       vesting: formData.has_vesting
         ? {
-            total_shares: 0,
+            total_shares: shares,
             vesting_months: formData.vesting_months,
             cliff_months: formData.cliff_months,
             vested_shares: 0,
@@ -252,10 +267,12 @@ export function CapTableManager({
     // Save version before change
     addVersion(currentSnapshot, "stakeholder_added", formData.name);
 
+    const stakeholders = [...capTable.stakeholders, newStakeholder];
     setCapTable(
       {
         ...capTable,
-        stakeholders: [...capTable.stakeholders, newStakeholder],
+        stakeholders,
+        total_shares: totalSharesCovering(stakeholders, capTable.total_shares),
       },
       `Add ${formData.name}`
     );
@@ -331,6 +348,20 @@ export function CapTableManager({
 
   const totalOwnership =
     capTable.stakeholders.reduce((sum, s) => sum + s.ownership_pct, 0) + capTable.option_pool_pct;
+
+  const pricedRounds = React.useMemo(
+    () => instruments.filter((i): i is PricedRound => i.type === "PRICED_ROUND"),
+    [instruments]
+  );
+
+  // Anchor the waterfall on the scenario's own exit assumption; failing that, on
+  // what the latest priced round valued the company at.
+  const anchorExitValuation = React.useMemo(() => {
+    if (exitValuation !== undefined && exitValuation > 0) return exitValuation;
+    const latest = latestPricedRound(pricedRounds);
+    const valuation = latest ? roundValuation(latest) : 0;
+    return valuation > 0 ? valuation : undefined;
+  }, [exitValuation, pricedRounds]);
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -515,7 +546,9 @@ export function CapTableManager({
                                 </Badge>
                                 {stakeholder.vesting && (
                                   <Badge variant="secondary" className="text-xs">
-                                    {stakeholder.vesting.vesting_months / FORMATTING.MONTHS_PER_YEAR}yr vesting
+                                    {stakeholder.vesting.vesting_months /
+                                      FORMATTING.MONTHS_PER_YEAR}
+                                    yr vesting
                                   </Badge>
                                 )}
                               </div>
@@ -591,7 +624,10 @@ export function CapTableManager({
         <TabsContent value="waterfall" className="mt-6">
           <WaterfallAnalysis
             capTable={capTable}
-            pricedRounds={instruments.filter((i): i is PricedRound => i.type === "PRICED_ROUND")}
+            pricedRounds={pricedRounds}
+            exitValuation={anchorExitValuation}
+            preferenceTiers={preferenceTiers}
+            onPreferenceTiersChange={setPreferenceTiers}
           />
         </TabsContent>
       </Tabs>

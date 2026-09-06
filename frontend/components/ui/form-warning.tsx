@@ -22,7 +22,10 @@ export function FormWarning({ children, className }: FormWarningProps) {
       role="alert"
       aria-live="polite"
       className={cn(
-        "animate-in fade-in flex items-start gap-1.5 text-sm text-amber-600 duration-200 dark:text-amber-500",
+        // amber-700, not amber-600: on the white card background amber-600 lands
+        // at 3.19:1 and fails WCAG 2 AA for body text. amber-700 clears 4.5:1
+        // while still reading as amber.
+        "animate-in fade-in flex items-start gap-1.5 text-sm text-amber-700 duration-200 dark:text-amber-500",
         className
       )}
     >

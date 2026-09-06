@@ -13,6 +13,18 @@ const STORAGE_KEY = "worth-it-draft-employee";
 const DEFAULT_INTERVAL_MS = 5000; // 5 seconds
 
 /**
+ * Bump whenever a persisted field changes meaning.
+ *
+ * Drafts written by an older schema are dropped rather than migrated:
+ * dilution_rounds.salary_change used to be seeded as a raise amount and now
+ * carries the absolute new monthly salary, which is forwarded to the backend as
+ * new_salary. A stored 1000 could be either a correct absolute salary the user
+ * typed or an old example's raise, and the two are indistinguishable once
+ * serialised - so the only safe reading of an unversioned draft is none.
+ */
+export const DRAFT_SCHEMA_VERSION = 2;
+
+/**
  * Check if localStorage is available and functional.
  * Some browsers block localStorage in private mode or via privacy settings.
  */
@@ -34,6 +46,7 @@ export interface DraftFormData {
 }
 
 export interface DraftData {
+  version: number;
   data: DraftFormData;
   savedAt: string;
 }
@@ -91,6 +104,7 @@ export function useDraftAutoSave(
       }
 
       const draft: DraftData = {
+        version: DRAFT_SCHEMA_VERSION,
         data: formData,
         savedAt: new Date().toISOString(),
       };
@@ -131,6 +145,14 @@ export function getDraft(): DraftData | null {
 
     // Validate the structure
     if (!parsed.savedAt || !parsed.data) {
+      return null;
+    }
+
+    // An unversioned payload parses to undefined here, which is the pre-versioning
+    // draft this guard exists to reject. Clear it so the check runs once rather
+    // than on every read.
+    if (parsed.version !== DRAFT_SCHEMA_VERSION) {
+      localStorage.removeItem(STORAGE_KEY);
       return null;
     }
 

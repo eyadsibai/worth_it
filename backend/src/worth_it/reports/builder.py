@@ -50,6 +50,18 @@ def format_percentage(value: float) -> str:
     return f"{value * 100:.0f}%"
 
 
+def _scenario_pv_description(present_values: dict[str, Any], name: str) -> str:
+    """Describe a scenario's present value, tolerating an incomplete map.
+
+    The request model already rejects maps that disagree; this keeps a direct
+    caller from turning a gap into a KeyError mid-report.
+    """
+    present_value = present_values.get(name)
+    if present_value is None:
+        return "PV: not provided"
+    return f"PV: {format_currency(present_value)}"
+
+
 def build_first_chicago_report(
     company_name: str,
     result: dict[str, Any],
@@ -99,12 +111,13 @@ def build_first_chicago_report(
     )
 
     # Scenario Analysis
+    scenario_present_values = result.get("scenario_present_values") or {}
     scenario_metrics = [
         ReportMetric(
             name=f"{name} Scenario",
             value=value,
             formatted_value=format_currency(value),
-            description=f"PV: {format_currency(result['scenario_present_values'][name])}",
+            description=_scenario_pv_description(scenario_present_values, name),
         )
         for name, value in result["scenario_values"].items()
     ]

@@ -53,14 +53,9 @@ export function DilutionPreview({
       amount_raised: debouncedAmount,
       investor_name: debouncedInvestorName || "New Investor",
     });
-  }, [
-    stakeholders,
-    optionPoolPct,
-    debouncedPreMoney,
-    debouncedAmount,
-    debouncedInvestorName,
-    dilutionMutation,
-  ]);
+    // dilutionMutation.mutate is stable (TanStack Query guarantee)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stakeholders, optionPoolPct, debouncedPreMoney, debouncedAmount, debouncedInvestorName]);
 
   // Transform API response to frontend format
   const dilutionData: DilutionData[] = React.useMemo(() => {

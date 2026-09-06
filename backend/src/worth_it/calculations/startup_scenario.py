@@ -14,6 +14,7 @@ import pandas as pd
 
 from worth_it.calculations.base import EquityType
 from worth_it.calculations.dilution_engine import calculate_dilution_schedule
+from worth_it.exceptions import CalculationError
 
 
 def calculate_startup_scenario(
@@ -59,6 +60,18 @@ def calculate_startup_scenario(
             "payout_label": "Your Equity Value",
             "breakeven_label": "Breakeven Value",
         }
+
+    # Every label of the index IS the year number below, so the whole index has to
+    # be the contiguous run 1..n, not merely start at 1: a frame rebuilt from
+    # to_dict(orient="records") comes back zero-based and vests a year late, and a
+    # gappy, duplicated or reordered index vests individual rows against the wrong
+    # year just as silently.
+    expected_years = pd.RangeIndex(1, len(opportunity_cost_df) + 1)
+    if not opportunity_cost_df.index.equals(expected_years):
+        raise CalculationError(
+            "opportunity_cost_df must carry its one-based Year index "
+            f"(expected {list(expected_years)}, got {list(opportunity_cost_df.index)})."
+        )
 
     results_df = opportunity_cost_df.copy()
 

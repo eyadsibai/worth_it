@@ -2,6 +2,14 @@ import { test, expect } from '../fixtures/base';
 import { SELECTORS, TIMEOUTS } from '../utils/test-data';
 
 /**
+ * A currency amount with at least one non-zero digit, e.g. "$500,000" or the
+ * compact "$500K" used below the lg breakpoint. Deliberately does NOT match
+ * "$0", which is both the pre-animation placeholder and the symptom of a
+ * scenario request that lost its equity inputs on the way to the backend.
+ */
+const CURRENCY_WITH_NONZERO_VALUE = /\$[\d,]*[1-9][\d,]*(\.\d+)?[KMB]?/;
+
+/**
  * Test Suite: Complete Scenario Analysis with RSU
  *
  * These tests verify the complete end-to-end flow:
@@ -40,8 +48,26 @@ test.describe('Complete RSU Scenario Analysis', () => {
     await helpers.waitForAPIConnection();
     await helpers.completeRSUScenario();
 
-    // Verify opportunity cost section
-    await expect(page.getByText(/Opportunity Cost/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+    // The metric card abbreviates the label to "Opp. Cost"; the unabbreviated
+    // "Opportunity Cost" heading lives in the Charts tab, which is not the
+    // default tab. Assert both, so this covers the summary figure and the
+    // chart section rather than whichever one happens to be on screen.
+    const oppCostCard = page
+      .locator('.terminal-card')
+      .filter({ hasText: /Opp\. Cost/i })
+      .first();
+    await expect(oppCostCard).toBeVisible({ timeout: TIMEOUTS.calculation });
+
+    // Metric values animate up from $0 and only settle once scrolled into view.
+    await oppCostCard.scrollIntoViewIfNeeded();
+    await expect(oppCostCard).toHaveText(CURRENCY_WITH_NONZERO_VALUE, {
+      timeout: TIMEOUTS.elementVisible,
+    });
+
+    await page.getByRole('tab', { name: /charts/i }).click();
+    await expect(page.getByRole('heading', { name: /^Opportunity Cost$/i })).toBeVisible({
+      timeout: TIMEOUTS.elementVisible,
+    });
   });
 
   test('should show startup payout with equity value', async ({ page, helpers }) => {
@@ -52,8 +78,18 @@ test.describe('Complete RSU Scenario Analysis', () => {
     // Verify startup-related results are shown (Final Payout card or payout label)
     // The UI shows equity payout in the Final Payout card with a payout_label
     await expect(page.getByText(/Final Payout/i)).toBeVisible({ timeout: TIMEOUTS.elementVisible });
-    // Verify payout value is displayed (positive currency value)
-    await expect(page.locator('[class*="currency"]').first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
+
+    // Verify the payout card renders an actual non-zero currency amount. A bare
+    // "$0" here means the scenario request reached the backend with the equity
+    // stripped out, which is exactly the class of bug this smoke test guards.
+    const payoutCard = page
+      .locator('.terminal-card')
+      .filter({ hasText: /Final Payout/i })
+      .first();
+    await payoutCard.scrollIntoViewIfNeeded();
+    await expect(payoutCard).toHaveText(CURRENCY_WITH_NONZERO_VALUE, {
+      timeout: TIMEOUTS.elementVisible,
+    });
   });
 
   test('should display calculation progress indicator', async ({ page, helpers }) => {

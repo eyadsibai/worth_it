@@ -401,6 +401,12 @@ export function SliderField({
                 value={[field.value]}
                 onValueChange={([value]) => field.onChange(value)}
                 getValueLabel={(value) => (formatValue ? formatValue(value) : String(value))}
+                // FormLabel's htmlFor points at the Slider root, which is not a
+                // labelable element, so the thumb needs the name spelled out.
+                aria-label={label}
+                // Lets callers find a field in the DOM by its form name. These
+                // forms render no input[name], so this is the only handle.
+                data-field={name}
               />
             </FormControl>
             {description && <FormDescription>{description}</FormDescription>}
@@ -581,6 +587,8 @@ export function CurrencySliderField({
                 value={[field.value]}
                 onValueChange={([value]) => field.onChange(value)}
                 getValueLabel={(value) => formatCurrencyValue(value)}
+                aria-label={label}
+                data-field={name}
               />
             </FormControl>
             {description && <FormDescription>{description}</FormDescription>}
@@ -648,8 +656,14 @@ export function LogarithmicSliderField({
         const warning = getFieldWarning(name, field.value, warningContext);
         const hasWarning = !!warning && !fieldState.error;
 
-        // Convert between actual value and slider position (0-100)
-        const sliderPosition = logToLinear(field.value, min, max) * SLIDER_SCALE;
+        // Convert between actual value and slider position (0-100).
+        // Clamped because the field starts at 0 and log(0) is -Infinity: Radix
+        // pins the thumb to the left edge but forwards the raw number as
+        // aria-valuenow="-Infinity" (axe: aria-valid-attr-value, critical).
+        const rawSliderPosition = logToLinear(field.value, min, max) * SLIDER_SCALE;
+        const sliderPosition = Number.isFinite(rawSliderPosition)
+          ? Math.min(SLIDER_SCALE, Math.max(0, rawSliderPosition))
+          : 0;
 
         const handleSliderChange = (values: number[]) => {
           const position = values[0] / SLIDER_SCALE;
@@ -784,6 +798,8 @@ export function LogarithmicSliderField({
                 value={[sliderPosition]}
                 onValueChange={handleSliderChange}
                 getValueLabel={() => formatLargeNumber(field.value)}
+                aria-label={label}
+                data-field={name}
               />
             </FormControl>
             {/* Quick select buttons */}
@@ -965,9 +981,7 @@ export function RadioField({
             <RadioGroup
               onValueChange={field.onChange}
               value={field.value}
-              className={
-                direction === "horizontal" ? "flex flex-row gap-4" : "flex flex-col gap-2"
-              }
+              className={direction === "horizontal" ? "flex flex-row gap-4" : "flex flex-col gap-2"}
             >
               {options.map((option) => (
                 <div key={option.value} className="flex items-center gap-2">
