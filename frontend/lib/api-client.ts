@@ -999,6 +999,10 @@ export function useMonteCarloWebSocket(): MonteCarloWSResult {
             setResult(MonteCarloResponseSchema.parse(message));
             setIsRunning(false);
             setIsConnected(false);
+            // This close is ours, exactly as `cancel`'s is. Without saying so,
+            // `onclose` reads refs that its own effects have not synced yet and
+            // reports "closed unexpectedly" on top of a successful result.
+            intentionalCloseRef.current = true;
             ws.close();
             break;
           }
@@ -1008,6 +1012,9 @@ export function useMonteCarloWebSocket(): MonteCarloWSResult {
             setError(message.error.message);
             setIsRunning(false);
             setIsConnected(false);
+            // Ours too — otherwise `onclose` replaces the server's specific
+            // diagnosis with the generic "closed unexpectedly".
+            intentionalCloseRef.current = true;
             ws.close();
             break;
         }

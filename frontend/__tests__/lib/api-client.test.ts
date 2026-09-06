@@ -306,6 +306,35 @@ describe("useMonteCarloWebSocket", () => {
     });
   });
 
+  it("reports no error when the socket closes after a successful run", async () => {
+    // Completion closes the socket itself, so `onclose` runs immediately after
+    // `setResult`. The refs guarding "closed unexpectedly" are synced by
+    // effects, which have not flushed yet — so a finished simulation was
+    // reporting "Simulation failed" underneath its own results.
+    const { result } = renderHook(() => useMonteCarloWebSocket());
+
+    act(() => {
+      result.current.runSimulation(minimalMonteCarloRequest);
+    });
+
+    await waitFor(() => {
+      expect(MockWebSocket.instances.length).toBe(1);
+    });
+
+    act(() => {
+      MockWebSocket.instances[0].receiveMessage({
+        type: "complete",
+        net_outcomes: [10000, 20000, 30000],
+        simulated_valuations: [500000, 750000, 1000000],
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.result).not.toBeNull();
+    });
+    expect(result.current.error).toBeNull();
+  });
+
   it("still handles the legacy two-field complete message", async () => {
     const { result } = renderHook(() => useMonteCarloWebSocket());
 
@@ -391,8 +420,9 @@ describe("useMonteCarloWebSocket", () => {
     });
 
     await waitFor(() => {
-      // Error could be the message or "Connection closed unexpectedly" depending on timing
-      expect(result.current.error).toBeTruthy();
+      // The server said exactly what went wrong; the close it triggers must not
+      // overwrite that with the generic "closed unexpectedly".
+      expect(result.current.error).toBe("Simulation failed due to invalid parameters");
       expect(result.current.isRunning).toBe(false);
     });
   });
