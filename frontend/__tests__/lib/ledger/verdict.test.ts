@@ -22,7 +22,7 @@ it("takes the best offer and ranks the rest", () => {
 
 it("stays when every offer loses", () => {
   const v = selectVerdict([offer({ medianNet: -5000 })]);
-  expect(v.kind).toBe("stay");
+  expect(v?.kind).toBe("stay");
 });
 
 it("reports the first incomplete offer's missing field", () => {
@@ -32,6 +32,28 @@ it("reports the first incomplete offer's missing field", () => {
 
 it("throws on an empty offer list", () => {
   expect(() => selectVerdict([])).toThrow();
+});
+
+it("states no verdict while a complete offer has no computed outcome", () => {
+  // An offer can pass every field check and still have no number behind it —
+  // an empty current job, or a calculation still in flight. Ranking that
+  // `null` as 0 rendered "comes up $0 short" as though it had been measured.
+  expect(selectVerdict([offer({ medianNet: null })])).toBeNull();
+});
+
+it("ranks only the offers that have a computed outcome", () => {
+  const v = selectVerdict([
+    offer({ medianNet: null }),
+    offer({ id: "b", name: "Borealis", medianNet: 13442 }),
+  ]);
+  // Atlas has no number, so it is neither the winner nor a runner-up with a
+  // fabricated delta against it.
+  expect(v).toEqual({
+    kind: "take-offer",
+    offerName: "Borealis",
+    medianNet: 13442,
+    runnersUp: [],
+  });
 });
 
 afterEach(() => {
