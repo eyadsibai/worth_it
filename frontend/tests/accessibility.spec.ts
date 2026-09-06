@@ -2,17 +2,6 @@ import { test, expect, type Page } from "@playwright/test";
 import { injectAxe, checkA11y } from "axe-playwright";
 
 /**
- * The first-run welcome modal covers the app and marks everything behind it
- * aria-hidden. Any assertion about the app's own controls has to dismiss it
- * first, otherwise it silently inspects an empty set and proves nothing.
- */
-async function dismissWelcomeModal(page: Page) {
-  const skip = page.getByRole("button", { name: "Skip", exact: true });
-  await skip.click();
-  await expect(skip).toHaveCount(0);
-}
-
-/**
  * Returns a short description of every control matching `selector` that
  * assistive technology can reach but cannot name.
  *
@@ -53,6 +42,17 @@ test.describe("Accessibility Tests", () => {
   });
 
   test("should not have any automatically detectable accessibility issues", async ({ page }) => {
+    // BUG (found while updating this suite, not fixed here -- out of scope
+    // for an E2E-only task): axe currently reports two `moderate` violations
+    // on `/`, confirmed live. Both are genuine product bugs, not stale
+    // selectors:
+    //  - `heading-order` on `<h3>Stay</h3>` -- the same skipped H1->H3
+    //    hierarchy the "should have proper heading hierarchy" test below
+    //    documents independently.
+    //  - `region` on the SampleNotice banner's text (`div[role="note"] >
+    //    span`) -- it renders as a sibling of `<main>`, not inside any
+    //    landmark (`header`/`nav`/`main`), so "Ensure all page content is
+    //    contained by landmarks" fails.
     // Check main page accessibility
     await injectAxe(page);
     await checkA11y(page, undefined, {
@@ -64,13 +64,10 @@ test.describe("Accessibility Tests", () => {
   });
 
   test("should have proper ARIA labels", async ({ page }) => {
-    await dismissWelcomeModal(page);
-
-    // Every control a screen reader lands on, native or ARIA. The form here is
-    // built almost entirely from Radix widgets - the sliders, selects and
-    // checkboxes a user operates are spans and buttons carrying a role, not
-    // <input> elements - so restricting this to native tags would skip the
-    // controls that matter.
+    // Every control a screen reader lands on, native or ARIA. The Ledger
+    // landing's grant-type and invest-frequency pickers are `aria-pressed`
+    // buttons (not covered by this selector list, same as any other button),
+    // but its `Field` inputs and the masthead's currency `<select>` are.
     const controls = await findControls(
       page,
       [
@@ -91,6 +88,13 @@ test.describe("Accessibility Tests", () => {
   });
 
   test("should have proper heading hierarchy", async ({ page }) => {
+    // BUG (found while updating this suite, not fixed here -- out of scope
+    // for an E2E-only task): confirmed live that `/` renders `H1 "Offer
+    // analysis"` immediately followed by `H3 "Stay"` with no `H2` in between
+    // -- `StayColumn`'s `<h3>` (`components/ledger/stay-column.tsx`) renders
+    // before `VerdictBand`'s `<h2>`, which doesn't exist yet while the duel
+    // is incomplete. This assertion is pre-existing and correct; it will
+    // fail against the current build until the skip is fixed.
     const headings = await page.evaluate(() => {
       const h1 = document.querySelectorAll("h1");
       const h2 = document.querySelectorAll("h2");
@@ -161,17 +165,73 @@ test.describe("Accessibility Tests", () => {
   test("should have sufficient color contrast", async ({ page }) => {
     // This is a basic check - for comprehensive testing, use axe-playwright
     const elements = await page.evaluate(() => {
-      const getContrast = (rgb1: string, rgb2: string) => {
-        // Simplified contrast calculation
-        const getLuminance = (rgb: string) => {
-          const values = rgb.match(/\d+/g)?.map(Number) || [0, 0, 0];
-          const [r, g, b] = values.map((v) => {
+      // A regex over `rgb.match(/\d+/g)` cannot read every color the Ledger
+      // design system actually uses: it silently mis-parses `lab(...)`
+      // backgrounds (extracting digits from the wrong syntax) and, worse,
+      // ignores alpha entirely on `rgba(...)` ones -- so a semi-transparent
+      // tint (e.g. the grant-type pill buttons' `rgba(10, 122, 61, 0.07)`
+      // background under `rgb(10, 122, 61)` text) got compared as if it were
+      // opaque, landing right on top of the text color and scoring a
+      // contrast of ~1 even though the rendered pixels are nowhere near that.
+      // A canvas 2D context resolves any valid CSS color (lab, oklch, named,
+      // hex, rgba) to a normalized rgba() string the same way the renderer
+      // does, and alpha-compositing each ancestor's background in turn -- the
+      // way a browser actually paints them -- gives the true rendered color
+      // instead of a parsing artifact.
+      // Reading the `fillStyle` string back after assignment is not reliable
+      // for every color function: this canvas implementation echoes an
+      // unrecognized `lab(...)` string back unchanged instead of normalizing
+      // or rejecting it, which fed the L/a/b numbers themselves into the RGB
+      // math as if they were 0-255 channels. Actually painting the color and
+      // reading the rasterized pixel back sidesteps that -- `fillRect` has to
+      // resolve the color to concrete channel values to draw it at all,
+      // regardless of what the setter's string serialization supports, and
+      // `getImageData` returns straight (non-premultiplied) alpha, so a
+      // filled pixel's bytes are directly usable as (r, g, b, a).
+      const canvas = document.createElement("canvas");
+      canvas.width = 1;
+      canvas.height = 1;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+      const toRgba = (color: string): { r: number; g: number; b: number; a: number } => {
+        ctx.clearRect(0, 0, 1, 1);
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, 1, 1);
+        const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+        return { r, g, b, a: a / 255 };
+      };
+
+      const effectiveBackground = (el: Element): { r: number; g: number; b: number } => {
+        const layers: Array<{ r: number; g: number; b: number; a: number }> = [];
+        let node: Element | null = el;
+        while (node) {
+          const bg = toRgba(window.getComputedStyle(node).backgroundColor);
+          if (bg.a > 0) layers.unshift(bg);
+          if (bg.a >= 1) break;
+          node = node.parentElement;
+        }
+        let composite = { r: 255, g: 255, b: 255 }; // page default if nothing opaque is found
+        for (const layer of layers) {
+          composite = {
+            r: layer.r * layer.a + composite.r * (1 - layer.a),
+            g: layer.g * layer.a + composite.g * (1 - layer.a),
+            b: layer.b * layer.a + composite.b * (1 - layer.a),
+          };
+        }
+        return composite;
+      };
+
+      const getContrast = (
+        rgb1: { r: number; g: number; b: number },
+        rgb2: { r: number; g: number; b: number }
+      ) => {
+        const getLuminance = ({ r, g, b }: { r: number; g: number; b: number }) => {
+          const [rl, gl, bl] = [r, g, b].map((v) => {
             const normalized = v / 255;
             return normalized <= 0.03928
               ? normalized / 12.92
               : Math.pow((normalized + 0.055) / 1.055, 2.4);
           });
-          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          return 0.2126 * rl + 0.7152 * gl + 0.0722 * bl;
         };
 
         const l1 = getLuminance(rgb1);
@@ -183,11 +243,10 @@ test.describe("Accessibility Tests", () => {
       const results: Array<{ element: string; contrast: number; sufficient: boolean }> = [];
 
       elements.forEach((el) => {
-        const styles = window.getComputedStyle(el);
-        const bg = styles.backgroundColor;
-        const fg = styles.color;
+        const fg = toRgba(window.getComputedStyle(el).color);
+        const bg = effectiveBackground(el);
 
-        if (bg && fg && bg !== "rgba(0, 0, 0, 0)") {
+        if (fg.a > 0) {
           const contrast = getContrast(bg, fg);
           results.push({
             element: el.tagName,
@@ -243,46 +302,24 @@ test.describe("Accessibility Tests", () => {
   });
 
   test("form inputs should have associated labels", async ({ page }) => {
-    await dismissWelcomeModal(page);
-
-    // Typed entry in this app only appears when you click the value chip on a
-    // slider field, so open one. Without it every native input on the page is a
-    // Radix mirror hidden from assistive technology and this test would assert
-    // over an empty set.
-    await page.getByRole("button", { name: "Edit Monthly Salary value" }).first().click();
-
+    // Every Ledger `Field` is a plain, always-interactive text input -- there
+    // is no edit-mode chip to open first, unlike the legacy SliderField this
+    // test used to unlock.
     const controls = await findControls(page, 'input:not([type="hidden"]), select, textarea');
 
     expect(controls.reachable).toBeGreaterThan(0);
     expect(controls.unnamed).toEqual([]);
   });
 
-  test("should announce form errors to screen readers", async ({ page }) => {
-    await dismissWelcomeModal(page);
-
-    // There is no submit step to fail: the forms validate as you type and the
-    // results recompute continuously. The way to provoke a validation message is
-    // therefore to enter a value the domain rules flag.
-    const currentJob = page.locator('[data-tour="current-job-card"]');
-    const salaryChip = currentJob.getByRole("button", { name: "Edit Monthly Salary value" });
-    const salaryInput = currentJob.getByRole("textbox", { name: "Monthly Salary value" });
-
-    // Start from a salary the rules accept. Without this the assertion below
-    // would pass on the message the default $0 already puts on screen.
-    await salaryChip.click();
-    await salaryInput.fill("8000");
-    await salaryInput.press("Enter");
-    await expect(currentJob.getByRole("alert")).toHaveCount(0);
-
-    // $500/month reads as a yearly figure entered in a monthly field.
-    await salaryChip.click();
-    await salaryInput.fill("500");
-    await salaryInput.press("Enter");
-
-    const announcement = currentJob.getByRole("alert");
-    await expect(announcement).toHaveText(/did you mean yearly/i);
-    await expect(announcement).toHaveAttribute("aria-live", /polite|assertive/);
-  });
+  // "should announce form errors to screen readers" is deleted: it exercised
+  // the legacy SliderField's live salary-sanity warning ("did you mean
+  // yearly?"), wired up in `lib/hooks/use-field-warnings.ts` and consumed by
+  // `components/forms/form-fields.tsx`. The Ledger landing's `Field`
+  // component (`components/ledger/field.tsx`) does support an `error` prop
+  // (rendered as `role="alert"`), but nothing on the landing -- `StayColumn`,
+  // `OfferColumn`, `OutcomesChapter` -- passes one; grepping the whole
+  // frontend tree for a `<Field ... error=` confirms no caller does. There is
+  // no live-validation warning left to provoke on this page.
 
   test("should have skip navigation link", async ({ page }) => {
     // Check for skip to main content link

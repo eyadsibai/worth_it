@@ -1,42 +1,25 @@
-import { test, expect, type Page } from "@playwright/test";
-
-/**
- * Waits until React has taken over the server-rendered markup.
- *
- * The welcome modal is opened by a mount effect, so asserting that it is absent
- * before hydration would pass for the wrong reason. Opening a client-only
- * control (the salary slider's inline editor) proves React is live and its
- * effects have already run.
- *
- * CSS locators and dispatchEvent rather than getByRole and click: a modal that
- * wrongly reappears puts the rest of the page behind aria-hidden and swallows
- * pointer events, and the probe must not be what fails in that case - the
- * caller's assertion about the modal should be.
- */
-async function waitForHydration(page: Page) {
-  const currentJobCard = page.locator('[data-tour="current-job-card"]');
-  const editButton = currentJobCard.locator('button[aria-label="Edit Monthly Salary value"]');
-  const valueInput = currentJobCard.locator('input[aria-label="Monthly Salary value"]');
-
-  await expect(async () => {
-    // Idempotent: a retry must not re-open an editor that is already open.
-    if (!(await valueInput.isVisible())) {
-      await editButton.dispatchEvent("click");
-    }
-    await expect(valueInput).toBeVisible({ timeout: 500 });
-  }).toPass({ timeout: 10000 });
-}
+import { test, expect } from "@playwright/test";
 
 test.describe("UX Improvements - Issues #128, #129, #147", () => {
   /**
    * Issue #147 - Skip Link Accessibility
-   * Tests that keyboard users can skip navigation and jump to main content
+   *
+   * BUG (found while writing this test, not fixed here -- out of scope for an
+   * E2E-only task): the Ledger landing (`app/[locale]/page.tsx`) renders its
+   * own `<Masthead />` + `<main>` shell instead of the legacy `AppShell`
+   * (`components/layout/app-shell.tsx`), and `AppShell` is the only place
+   * `SkipLink` (`components/layout/skip-link.tsx`) is rendered. There is no
+   * "Skip to main content" link, and `<main>` carries no `id`, anywhere on
+   * `/`. Confirmed live: `document.querySelectorAll('a')` matching
+   * `/skip/i` returns none, and `document.querySelector('main')?.id` is
+   * `null`. The four tests below assert the pre-existing WCAG 2.4.1
+   * requirement and will fail against the current build until the landing's
+   * shell regains a skip link.
    */
   test.describe("Skip Link (#147)", () => {
     test.beforeEach(async ({ context }) => {
-      // Arrive as a returning visitor. On a first visit the welcome modal owns a
-      // focus trap, so Tab lands inside the dialog and never reaches the skip
-      // link - which is correct dialog behaviour, not a skip link bug.
+      // Arrive as a returning visitor so the first-visit sample and its
+      // SampleNotice banner don't add noise to tab order.
       await context.addInitScript(() => {
         localStorage.setItem("worth_it_onboarded", "true");
       });
@@ -89,10 +72,15 @@ test.describe("UX Improvements - Issues #128, #129, #147", () => {
   });
 
   /**
-   * Issue #129 - Onboarding Modal
-   * Tests that first-time visitors see the welcome modal
+   * Issue #129 - Sample comparison
+   *
+   * Replaces the retired onboarding modal: the Ledger landing pre-fills a
+   * labeled sample on first visit and shows a `SampleNotice` banner
+   * (`role="note"`) with a "Clear the sample" action instead. No `dialog`
+   * role is ever rendered on first visit -- the welcome modal
+   * (`components/onboarding/welcome-modal.tsx`) was deleted outright.
    */
-  test.describe("Onboarding Modal (#129)", () => {
+  test.describe("Sample comparison (#129)", () => {
     test.beforeEach(async ({ context }) => {
       // Simulate a first visit. Init scripts re-run on every navigation, so a
       // sessionStorage sentinel keeps the reset to the first document load:
@@ -105,112 +93,63 @@ test.describe("UX Improvements - Issues #128, #129, #147", () => {
       });
     });
 
-    test("shows welcome modal on first visit", async ({ page }) => {
+    test("shows the sample notice on first visit", async ({ page }) => {
       await page.goto("/");
       await page.waitForLoadState("networkidle");
 
-      // Wait for modal to appear
-      const modal = page.getByRole("dialog");
-      await expect(modal).toBeVisible({ timeout: 5000 });
-
-      // Check modal title
-      await expect(page.getByText(/welcome to worth it/i)).toBeVisible();
+      const notice = page.getByRole("note");
+      await expect(notice).toBeVisible({ timeout: 5000 });
+      await expect(notice).toHaveText(/sample comparison/i);
     });
 
-    test("modal has three steps to navigate through", async ({ page }) => {
+    test("never shows a dialog on first visit", async ({ page }) => {
       await page.goto("/");
       await page.waitForLoadState("networkidle");
 
-      // Wait for modal
-      const modal = page.getByRole("dialog");
-      await expect(modal).toBeVisible({ timeout: 5000 });
-      await expect(modal.getByTestId("step-indicator")).toHaveCount(3);
-
-      // Step 1: Welcome. The wizard advances with "Get Started", not a generic
-      // "Next" button.
-      await expect(modal.getByRole("heading", { name: /welcome to worth it/i })).toBeVisible();
-      await modal.getByRole("button", { name: /get started/i }).click();
-
-      // Step 2: Mode selection - picking a mode is what moves the wizard on
-      await expect(modal.getByRole("heading", { name: /employee or founder/i })).toBeVisible();
-      await modal.getByRole("button", { name: /^employee/i }).click();
-
-      // Step 3: Confirmation
-      await expect(modal.getByRole("heading", { name: /you're all set/i })).toBeVisible();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
     });
 
-    test("can select a mode in onboarding", async ({ page }) => {
+    test('"Clear the sample" empties the salary field and hides the notice', async ({ page }) => {
       await page.goto("/");
       await page.waitForLoadState("networkidle");
 
-      // Wait for modal
-      const modal = page.getByRole("dialog");
-      await expect(modal).toBeVisible({ timeout: 5000 });
+      const notice = page.getByRole("note");
+      await expect(notice).toBeVisible({ timeout: 5000 });
 
-      // Navigate to mode selection (step 2)
-      await modal.getByRole("button", { name: /get started/i }).click();
+      await notice.getByRole("button", { name: /clear the sample/i }).click();
+      await expect(notice).toBeHidden();
 
-      // Founder rather than Employee: employee is the store default, so only the
-      // founder choice proves the selection actually reached the app.
-      await modal.getByRole("button", { name: /^founder/i }).click();
-
-      // Selecting a mode lands on the final step; the modal closes on "Got it!"
-      await modal.getByRole("button", { name: /got it/i }).click();
-      await expect(modal).not.toBeVisible({ timeout: 3000 });
-
-      // The chosen mode is applied to the app behind the modal
-      await expect(page.getByRole("tab", { name: /cap table/i })).toHaveAttribute(
-        "aria-selected",
-        "true"
-      );
+      // The Stay column's Monthly salary field is first in document order.
+      await expect(page.getByLabel("Monthly salary").first()).toHaveValue("");
     });
 
-    test("can skip onboarding", async ({ page }) => {
+    test("does not show the sample notice on subsequent visits", async ({ page }) => {
+      // First visit - clear the sample
       await page.goto("/");
       await page.waitForLoadState("networkidle");
 
-      // Wait for modal
-      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5000 });
-
-      // Click Skip button
-      const skipButton = page.getByRole("button", { name: /skip/i });
-      await skipButton.click();
-
-      // Modal should close
-      await expect(page.getByRole("dialog")).not.toBeVisible({ timeout: 3000 });
-    });
-
-    test("does not show modal on subsequent visits", async ({ page }) => {
-      // First visit - complete onboarding
-      await page.goto("/");
-      await page.waitForLoadState("networkidle");
-
-      const modal = page.getByRole("dialog");
-      await expect(modal).toBeVisible({ timeout: 5000 });
-
-      // Skip onboarding
-      await page.getByRole("button", { name: /skip/i }).click();
-      await expect(modal).not.toBeVisible({ timeout: 3000 });
+      const notice = page.getByRole("note");
+      await expect(notice).toBeVisible({ timeout: 5000 });
+      await notice.getByRole("button", { name: /clear the sample/i }).click();
+      await expect(notice).toBeHidden();
 
       // Reload the page (simulating return visit)
       await page.reload();
       await page.waitForLoadState("networkidle");
 
-      // Modal should NOT appear this time - but only once React is live, since
-      // the modal is opened from a mount effect
-      await waitForHydration(page);
-      await expect(page.getByRole("dialog")).toBeHidden();
+      // The banner is only mounted while a sample is active, so a returning
+      // visitor with no sample never sees it at all.
+      await expect(page.getByRole("note")).toHaveCount(0);
     });
 
     test("onboarding state persists in localStorage", async ({ page }) => {
       await page.goto("/");
       await page.waitForLoadState("networkidle");
 
-      // Complete onboarding
-      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5000 });
-      await page.getByRole("button", { name: /skip/i }).click();
+      // Loading the sample and marking the visitor onboarded happen together,
+      // on mount -- no explicit dismissal action is required.
+      await expect(page.getByRole("note")).toBeVisible({ timeout: 5000 });
 
-      // Check localStorage
       const onboardedValue = await page.evaluate(() => {
         return localStorage.getItem("worth_it_onboarded");
       });
@@ -219,79 +158,17 @@ test.describe("UX Improvements - Issues #128, #129, #147", () => {
     });
   });
 
-  /**
-   * Issue #128 - Empty State Guidance
-   * Tests that form fields show hints and example values
-   */
-  test.describe("Form Field Hints (#128)", () => {
-    test.beforeEach(async ({ page, context }) => {
-      // Skip onboarding for these tests
-      await context.addInitScript(() => {
-        localStorage.setItem("worth_it_onboarded", "true");
-      });
-      await page.goto("/");
-      await page.waitForLoadState("networkidle");
-    });
-
-    test("salary field shows hint text", async ({ page }) => {
-      // Look for hint text near salary input
-      const hintText = page.getByText(/tech average|industry range/i);
-      await expect(hintText).toBeVisible();
-    });
-
-    test("salary field has example placeholder", async ({ page }) => {
-      // Salary is entered through a currency slider, so the numeric input - and
-      // with it the example placeholder - only exists once the value chip next
-      // to the slider is clicked.
-      const currentJobCard = page.locator('[data-tour="current-job-card"]');
-      await currentJobCard.getByRole("button", { name: /edit monthly salary value/i }).click();
-
-      const salaryInput = currentJobCard.getByRole("textbox", { name: /monthly salary value/i });
-      await expect(salaryInput).toHaveAttribute("placeholder", /e\.g\./i);
-    });
-
-    test("equity percentage field shows hint", async ({ page }) => {
-      // Navigate to RSU form if needed
-      const rsuTab = page.getByRole("tab", { name: /rsu/i });
-      if (await rsuTab.isVisible()) {
-        await rsuTab.click();
-      }
-
-      // Look for equity hint
-      const equityHint = page.getByText(/early.*0\.\d|growth.*0\.\d|typical/i);
-      await expect(equityHint).toBeVisible();
-    });
-
-    test("exit valuation field shows example placeholder", async ({ page }) => {
-      // Navigate to RSU form if needed
-      const rsuTab = page.getByRole("tab", { name: /rsu/i });
-      if (await rsuTab.isVisible()) {
-        await rsuTab.click();
-      }
-
-      // Find exit valuation input
-      const exitInput = page.locator('input[name*="exit"], input[name*="valuation"]').first();
-
-      if (await exitInput.isVisible()) {
-        const placeholder = await exitInput.getAttribute("placeholder");
-        expect(placeholder).toBeTruthy();
-      }
-    });
-
-    test("hints provide industry context", async ({ page }) => {
-      // Check that hints contain useful industry information
-      const pageContent = await page.textContent("body");
-
-      // Should have at least one industry-relevant hint
-      const hasIndustryHint =
-        pageContent?.includes("SAR") ||
-        pageContent?.includes("average") ||
-        pageContent?.includes("typical") ||
-        pageContent?.includes("range");
-
-      expect(hasIndustryHint).toBeTruthy();
-    });
-  });
+  // Issue #128 - Form Field Hints: deleted. The legacy dashboard's
+  // SliderField/NumberInputField (`components/forms/form-fields.tsx`) showed
+  // industry-context hint text and example placeholders, wired through
+  // `lib/hooks/use-field-warnings.ts`. The Ledger landing's `Field`
+  // (`components/ledger/field.tsx`) supports neither: it has no `placeholder`
+  // attribute at all, and while it accepts a `hint` prop, grepping every
+  // `<Field` call site on the landing (`app/[locale]/page.tsx`,
+  // `components/ledger/stay-column.tsx`, `components/ledger/offer-column.tsx`,
+  // `components/ledger/chapters/outcomes-chapter.tsx`) turns up none that
+  // pass one. There is no hint or placeholder feature left on this page for
+  // these five tests to exercise.
 
   /**
    * Issue #147 - Live Region for Screen Readers
@@ -323,20 +200,13 @@ test.describe("UX Improvements - Issues #128, #129, #147", () => {
       await page.goto("/");
       await page.waitForLoadState("networkidle");
 
-      // Fill in minimal form data to trigger calculation
-      // This assumes the form auto-calculates or has a calculate button
+      // The verdict band's aria-live region carries the calculation's
+      // headline sentence once a scenario resolves.
+      const verdictRegion = page.locator('[aria-live="polite"]').first();
+      await expect(verdictRegion).toBeVisible({ timeout: 5000 });
 
-      // Wait for any results to appear
-      await page.waitForTimeout(1000);
-
-      // Check for live region with result content
-      const statusRegion = page.locator('[role="status"]');
-
-      if ((await statusRegion.count()) > 0) {
-        const content = await statusRegion.first().textContent();
-        // Should contain result-related text
-        expect(content).toMatch(/calculation|result|benefit|worth/i);
-      }
+      const content = await verdictRegion.textContent();
+      expect(content).toBeTruthy();
     });
   });
 

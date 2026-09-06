@@ -24,7 +24,6 @@ test.describe('Equity Timeline - Founder Mode', () => {
       sessionStorage.clear();
     });
     await page.reload();
-    await helpers.dismissWelcomeDialog();
 
     // Navigate to Founder mode
     await page.getByRole('tab', { name: /Model Cap Table/i }).click();
@@ -159,7 +158,6 @@ test.describe('Equity Timeline - With Stakeholder Data', () => {
       sessionStorage.clear();
     });
     await page.reload();
-    await helpers.dismissWelcomeDialog();
 
     // Navigate to Founder mode
     await page.getByRole('tab', { name: /Model Cap Table/i }).click();
@@ -215,7 +213,6 @@ test.describe('Equity Timeline - Employee Mode', () => {
       sessionStorage.clear();
     });
     await page.reload();
-    await helpers.dismissWelcomeDialog();
 
     // Wait for the Employee Dashboard to be ready (slider visible)
     await page.waitForSelector('[role="slider"]', { timeout: 15000 });
@@ -287,7 +284,6 @@ test.describe('Equity Timeline - Interaction', () => {
       sessionStorage.clear();
     });
     await page.reload();
-    await helpers.dismissWelcomeDialog();
     await page.getByRole('tab', { name: /Model Cap Table/i }).click();
 
     // Wait for wizard to appear (empty cap table triggers wizard)
@@ -351,7 +347,6 @@ test.describe('Equity Timeline - Export', () => {
       sessionStorage.clear();
     });
     await page.reload();
-    await helpers.dismissWelcomeDialog();
     await page.getByRole('tab', { name: /Model Cap Table/i }).click();
 
     // Wait for wizard to appear (empty cap table triggers wizard)

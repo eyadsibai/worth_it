@@ -21,6 +21,8 @@ beforeEach(() => {
     preferenceTiers: [],
     monteCarloResults: null,
     comparisonScenarios: [],
+    displayCurrency: "USD",
+    offers: [{ id: "test-offer-0", name: "", equityDetails: null }],
   });
 });
 
@@ -211,6 +213,65 @@ describe("loadExample", () => {
 
     expect(useAppStore.getState().monteCarloResults).toBeNull();
   });
+
+  it("seeds offers[0] with the example's equity details, preserving its id and name", () => {
+    useAppStore.setState({
+      offers: [
+        { id: "offer-a", name: "My Startup", equityDetails: null },
+        { id: "offer-b", name: "", equityDetails: null },
+      ],
+    });
+
+    useAppStore.getState().loadExample("growth-stage");
+
+    const { offers } = useAppStore.getState();
+    expect(offers).toHaveLength(2);
+    expect(offers[0]).toEqual({
+      id: "offer-a",
+      name: "My Startup",
+      equityDetails: useAppStore.getState().equityDetails,
+    });
+    expect(offers[1]).toEqual({ id: "offer-b", name: "", equityDetails: null });
+  });
+});
+
+describe("clearSample", () => {
+  it("empties currentJob, globalSettings, and equityDetails to null", () => {
+    useAppStore.getState().loadExample("early-stage");
+
+    useAppStore.getState().clearSample();
+
+    const state = useAppStore.getState();
+    expect(state.globalSettings).toBeNull();
+    expect(state.currentJob).toBeNull();
+    expect(state.equityDetails).toBeNull();
+  });
+
+  it("resets offers to a single blank offer", () => {
+    useAppStore.setState({
+      offers: [
+        { id: "offer-a", name: "Atlas", equityDetails: null },
+        { id: "offer-b", name: "Borealis", equityDetails: null },
+      ],
+    });
+
+    useAppStore.getState().clearSample();
+
+    const { offers } = useAppStore.getState();
+    expect(offers).toHaveLength(1);
+    expect(offers[0]).toEqual({ id: expect.any(String), name: "", equityDetails: null });
+  });
+
+  it("clears Monte Carlo results", () => {
+    useAppStore.getState().setMonteCarloResults({
+      net_outcomes: [100000],
+      simulated_valuations: [1000000],
+    });
+
+    useAppStore.getState().clearSample();
+
+    expect(useAppStore.getState().monteCarloResults).toBeNull();
+  });
 });
 
 describe("loadFounderTemplate", () => {
@@ -338,5 +399,43 @@ describe("Results State", () => {
     useAppStore.getState().setComparisonScenarios([mockScenario]);
     useAppStore.getState().clearComparisonScenarios();
     expect(useAppStore.getState().comparisonScenarios).toEqual([]);
+  });
+});
+
+describe("Display Currency", () => {
+  it("starts in USD", () => {
+    expect(useAppStore.getState().displayCurrency).toBe("USD");
+  });
+
+  it("updates the selected currency", () => {
+    useAppStore.getState().setDisplayCurrency("SAR");
+    expect(useAppStore.getState().displayCurrency).toBe("SAR");
+  });
+});
+
+describe("Persist Migration (v0 -> v1)", () => {
+  it("defaults a missing displayCurrency to USD and leaves other fields untouched", async () => {
+    const { migrate } = useAppStore.persist.getOptions();
+    if (!migrate) throw new Error("expected persist options to define a migrate function");
+
+    // A v0 persisted blob, written before displayCurrency existed.
+    const legacyPersistedState = {
+      appMode: "founder" as const,
+      capTable: {
+        stakeholders: [],
+        total_shares: 5000000,
+        option_pool_pct: 15,
+      },
+      instruments: [],
+      preferenceTiers: [],
+    };
+
+    const migrated = await migrate(legacyPersistedState, 0);
+
+    expect(migrated.displayCurrency).toBe("USD");
+    expect(migrated.appMode).toBe(legacyPersistedState.appMode);
+    expect(migrated.capTable).toEqual(legacyPersistedState.capTable);
+    expect(migrated.instruments).toEqual(legacyPersistedState.instruments);
+    expect(migrated.preferenceTiers).toEqual(legacyPersistedState.preferenceTiers);
   });
 });

@@ -195,7 +195,7 @@ export function RSUFormComponent({ value, defaultValues, onChange }: RSUFormProp
           />
         </div>
 
-        <div data-tour="exit-valuation-input">
+        <div>
           <LogarithmicSliderField
             form={form}
             name="exit_valuation"

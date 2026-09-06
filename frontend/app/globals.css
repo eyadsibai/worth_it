@@ -6,8 +6,17 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
+  --font-sans: var(--font-plex-sans), var(--font-plex-arabic), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), var(--font-plex-arabic), ui-monospace, monospace;
+  --font-serif: var(--font-plex-serif), var(--font-amiri), Georgia, serif;
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-annotation: var(--annotation);
+  --color-market: var(--market);
+  --color-market-soft: var(--market-soft);
+  --color-loss: var(--loss);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -96,6 +105,16 @@
   --sidebar-accent-foreground: oklch(18% 0.01 250);
   --sidebar-border: oklch(92% 0.003 250);
   --sidebar-ring: oklch(42% 0.1 155);
+
+  /* Ledger tokens */
+  --paper: #fbfaf7;
+  --ink: #1c1b17;
+  --rule: rgb(28 27 23 / 0.14);
+  --rule-strong: rgb(28 27 23 / 0.32);
+  --annotation: #6e6b63;
+  --market: #0a7a3d;
+  --market-soft: rgb(10 122 61 / 0.07);
+  --loss: #b42318;
 }
 
 .dark {
@@ -141,6 +160,16 @@
   --sidebar-accent-foreground: oklch(90% 0.005 250);
   --sidebar-border: oklch(40% 0.01 250);
   --sidebar-ring: oklch(72% 0.18 115);
+
+  /* Ledger tokens */
+  --paper: #151412;
+  --ink: #edebe4;
+  --rule: rgb(237 235 228 / 0.16);
+  --rule-strong: rgb(237 235 228 / 0.36);
+  --annotation: #a5a199;
+  --market: #31a863;
+  --market-soft: rgb(49 168 99 / 0.1);
+  --loss: #e5544a;
 }
 
 @layer base {
@@ -155,10 +184,6 @@
       "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-  }
-
-  html[lang^="ar"] body {
-    font-family: var(--font-arabic), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   }
 
   html[dir="rtl"] body {
@@ -196,6 +221,21 @@
   /* Amber selection */
   ::selection {
     @apply bg-accent/30 text-accent-foreground;
+  }
+}
+
+@layer utilities {
+  /* Eyebrow labels use this instead of tracking-widest so Arabic stays untracked (see RTL guard below) */
+  .tracking-eyebrow {
+    letter-spacing: 0.14em;
+  }
+
+  /* Arabic text shouldn't be letter-spaced like Latin eyebrow labels. Must stay
+     in this layer (not @layer base) so its higher specificity beats the rule
+     above within the same cascade layer — utilities always wins over base
+     regardless of specificity, so a base-layer override here would be inert. */
+  [dir="rtl"] .tracking-eyebrow {
+    letter-spacing: 0.02em;
   }
 }
 
@@ -251,22 +291,6 @@
     border-color: oklch(50% 0.01 250);
   }
 
-  /* Data card - for numbers and metrics */
-  .data-card {
-    @apply bg-secondary/50 rounded-xl p-4;
-  }
-
-  /* Data display - Fundcy style with lighter decimals */
-  .data-value {
-    @apply text-2xl font-semibold tracking-tight;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .data-value-lg {
-    @apply text-4xl font-bold tracking-tight;
-    font-variant-numeric: tabular-nums;
-  }
-
   /* Fundcy-style decimal formatting - .00 is lighter */
   .currency-decimal {
     @apply text-muted-foreground/60 font-normal;
@@ -276,33 +300,9 @@
     @apply text-muted-foreground text-xs font-medium tracking-wider uppercase;
   }
 
-  /* Accent text - subtle emphasis */
-  .text-glow {
-    @apply text-primary font-semibold;
-  }
-
-  /* Status indicators - clean dot */
-  .status-online {
-    @apply relative;
-  }
-  .status-online::before {
-    content: "";
-    @apply bg-terminal absolute top-1/2 -left-3 h-1.5 w-1.5 -translate-y-1/2 rounded-full;
-  }
-
   /* Subtle background texture - very faint */
   .bg-noise {
     @apply bg-background;
-  }
-
-  /* Gradient text - green spectrum with dark mode support */
-  .gradient-text {
-    @apply from-primary via-chart-4 to-terminal bg-gradient-to-r bg-clip-text text-transparent;
-  }
-
-  /* Success gradient for positive values */
-  .gradient-gold {
-    @apply from-chart-3 to-terminal bg-gradient-to-r bg-clip-text text-transparent;
   }
 
   /* Section divider - subtle green */
@@ -324,88 +324,6 @@
   .animate-scale-in {
     animation: scaleIn 0.3s ease-out forwards;
     opacity: 0;
-  }
-
-  .animate-glow-in {
-    animation: glowIn 0.6s ease-out forwards;
-    opacity: 0;
-  }
-
-  /* Stagger delays */
-  .delay-75 {
-    animation-delay: 75ms;
-  }
-  .delay-150 {
-    animation-delay: 150ms;
-  }
-  .delay-225 {
-    animation-delay: 225ms;
-  }
-  .delay-300 {
-    animation-delay: 300ms;
-  }
-  .delay-375 {
-    animation-delay: 375ms;
-  }
-  .delay-450 {
-    animation-delay: 450ms;
-  }
-
-  /* Hover states - subtle elevation */
-  .hover-glow {
-    @apply transition-all duration-200;
-  }
-  .hover-glow:hover {
-    box-shadow:
-      0 2px 8px rgba(0, 0, 0, 0.08),
-      0 8px 24px rgba(0, 0, 0, 0.06);
-  }
-
-  /* Button hover effect - subtle */
-  .btn-glow {
-    @apply relative overflow-hidden transition-all duration-200;
-  }
-  .btn-glow:hover {
-    @apply brightness-105;
-  }
-
-  /* Number ticker animation */
-  .number-tick {
-    @apply inline-block;
-    animation: numberTick 0.3s ease-out;
-  }
-
-  /* Focus ring - amber glow */
-  .focus-ring {
-    @apply focus-visible:ring-accent focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
-  }
-
-  /* Input field terminal style */
-  .input-terminal {
-    @apply bg-secondary/50 border-border focus:border-accent focus:ring-accent/50 focus:ring-1;
-    @apply placeholder:text-muted-foreground/50 font-mono;
-  }
-
-  /* Metric display */
-  .metric-positive {
-    @apply text-terminal font-semibold;
-  }
-
-  .metric-negative {
-    @apply text-destructive font-semibold;
-  }
-
-  .metric-neutral {
-    @apply text-muted-foreground;
-  }
-
-  /* Subtle grid pattern background */
-  .bg-grid {
-    background-image:
-      linear-gradient(var(--border) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 40px 40px;
-    opacity: 0.5;
   }
 }
 
@@ -437,28 +355,6 @@
   to {
     opacity: 1;
     transform: scale(1);
-  }
-}
-
-@keyframes glowIn {
-  from {
-    opacity: 0;
-    filter: brightness(1.5);
-  }
-  to {
-    opacity: 1;
-    filter: brightness(1);
-  }
-}
-
-@keyframes numberTick {
-  0% {
-    transform: translateY(-100%);
-    opacity: 0;
-  }
-  100% {
-    transform: translateY(0);
-    opacity: 1;
   }
 }
 

@@ -81,7 +81,7 @@ import type {
   WeightedAverageRequest,
   WeightedAverageResult,
 } from "./schemas";
-import { APIErrorResponseSchema } from "./schemas";
+import { APIErrorResponseSchema, MonteCarloResponseSchema } from "./schemas";
 
 // ============================================================================
 // API Error Class
@@ -189,11 +189,7 @@ class APIClient {
     // In browser: use window.location to determine http/https
     // In SSR: fall back to localhost
     if (typeof window !== "undefined") {
-      this.wsURL = getWebSocketURL(
-        window.location.protocol,
-        window.location.host,
-        BACKEND_PORT,
-      );
+      this.wsURL = getWebSocketURL(window.location.protocol, window.location.host, BACKEND_PORT);
     } else {
       this.wsURL = getWebSocketURL("", "");
     }
@@ -460,9 +456,13 @@ class APIClient {
     request: ScorecardRequest,
     signal?: AbortSignal
   ): Promise<ScorecardResponse> {
-    const { data } = await this.client.post<ScorecardResponse>("/api/valuation/scorecard", request, {
-      signal,
-    });
+    const { data } = await this.client.post<ScorecardResponse>(
+      "/api/valuation/scorecard",
+      request,
+      {
+        signal,
+      }
+    );
     return data;
   }
 
@@ -993,21 +993,28 @@ export function useMonteCarloWebSocket(): MonteCarloWSResult {
             });
             break;
 
-          case "complete":
-            setResult({
-              net_outcomes: message.net_outcomes,
-              simulated_valuations: message.simulated_valuations,
-            });
+          case "complete": {
+            // z.object strips unrecognized keys by default, so the `type`
+            // discriminant is dropped without needing to destructure it out.
+            setResult(MonteCarloResponseSchema.parse(message));
             setIsRunning(false);
             setIsConnected(false);
+            // This close is ours, exactly as `cancel`'s is. Without saying so,
+            // `onclose` reads refs that its own effects have not synced yet and
+            // reports "closed unexpectedly" on top of a successful result.
+            intentionalCloseRef.current = true;
             ws.close();
             break;
+          }
 
           case "error":
             // New structured error format: message.error.message
             setError(message.error.message);
             setIsRunning(false);
             setIsConnected(false);
+            // Ours too — otherwise `onclose` replaces the server's specific
+            // diagnosis with the generic "closed unexpectedly".
+            intentionalCloseRef.current = true;
             ws.close();
             break;
         }

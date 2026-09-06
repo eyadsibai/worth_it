@@ -489,3 +489,68 @@ class TestCalculateDilutionSchedule:
             rounds=[{"year": 1, "dilution": 0.2}],
         )
         assert len(result.yearly_factors) == 3
+
+
+class TestRoundFactors:
+    """Tests for the per-round `round_factors` breakdown `build()` produces.
+
+    This is the data `DilutionChapter` renders per row instead of
+    recomputing its own cumulative product frontend-side (see the "Diluted to
+    0%" / dilution-table divergence this closes).
+    """
+
+    def test_completed_rounds_compound_sequentially(self):
+        """Completed rounds get one factor each, compounding in year order -
+        not submission order. Output order still matches input (submission)
+        order, so the earlier-year round (submitted second here) shows the
+        earlier, less-diluted factor."""
+        rounds = [
+            {"year": -1, "dilution": 0.15, "status": "completed"},  # submitted first, later year
+            {"year": -2, "dilution": 0.10, "status": "completed"},  # submitted second, earlier year
+        ]
+        result = calculate_dilution_schedule(years=range(5), rounds=rounds)
+        assert np.isclose(result.round_factors[0], 0.765)  # year -1: 0.9 (from -2) * 0.85
+        assert np.isclose(result.round_factors[1], 0.9)  # year -2 alone
+
+    def test_safe_with_no_priced_round_never_dilutes(self):
+        """The exact regression this closes: an upcoming SAFE with no later
+        priced round shows its OWN row unchanged, matching `total_dilution == 0`
+        - not the 80% a naive per-round product would show."""
+        rounds = [{"year": 1, "dilution": 0.20, "is_safe_note": True, "status": "upcoming"}]
+        result = calculate_dilution_schedule(years=range(5), rounds=rounds)
+        assert result.round_factors == [1.0]
+        assert result.total_dilution == 0.0
+
+    def test_safe_conversion_carries_both_dilutions_at_trigger_round(self):
+        """The SAFE's own row stays unchanged; the priced round that converts
+        it carries both dilutions at once - the same year `yearly_factors`
+        reports, by construction (same formula)."""
+        rounds = [
+            {"year": 1, "dilution": 0.20, "is_safe_note": True, "status": "upcoming"},
+            {"year": 3, "dilution": 0.10, "is_safe_note": False, "status": "upcoming"},
+        ]
+        result = calculate_dilution_schedule(years=range(5), rounds=rounds)
+        assert np.isclose(result.round_factors[0], 1.0)
+        assert np.isclose(result.round_factors[1], 0.72)
+        assert np.isclose(result.round_factors[1], result.yearly_factors[3])
+
+    def test_round_factors_length_and_order_match_input_rounds(self):
+        """Output is parallel to the exact input list - same length, same
+        order - so callers can zip it against their own round objects."""
+        rounds = [
+            {"year": 2, "dilution": 0.1, "status": "upcoming"},
+            {"year": -1, "dilution": 0.2, "status": "completed"},
+            {"year": 4, "dilution": 0.15, "status": "upcoming"},
+        ]
+        result = calculate_dilution_schedule(years=range(5), rounds=rounds)
+        assert len(result.round_factors) == len(rounds)
+
+    def test_empty_for_simulated_dilution_shortcut(self):
+        """The uniform-dilution shortcut has no rounds to break down."""
+        result = calculate_dilution_schedule(years=range(5), simulated_dilution=0.3)
+        assert result.round_factors == []
+
+    def test_empty_for_no_rounds(self):
+        """No rounds at all produces an empty breakdown, not an error."""
+        result = calculate_dilution_schedule(years=range(5), rounds=[])
+        assert result.round_factors == []

@@ -398,6 +398,7 @@ def run_monte_carlo_simulation_vectorized(  # noqa: C901 - inherently complex ve
     return {
         "net_outcomes": net_outcomes,
         "simulated_valuations": exit_price,
+        "payout_values": final_payout_value,
     }
 
 
@@ -477,6 +478,7 @@ def run_monte_carlo_simulation_iterative(
 
     net_outcomes_list: list[float] = []
     final_opportunity_costs_list: list[float] = []
+    final_payout_values_list: list[float] = []
     for i in range(num_simulations):
         exit_year_sim = int(sim_params["exit_year"][i])
 
@@ -519,17 +521,21 @@ def run_monte_carlo_simulation_iterative(
         results = calculate_startup_scenario(opportunity_cost_df, sim_startup_params)
         net_outcome = results["final_payout_value"] - results["final_opportunity_cost"]
         net_outcomes_list.append(net_outcome)
+        final_payout_values_list.append(results["final_payout_value"])
 
     net_outcomes: np.ndarray = np.array(net_outcomes_list)
     final_opportunity_costs: np.ndarray = np.array(final_opportunity_costs_list)
+    final_payout_values: np.ndarray = np.array(final_payout_values_list)
 
     # Incorporate failure probability
     failure_mask = _uniform_draws(num_simulations, rng) < base_params["failure_probability"]
     net_outcomes[failure_mask] = -final_opportunity_costs[failure_mask]
+    final_payout_values[failure_mask] = 0
 
     return {
         "net_outcomes": net_outcomes,
         "simulated_valuations": sim_params[price_key],
+        "payout_values": final_payout_values,
     }
 
 

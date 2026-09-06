@@ -565,6 +565,15 @@ class OpportunityCostResponse(BaseModel):
     data: list[dict[str, Any]]  # OpportunityCostRow - kept flexible for dynamic columns
 
 
+class DilutionScheduleEntryResponse(BaseModel):
+    """One dilution round's resulting stake after applying its own (and any
+    prior) dilution - the same number a per-round table renders, computed
+    once here so the frontend never re-derives it."""
+
+    year: int
+    resulting_stake_pct: float
+
+
 class StartupScenarioResponse(BaseModel):
     """Response model for startup scenario calculation."""
 
@@ -575,8 +584,11 @@ class StartupScenarioResponse(BaseModel):
     final_opportunity_cost_npv: float | None = None  # Opportunity cost discounted to present value
     payout_label: str
     breakeven_label: str
+    final_breakeven_value: float | None = None  # The real break-even number; None when unreachable
+    final_take_home_value: float  # Current-job salary summed over the horizon; always computed
     total_dilution: float | None = None
     diluted_equity_pct: float | None = None
+    dilution_schedule: list[DilutionScheduleEntryResponse] | None = None
 
 
 class IRRResponse(BaseModel):
@@ -591,12 +603,30 @@ class NPVResponse(BaseModel):
     npv: float | None
 
 
+class MonteCarloPercentiles(BaseModel):
+    """Fixed percentile summary of one simulated distribution."""
+
+    p10: float
+    p25: float
+    p50: float
+    p75: float
+    p90: float
+
+
 class MonteCarloResponse(BaseModel):
     """Response model for Monte Carlo simulation."""
 
     net_outcomes: list[float]
     simulated_valuations: list[float]
     seed: int | None = Field(default=None, description="Seed that reproduces this run")
+    net_outcome_percentiles: MonteCarloPercentiles | None = None
+    payout_percentiles: MonteCarloPercentiles | None = None
+    probability_offer_wins: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Share of simulations where the offer beats staying (net outcome > 0)",
+    )
 
 
 class SensitivityAnalysisResponse(BaseModel):

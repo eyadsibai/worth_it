@@ -286,6 +286,7 @@ export const MonteCarloRequestSchema = z.object({
   num_simulations: z.number().int().min(1).max(VALIDATION.NUM_SIMULATIONS_MAX),
   base_params: TypedBaseParamsSchema,
   sim_param_configs: SimParamConfigsSchema,
+  seed: z.number().int().min(0).optional(),
 });
 export type MonteCarloRequest = z.infer<typeof MonteCarloRequestSchema>;
 
@@ -319,6 +320,12 @@ export const OpportunityCostResponseSchema = z.object({
 });
 export type OpportunityCostResponse = z.infer<typeof OpportunityCostResponseSchema>;
 
+export const DilutionScheduleEntrySchema = z.object({
+  year: z.number(),
+  resulting_stake_pct: z.number(),
+});
+export type DilutionScheduleEntry = z.infer<typeof DilutionScheduleEntrySchema>;
+
 export const StartupScenarioResponseSchema = z.object({
   results_df: z.array(z.record(z.string(), z.unknown())),
   final_payout_value: z.number(),
@@ -327,8 +334,11 @@ export const StartupScenarioResponseSchema = z.object({
   final_opportunity_cost_npv: z.number().optional().nullable(),
   payout_label: z.string(),
   breakeven_label: z.string(),
+  final_breakeven_value: z.number().optional().nullable(),
+  final_take_home_value: z.number().optional().nullable(),
   total_dilution: z.number().optional().nullable(),
   diluted_equity_pct: z.number().optional().nullable(),
+  dilution_schedule: z.array(DilutionScheduleEntrySchema).optional().nullable(),
 });
 export type StartupScenarioResponse = z.infer<typeof StartupScenarioResponseSchema>;
 
@@ -342,9 +352,22 @@ export const NPVResponseSchema = z.object({
 });
 export type NPVResponse = z.infer<typeof NPVResponseSchema>;
 
+export const MonteCarloPercentilesSchema = z.object({
+  p10: z.number(),
+  p25: z.number(),
+  p50: z.number(),
+  p75: z.number(),
+  p90: z.number(),
+});
+export type MonteCarloPercentiles = z.infer<typeof MonteCarloPercentilesSchema>;
+
 export const MonteCarloResponseSchema = z.object({
   net_outcomes: z.array(z.number()),
   simulated_valuations: z.array(z.number()),
+  seed: z.number().int().nullable().optional(),
+  net_outcome_percentiles: MonteCarloPercentilesSchema.nullable().optional(),
+  payout_percentiles: MonteCarloPercentilesSchema.nullable().optional(),
+  probability_offer_wins: z.number().min(0).max(1).nullable().optional(),
 });
 export type MonteCarloResponse = z.infer<typeof MonteCarloResponseSchema>;
 

@@ -9,12 +9,50 @@ import { renderHook, act } from "@testing-library/react";
 // Mock scrollIntoView for cmdk
 Element.prototype.scrollIntoView = vi.fn();
 
-// Mock next/navigation
+// Mock @/i18n/navigation (the locale-aware router the palette now uses)
 const mockPush = vi.fn();
-vi.mock("next/navigation", () => ({
+const mockReplace = vi.fn();
+vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({
     push: mockPush,
+    replace: mockReplace,
   }),
+  usePathname: () => "/",
+}));
+
+// Mock next-intl translations (commandPalette + masthead namespaces the
+// palette reads from) — same lookup-table convention as header.test.tsx.
+const commandPaletteMessages: Record<string, string> = {
+  goTo: "Go to {page}",
+  switchLanguage: "Switch language",
+  placeholder: "Type a command or search...",
+  empty: "No results found.",
+  "groups.navigation": "Navigation",
+  "groups.shortcuts": "Shortcuts",
+  "groups.theme": "Theme",
+  "theme.light": "Light Mode",
+  "theme.dark": "Dark Mode",
+  "theme.system": "System Theme",
+};
+const mastheadMessages: Record<string, string> = {
+  analysis: "Analysis",
+  capTable: "Cap Table",
+  valuation: "Valuation",
+  about: "About",
+};
+vi.mock("next-intl", () => ({
+  useTranslations: (namespace: string) => {
+    const dict = namespace === "commandPalette" ? commandPaletteMessages : mastheadMessages;
+    return (key: string, values?: Record<string, string>) => {
+      const template = dict[key] ?? key;
+      if (!values) return template;
+      return Object.entries(values).reduce(
+        (result, [placeholder, value]) => result.replaceAll(`{${placeholder}}`, value),
+        template
+      );
+    };
+  },
+  useLocale: () => "en",
 }));
 
 // Mock next-themes
@@ -27,15 +65,10 @@ vi.mock("next-themes", () => ({
 }));
 
 // Mock zustand store
-const mockSetAppMode = vi.fn();
 const mockSetCommandPaletteOpen = vi.fn();
 let mockCommandPaletteOpen = false;
 
 vi.mock("@/lib/store", () => ({
-  useAppStore: () => ({
-    appMode: "employee",
-    setAppMode: mockSetAppMode,
-  }),
   useCommandPaletteOpen: () => mockCommandPaletteOpen,
   useSetCommandPaletteOpen: () => mockSetCommandPaletteOpen,
 }));
@@ -69,7 +102,7 @@ describe("CommandPalette", () => {
 
       await waitFor(() => {
         expect(screen.getByText("Navigation")).toBeInTheDocument();
-        expect(screen.getByText("Mode")).toBeInTheDocument();
+        expect(screen.getByText("Shortcuts")).toBeInTheDocument();
         expect(screen.getByText("Theme")).toBeInTheDocument();
       });
     });
@@ -109,39 +142,98 @@ describe("CommandPalette", () => {
         expect(onOpenChange).toHaveBeenCalledWith(false);
       });
     });
-  });
 
-  describe("mode commands", () => {
-    it("switches to Employee mode", async () => {
+    it("navigates to Cap Table page", async () => {
       const user = userEvent.setup();
       const onOpenChange = vi.fn();
       render(<CommandPalette open={true} onOpenChange={onOpenChange} />);
 
       await waitFor(() => {
-        expect(screen.getByText("Employee Mode")).toBeInTheDocument();
+        expect(screen.getByText("Go to Cap Table")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText("Employee Mode"));
+      await user.click(screen.getByText("Go to Cap Table"));
 
       await waitFor(() => {
-        expect(mockSetAppMode).toHaveBeenCalledWith("employee");
+        expect(mockPush).toHaveBeenCalledWith("/cap-table");
         expect(onOpenChange).toHaveBeenCalledWith(false);
       });
     });
 
-    it("switches to Founder mode", async () => {
+    it("navigates to Valuation page", async () => {
       const user = userEvent.setup();
       const onOpenChange = vi.fn();
       render(<CommandPalette open={true} onOpenChange={onOpenChange} />);
 
       await waitFor(() => {
-        expect(screen.getByText("Founder Mode")).toBeInTheDocument();
+        expect(screen.getByText("Go to Valuation")).toBeInTheDocument();
       });
 
-      await user.click(screen.getByText("Founder Mode"));
+      await user.click(screen.getByText("Go to Valuation"));
 
       await waitFor(() => {
-        expect(mockSetAppMode).toHaveBeenCalledWith("founder");
+        expect(mockPush).toHaveBeenCalledWith("/valuation");
+        expect(onOpenChange).toHaveBeenCalledWith(false);
+      });
+    });
+  });
+
+  describe("language commands", () => {
+    it("switches the current path to the other locale", async () => {
+      const user = userEvent.setup();
+      const onOpenChange = vi.fn();
+      render(<CommandPalette open={true} onOpenChange={onOpenChange} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Switch language")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText("Switch language"));
+
+      await waitFor(() => {
+        expect(mockReplace).toHaveBeenCalledWith("/", { locale: "ar" });
+        expect(onOpenChange).toHaveBeenCalledWith(false);
+      });
+    });
+  });
+
+  describe("shortcut commands", () => {
+    // The old Employee/Founder Mode commands drove `appMode`, a store flag
+    // nothing in the UI reads anymore now that founder mode is its own
+    // `/cap-table` route (ModeToggle is no longer rendered) — leaving them in
+    // place would let the palette silently strand a user in a mode with no
+    // visible way out. They're replaced with quick E/F-shortcut jumps to the
+    // same two destinations the Navigation group already lists verbosely.
+    it("jumps to Analysis on E", async () => {
+      const user = userEvent.setup();
+      const onOpenChange = vi.fn();
+      render(<CommandPalette open={true} onOpenChange={onOpenChange} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Analysis")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText("Analysis"));
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith("/");
+        expect(onOpenChange).toHaveBeenCalledWith(false);
+      });
+    });
+
+    it("jumps to Cap Table on F", async () => {
+      const user = userEvent.setup();
+      const onOpenChange = vi.fn();
+      render(<CommandPalette open={true} onOpenChange={onOpenChange} />);
+
+      await waitFor(() => {
+        expect(screen.getByText("Cap Table")).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByText("Cap Table"));
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith("/cap-table");
         expect(onOpenChange).toHaveBeenCalledWith(false);
       });
     });
@@ -236,13 +328,13 @@ describe("CommandPalette", () => {
   });
 
   describe("keyboard shortcuts display", () => {
-    it("displays keyboard shortcuts for mode commands", async () => {
+    it("displays keyboard shortcuts for the shortcut commands", async () => {
       render(<CommandPalette open={true} onOpenChange={() => {}} />);
 
       await waitFor(() => {
-        // Check that the Employee Mode command has the E shortcut
-        const employeeCommand = screen.getByText("Employee Mode").closest("[cmdk-item]");
-        expect(employeeCommand).toBeInTheDocument();
+        // Check that the Analysis command has the E shortcut
+        const analysisCommand = screen.getByText("Analysis").closest("[cmdk-item]");
+        expect(analysisCommand).toBeInTheDocument();
       });
 
       // Just verify the shortcut elements are rendered

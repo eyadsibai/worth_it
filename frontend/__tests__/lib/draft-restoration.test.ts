@@ -138,5 +138,91 @@ describe("Draft restoration Zod validation", () => {
       expect(result.currentJob).toBeNull();
       expect(result.equityDetails).toBeNull();
     });
+
+    it("should return null offers when the field is absent", () => {
+      const result = safeParseDraftData({
+        globalSettings: null,
+        currentJob: null,
+        equityDetails: null,
+      });
+
+      expect(result.offers).toBeNull();
+    });
+
+    it("should validate each offer's equity details independently", () => {
+      const draftWithOffers = {
+        globalSettings: null,
+        currentJob: null,
+        equityDetails: null,
+        offers: [
+          {
+            id: "offer-1",
+            name: "Startup A",
+            equityDetails: {
+              equity_type: "RSU" as const,
+              monthly_salary: 12000,
+              total_equity_grant_pct: 0.5,
+              vesting_period: 4,
+              cliff_period: 1,
+              simulate_dilution: false,
+              dilution_rounds: [],
+              exit_valuation: 100_000_000,
+            },
+          },
+          {
+            id: "offer-2",
+            name: "Startup B",
+            equityDetails: { equity_type: "INVALID" } as unknown as null,
+          },
+        ],
+      };
+
+      const result = safeParseDraftData(draftWithOffers);
+
+      expect(result.offers).toHaveLength(2);
+      expect(result.offers?.[0].equityDetails).not.toBeNull();
+      expect(result.offers?.[1].equityDetails).toBeNull();
+      expect(result.offers?.[1].name).toBe("Startup B");
+    });
+
+    it("should drop offer entries missing an id or name", () => {
+      const draftWithMalformedOffer = {
+        globalSettings: null,
+        currentJob: null,
+        equityDetails: null,
+        offers: [{ name: "No id" }, { id: "offer-1", name: "Startup A", equityDetails: null }],
+      };
+
+      const result = safeParseDraftData(
+        draftWithMalformedOffer as unknown as Parameters<typeof safeParseDraftData>[0]
+      );
+
+      expect(result.offers).toHaveLength(1);
+      expect(result.offers?.[0].id).toBe("offer-1");
+    });
+
+    it.each([
+      ["a string", "corrupt"],
+      ["a plain object", {}],
+      ["a number", 42],
+    ])("should not throw and should return null offers when the field is %s", (_label, offers) => {
+      const draftWithCorruptOffers = {
+        globalSettings: null,
+        currentJob: null,
+        equityDetails: null,
+        offers,
+      };
+
+      expect(() =>
+        safeParseDraftData(
+          draftWithCorruptOffers as unknown as Parameters<typeof safeParseDraftData>[0]
+        )
+      ).not.toThrow();
+
+      const result = safeParseDraftData(
+        draftWithCorruptOffers as unknown as Parameters<typeof safeParseDraftData>[0]
+      );
+      expect(result.offers).toBeNull();
+    });
   });
 });

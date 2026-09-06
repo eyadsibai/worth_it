@@ -101,24 +101,21 @@ test.describe('Command Palette Navigation', () => {
     await expect(page.getByText('Job Offer Financial Analyzer')).toBeVisible();
 
     await runCommand(page, 'Go to Analysis');
-    await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByRole('tablist', { name: /Application mode/i })).toBeVisible({ timeout: 15_000 });
+    // Locale routing means the landing's real URL is `/en` (or `/ar`), never
+    // a bare trailing slash.
+    await expect(page).toHaveURL(/\/(en|ar)$/);
     await expect(
-      page.locator('[role="tablist"][aria-label="Application mode"] [role="tab"][aria-selected="true"]')
-    ).toHaveCount(1);
+      page.getByRole('heading', { name: /Offer\s*Analysis|Cap Table\s*Modeling/i })
+    ).toBeVisible({ timeout: 15_000 });
   });
 
-  test('switches app mode via command palette', async ({ page }) => {
-    const founderTab = page.getByRole('tab', { name: /Model Cap Table/i });
-    const employeeTab = page.getByRole('tab', { name: /Analyze Offer/i });
-
-    await runCommand(page, 'Founder Mode');
-    await expect(founderTab).toHaveAttribute('aria-selected', 'true', {
-      timeout: 15_000,
-    });
-
-    await runCommand(page, 'Employee Mode');
-    await expect(employeeTab).toHaveAttribute('aria-selected', 'true', {
+  test('navigates to Cap Table via command palette', async ({ page }) => {
+    // Task 14 replaced the palette's `setAppMode` commands with direct route
+    // navigation ("Cap Table" -> /cap-table) once `ModeToggle` stopped being
+    // rendered -- there is no more "mode" to flip from the palette.
+    await runCommand(page, 'Go to Cap Table');
+    await expect(page).toHaveURL(/\/cap-table$/);
+    await expect(page.getByRole('heading', { name: 'Cap Table', level: 1 })).toBeVisible({
       timeout: 15_000,
     });
   });

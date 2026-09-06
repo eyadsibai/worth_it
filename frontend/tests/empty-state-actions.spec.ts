@@ -1,38 +1,51 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * The employee dashboard's empty state offers a "Focus Missing Field" button
- * that is meant to scroll to and focus the first incomplete equity input.
+ * The Ledger landing's incomplete verdict sentence is itself the "focus
+ * missing field" control: `VerdictBand` renders it as a `<button>` (instead
+ * of the usual `<h2>`) whenever an offer is missing a required field, and
+ * clicking it is meant to move focus to that field (`handleFocusMissing` in
+ * `app/[locale]/page.tsx`).
  *
- * This can only be checked against the real page. The dashboard's own unit test
- * mocks every form component away, so the element the handler searches for does
- * not exist there and no assertion made in that file can notice the handler
- * finding nothing.
+ * This can only be checked against the real page. A component-level test
+ * would have to mock away the very DOM structure (`columnRefs`, the offer
+ * column's actual inputs) that `handleFocusMissing` walks to find the field.
  */
-test.describe("Actionable empty state", () => {
+test.describe("Incomplete verdict focuses the missing field", () => {
   test.beforeEach(async ({ context, page }) => {
-    // Arrive as a returning visitor: the welcome modal owns a focus trap, so it
-    // would both cover the empty state and capture the focus under test.
+    // Arrive as a returning visitor with no saved data, so the first-visit
+    // sample never loads and the duel starts genuinely blank.
     await context.addInitScript(() => {
       localStorage.setItem("worth_it_onboarded", "true");
     });
     await page.goto("/");
   });
 
-  test("Focus Missing Field moves focus to the first incomplete field", async ({ page }) => {
-    const focusMissing = page.getByRole("button", { name: /focus missing field/i });
-    await expect(focusMissing).toBeVisible();
+  test("names the missing field and moves focus to it", async ({ page }) => {
+    // A blank offer has no equity details at all yet, so the first missing
+    // field is "the equity grant" (see `deriveMissingField` in
+    // `components/ledger/offer-column.tsx`) -- not the salary, which is
+    // checked only once an equity type has been touched.
+    const verdictButton = page.locator('[aria-live="polite"] button');
+    await expect(verdictButton).toBeVisible();
+    await expect(verdictButton).toHaveText(/enter the equity grant/i);
 
-    await focusMissing.click();
+    await verdictButton.click();
 
-    // Every equity field is a Radix slider, so the control that should receive
-    // focus is a thumb. The form renders no <input name> at all, which is what
-    // the handler used to look for.
-    const focused = page.locator(":focus");
-    await expect(focused).toHaveAttribute("role", "slider");
-    // Named, not just any slider: landing on the wrong control is the same
-    // dead end for the user as landing nowhere. RSU is the default equity
-    // type, so the first field the empty state asks for is the grant size.
-    await expect(focused).toHaveAttribute("aria-label", /total equity grant/i);
+    // BUG (found while writing this test, not fixed here -- out of scope for
+    // an E2E-only task): `handleFocusMissing` in `app/[locale]/page.tsx`
+    // focuses the first empty <input> in the offer's column by DOM order,
+    // without regard to which field `missingField` actually names. The
+    // offer's own "Offer name" input is empty by default and renders before
+    // every `Field`, so it wins that race and receives focus instead of the
+    // "Equity grant" field the verdict sentence names. Reproduced manually:
+    // clicking the verdict button focuses `aria-label="Offer name"`, not the
+    // Equity grant `Field`, even after the offer has been renamed (Monthly
+    // salary -- also empty and also earlier in DOM order -- wins instead).
+    //
+    // This assertion encodes the *intended* behaviour per the product spec
+    // and will fail against the current build until that bug is fixed.
+    const equityGrantInput = page.getByLabel("Equity grant");
+    await expect(equityGrantInput).toBeFocused();
   });
 });

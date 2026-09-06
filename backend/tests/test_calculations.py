@@ -115,6 +115,86 @@ def test_calculate_startup_scenario_rsu_no_dilution(sample_opportunity_cost_df):
     assert results_df["Vested Equity (%)"].iloc[-1] == pytest.approx(5.0)
 
 
+def test_calculate_startup_scenario_final_breakeven_value_rsu(sample_opportunity_cost_df):
+    """`final_breakeven_value` is a real number, not the display label - and it
+    matches the last row of the `Breakeven Value` column it's drawn from."""
+    startup_params = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 1,
+        "exit_year": 4,
+        "rsu_params": {
+            "equity_pct": 0.05,
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": False,
+        },
+        "options_params": {},
+    }
+    results = calculations.calculate_startup_scenario(sample_opportunity_cost_df, startup_params)
+    assert isinstance(results["final_breakeven_value"], float)
+    assert results["final_breakeven_value"] == pytest.approx(
+        results["results_df"]["Breakeven Value"].iloc[-1]
+    )
+    assert results["final_breakeven_value"] > 0
+
+
+def test_calculate_startup_scenario_final_breakeven_value_unreachable_is_none(
+    sample_opportunity_cost_df,
+):
+    """A cliff longer than the horizon vests nothing, so every row's
+    `Breakeven Value` is `inf` (not achievable). `float("inf")` can't survive a
+    JSON response, so the top-level scalar reports `None` instead - the same
+    "not yet known" state the frontend already renders as an em dash."""
+    startup_params = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 10,  # Longer than the 4-year horizon: nothing ever vests
+        "exit_year": 4,
+        "rsu_params": {
+            "equity_pct": 0.05,
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": False,
+        },
+        "options_params": {},
+    }
+    results = calculations.calculate_startup_scenario(sample_opportunity_cost_df, startup_params)
+    assert np.isinf(results["results_df"]["Breakeven Value"].iloc[-1])
+    assert results["final_breakeven_value"] is None
+
+
+def test_calculate_startup_scenario_final_take_home_value(sample_opportunity_cost_df):
+    """`final_take_home_value` is the Stay column's "take-home over the
+    horizon" figure: the current job's gross salary summed across every year
+    in the horizon - a distinct quantity from `final_opportunity_cost` (the
+    future value of the *forgone surplus*, not the salary itself)."""
+    startup_params = {
+        "equity_type": EquityType.RSU,
+        "total_vesting_years": 4,
+        "cliff_years": 1,
+        "exit_year": 4,
+        "rsu_params": {
+            "equity_pct": 0.05,
+            "target_exit_valuation": 10_000_000,
+            "simulate_dilution": False,
+        },
+        "options_params": {},
+    }
+    results = calculations.calculate_startup_scenario(sample_opportunity_cost_df, startup_params)
+    assert results["final_take_home_value"] == pytest.approx(
+        results["results_df"]["CurrentJobSalary"].sum()
+    )
+    assert results["final_take_home_value"] != pytest.approx(results["final_opportunity_cost"])
+
+
+def test_calculate_startup_scenario_empty_df_scalars_are_safe_defaults():
+    """The empty-dataframe early return carries the same scalar keys as the
+    real computation, so callers never have to special-case a `KeyError`."""
+    startup_params = {"equity_type": EquityType.RSU, "total_vesting_years": 4, "cliff_years": 1}
+    results = calculations.calculate_startup_scenario(pd.DataFrame(), startup_params)
+    assert results["final_breakeven_value"] is None
+    assert results["final_take_home_value"] == 0
+
+
 # --- Test Stock Option Scenarios ---
 
 
@@ -137,6 +217,9 @@ def test_calculate_startup_scenario_options(sample_opportunity_cost_df):
     final_vested_options = 10000
     expected_payout = (10.0 - 1.0) * final_vested_options
     assert results["final_payout_value"] == pytest.approx(expected_payout)
+    assert results["final_breakeven_value"] == pytest.approx(
+        results["results_df"]["Breakeven Value"].iloc[-1]
+    )
 
 
 # --- Test Financial Metrics ---
@@ -1988,3 +2071,124 @@ class TestCompletedRoundsDilution:
 
         # Years 2+: Dilution applied (factor = 0.80)
         assert cumulative_dilution.iloc[1] == pytest.approx(0.80, rel=0.01)
+
+    def test_dilution_schedule_safe_with_no_priced_round_stays_undiluted(self, opportunity_cost_df):
+        """The frontend's `DilutionChapter` used to reimplement this math with
+        its own cumulative product, applying every round's dilution at its own
+        year regardless of type - so an upcoming SAFE with no later priced
+        round showed 80% diluted while the backend (correctly, since a SAFE
+        only dilutes at conversion) showed 0%. `dilution_schedule` is the
+        single source of truth both the caption and the per-round table now
+        read from, so they can no longer disagree.
+        """
+        startup_params = {
+            "equity_type": EquityType.RSU,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "exit_year": 5,
+            "rsu_params": {
+                "equity_pct": 0.05,
+                "target_exit_valuation": 100_000_000,
+                "simulate_dilution": True,
+                "dilution_rounds": [
+                    {
+                        "year": 1,
+                        "dilution": 0.20,
+                        "is_safe_note": True,
+                        "status": "upcoming",
+                    },
+                ],
+            },
+            "options_params": {},
+        }
+
+        result = calculations.calculate_startup_scenario(opportunity_cost_df, startup_params)
+
+        assert result["total_dilution"] == pytest.approx(0.0)
+        assert result["diluted_equity_pct"] == pytest.approx(0.05)
+        assert result["dilution_schedule"] == [
+            {"year": 1, "resulting_stake_pct": pytest.approx(100.0)}
+        ]
+
+    def test_dilution_schedule_safe_conversion_matches_caption(self, opportunity_cost_df):
+        """A SAFE followed by a later priced round: the SAFE's own row carries
+        no dilution yet, and the triggering priced round's row carries both -
+        matching `total_dilution` exactly, and in the same order the rounds
+        were submitted in.
+        """
+        startup_params = {
+            "equity_type": EquityType.RSU,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "exit_year": 5,
+            "rsu_params": {
+                "equity_pct": 0.05,
+                "target_exit_valuation": 100_000_000,
+                "simulate_dilution": True,
+                "dilution_rounds": [
+                    {
+                        "year": 1,
+                        "dilution": 0.20,
+                        "is_safe_note": True,
+                        "status": "upcoming",
+                    },
+                    {
+                        "year": 3,
+                        "dilution": 0.10,
+                        "is_safe_note": False,
+                        "status": "upcoming",
+                    },
+                ],
+            },
+            "options_params": {},
+        }
+
+        result = calculations.calculate_startup_scenario(opportunity_cost_df, startup_params)
+        schedule = result["dilution_schedule"]
+
+        assert schedule[0] == {"year": 1, "resulting_stake_pct": pytest.approx(100.0)}
+        # 1 - (1 - 0.20) * (1 - 0.10) = 0.28
+        assert schedule[1]["year"] == 3
+        assert schedule[1]["resulting_stake_pct"] == pytest.approx(72.0)
+        assert result["total_dilution"] == pytest.approx(0.28)
+
+    def test_dilution_schedule_with_simulated_dilution_and_dilution_rounds_does_not_raise(
+        self, opportunity_cost_df
+    ):
+        """`monte_carlo.py` always writes `simulated_dilution` into
+        `startup_params` before calling `calculate_startup_scenario`, so this
+        combination — `simulated_dilution` set alongside non-empty
+        `dilution_rounds` — cannot rely on `VariableParam` never carrying a
+        `dilution` member as its only defense against reaching this code path.
+        `calculate_dilution_schedule`'s `with_simulated_dilution` shortcut
+        returns `round_factors=[]` regardless of `dilution_rounds`, and
+        zipping that against a non-empty `dilution_rounds` under
+        `strict=True` used to raise `ValueError` instead of returning a
+        result.
+        """
+        startup_params = {
+            "equity_type": EquityType.RSU,
+            "total_vesting_years": 4,
+            "cliff_years": 1,
+            "exit_year": 5,
+            "simulated_dilution": 0.3,
+            "rsu_params": {
+                "equity_pct": 0.05,
+                "target_exit_valuation": 100_000_000,
+                "simulate_dilution": True,
+                "dilution_rounds": [
+                    {
+                        "year": 1,
+                        "dilution": 0.20,
+                        "is_safe_note": True,
+                        "status": "upcoming",
+                    },
+                ],
+            },
+            "options_params": {},
+        }
+
+        result = calculations.calculate_startup_scenario(opportunity_cost_df, startup_params)
+
+        assert result["total_dilution"] == pytest.approx(0.3)
+        assert result["dilution_schedule"] == []

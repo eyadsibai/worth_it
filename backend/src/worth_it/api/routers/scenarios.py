@@ -16,6 +16,7 @@ from worth_it.config import settings
 from worth_it.exceptions import CalculationError
 from worth_it.models import (
     ComparisonInsight,
+    DilutionScheduleEntryResponse,
     IRRRequest,
     IRRResponse,
     MetricDiff,
@@ -117,8 +118,15 @@ async def calculate_startup_scenario(request: Request, body: StartupScenarioRequ
             final_opportunity_cost_npv=result.final_opportunity_cost_npv,
             payout_label=result.payout_label,
             breakeven_label=result.breakeven_label,
+            final_breakeven_value=result.final_breakeven_value,
+            final_take_home_value=result.final_take_home_value,
             total_dilution=result.total_dilution,
             diluted_equity_pct=result.diluted_equity_pct,
+            dilution_schedule=(
+                [DilutionScheduleEntryResponse(**entry) for entry in result.dilution_schedule]
+                if result.dilution_schedule is not None
+                else None
+            ),
         )
     except (ValueError, TypeError, KeyError) as e:
         raise CalculationError("Invalid parameters for startup scenario") from e

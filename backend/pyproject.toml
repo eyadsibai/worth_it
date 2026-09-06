@@ -34,6 +34,11 @@ dependencies = [
     "slowapi>=0.1.9",
     "starlette>=0.40.0",
     "uvicorn>=0.34.0",
+    # Uvicorn ships no WebSocket protocol implementation of its own: without one
+    # it answers every upgrade request with 404 ("No supported WebSocket library
+    # detected"), which silently disables /ws/monte-carlo and
+    # /ws/valuation-monte-carlo in any clean install.
+    "websockets>=14.0",
 ]
 
 
@@ -146,6 +151,11 @@ ignore_missing_imports = true
 [tool.bandit]
 exclude_dirs = ["tests", ".venv", "venv"]
 skips = ["B101"]  # Skip assert_used check (needed for tests)
+
+[tool.deptry.per_rule_ignores]
+# Uvicorn discovers its WebSocket protocol implementation at runtime, so nothing
+# in src/ ever imports `websockets` — but without it every /ws endpoint 404s.
+DEP002 = ["websockets"]
 
 [tool.pyright]
 include = ["src"]

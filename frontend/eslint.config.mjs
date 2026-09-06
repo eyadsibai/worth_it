@@ -110,6 +110,30 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-magic-numbers": "off",
     },
   },
+  // Ledger design system: enforce logical (start/end) direction utilities over
+  // physical (left/right) ones so RTL mirrors for free. Scoped to new Ledger
+  // surfaces rather than app/**/*.tsx — pre-existing pages under app/[locale]/
+  // (e.g. about/page.tsx) still use physical utilities and are not being
+  // restyled as part of this change.
+  {
+    files: [
+      "components/ledger/**/*.tsx",
+      "app/[locale]/page.tsx",
+      "app/[locale]/layout.tsx",
+      "app/[locale]/cap-table/page.tsx",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "Literal[value=/(^|[\\s'\"])(ml-|mr-|pl-|pr-|border-l(-|\\s|$)|border-r(-|\\s|$)|rounded-l|rounded-r|text-left|text-right|left-[0-9]|right-[0-9])/]",
+          message:
+            "Physical direction utility — use logical ones (ms-/me-/ps-/pe-/border-s/border-e/rounded-s/rounded-e/text-start/text-end/start-/end-) so RTL mirrors for free.",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

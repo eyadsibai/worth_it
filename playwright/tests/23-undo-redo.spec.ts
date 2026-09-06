@@ -17,7 +17,6 @@ test.describe('Undo/Redo Controls', () => {
   test.beforeEach(async ({ page, helpers }) => {
     await page.goto('/');
     await helpers.waitForAPIConnection();
-    await helpers.dismissWelcomeDialog();
 
     // Navigate to cap table mode (founder mode)
     // Look for a toggle or button to switch modes

@@ -1,0 +1,144 @@
+{
+  "a11y": {
+    "skipToMainContent": "Skip to main content"
+  },
+  "masthead": {
+    "analysis": "Analysis",
+    "capTable": "Cap Table",
+    "valuation": "Valuation",
+    "about": "About",
+    "search": "Search",
+    "language": "Language",
+    "theme": "Theme",
+    "currency": "Currency"
+  },
+  "commandPalette": {
+    "title": "Command Palette",
+    "description": "Search for a command to run...",
+    "goTo": "Go to {page}",
+    "switchLanguage": "Switch language",
+    "placeholder": "Type a command or search...",
+    "empty": "No results found.",
+    "groups": {
+      "navigation": "Navigation",
+      "shortcuts": "Shortcuts",
+      "theme": "Theme"
+    },
+    "theme": {
+      "light": "Light Mode",
+      "dark": "Dark Mode",
+      "system": "System Theme"
+    }
+  },
+  "landing": {
+    "title": "Offer analysis",
+    "horizon": "Horizon",
+    "seed": "Simulation seed",
+    "npvToggle": "Today's dollars (NPV)",
+    "sampleNotice": "Sample comparison — replace with your numbers",
+    "clearSample": "Clear the sample"
+  },
+  "states": {
+    "failure": {
+      "message": "Something went wrong computing this comparison.",
+      "retry": "Retry"
+    }
+  },
+  "verdict": {
+    "takeOffer": "Take {offer} — it nets you {amount} in today's dollars.",
+    "takeOfferRanked": "Take {offer} — {amount} over staying, {delta} over {runnerUp}.",
+    "stay": "Stay — {offer} comes up {amount} short of your current job.",
+    "incomplete": "Enter {field} for {offer} to compute a verdict.",
+    "fields": {
+      "salary": "the monthly salary",
+      "equity": "the equity grant",
+      "exit": "the exit valuation"
+    },
+    "stats": {
+      "probability": "P(offer wins)",
+      "equityAtExit": "Equity at exit",
+      "costOfLeaving": "Cost of leaving",
+      "breakeven": "Break-even exit"
+    },
+    "basis": "Median of {runs} simulated outcomes over {years} years, after dilution, against staying and investing the salary difference.",
+    "outcomeRange": "Range of possible outcomes"
+  },
+  "duel": {
+    "monthlySalary": "Monthly salary",
+    "annualRaise": "Annual raise",
+    "surplusRoi": "Surplus ROI",
+    "investFrequency": "Invest frequency",
+    "monthly": "Monthly",
+    "annually": "Annually",
+    "takeHome": "Gross salary over the horizon",
+    "offerName": "Offer name",
+    "offerDefaultName": "Offer {letter}",
+    "grantType": "Grant type",
+    "rsu": "RSU",
+    "options": "Options",
+    "equityGrant": "Equity grant",
+    "optionCount": "Number of options",
+    "strikePrice": "Strike price",
+    "vesting": "Vesting",
+    "cliff": "Cliff",
+    "exitValuation": "Exit valuation",
+    "exitPricePerShare": "Exit price / share",
+    "dilutionToExit": "Simulate dilution to exit",
+    "dilutionSummary": "Diluted to {pct}% by exit",
+    "addOffer": "Add another offer",
+    "removeOffer": "Remove offer",
+    "stay": "Stay",
+    "currentJob": "Current job",
+    "startupTag": "Startup offer",
+    "estimateValuation": "Not sure what it's worth? Estimate it →"
+  },
+  "chapters": {
+    "vesting": {
+      "title": "Vesting",
+      "cliffAnnotation": "Nothing vests until year {cliff} — that's the risk window if you leave early."
+    },
+    "outcomes": {
+      "title": "Outcomes",
+      "run": "Run {runs} simulations",
+      "percentileHeader": "Outcome",
+      "columnEquityValue": "Equity value",
+      "columnNetVsStaying": "Net vs. staying",
+      "rowWeakExit": "Weak exit",
+      "rowP25": "P25",
+      "rowMedian": "Median",
+      "rowP75": "P75",
+      "rowStrongExit": "Strong exit",
+      "bandLabel": "Range of simulated net outcomes, 10th to 90th percentile",
+      "caption": "{runs} simulations · seed {seed}",
+      "assumptions": "Assumptions",
+      "runsLabel": "Simulations",
+      "reroll": "Re-roll seed",
+      "error": "Simulation failed — try again."
+    },
+    "dilution": {
+      "title": "Dilution",
+      "summary": "Diluted to {pct}% by exit",
+      "totalCaption": "This round schedule dilutes your stake by {pct}% in total.",
+      "round": "Round",
+      "year": "Year",
+      "raise": "Raise",
+      "dilutionPct": "Dilution",
+      "resultingStake": "Resulting stake",
+      "statusCompleted": "Completed",
+      "statusUpcoming": "Upcoming"
+    },
+    "sensitivity": {
+      "title": "What would change the answer",
+      "exitValuation": "exit valuation",
+      "exitPricePerShare": "exit price per share",
+      "flipThreshold": "If {variable} falls below ≈{value}, the offer no longer beats staying.",
+      "noFlip": "Across the exit range we modeled, this offer's verdict doesn't change.",
+      "approximation": "This treats the relationship as linear — a useful direction, not a precise forecast."
+    },
+    "waterfall": {
+      "title": "Waterfall",
+      "noTiers": "No preference tiers modeled — see the full exit waterfall in the Cap Table tool →",
+      "hasTiers": "This offer includes preference tiers — see the full exit waterfall in the Cap Table tool →"
+    }
+  }
+}

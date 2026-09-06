@@ -43,8 +43,6 @@ test.describe('PR #218: Bottom Navigation', () => {
       await page.goto('/');
       await page.waitForSelector('h1');
 
-      // Dismiss welcome dialog using helper
-      await helpers.dismissWelcomeDialog();
 
       // Hide Next.js dev overlay that can intercept pointer events on mobile
       await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
@@ -63,8 +61,6 @@ test.describe('PR #218: Bottom Navigation', () => {
       await page.goto('/');
       await page.waitForSelector('h1');
 
-      // Dismiss welcome dialog using helper
-      await helpers.dismissWelcomeDialog();
 
       // Hide Next.js dev overlay that can intercept pointer events on mobile
       await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
@@ -83,8 +79,6 @@ test.describe('PR #218: Bottom Navigation', () => {
       await page.goto('/');
       await page.waitForSelector('h1');
 
-      // Dismiss welcome dialog using helper
-      await helpers.dismissWelcomeDialog();
 
       // Hide Next.js dev overlay that can intercept pointer events on mobile
       await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });

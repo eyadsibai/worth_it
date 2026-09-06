@@ -5,6 +5,7 @@ This module tests all API endpoints to ensure they properly handle
 requests and return correct responses.
 """
 
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
@@ -342,6 +343,46 @@ def test_monte_carlo_simulation():
     assert "simulated_valuations" in data
     assert len(data["net_outcomes"]) == 50
     assert len(data["simulated_valuations"]) == 50
+
+
+def test_monte_carlo_returns_percentiles_and_win_probability():
+    """The response carries server-computed statistics (spec C1 §7)."""
+    request_data = {
+        "num_simulations": 200,
+        "seed": 20260820,
+        "base_params": {
+            "exit_year": 5,
+            "current_job_monthly_salary": 10000.0,
+            "startup_monthly_salary": 8000.0,
+            "current_job_salary_growth_rate": 0.03,
+            "annual_roi": 0.05,
+            "investment_frequency": "Annually",
+            "failure_probability": 0.25,
+            "startup_params": {
+                "equity_type": "RSU",
+                "monthly_salary": 8000.0,
+                "total_equity_grant_pct": 5.0,
+                "vesting_period": 4,
+                "cliff_period": 1,
+                "exit_valuation": 20_000_000.0,
+                "simulate_dilution": False,
+                "dilution_rounds": None,
+            },
+        },
+        "sim_param_configs": {"exit_valuation": {"min": 10_000_000.0, "max": 30_000_000.0}},
+    }
+    response = client.post("/api/monte-carlo", json=request_data)
+    assert response.status_code == 200
+    data = response.json()
+
+    outcomes = np.array(data["net_outcomes"])
+    pct = data["net_outcome_percentiles"]
+    assert pct["p10"] <= pct["p25"] <= pct["p50"] <= pct["p75"] <= pct["p90"]
+    assert pct["p50"] == pytest.approx(float(np.percentile(outcomes, 50)))
+    assert data["probability_offer_wins"] == pytest.approx(float((outcomes > 0).mean()))
+    ppct = data["payout_percentiles"]
+    assert ppct["p10"] <= ppct["p50"] <= ppct["p90"]
+    assert ppct["p10"] >= 0.0  # payouts are floored at zero
 
 
 def test_sensitivity_analysis():

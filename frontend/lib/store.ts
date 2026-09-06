@@ -22,10 +22,29 @@ import type {
   PreferenceTier,
 } from "@/lib/schemas";
 import type { ScenarioData } from "@/lib/export-utils";
+import type { DisplayCurrency } from "@/lib/ledger/format-money";
 import { getExampleById } from "@/lib/constants/examples";
 import { getFounderTemplateById } from "@/lib/constants/founder-templates";
+import { generateId } from "@/lib/utils";
 
 export type AppMode = "employee" | "founder";
+
+/** Upper bound on how many offers a user can compare side by side. */
+export const MAX_OFFERS = 3;
+
+/** Persist schema version for `useAppStore` (bumped when a persisted field changes shape or meaning). */
+const PERSIST_VERSION = 2;
+
+/** A single named offer being compared on the ledger landing (up to `MAX_OFFERS`). */
+export interface Offer {
+  id: string;
+  name: string;
+  equityDetails: RSUForm | StockOptionsForm | null;
+}
+
+function createEmptyOffer(): Offer {
+  return { id: generateId(), name: "", equityDetails: null };
+}
 
 interface MonteCarloResults {
   net_outcomes: number[];
@@ -49,6 +68,21 @@ interface AppState {
   setCurrentJob: (data: CurrentJobForm) => void;
   setEquityDetails: (data: RSUForm | StockOptionsForm) => void;
 
+  // Ledger Landing - Named Offers (up to MAX_OFFERS; legacy `equityDetails`
+  // above remains in place until the legacy dashboard is retired)
+  offers: Offer[];
+  addOffer: () => boolean;
+  removeOffer: (id: string) => void;
+  renameOffer: (id: string, name: string) => void;
+  setOfferEquityDetails: (id: string, details: RSUForm | StockOptionsForm | null) => void;
+  /**
+   * Bulk-replaces the whole `offers` array, distinct from the incremental
+   * add/remove/rename/setEquityDetails actions above. Used to restore a
+   * saved draft's offers on mount. Clamps to `MAX_OFFERS` and never leaves
+   * the document with zero offer columns.
+   */
+  restoreOffers: (offers: Offer[]) => void;
+
   // Founder Mode - Cap Table State
   capTable: CapTable;
   instruments: FundingInstrument[];
@@ -68,8 +102,62 @@ interface AppState {
   loadExample: (exampleId: string) => boolean;
   loadFounderTemplate: (templateId: string) => boolean;
 
+  // Ledger Landing - Sample Notice ("Clear the sample" empties the document
+  // back to true blanks, distinct from `loadExample`'s fill-in)
+  clearSample: () => void;
+
   // Derived State Helpers
   hasEmployeeFormData: () => boolean;
+
+  // Ledger Display Currency Preference
+  displayCurrency: DisplayCurrency;
+  setDisplayCurrency: (currency: DisplayCurrency) => void;
+}
+
+/** Shape of the state written to persisted storage (see `partialize` below). */
+interface PersistedAppState {
+  appMode: AppMode;
+  capTable: CapTable;
+  instruments: FundingInstrument[];
+  preferenceTiers: PreferenceTier[];
+  displayCurrency: DisplayCurrency;
+  offers: Offer[];
+}
+
+/**
+ * Fills a missing `displayCurrency` on persisted state written before the field
+ * existed. Self-contained and idempotent so future migrations can be composed
+ * alongside it without needing to know about this one.
+ */
+function withDisplayCurrencyDefault(
+  state: Record<string, unknown>
+): Record<string, unknown> & Pick<PersistedAppState, "displayCurrency"> {
+  return {
+    ...state,
+    displayCurrency: (state.displayCurrency as DisplayCurrency | undefined) ?? "USD",
+  };
+}
+
+/**
+ * Seeds `offers` on persisted state written before offers existed. A blob
+ * that still carries the legacy singular `equityDetails` has its one
+ * scenario carried forward as the first offer (displayed as "Offer A" - the
+ * store keeps an empty name and the UI supplies that default); otherwise
+ * seeds a single empty offer, matching fresh initial state. Self-contained
+ * and idempotent so it composes alongside other migrations without needing
+ * to know about them.
+ */
+function withOffersDefault(
+  state: Record<string, unknown>
+): Record<string, unknown> & Pick<PersistedAppState, "offers"> {
+  if (Array.isArray(state.offers)) {
+    return state as Record<string, unknown> & Pick<PersistedAppState, "offers">;
+  }
+  const legacyEquityDetails = state.equityDetails as RSUForm | StockOptionsForm | null | undefined;
+  return {
+    ...state,
+    offers: [{ ...createEmptyOffer(), equityDetails: legacyEquityDetails ?? null }],
+  };
 }
 
 const initialCapTable: CapTable = {
@@ -97,6 +185,36 @@ export const useAppStore = create<AppState>()(
       setCurrentJob: (data) => set({ currentJob: data }),
       setEquityDetails: (data) => set({ equityDetails: data }),
 
+      // Ledger Landing - Named Offers
+      offers: [createEmptyOffer()],
+      addOffer: () => {
+        const { offers } = get();
+        if (offers.length >= MAX_OFFERS) return false;
+        set({ offers: [...offers, createEmptyOffer()] });
+        return true;
+      },
+      removeOffer: (id) => {
+        const { offers } = get();
+        if (offers.length <= 1) return;
+        set({ offers: offers.filter((offer) => offer.id !== id) });
+      },
+      renameOffer: (id, name) => {
+        set({
+          offers: get().offers.map((offer) => (offer.id === id ? { ...offer, name } : offer)),
+        });
+      },
+      setOfferEquityDetails: (id, details) => {
+        set({
+          offers: get().offers.map((offer) =>
+            offer.id === id ? { ...offer, equityDetails: details } : offer
+          ),
+        });
+      },
+      restoreOffers: (offers) => {
+        const clamped = offers.slice(0, MAX_OFFERS);
+        set({ offers: clamped.length > 0 ? clamped : [createEmptyOffer()] });
+      },
+
       // Founder Mode - Cap Table State
       capTable: initialCapTable,
       instruments: [],
@@ -117,14 +235,35 @@ export const useAppStore = create<AppState>()(
         const example = getExampleById(exampleId);
         if (!example) return false;
 
-        // Atomically update all form state and clear results
+        // Atomically update all form state and clear results. `offers[0]` is
+        // seeded too (preserving its id/name so a prior rename survives a
+        // reload) — the Ledger landing reads offers, not the legacy singular
+        // `equityDetails`, which stays in sync here only for the pages that
+        // still read it directly.
+        const { offers } = get();
+        const [firstOffer, ...restOffers] = offers;
         set({
           globalSettings: example.globalSettings,
           currentJob: example.currentJob,
           equityDetails: example.equityDetails,
           monteCarloResults: null,
+          offers: [
+            { ...(firstOffer ?? createEmptyOffer()), equityDetails: example.equityDetails },
+            ...restOffers,
+          ],
         });
         return true;
+      },
+
+      // Ledger Landing - Sample Notice
+      clearSample: () => {
+        set({
+          globalSettings: null,
+          currentJob: null,
+          equityDetails: null,
+          offers: [createEmptyOffer()],
+          monteCarloResults: null,
+        });
       },
 
       loadFounderTemplate: (templateId) => {
@@ -146,15 +285,32 @@ export const useAppStore = create<AppState>()(
         const state = get();
         return !!(state.globalSettings && state.currentJob && state.equityDetails);
       },
+
+      // Ledger Display Currency Preference
+      displayCurrency: "USD",
+      setDisplayCurrency: (currency) => set({ displayCurrency: currency }),
     }),
     {
       name: "worth-it-app-state",
-      // Only persist founder mode state and app mode preference
+      version: PERSIST_VERSION,
+      // The `as unknown as` double-cast is required: `Record<string, unknown>` and
+      // `PersistedAppState` don't overlap enough for TS to allow a direct `as`
+      // (the loose Record type can't statically prove the other fields are
+      // correctly typed — that's only guaranteed by migrate's runtime contract of
+      // running on previously `partialize`d data), so don't "simplify" it away.
+      migrate: (persistedState) =>
+        withOffersDefault(
+          withDisplayCurrencyDefault(persistedState as Record<string, unknown>)
+        ) as unknown as PersistedAppState,
+      // Only persist founder mode state, app mode preference, the display
+      // currency preference, and the named offers
       partialize: (state) => ({
         appMode: state.appMode,
         capTable: state.capTable,
         instruments: state.instruments,
         preferenceTiers: state.preferenceTiers,
+        displayCurrency: state.displayCurrency,
+        offers: state.offers,
       }),
     }
   )
@@ -168,3 +324,5 @@ export const usePreferenceTiers = () => useAppStore((state) => state.preferenceT
 export const useComparisonScenarios = () => useAppStore((state) => state.comparisonScenarios);
 export const useCommandPaletteOpen = () => useAppStore((state) => state.commandPaletteOpen);
 export const useSetCommandPaletteOpen = () => useAppStore((state) => state.setCommandPaletteOpen);
+export const useDisplayCurrency = () => useAppStore((state) => state.displayCurrency);
+export const useOffers = () => useAppStore((state) => state.offers);

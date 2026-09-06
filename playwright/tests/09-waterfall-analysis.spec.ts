@@ -4,10 +4,11 @@ import type { WorthItHelpers } from '../utils/helpers';
 import { TIMEOUTS } from '../utils/test-data';
 
 /**
- * Test Suite: Waterfall Analysis (Founder Mode)
+ * Test Suite: Waterfall Analysis (Cap Table tool, `/cap-table`)
  *
  * These tests verify:
- * - Founder mode navigation
+ * - The Cap Table route loads directly (founder mode is no longer a tab on
+ *   the landing -- Task 14 promoted it to its own route)
  * - Adding stakeholders to cap table
  * - Adding preference tiers
  * - Exit valuation slider interaction
@@ -15,11 +16,10 @@ import { TIMEOUTS } from '../utils/test-data';
  * - Payout table amounts
  * - Waterfall steps breakdown
  *
- * NOTE: Every test/hook that calls `page.goto` must request the `helpers`
- * fixture. Creating that fixture is what wraps `page.goto` so the first-visit
- * welcome dialog is dismissed; without it the dialog's modal overlay swallows
- * the first click of the test. Tests that navigate only via a `beforeEach`
- * inherit the fixture from that hook and don't need to request it themselves.
+ * `FounderDashboard`/`CapTableManager` (rendered at `/cap-table`) predate the
+ * Ledger redesign and were not touched by it, so everything below the initial
+ * navigation -- the stakeholder form, the legacy Radix sliders, the wizard --
+ * still matches the pre-redesign app.
  */
 
 const TEST_STAKEHOLDERS = {
@@ -150,22 +150,18 @@ const TEST_PREFERENCE_TIER = {
 };
 
 test.describe('Founder Mode Navigation', () => {
-  test('should switch to Founder mode', async ({ page, helpers }) => {
-    await page.goto('/');
-
-    // Click on "Model Cap Table" tab
-    const founderTab = page.getByRole('tab', { name: /Model Cap Table/i });
-    await founderTab.click();
+  test('should load the Cap Table page', async ({ page, helpers }) => {
+    await page.goto('/cap-table');
 
     // Verify Cap Table section is visible
+    await expect(page.getByRole('heading', { name: 'Cap Table', level: 1 })).toBeVisible({
+      timeout: TIMEOUTS.elementVisible,
+    });
     await expect(page.getByText(/Cap Table/i).first()).toBeVisible({ timeout: TIMEOUTS.elementVisible });
   });
 
   test('should display three tabs in Founder mode: Cap Table, Funding, Waterfall', async ({ page, helpers }) => {
-    await page.goto('/');
-
-    // Switch to Founder mode
-    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
+    await page.goto('/cap-table');
 
     // Wait for the cap table manager to load
     await page.waitForSelector('text=/Cap Table/i', { timeout: TIMEOUTS.elementVisible });
@@ -186,8 +182,7 @@ test.describe('Founder Mode Navigation', () => {
 
 test.describe('Cap Table - Adding Stakeholders', () => {
   test.beforeEach(async ({ page, helpers }) => {
-    await page.goto('/');
-    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
+    await page.goto('/cap-table');
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
   });
 
@@ -274,8 +269,7 @@ test.describe('Cap Table - Adding Stakeholders', () => {
 
 test.describe('Waterfall Tab - Preference Tiers', () => {
   test.beforeEach(async ({ page, helpers }) => {
-    await page.goto('/');
-    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
+    await page.goto('/cap-table');
     await page.waitForSelector('text=/Add Stakeholder/i', { timeout: TIMEOUTS.elementVisible });
 
     // Add stakeholders first
@@ -361,8 +355,7 @@ test.describe('Waterfall Tab - Preference Tiers', () => {
 
 test.describe('Waterfall Tab - Exit Valuation Slider', () => {
   test.beforeEach(async ({ page, helpers }) => {
-    await page.goto('/');
-    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
+    await page.goto('/cap-table');
 
     // Add a stakeholder
     await stakeholderForm(page).locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDERS.founder.name);
@@ -415,8 +408,7 @@ test.describe('Waterfall Tab - Exit Valuation Slider', () => {
 
 test.describe('Waterfall Tab - Chart and Table Views', () => {
   test.beforeEach(async ({ page, helpers }) => {
-    await page.goto('/');
-    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
+    await page.goto('/cap-table');
 
     // Add stakeholders
     await stakeholderForm(page).locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDERS.founder.name);
@@ -529,8 +521,7 @@ test.describe('Waterfall Tab - Chart and Table Views', () => {
 
 test.describe('Waterfall Tab - Waterfall Steps Breakdown', () => {
   test.beforeEach(async ({ page, helpers }) => {
-    await page.goto('/');
-    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
+    await page.goto('/cap-table');
 
     // Add founder stakeholder
     await stakeholderForm(page).locator('input[placeholder="e.g., John Smith"]').fill(TEST_STAKEHOLDERS.founder.name);
@@ -596,10 +587,8 @@ test.describe('Waterfall Tab - Waterfall Steps Breakdown', () => {
 
 test.describe('Waterfall Tab - Complete Flow', () => {
   test('should complete full waterfall analysis flow', async ({ page, helpers }) => {
-    await page.goto('/');
-
-    // Step 1: Switch to Founder mode
-    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
+    // Step 1: Go straight to the Cap Table tool
+    await page.goto('/cap-table');
 
     // Step 2: Add multiple stakeholders
     // Founder
@@ -657,8 +646,7 @@ test.describe('Waterfall Tab - Complete Flow', () => {
   });
 
   test('should handle empty cap table gracefully', async ({ page, helpers }) => {
-    await page.goto('/');
-    await page.getByRole('tab', { name: /Model Cap Table/i }).click();
+    await page.goto('/cap-table');
 
     // The Waterfall tab is hidden behind the setup wizard while the cap table
     // is empty, which is exactly the state this test exercises

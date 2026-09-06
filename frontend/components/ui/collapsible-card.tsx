@@ -26,8 +26,6 @@ interface CollapsibleCardProps {
   accentColor?: "primary" | "chart-3" | "chart-1" | "chart-2" | "accent";
   /** Optional icon to show before title */
   icon?: React.ReactNode;
-  /** Data attribute for testing/tours */
-  dataTour?: string;
 }
 
 /**
@@ -47,7 +45,6 @@ export function CollapsibleCard({
   onOpenChange,
   accentColor = "primary",
   icon,
-  dataTour,
 }: CollapsibleCardProps) {
   const accentColorMap = {
     primary: "border-l-primary/50",
@@ -84,7 +81,7 @@ export function CollapsibleCard({
   // Non-collapsible static card
   if (!collapsible) {
     return (
-      <div className={cardClassName} data-tour={dataTour}>
+      <div className={cardClassName}>
         <div className="px-6 pt-6 pb-4">{headerContent}</div>
         <div className="px-6 pb-6">{children}</div>
       </div>
@@ -94,7 +91,7 @@ export function CollapsibleCard({
   // Collapsible card (default)
   return (
     <Collapsible defaultOpen={defaultOpen} open={open} onOpenChange={onOpenChange}>
-      <div className={cardClassName} data-tour={dataTour}>
+      <div className={cardClassName}>
         {/* Clickable Header */}
         <CollapsibleTrigger asChild>
           <button

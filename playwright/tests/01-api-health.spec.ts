@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/base';
-import { SELECTORS, TIMEOUTS } from '../utils/test-data';
+import { TIMEOUTS } from '../utils/test-data';
 
 /**
  * Test Suite: API Health and Basic Page Load
@@ -36,11 +36,13 @@ test.describe('API Health and Connection', () => {
     // Wait for page to be ready
     await helpers.waitForAPIConnection();
 
-    // Verify main form sections are visible with explicit timeouts
-    await expect(page.getByText(/Global Settings/i).first()).toBeVisible({
+    // Verify main form sections are visible with explicit timeouts. The
+    // Ledger landing has no separate "Global Settings" panel -- the
+    // exit-year figure lives in the document header as "Horizon".
+    await expect(page.getByText(/Horizon/i).first()).toBeVisible({
       timeout: TIMEOUTS.elementVisible,
     });
-    await expect(page.getByText('Current Job', { exact: true }).first()).toBeVisible({
+    await expect(page.getByText('Current job', { exact: true }).first()).toBeVisible({
       timeout: TIMEOUTS.textContent,
     });
     await expect(page.getByText(/Startup Offer/i).first()).toBeVisible({

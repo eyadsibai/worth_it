@@ -19,7 +19,6 @@ test.describe('PR #220: Touch-Friendly Sliders', () => {
   test.beforeEach(async ({ page, helpers }) => {
     await page.goto('/');
     await page.waitForSelector('h1');
-    await helpers.dismissWelcomeDialog();
   });
 
   test.describe('Stepper buttons', () => {

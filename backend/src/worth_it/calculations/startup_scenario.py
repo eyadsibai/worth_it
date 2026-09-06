@@ -57,6 +57,8 @@ def calculate_startup_scenario(
             "results_df": pd.DataFrame(),
             "final_payout_value": 0,
             "final_opportunity_cost": 0,
+            "final_breakeven_value": None,
+            "final_take_home_value": 0,
             "payout_label": "Your Equity Value",
             "breakeven_label": "Breakeven Value",
         }
@@ -152,6 +154,27 @@ def calculate_startup_scenario(
                 "breakeven_label": "Breakeven Valuation (SAR)",
                 "total_dilution": total_dilution,
                 "diluted_equity_pct": diluted_equity_pct,
+                # One entry per round in `dilution_rounds`, same order - the
+                # per-round table renders this directly instead of
+                # recomputing its own (previously divergent) cumulative
+                # product. `strict=True` ensures a mismatch would raise
+                # rather than silently mispair a round with the wrong
+                # factor. `round_factors` comes back empty when
+                # `calculate_dilution_schedule` took the `simulated_dilution`
+                # shortcut (which never looks at `rounds`), so the per-round
+                # schedule is only computed when there is one to compute -
+                # zipping an empty `round_factors` against a non-empty
+                # `dilution_rounds` under `strict=True` would otherwise raise.
+                "dilution_schedule": (
+                    [
+                        {"year": r["year"], "resulting_stake_pct": factor * 100}
+                        for r, factor in zip(
+                            dilution_rounds or [], dilution_result.round_factors, strict=True
+                        )
+                    ]
+                    if dilution_result.round_factors
+                    else []
+                ),
             }
         )
 
@@ -200,6 +223,12 @@ def calculate_startup_scenario(
     else:
         final_payout_value_npv = final_payout_value
 
+    # The break-even column is `inf` wherever no equity has vested yet (see
+    # above); `inf` can't survive a JSON response, so the top-level scalar
+    # reports `None` in that case rather than a non-JSON literal.
+    final_breakeven_raw = results_df["Breakeven Value"].iloc[-1]
+    final_breakeven_value = None if np.isinf(final_breakeven_raw) else float(final_breakeven_raw)
+
     output.update(
         {
             "results_df": results_df,
@@ -207,6 +236,12 @@ def calculate_startup_scenario(
             "final_payout_value_npv": final_payout_value_npv,
             "final_opportunity_cost": results_df["Opportunity Cost (Invested Surplus)"].iloc[-1],
             "final_opportunity_cost_npv": final_opportunity_cost_npv,
+            "final_breakeven_value": final_breakeven_value,
+            # The Stay column's "take-home over the horizon": the current
+            # job's gross salary summed across the whole horizon - distinct
+            # from `final_opportunity_cost`, which is the future value of the
+            # *forgone surplus*, not the salary itself.
+            "final_take_home_value": results_df["CurrentJobSalary"].sum(),
         }
     )
 

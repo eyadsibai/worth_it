@@ -300,18 +300,27 @@ test.describe("Performance Tests", () => {
       return 0;
     });
 
-    // Perform multiple interactions
+    // Perform multiple interactions. Every `Field` on the Ledger landing is a
+    // plain `type="text"` input (blur-parsed, not `type="number"` -- that
+    // selector matched a pre-redesign form and finds nothing here now), and
+    // the first `button` in DOM order is the command palette's "Search ⌘K"
+    // trigger: clicking it repeatedly opens a modal dialog whose backdrop then
+    // intercepts every later click, which is what was crashing this test
+    // rather than exercising real interactions. "Toggle theme" is a stable,
+    // always-visible, non-modal control that still forces a real re-render on
+    // every click, so it stands in for "click buttons" here.
     for (let i = 0; i < 5; i++) {
-      // Fill form
-      const input = page.locator('input[type="number"]').first();
-      if (await input.isVisible()) {
-        await input.fill(String(Math.random() * 100));
+      // Fill a real field
+      const salaryInput = page.getByLabel("Monthly salary").first();
+      if (await salaryInput.isVisible()) {
+        await salaryInput.fill(String(Math.round(Math.random() * 10000)));
+        await salaryInput.blur();
       }
 
-      // Click buttons
-      const button = page.getByRole("button").first();
-      if ((await button.isVisible()) && (await button.isEnabled())) {
-        await button.click().catch(() => {});
+      // Click a button that doesn't open a modal
+      const themeButton = page.getByRole("button", { name: /toggle theme/i });
+      if ((await themeButton.isVisible()) && (await themeButton.isEnabled())) {
+        await themeButton.click().catch(() => {});
       }
 
       await page.waitForTimeout(500);

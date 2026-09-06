@@ -8,21 +8,28 @@ import {
   StockOptionsFormSchema,
 } from "@/lib/schemas";
 import type { GlobalSettingsForm, CurrentJobForm, RSUForm, StockOptionsForm } from "@/lib/schemas";
+import type { Offer } from "@/lib/store";
 
 const STORAGE_KEY = "worth-it-draft-employee";
 const DEFAULT_INTERVAL_MS = 5000; // 5 seconds
 
 /**
- * Bump whenever a persisted field changes meaning.
+ * Bump whenever a persisted field changes meaning or shape.
  *
  * Drafts written by an older schema are dropped rather than migrated:
- * dilution_rounds.salary_change used to be seeded as a raise amount and now
- * carries the absolute new monthly salary, which is forwarded to the backend as
- * new_salary. A stored 1000 could be either a correct absolute salary the user
- * typed or an old example's raise, and the two are indistinguishable once
- * serialised - so the only safe reading of an unversioned draft is none.
+ *
+ * - v1 -> v2: dilution_rounds.salary_change used to be seeded as a raise
+ *   amount and now carries the absolute new monthly salary, which is
+ *   forwarded to the backend as new_salary. A stored 1000 could be either a
+ *   correct absolute salary the user typed or an old example's raise, and
+ *   the two are indistinguishable once serialised - so the only safe
+ *   reading of an unversioned draft is none.
+ * - v2 -> v3: added the `offers` array (up to three named offers) alongside
+ *   the existing `equityDetails` field. A v2 draft predates offers entirely,
+ *   so there is nothing meaningful to migrate it into - it is dropped like
+ *   any other version mismatch.
  */
-export const DRAFT_SCHEMA_VERSION = 2;
+export const DRAFT_SCHEMA_VERSION = 3;
 
 /**
  * Check if localStorage is available and functional.
@@ -39,10 +46,21 @@ function isLocalStorageAvailable(): boolean {
   }
 }
 
+/** A named offer as written to a draft, before Zod validation. */
+export interface DraftOffer {
+  id: string;
+  name: string;
+  equityDetails: Partial<RSUForm> | Partial<StockOptionsForm> | null;
+}
+
 export interface DraftFormData {
   globalSettings: Partial<GlobalSettingsForm> | null;
   currentJob: Partial<CurrentJobForm> | null;
+  // Legacy singular scenario - remains until the legacy dashboard is retired.
   equityDetails: Partial<RSUForm> | Partial<StockOptionsForm> | null;
+  // Named offers for the ledger landing. Optional so the legacy dashboard's
+  // draft payload (which never sets this) keeps compiling unchanged.
+  offers?: DraftOffer[] | null;
 }
 
 export interface DraftData {
@@ -86,7 +104,8 @@ export function useDraftAutoSave(
       const hasData =
         formData.globalSettings !== null ||
         formData.currentJob !== null ||
-        formData.equityDetails !== null;
+        formData.equityDetails !== null ||
+        Boolean(formData.offers?.some((offer) => offer.equityDetails !== null));
 
       if (!hasData) {
         return;
@@ -189,6 +208,37 @@ export function safeDraftSerialize(data: unknown): string | null {
 }
 
 /**
+ * Validate a raw equity-details payload against RSU first, then Stock
+ * Options. Returns null if it matches neither.
+ */
+function parseEquityDetails(raw: unknown): RSUForm | StockOptionsForm | null {
+  const rsuResult = RSUFormSchema.safeParse(raw);
+  if (rsuResult.success) {
+    return rsuResult.data;
+  }
+  const optionsResult = StockOptionsFormSchema.safeParse(raw);
+  return optionsResult.success ? optionsResult.data : null;
+}
+
+/**
+ * Validate a raw offers array. Entries missing an id/name are dropped;
+ * each surviving entry's equity details are independently validated (an
+ * invalid one becomes null rather than dropping the whole offer).
+ */
+function parseDraftOffers(offers: DraftOffer[] | null | undefined): Offer[] | null {
+  if (!Array.isArray(offers)) {
+    return null;
+  }
+  return offers
+    .filter((offer) => typeof offer?.id === "string" && typeof offer?.name === "string")
+    .map((offer) => ({
+      id: offer.id,
+      name: offer.name,
+      equityDetails: offer.equityDetails ? parseEquityDetails(offer.equityDetails) : null,
+    }));
+}
+
+/**
  * Safely parse draft data using Zod schemas instead of unsafe type casting.
  * Returns validated data or null for each field that fails validation.
  */
@@ -196,10 +246,10 @@ export function safeParseDraftData(data: DraftFormData): {
   globalSettings: GlobalSettingsForm | null;
   currentJob: CurrentJobForm | null;
   equityDetails: RSUForm | StockOptionsForm | null;
+  offers: Offer[] | null;
 } {
   let globalSettings: GlobalSettingsForm | null = null;
   let currentJob: CurrentJobForm | null = null;
-  let equityDetails: RSUForm | StockOptionsForm | null = null;
 
   if (data.globalSettings) {
     const result = GlobalSettingsFormSchema.safeParse(data.globalSettings);
@@ -215,18 +265,8 @@ export function safeParseDraftData(data: DraftFormData): {
     }
   }
 
-  if (data.equityDetails) {
-    // Try RSU first, then Stock Options
-    const rsuResult = RSUFormSchema.safeParse(data.equityDetails);
-    if (rsuResult.success) {
-      equityDetails = rsuResult.data;
-    } else {
-      const optionsResult = StockOptionsFormSchema.safeParse(data.equityDetails);
-      if (optionsResult.success) {
-        equityDetails = optionsResult.data;
-      }
-    }
-  }
+  const equityDetails = data.equityDetails ? parseEquityDetails(data.equityDetails) : null;
+  const offers = parseDraftOffers(data.offers);
 
-  return { globalSettings, currentJob, equityDetails };
+  return { globalSettings, currentJob, equityDetails, offers };
 }

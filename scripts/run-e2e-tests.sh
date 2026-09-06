@@ -31,9 +31,16 @@ trap cleanup EXIT
 echo -e "${GREEN}Starting E2E test environment...${NC}\n"
 
 # Start backend server
+#
+# RATE_LIMIT_ENABLED=false: the limiter allows 60 requests/minute per IP, and a
+# single spec spends three API calls per scenario, so the suite exhausts the
+# budget within the first minute and every later request comes back 429. That
+# turns real assertions into timeouts and makes results depend on how recently
+# the suite last ran. Tests that need to exercise the limiter should start their
+# own server with it enabled.
 echo -e "${YELLOW}Starting backend server...${NC}"
 cd backend
-uv run uvicorn worth_it.api:app --host 0.0.0.0 --port 8000 &
+RATE_LIMIT_ENABLED=false uv run uvicorn worth_it.api:app --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!
 cd ..
 

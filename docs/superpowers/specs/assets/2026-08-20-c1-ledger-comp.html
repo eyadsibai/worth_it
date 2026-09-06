@@ -1,0 +1,382 @@
+<title>The Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@400;500;600&family=Schibsted+Grotesk:ital,wght@0,400..900;1,400..900&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Amiri:ital,wght@0,400;0,700;1,400&family=Noto+Sans+Arabic:wght@400;500;600&family=Cairo:wght@400;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --paper:#FBFAF7; --ink:#1C1B17; --rule:rgba(28,27,23,.14); --rule-strong:rgba(28,27,23,.32);
+    --ann:#6E6B63; --green:#0A7A3D; --green-soft:rgba(10,122,61,.07); --red:#B42318;
+    --serif:"Newsreader","Amiri",Georgia,serif; --sans:"Public Sans","Noto Sans Arabic",system-ui,sans-serif; --mono:"JetBrains Mono","IBM Plex Sans Arabic",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5}
+  .sheet{max-width:1080px;margin:0 auto;padding:0 40px 80px}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  svg text{font-family:var(--mono)}
+  .label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ann);font-weight:600}
+  a{color:inherit;text-decoration:none}
+
+  /* masthead */
+  header{display:flex;align-items:baseline;gap:32px;padding:22px 0 14px;border-bottom:1px solid var(--ink)}
+  .wordmark{font-family:var(--serif);font-size:23px;font-weight:600;letter-spacing:-.01em}
+  .wordmark em{font-style:italic;color:var(--green)}
+  nav{display:flex;gap:24px;font-size:13px;color:var(--ann)}
+  nav a.on{color:var(--ink);border-bottom:2px solid var(--green);padding-bottom:2px}
+  .mast-right{margin-left:auto;display:flex;gap:14px;align-items:center}
+  .kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--rule-strong);border-radius:4px;padding:2px 7px;color:var(--ann)}
+
+  /* sample notice */
+  .notice{display:flex;gap:10px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--rule);font-size:12.5px;color:var(--ann)}
+  .notice b{color:var(--ink);font-weight:600}
+  .notice a{color:var(--green);font-weight:600;margin-left:auto;white-space:nowrap}
+
+  /* doc header row */
+  .doc-head{display:flex;align-items:baseline;gap:26px;padding:26px 0 4px}
+  .doc-head h1{font-family:var(--serif);font-weight:500;font-size:17px;margin:0;letter-spacing:.01em}
+  .ctl{font-size:12px;color:var(--ann)}
+  .ctl b{font-family:var(--mono);color:var(--ink);font-weight:500;border-bottom:1px dotted var(--rule-strong);padding-bottom:1px}
+  .toggle{margin-left:auto;display:flex;gap:8px;align-items:center;font-size:12px;color:var(--ann)}
+  .pill{width:30px;height:16px;border-radius:9px;background:var(--green);position:relative}
+  .pill::after{content:"";position:absolute;right:2px;top:2px;width:12px;height:12px;border-radius:50%;background:#fff}
+
+  /* the duel */
+  .duel{display:grid;grid-template-columns:1fr 1fr 150px;gap:0;margin-top:14px;border-top:1px solid var(--ink)}
+  .col{padding:20px 28px 24px;border-right:1px solid var(--rule)}
+  .col:first-child{padding-left:0}
+  .col-head{display:flex;align-items:baseline;gap:10px;margin-bottom:18px}
+  .col-head .side{font-family:var(--serif);font-size:21px;font-weight:600}
+  .col-head .side em{font-style:italic}
+  .col-head .tag{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ann)}
+  .field{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--rule)}
+  .field .k{font-size:12.5px;color:var(--ann)}
+  .field .v{font-family:var(--mono);font-size:13.5px;font-weight:500}
+  .field .v small{color:var(--ann);font-weight:400;font-size:11px}
+  .chips{display:flex;gap:6px;padding:8px 0 0;flex-wrap:wrap}
+  .chip{font-family:var(--mono);font-size:11px;border:1px solid var(--rule);border-radius:3px;padding:2px 8px;color:var(--ann)}
+  .chip.on{border-color:var(--green);color:var(--green);background:var(--green-soft)}
+  .addcol{border:1px dashed var(--rule-strong);border-top:none;margin:20px 0 24px 24px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--ann);font-size:12.5px;line-height:1.6;border-radius:2px}
+  .addcol .plus{display:block;font-family:var(--serif);font-size:26px;color:var(--green)}
+
+  /* verdict */
+  .verdict{border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);margin-top:0;padding:34px 0 26px;display:grid;grid-template-columns:1fr 300px;gap:40px;align-items:center;background:linear-gradient(var(--green-soft),transparent)}
+  .verdict h2{font-family:var(--serif);font-weight:500;font-size:40px;line-height:1.16;margin:0;letter-spacing:-.012em;text-wrap:balance}
+  .verdict h2 .money{font-family:var(--mono);font-weight:600;font-size:36px;color:var(--green);white-space:nowrap}
+  .verdict .basis{margin-top:10px;font-size:13px;color:var(--ann)}
+  .stats{display:flex;gap:36px;margin-top:22px}
+  .stat .label{display:block;margin-bottom:3px}
+  .stat .num{font-size:16px;font-weight:500}
+  .stat .num.up{color:var(--green)} .stat .num.down{color:var(--red)}
+  .fanbox{border-left:1px solid var(--rule);padding-left:28px}
+  .fanbox .cap{font-size:11.5px;color:var(--ann);margin-top:8px;line-height:1.5}
+
+  /* chapters */
+  .chapter{padding:30px 0 8px}
+  .ch-head{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--ink);padding-bottom:8px;margin-bottom:18px}
+  .ch-head .no{font-family:var(--mono);font-size:11px;color:var(--ann)}
+  .ch-head h3{font-family:var(--serif);font-size:22px;font-weight:500;margin:0}
+  .ch-head .sub{font-size:12.5px;color:var(--ann);margin-left:auto}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th{text-align:left;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ann);font-weight:600;border-bottom:1px solid var(--rule-strong);padding:6px 14px 6px 0}
+  td{border-bottom:1px solid var(--rule);padding:7px 14px 7px 0}
+  td.num,th.r{text-align:right}
+  th.r{padding-right:0}.num.r{padding-right:0;text-align:right}
+  .pos{color:var(--green)} .neg{color:var(--red)}
+  .grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:44px;align-items:start}
+  .note{font-size:12.5px;color:var(--ann);line-height:1.6;max-width:60ch}
+  .note b{color:var(--ink)}
+  footer{border-top:1px solid var(--ink);margin-top:40px;padding-top:14px;display:flex;gap:24px;font-size:11.5px;color:var(--ann)}
+  footer .num{font-size:11.5px}
+
+  /* type pairing variants */
+  body.t2{--serif:"Fraunces","Amiri",Georgia,serif;--sans:"Inter","Noto Sans Arabic",system-ui,sans-serif;--mono:"IBM Plex Mono","IBM Plex Sans Arabic",ui-monospace,monospace}
+  body.t3{--serif:"Schibsted Grotesk","Cairo",system-ui,sans-serif;--sans:"Inter","Noto Sans Arabic",system-ui,sans-serif;--mono:"Inter","Noto Sans Arabic",system-ui,sans-serif}
+  body.t3 .verdict h2{font-weight:650;letter-spacing:-.025em}
+  body.t3 .verdict h2 .money{font-weight:700}
+  body.t3 .col-head .side,body.t3 .ch-head h3,body.t3 .wordmark,body.t3 h1{font-weight:650;letter-spacing:-.015em}
+  body.t3 .col-head .side em,body.t3 .wordmark em{font-style:normal;color:var(--green)}
+  body.t4{--serif:"IBM Plex Serif","Amiri",Georgia,serif;--sans:"IBM Plex Sans","IBM Plex Sans Arabic",system-ui,sans-serif;--mono:"IBM Plex Mono","IBM Plex Sans Arabic",ui-monospace,monospace}
+
+  /* RTL (Arabic) — physical-property mirrors; production uses logical properties from the start */
+  [dir=rtl] .mast-right,[dir=rtl] .notice a,[dir=rtl] .toggle,[dir=rtl] .ch-head .sub{margin-left:0;margin-right:auto}
+  [dir=rtl] .col{border-right:none;border-left:1px solid var(--rule)}
+  [dir=rtl] .col:first-child{padding-left:28px;padding-right:0}
+  [dir=rtl] .addcol{margin:20px 24px 24px 0}
+  [dir=rtl] .fanbox{border-left:none;padding-left:0;border-right:1px solid var(--rule);padding-right:28px}
+  [dir=rtl] th{text-align:right}
+  [dir=rtl] th,[dir=rtl] td{padding-right:0;padding-left:14px}
+  [dir=rtl] td.num,[dir=rtl] th.r{text-align:left}
+  [dir=rtl] th.r,[dir=rtl] .num.r{padding-left:0}
+  [dir=rtl] .label{letter-spacing:.02em}
+  [dir=rtl] .verdict h2{letter-spacing:0;font-size:36px;line-height:1.34}
+  [dir=rtl] .verdict h2 .money{font-size:33px}
+  [dir=rtl] footer span[style]{margin-left:0!important;margin-right:auto}
+  .typebar{position:fixed;right:18px;bottom:18px;background:#fff;border:1px solid var(--rule-strong);border-radius:6px;padding:10px 12px;box-shadow:0 4px 18px rgba(28,27,23,.10);z-index:9;display:flex;flex-direction:column;gap:6px}
+  .typebar .label{font-family:"Public Sans",sans-serif}
+  .typebar button{all:unset;cursor:pointer;font-size:12.5px;padding:4px 8px;border-radius:4px;color:var(--ann);display:flex;gap:8px;align-items:baseline}
+  .typebar button:hover{background:rgba(28,27,23,.05)}
+  .typebar button.on{color:var(--ink);background:var(--green-soft)}
+  .typebar button.on::before{content:"●";color:var(--green);font-size:8px}
+  .typebar button .who{font-size:11px;color:var(--ann)}
+  .tb1{font-family:"Newsreader",serif}.tb2{font-family:"Fraunces",serif}.tb3{font-family:"Schibsted Grotesk",sans-serif;font-weight:650}.tb4{font-family:"IBM Plex Serif",serif}
+</style>
+
+<div class="sheet" id="sheet-en">
+  <header>
+    <span class="wordmark">Worth <em>It</em></span>
+    <nav><a class="on">Analysis</a><a>Cap Table</a><a>Valuation</a><a>About</a></nav>
+    <span class="mast-right"><span class="kbd">⌘K</span><span class="label">Light ◐</span></span>
+  </header>
+
+  <div class="notice"><b>Sample comparison.</b> These are illustrative numbers — replace them with your own as you read. <a>Clear the sample →</a></div>
+
+  <div class="doc-head">
+    <h1>Offer analysis</h1>
+    <span class="ctl">Horizon <b>5 years</b></span>
+    <span class="ctl">Simulation seed <b>184-002</b></span>
+    <span class="toggle">Today's dollars (NPV) <span class="pill"></span></span>
+  </div>
+
+  <div class="duel">
+    <div class="col">
+      <div class="col-head"><span class="side">Stay</span><span class="tag">Current job</span></div>
+      <div class="field"><span class="k">Monthly salary</span><span class="v">$12,000</span></div>
+      <div class="field"><span class="k">Annual raise</span><span class="v">5.0%</span></div>
+      <div class="field"><span class="k">Surplus invested at</span><span class="v">8.0% <small>/yr, monthly</small></span></div>
+      <div class="field"><span class="k">5-yr take-home</span><span class="v">$795,000</span></div>
+    </div>
+    <div class="col">
+      <div class="col-head"><span class="side"><em>The offer</em></span><span class="tag">Startup · RSUs</span></div>
+      <div class="field"><span class="k">Monthly salary</span><span class="v">$8,000</span></div>
+      <div class="field"><span class="k">Equity grant</span><span class="v">0.50%</span></div>
+      <div class="field"><span class="k">Vesting</span><span class="v">4 yr <small>· 1 yr cliff</small></span></div>
+      <div class="field"><span class="k">Exit valuation</span><span class="v">$100M</span></div>
+      <div class="field"><span class="k">Dilution to exit</span><span class="v">48% <small>· post-seed, 2 rounds</small></span></div>
+      <div class="chips"><span class="chip">$10M</span><span class="chip">$50M</span><span class="chip on">$100M</span><span class="chip">$500M</span><span class="chip">$1B</span></div>
+    </div>
+    <div class="addcol"><span><span class="plus">+</span>Add another<br>offer</span></div>
+  </div>
+
+  <div class="verdict">
+    <div>
+      <h2>Take the offer — it nets you <span class="money">+$22,542</span> in today's dollars.</h2>
+      <div class="basis">Median of 10,000 simulated outcomes over 5 years, after dilution, against staying and investing the salary difference.</div>
+      <div class="stats">
+        <span class="stat"><span class="label">P(offer wins)</span><span class="num up">64%</span></span>
+        <span class="stat"><span class="label">Equity at exit</span><span class="num">$123,927</span></span>
+        <span class="stat"><span class="label">Cost of leaving</span><span class="num">$101,385</span></span>
+        <span class="stat"><span class="label">Break-even exit</span><span class="num">$81.8M</span></span>
+      </div>
+    </div>
+    <div class="fanbox">
+      <svg viewBox="0 0 272 120" width="272" height="120" role="img" aria-label="Range of simulated outcomes over five years">
+        <line x1="0" y1="88" x2="272" y2="88" stroke="rgba(28,27,23,.32)" stroke-width="1"/>
+        <path d="M0,88 C70,87 140,80 200,58 C230,47 255,30 272,14 L272,96 C230,97 90,92 0,89 Z" fill="rgba(10,122,61,.12)"/>
+        <path d="M0,88 C80,87 150,84 205,74 C235,68 258,60 272,52 L272,80 C220,86 100,89 0,88.6 Z" fill="rgba(10,122,61,.22)"/>
+        <path d="M0,88 C90,87 170,82 225,72 C248,68 264,64 272,61" fill="none" stroke="#0A7A3D" stroke-width="1.8"/>
+        <line x1="0" y1="0" x2="0" y2="96" stroke="rgba(28,27,23,.14)"/>
+        <text x="228" y="112" font-family="JetBrains Mono" font-size="9" fill="#6E6B63">year 5</text>
+        <text x="4" y="112" font-family="JetBrains Mono" font-size="9" fill="#6E6B63">today</text>
+        <text x="196" y="52" font-family="JetBrains Mono" font-size="9" fill="#0A7A3D">median</text>
+      </svg>
+      <div class="cap">The shaded band is the middle 80% of simulations; the line is the median advantage of taking the offer. It crosses zero if the company exits under <span class="num">$81.8M</span>.</div>
+    </div>
+  </div>
+
+  <div class="chapter">
+    <div class="ch-head"><span class="no">01</span><h3>Vesting</h3><span class="sub">100% vested Aug 2030 · exit Aug 2031</span></div>
+    <div class="grid2">
+      <svg viewBox="0 0 560 130" width="100%" role="img" aria-label="Vesting timeline">
+        <line x1="0" y1="110" x2="560" y2="110" stroke="rgba(28,27,23,.32)"/>
+        <g stroke="rgba(28,27,23,.10)"><line x1="112" y1="10" x2="112" y2="110"/><line x1="224" y1="10" x2="224" y2="110"/><line x1="336" y1="10" x2="336" y2="110"/><line x1="448" y1="10" x2="448" y2="110"/></g>
+        <path d="M0,110 L112,110 L112,85 L336,35 L448,20 L560,20" fill="none" stroke="#0A7A3D" stroke-width="1.8"/>
+        <path d="M0,110 L112,110 L112,85 L336,35 L448,20 L560,20 L560,110 Z" fill="rgba(10,122,61,.08)"/>
+        <circle cx="112" cy="85" r="3" fill="#0A7A3D"/><circle cx="448" cy="20" r="3" fill="#0A7A3D"/>
+        <text x="104" y="76" font-family="JetBrains Mono" font-size="9" fill="#6E6B63">cliff · 25%</text>
+        <text x="420" y="12" font-family="JetBrains Mono" font-size="9" fill="#6E6B63">100% vested</text>
+        <g font-family="JetBrains Mono" font-size="9" fill="#6E6B63"><text x="0" y="124">2026</text><text x="104" y="124">2027</text><text x="216" y="124">2028</text><text x="328" y="124">2029</text><text x="440" y="124">2030</text><text x="536" y="124">2031</text></g>
+      </svg>
+      <p class="note"><b>The cliff is the risk window.</b> Leave before Aug 2027 and the equity is worth nothing. By the 5-year exit you are fully vested, so the verdict above carries no vesting haircut — shorten the horizon below 4 years and it will.</p>
+    </div>
+  </div>
+
+  <div class="chapter">
+    <div class="ch-head"><span class="no">02</span><h3>Range of outcomes</h3><span class="sub">10,000 runs · seed 184-002 · reproducible</span></div>
+    <div class="grid2">
+      <table>
+        <tr><th>Percentile</th><th class="r">Equity value</th><th class="r">Net vs. staying</th></tr>
+        <tr><td>p10 — weak exit</td><td class="num r">$18,400</td><td class="num r neg">−$82,985</td></tr>
+        <tr><td>p25</td><td class="num r">$61,200</td><td class="num r neg">−$40,185</td></tr>
+        <tr><td>p50 — median</td><td class="num r">$123,927</td><td class="num r pos">+$22,542</td></tr>
+        <tr><td>p75</td><td class="num r">$228,600</td><td class="num r pos">+$127,215</td></tr>
+        <tr><td>p90 — strong exit</td><td class="num r">$391,000</td><td class="num r pos">+$289,615</td></tr>
+      </table>
+      <p class="note"><b>Read this as odds, not a forecast.</b> In 36% of simulated worlds staying wins — mostly the ones where the exit lands under $81.8M or arrives before your cliff. The upside tail is what you are being paid in.</p>
+    </div>
+  </div>
+
+  <div class="chapter">
+    <div class="ch-head"><span class="no">03</span><h3>Dilution</h3><span class="sub">0.50% today → 0.26% at exit</span></div>
+    <table>
+      <tr><th>Round</th><th class="r">Raise</th><th class="r">Dilution</th><th class="r">Your stake after</th></tr>
+      <tr><td>Completed — pre-seed &amp; seed</td><td class="num r">$1.8M</td><td class="num r">23.5%</td><td class="num r">0.38%</td></tr>
+      <tr><td>Series A <span style="color:var(--ann)">(projected)</span></td><td class="num r">$8.0M</td><td class="num r">20.0%</td><td class="num r">0.31%</td></tr>
+      <tr><td>Series B <span style="color:var(--ann)">(projected)</span></td><td class="num r">$20.0M</td><td class="num r">15.0%</td><td class="num r">0.26%</td></tr>
+    </table>
+  </div>
+
+  <div class="chapter">
+    <div class="ch-head"><span class="no">04</span><h3>What would change the answer</h3><span class="sub">sensitivity</span></div>
+    <p class="note" style="max-width:72ch">The verdict flips to <b>stay</b> if the exit lands under <span class="num">$81.8M</span>, if your current salary grows past <span class="num">7.2%</span> a year, or if departure comes before the <span class="num">Aug 2027</span> cliff. It is insensitive to the investment return assumption within <span class="num">4–12%</span>.</p>
+  </div>
+
+  <footer>
+    <span>Worth It — sample comparison</span>
+    <span class="num">seed 184-002</span>
+    <span style="margin-left:auto">Export PDF · Share link · Save scenario</span>
+  </footer>
+</div>
+
+<div class="sheet" id="sheet-ar" dir="rtl" lang="ar" hidden>
+  <header>
+    <span class="wordmark">Worth <em>It</em></span>
+    <nav><a class="on">التحليل</a><a>جدول الملكية</a><a>التقييم</a><a>حول</a></nav>
+    <span class="mast-right"><span class="kbd">⌘K</span><span class="label">فاتح ◐</span></span>
+  </header>
+
+  <div class="notice"><b>مقارنة تجريبية.</b> الأرقام توضيحية — استبدلها بأرقامك أثناء القراءة. <a>← امسح النموذج</a></div>
+
+  <div class="doc-head">
+    <h1>تحليل العرض</h1>
+    <span class="ctl">الأفق <b>5 سنوات</b></span>
+    <span class="ctl">بذرة المحاكاة <b dir="ltr">184-002</b></span>
+    <span class="toggle">بدولارات اليوم (NPV) <span class="pill"></span></span>
+  </div>
+
+  <div class="duel">
+    <div class="col">
+      <div class="col-head"><span class="side">البقاء</span><span class="tag">الوظيفة الحالية</span></div>
+      <div class="field"><span class="k">الراتب الشهري</span><span class="v">$12,000</span></div>
+      <div class="field"><span class="k">الزيادة السنوية</span><span class="v">5.0%</span></div>
+      <div class="field"><span class="k">استثمار الفائض بعائد</span><span class="v">8.0% <small>سنويًا · شهريًا</small></span></div>
+      <div class="field"><span class="k">صافي الدخل في 5 سنوات</span><span class="v">$795,000</span></div>
+    </div>
+    <div class="col">
+      <div class="col-head"><span class="side"><em>العرض</em></span><span class="tag">شركة ناشئة · RSU</span></div>
+      <div class="field"><span class="k">الراتب الشهري</span><span class="v">$8,000</span></div>
+      <div class="field"><span class="k">منحة الأسهم</span><span class="v">0.50%</span></div>
+      <div class="field"><span class="k">الاستحقاق</span><span class="v">4 سنوات <small>· تجميد سنة</small></span></div>
+      <div class="field"><span class="k">تقييم التخارج</span><span class="v">$100M</span></div>
+      <div class="field"><span class="k">التخفيف حتى التخارج</span><span class="v">48% <small>· ما بعد البذرة، جولتان</small></span></div>
+      <div class="chips"><span class="chip">$10M</span><span class="chip">$50M</span><span class="chip on">$100M</span><span class="chip">$500M</span><span class="chip">$1B</span></div>
+    </div>
+    <div class="addcol"><span><span class="plus">+</span>أضف عرضًا<br>آخر</span></div>
+  </div>
+
+  <div class="verdict">
+    <div>
+      <h2>اقبل العرض — فستكسب <span class="money" dir="ltr">+$22,542</span> إضافية بقيمة اليوم.</h2>
+      <div class="basis">وسيط 10,000 نتيجة محاكاة على مدى 5 سنوات، بعد التخفيف، مقارنةً بالبقاء مع استثمار فرق الراتب.</div>
+      <div class="stats">
+        <span class="stat"><span class="label">احتمال تفوق العرض</span><span class="num up">64%</span></span>
+        <span class="stat"><span class="label">قيمة الأسهم عند التخارج</span><span class="num">$123,927</span></span>
+        <span class="stat"><span class="label">تكلفة ترك الوظيفة</span><span class="num">$101,385</span></span>
+        <span class="stat"><span class="label">تخارج التعادل</span><span class="num">$81.8M</span></span>
+      </div>
+    </div>
+    <div class="fanbox">
+      <div dir="ltr">
+      <svg viewBox="0 0 272 120" width="272" height="120" role="img" aria-label="مدى النتائج المحاكاة على خمس سنوات">
+        <line x1="0" y1="88" x2="272" y2="88" stroke="rgba(28,27,23,.32)" stroke-width="1"/>
+        <path d="M0,88 C70,87 140,80 200,58 C230,47 255,30 272,14 L272,96 C230,97 90,92 0,89 Z" fill="rgba(10,122,61,.12)"/>
+        <path d="M0,88 C80,87 150,84 205,74 C235,68 258,60 272,52 L272,80 C220,86 100,89 0,88.6 Z" fill="rgba(10,122,61,.22)"/>
+        <path d="M0,88 C90,87 170,82 225,72 C248,68 264,64 272,61" fill="none" stroke="#0A7A3D" stroke-width="1.8"/>
+        <line x1="0" y1="0" x2="0" y2="96" stroke="rgba(28,27,23,.14)"/>
+        <text x="224" y="112" font-family="JetBrains Mono" font-size="9" fill="#6E6B63">السنة 5</text>
+        <text x="4" y="112" font-family="JetBrains Mono" font-size="9" fill="#6E6B63">اليوم</text>
+        <text x="188" y="52" font-family="JetBrains Mono" font-size="9" fill="#0A7A3D">الوسيط</text>
+      </svg>
+      </div>
+      <div class="cap">النطاق المظلل هو الشريحة الوسطى (80%) من عمليات المحاكاة؛ والخط هو وسيط أفضلية قبول العرض، ويقطع الصفر إذا تخارجت الشركة دون <span class="num">$81.8M</span>.</div>
+    </div>
+  </div>
+
+  <div class="chapter">
+    <div class="ch-head"><span class="no">01</span><h3>الاستحقاق</h3><span class="sub">اكتمال الاستحقاق أغسطس 2030 · التخارج أغسطس 2031</span></div>
+    <div class="grid2">
+      <div dir="ltr">
+      <svg viewBox="0 0 560 130" width="100%" role="img" aria-label="جدول الاستحقاق الزمني">
+        <line x1="0" y1="110" x2="560" y2="110" stroke="rgba(28,27,23,.32)"/>
+        <g stroke="rgba(28,27,23,.10)"><line x1="112" y1="10" x2="112" y2="110"/><line x1="224" y1="10" x2="224" y2="110"/><line x1="336" y1="10" x2="336" y2="110"/><line x1="448" y1="10" x2="448" y2="110"/></g>
+        <path d="M0,110 L112,110 L112,85 L336,35 L448,20 L560,20" fill="none" stroke="#0A7A3D" stroke-width="1.8"/>
+        <path d="M0,110 L112,110 L112,85 L336,35 L448,20 L560,20 L560,110 Z" fill="rgba(10,122,61,.08)"/>
+        <circle cx="112" cy="85" r="3" fill="#0A7A3D"/><circle cx="448" cy="20" r="3" fill="#0A7A3D"/>
+        <text x="104" y="76" font-family="JetBrains Mono" font-size="9" fill="#6E6B63">التجميد · 25%</text>
+        <text x="404" y="12" font-family="JetBrains Mono" font-size="9" fill="#6E6B63">استحقاق كامل</text>
+        <g font-family="JetBrains Mono" font-size="9" fill="#6E6B63"><text x="0" y="124">2026</text><text x="104" y="124">2027</text><text x="216" y="124">2028</text><text x="328" y="124">2029</text><text x="440" y="124">2030</text><text x="536" y="124">2031</text></g>
+      </svg>
+      </div>
+      <p class="note"><b>سنة التجميد هي نافذة الخطر.</b> إن غادرت قبل أغسطس 2027 فلن تنال من الأسهم شيئًا. عند التخارج في السنة الخامسة تكون قد استحققت كامل المنحة، لذلك لا يتضمن الحكم أعلاه أي خصم للاستحقاق — قلّص الأفق دون 4 سنوات وسيتغير ذلك.</p>
+    </div>
+  </div>
+
+  <div class="chapter">
+    <div class="ch-head"><span class="no">02</span><h3>مدى النتائج</h3><span class="sub">10,000 محاكاة · البذرة <span dir="ltr">184-002</span> · قابلة للتكرار</span></div>
+    <div class="grid2">
+      <table>
+        <tr><th>الشريحة المئوية</th><th class="r">قيمة الأسهم</th><th class="r">الصافي مقابل البقاء</th></tr>
+        <tr><td>p10 — تخارج ضعيف</td><td class="num r">$18,400</td><td class="num r neg" dir="ltr">−$82,985</td></tr>
+        <tr><td>p25</td><td class="num r">$61,200</td><td class="num r neg" dir="ltr">−$40,185</td></tr>
+        <tr><td>p50 — الوسيط</td><td class="num r">$123,927</td><td class="num r pos" dir="ltr">+$22,542</td></tr>
+        <tr><td>p75</td><td class="num r">$228,600</td><td class="num r pos" dir="ltr">+$127,215</td></tr>
+        <tr><td>p90 — تخارج قوي</td><td class="num r">$391,000</td><td class="num r pos" dir="ltr">+$289,615</td></tr>
+      </table>
+      <p class="note"><b>اقرأ هذا كاحتمالات لا كتوقع.</b> في 36% من العوالم المحاكاة يتفوق البقاء — غالبًا حين يهبط التخارج دون $81.8M أو يقع قبل نهاية سنة التجميد. الذيل الصاعد هو ما يُدفع لك مقابله.</p>
+    </div>
+  </div>
+
+  <div class="chapter">
+    <div class="ch-head"><span class="no">03</span><h3>التخفيف</h3><span class="sub">من 0.50% اليوم إلى 0.26% عند التخارج</span></div>
+    <table>
+      <tr><th>الجولة</th><th class="r">المبلغ</th><th class="r">التخفيف</th><th class="r">حصتك بعدها</th></tr>
+      <tr><td>مكتملة — ما قبل البذرة والبذرة</td><td class="num r">$1.8M</td><td class="num r">23.5%</td><td class="num r">0.38%</td></tr>
+      <tr><td>السلسلة A <span style="color:var(--ann)">(متوقعة)</span></td><td class="num r">$8.0M</td><td class="num r">20.0%</td><td class="num r">0.31%</td></tr>
+      <tr><td>السلسلة B <span style="color:var(--ann)">(متوقعة)</span></td><td class="num r">$20.0M</td><td class="num r">15.0%</td><td class="num r">0.26%</td></tr>
+    </table>
+  </div>
+
+  <div class="chapter">
+    <div class="ch-head"><span class="no">04</span><h3>ما الذي يغيّر الحكم</h3><span class="sub">الحساسية</span></div>
+    <p class="note" style="max-width:72ch">ينقلب الحكم إلى <b>البقاء</b> إذا هبط التخارج دون <span class="num">$81.8M</span>، أو تجاوز نمو راتبك الحالي <span class="num">7.2%</span> سنويًا، أو غادرت قبل تجميد <span class="num">أغسطس 2027</span>. والنتيجة غير حساسة لافتراض عائد الاستثمار ضمن <span class="num">4–12%</span>.</p>
+  </div>
+
+  <footer>
+    <span>Worth It — مقارنة تجريبية</span>
+    <span class="num">البذرة <span dir="ltr">184-002</span></span>
+    <span style="margin-left:auto">تصدير PDF · مشاركة رابط · حفظ السيناريو</span>
+  </footer>
+</div>
+
+<div class="typebar" role="group" aria-label="Type pairing">
+  <span class="label">Language · اللغة</span>
+  <div style="display:flex;gap:4px">
+    <button class="on" data-lang="en">English</button>
+    <button data-lang="ar" style="font-family:'Noto Sans Arabic',sans-serif">العربية</button>
+  </div>
+  <span class="label" style="margin-top:4px">Type pairing</span>
+  <button class="on" data-t=""><span class="tb1">Newsreader</span><span class="who">editorial serif</span></button>
+  <button data-t="t2"><span class="tb2">Fraunces</span><span class="who">warmer serif</span></button>
+  <button data-t="t3"><span class="tb3">Schibsted</span><span class="who">all-sans, no mono</span></button>
+  <button data-t="t4"><span class="tb4">IBM Plex</span><span class="who">one family, report-like</span></button>
+</div>
+<script>
+  document.querySelectorAll('.typebar button[data-t]').forEach(b=>b.addEventListener('click',()=>{
+    document.body.className=b.dataset.t;
+    document.querySelectorAll('.typebar button[data-t]').forEach(x=>x.classList.toggle('on',x===b));
+  }));
+  document.querySelectorAll('.typebar button[data-lang]').forEach(b=>b.addEventListener('click',()=>{
+    const ar=b.dataset.lang==='ar';
+    document.getElementById('sheet-en').hidden=ar;
+    document.getElementById('sheet-ar').hidden=!ar;
+    document.documentElement.lang=ar?'ar':'en';
+    document.querySelectorAll('.typebar button[data-lang]').forEach(x=>x.classList.toggle('on',x===b));
+  }));
+</script>

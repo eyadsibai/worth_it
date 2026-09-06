@@ -9,6 +9,7 @@ from worth_it.models import (
     SensitivityAnalysisRequest,
     SimParamRange,
     StartupScenarioRequest,
+    StartupScenarioResponse,
     StockOptionsParams,
     TypedBaseParams,
     VariableParam,
@@ -319,3 +320,35 @@ class TestStartupScenarioRequestTyped:
             ),
         )
         assert request.startup_params.equity_type == "STOCK_OPTIONS"
+
+
+class TestStartupScenarioResponseNullability:
+    """`final_take_home_value` is always produced by
+    `calculate_startup_scenario` - 0 in the empty-frame branch, the summed
+    current-job salary otherwise - so, unlike `final_breakeven_value` (whose
+    `None` is genuine: an infinite break-even maps to `None` and renders as
+    an em dash), it should never be `None`. The response model should say so.
+    """
+
+    def _base_kwargs(self) -> dict:
+        return {
+            "results_df": [],
+            "final_payout_value": 100.0,
+            "final_opportunity_cost": 50.0,
+            "payout_label": "Your Equity Value",
+            "breakeven_label": "Breakeven Value",
+        }
+
+    def test_final_take_home_value_is_required(self):
+        """Regression for Minor 4: the field used to default to `None`,
+        letting a response silently omit the horizon's take-home total.
+        """
+        with pytest.raises(ValidationError):
+            StartupScenarioResponse(**self._base_kwargs())
+
+    def test_final_breakeven_value_stays_genuinely_optional(self):
+        """Unlike `final_take_home_value`, an omitted `final_breakeven_value`
+        must still be accepted and stay `None` - that `None` is meaningful.
+        """
+        response = StartupScenarioResponse(**self._base_kwargs(), final_take_home_value=795_690.90)
+        assert response.final_breakeven_value is None

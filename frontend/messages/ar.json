@@ -1,0 +1,144 @@
+{
+  "a11y": {
+    "skipToMainContent": "تخطَّ إلى المحتوى الرئيسي"
+  },
+  "masthead": {
+    "analysis": "التحليل",
+    "capTable": "جدول الملكية",
+    "valuation": "التقييم",
+    "about": "حول",
+    "search": "بحث",
+    "language": "اللغة",
+    "theme": "المظهر",
+    "currency": "العملة"
+  },
+  "commandPalette": {
+    "title": "لوحة الأوامر",
+    "description": "ابحث عن أمر لتنفيذه...",
+    "goTo": "الانتقال إلى {page}",
+    "switchLanguage": "تبديل اللغة",
+    "placeholder": "اكتب أمرًا أو ابحث...",
+    "empty": "لا توجد نتائج.",
+    "groups": {
+      "navigation": "التنقل",
+      "shortcuts": "الاختصارات",
+      "theme": "المظهر"
+    },
+    "theme": {
+      "light": "الوضع الفاتح",
+      "dark": "الوضع الداكن",
+      "system": "وضع النظام"
+    }
+  },
+  "landing": {
+    "title": "تحليل العرض",
+    "horizon": "الأفق",
+    "seed": "بذرة المحاكاة",
+    "npvToggle": "بدولارات اليوم (NPV)",
+    "sampleNotice": "مقارنة توضيحية — استبدلها بأرقامك",
+    "clearSample": "امسح المثال التوضيحي"
+  },
+  "states": {
+    "failure": {
+      "message": "حدث خطأ أثناء حساب هذه المقارنة.",
+      "retry": "أعد المحاولة"
+    }
+  },
+  "verdict": {
+    "takeOffer": "اقبل {offer} — فستكسب {amount} إضافية بقيمة اليوم.",
+    "takeOfferRanked": "اقبل {offer} — {amount} فوق البقاء، و{delta} فوق {runnerUp}.",
+    "stay": "ابقَ في وظيفتك — {offer} يقل عنها بمقدار {amount}.",
+    "incomplete": "أدخل {field} لعرض {offer} لحساب الحكم.",
+    "fields": {
+      "salary": "الراتب الشهري",
+      "equity": "منحة الأسهم",
+      "exit": "تقييم التخارج"
+    },
+    "stats": {
+      "probability": "احتمال تفوق العرض",
+      "equityAtExit": "قيمة الأسهم عند التخارج",
+      "costOfLeaving": "تكلفة ترك الوظيفة",
+      "breakeven": "تخارج التعادل"
+    },
+    "basis": "وسيط {runs} نتيجة محاكاة على مدى {years} سنوات، بعد التخفيف، مقارنةً بالبقاء مع استثمار فرق الراتب.",
+    "outcomeRange": "نطاق النتائج المحتملة"
+  },
+  "duel": {
+    "monthlySalary": "الراتب الشهري",
+    "annualRaise": "الزيادة السنوية",
+    "surplusRoi": "العائد على الفائض",
+    "investFrequency": "تكرار الاستثمار",
+    "monthly": "شهريًا",
+    "annually": "سنويًا",
+    "takeHome": "إجمالي الراتب على مدى الأفق الزمني",
+    "offerName": "اسم العرض",
+    "offerDefaultName": "العرض {letter}",
+    "grantType": "نوع المنحة",
+    "rsu": "أسهم مقيدة",
+    "options": "خيارات أسهم",
+    "equityGrant": "منحة الأسهم",
+    "optionCount": "عدد الخيارات",
+    "strikePrice": "سعر التنفيذ",
+    "vesting": "فترة الاستحقاق",
+    "cliff": "فترة الانتظار",
+    "exitValuation": "تقييم التخارج",
+    "exitPricePerShare": "سعر السهم عند التخارج",
+    "dilutionToExit": "محاكاة التخفيف حتى التخارج",
+    "dilutionSummary": "يتخفف إلى {pct}% عند التخارج",
+    "addOffer": "أضف عرضًا آخر",
+    "removeOffer": "إزالة العرض",
+    "stay": "البقاء",
+    "currentJob": "الوظيفة الحالية",
+    "startupTag": "عرض الشركة الناشئة",
+    "estimateValuation": "غير متأكد من قيمتها؟ قدّرها ←"
+  },
+  "chapters": {
+    "vesting": {
+      "title": "الاستحقاق",
+      "cliffAnnotation": "لا يُستحق شيء حتى السنة {cliff} — هذه فترة الخطر إذا غادرت مبكرًا."
+    },
+    "outcomes": {
+      "title": "النتائج",
+      "run": "تشغيل {runs} محاكاة",
+      "percentileHeader": "النتيجة",
+      "columnEquityValue": "قيمة الأسهم",
+      "columnNetVsStaying": "الصافي مقابل البقاء",
+      "rowWeakExit": "تخارج ضعيف",
+      "rowP25": "P25",
+      "rowMedian": "الوسيط",
+      "rowP75": "P75",
+      "rowStrongExit": "تخارج قوي",
+      "bandLabel": "نطاق النتائج الصافية المحاكاة، من المئين العاشر إلى التسعين",
+      "caption": "{runs} محاكاة · بذرة {seed}",
+      "assumptions": "الافتراضات",
+      "runsLabel": "عدد المحاكاة",
+      "reroll": "بذرة جديدة",
+      "error": "فشلت المحاكاة — حاول مرة أخرى."
+    },
+    "dilution": {
+      "title": "التخفيف",
+      "summary": "يتخفف إلى {pct}% عند التخارج",
+      "totalCaption": "يخفف جدول الجولات هذا حصتك بنسبة {pct}% إجمالًا.",
+      "round": "الجولة",
+      "year": "السنة",
+      "raise": "التمويل المجمّع",
+      "dilutionPct": "التخفيف",
+      "resultingStake": "الحصة الناتجة",
+      "statusCompleted": "مكتملة",
+      "statusUpcoming": "قادمة"
+    },
+    "sensitivity": {
+      "title": "ما الذي قد يغيّر الإجابة",
+      "exitValuation": "تقييم التخارج",
+      "exitPricePerShare": "سعر السهم عند التخارج",
+      "flipThreshold": "إذا انخفض {variable} عن ≈{value}، لن يعود العرض يتفوق على البقاء.",
+      "noFlip": "ضمن نطاق التخارج الذي اختبرناه، لا يتغيّر حكم هذا العرض.",
+      "approximation": "يفترض هذا علاقة خطية — مفيد لتحديد الاتجاه، وليس تنبؤًا دقيقًا."
+    },
+    "waterfall": {
+      "title": "التوزيع التنازلي",
+      "noTiers": "لا توجد شرائح أفضلية في النموذج — شاهد التوزيع الكامل عند التخارج في أداة جدول الملكية ←",
+      "hasTiers": "يتضمن هذا العرض شرائح أفضلية — شاهد التوزيع الكامل عند التخارج في أداة جدول الملكية ←"
+    }
+  }
+}

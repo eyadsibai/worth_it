@@ -2,17 +2,39 @@
  * Tests for AppShell component
  * Tests the main layout wrapper with header, bottom nav, and main content area
  */
+import * as React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { AppShell } from "@/components/layout/app-shell";
-import { WalkthroughProvider } from "@/lib/walkthrough";
 
-// Mock next/navigation
-vi.mock("next/navigation", () => ({
+// Mock @/i18n/navigation (the locale-aware Link/usePathname the header now uses)
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ href, children, ...props }: React.ComponentProps<"a">) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
   useRouter: () => ({
     push: vi.fn(),
   }),
   usePathname: () => "/",
+}));
+
+// Mock next-intl translations (masthead namespace used by the header, a11y
+// namespace used by SkipLink). Namespace-agnostic, matching the real
+// catalogs' flat leaf keys closely enough for these assertions.
+const messages: Record<string, string> = {
+  analysis: "Analysis",
+  capTable: "Cap Table",
+  valuation: "Valuation",
+  about: "About",
+  search: "Search",
+  language: "Language",
+  theme: "Theme",
+  skipToMainContent: "Skip to main content",
+};
+vi.mock("next-intl", () => ({
+  useTranslations: () => (key: string) => messages[key] ?? key,
 }));
 
 // Mock next-themes
@@ -32,11 +54,7 @@ vi.mock("@/components/command-palette", () => ({
 }));
 
 const renderWithProviders = (children: React.ReactNode) => {
-  return render(
-    <WalkthroughProvider>
-      <AppShell>{children}</AppShell>
-    </WalkthroughProvider>
-  );
+  return render(<AppShell>{children}</AppShell>);
 };
 
 describe("AppShell", () => {
@@ -107,11 +125,9 @@ describe("AppShell", () => {
 
     it("applies noise background pattern", () => {
       const { container } = render(
-        <WalkthroughProvider>
-          <AppShell>
-            <div>Main content</div>
-          </AppShell>
-        </WalkthroughProvider>
+        <AppShell>
+          <div>Main content</div>
+        </AppShell>
       );
 
       const wrapper = container.firstChild as HTMLElement;
